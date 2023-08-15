@@ -1,0 +1,143 @@
+# -----------------------------------------------------------------------------
+# Overhead
+# -----------------------------------------------------------------------------
+device:
+  desc: Torch device (cpu, cuda)
+  value: 'cpu'
+tensorboard:
+  desc: Whether to log learning parameters in tensorboard.
+  value: True
+
+# -----------------------------------------------------------------------------
+# Dataset
+# -----------------------------------------------------------------------------
+# https://arxiv.org/abs/2106.09305
+# Table 2: TCN should be able to get approx 0.5 MSE on ETTh1 with 2880 valid_size
+# and 24 prediction horizon
+# -----------------------------------------------------------------------------
+dataset:
+  desc: Dataset name (ETTh1, custom)
+  value: ETTh1
+valid_port:
+  desc: The portion of the train data to be used as validation set.
+  value: 0.16533
+eval_port:
+  desc: The portion of the train data to be used as eval set.
+  value: 0.16533
+pred_length:
+  desc: The number of time steps to predict into the future when rating the model.
+  value: 24
+task_type:
+  desc: The type of task to be performed. (uni_tsf, multi_tsf)
+  value: 'multi_tsf'
+# -----------------------------------------------------------------------------
+# Custom data
+# -----------------------------------------------------------------------------
+data_override:
+  desc: Only used to override the default dataset.
+  value: None
+target_override:
+  desc: Used to override the default target components.
+  value: None
+covar_override:
+  desc: Used to override the default past_covariate components.
+  value: None
+
+# -----------------------------------------------------------------------------
+# Model selection
+# -----------------------------------------------------------------------------
+model_name:
+  desc: Model name
+  value: 'ETTh1_baseline'
+arch:
+  desc: Type of model (tcn, tft)
+  value: 'tcn'
+non-AR:
+  desc: Whether to mask the target components when predicting.
+  value: False
+
+# -----------------------------------------------------------------------------
+# Model specs
+# -----------------------------------------------------------------------------
+# General
+# -----------------------------------------------------------------------------
+n_epochs:
+  desc: Number of epochs over which to train the model.
+  value: 1
+optim_algo:
+  desc: The PyTorch optimizer class to be used. (Adam, SGD, RAdam)
+  value: Adam
+optim_lr:
+  desc: The PyTorch optimizer initial learn rate
+  value: 0.0001
+optim_lr_scheduler:
+  desc: Optionally, the PyTorch learning rate scheduler class to be used. (None, StepLR)
+  value: StepLR
+lrs_gamma:
+  desc: Optionally, some keyword arguments for the PyTorch learning rate scheduler.
+  value: 0.99
+training_loss_fn:
+  desc: PyTorch loss function used for training. (MSE, CrossEntropy)
+  value: 'MSE'
+prediction_loss_fn:
+  desc: PyTorch loss function used for predicting. (MSE, CrossEntropy)
+  value: 'MSE'
+random_state:
+  desc: Control the randomness of the weights initialization.
+  value: 666
+input_chunk_length:
+  desc: Number of past time steps that are fed to the forecasting module.
+  value: 48
+output_chunk_length:
+  desc: Number of time steps the torch module will predict into the future at once.
+  value: 24
+batch_size:
+  desc:  The Number of time series (input and output sequences) used in each training pass.
+  value: 32
+dropout:
+  desc:   The dropout rate for every convolutional layer.
+  value: 0.6
+early_stop:
+  desc:   Whether to perform early stopping.
+  value: True
+# Early stopping settings
+# -----------------------------------------------------------------------------
+patience:
+  desc: Number of epoch checks with no improvement, after which training will be stopped
+  value: 5
+min_delta:
+  desc: Minimum change in the monitored quantity to qualify as an improvement
+  value: 0.005
+# TCN specific
+# -----------------------------------------------------------------------------
+kernel_size:
+  desc:  The size of every kernel in a convolutional layer.
+  value: 5
+num_filters:
+  desc:  The number of filters in a convolutional layer of the TCN.
+  value: 64
+num_layers:
+  desc:  The number of convolutional layers.
+  value: 5
+dilation_base:
+  desc:  The base of the exponent that will determine the dilation on every level.
+  value: 2
+weight_norm:
+  desc:  Boolean value indicating whether to use weight normalization.
+  value: True
+# TFT specific
+# -----------------------------------------------------------------------------
+hidden_size:
+  desc:   Hidden state size of the TFT. It is the main hyper-parameter and common across the internal TFT architecture.
+  value: 512
+lstm_layers:
+  desc:   Number of layers for the Long Short Term Memory (LSTM) Encoder and Decoder (1 is a good default).
+  value: 1
+num_attention_heads:
+  desc:   Number of attention heads (4 is a good default)
+  value: 4
+full_attention:
+  desc:   If True, applies multi-head attention query on past (encoder) and future (decoder) parts.
+  value: False
+
+
