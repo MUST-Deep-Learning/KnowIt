@@ -1,3 +1,6 @@
+# __author__ = 'tiantheunissen@gmail.com'
+# __description__ = 'Contains an example template for a custom dataset's meta data.'
+
 data_name:
   desc: The name of the new dataset option
   value: 'new_custom_data'
