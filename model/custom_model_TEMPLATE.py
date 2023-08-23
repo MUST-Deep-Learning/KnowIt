@@ -20,7 +20,7 @@ HP_dict = {'depth': 3,
            'batchnorm': True,
            'dropout': 0.5,
            'activations': 'ReLU',
-           'output_activation': 'Softmax'}
+           'output_activation': None}
 
 class Model(nn.Module):
     """
