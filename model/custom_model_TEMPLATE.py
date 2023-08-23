@@ -62,10 +62,6 @@ class Model(nn.Module):
         if not isinstance(output_activation, Union[str, None]):
             raise TypeError("output_activation must be of type str or None")
         
-        # Warnings
-        if output_activation == 'Sigmoid' and output_dim > 1:
-            warnings.warn("Sigmoid gives incorrect results for output_dim > 1. Softmax is recommended in this case.")
-        
         # Hyperparameters
         self.input_dim = input_dim
         self.output_dim = output_dim
