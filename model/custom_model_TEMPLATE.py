@@ -1,6 +1,11 @@
-__author__ = 'tiantheunissen@gmail.com'
+__author__ = 'randlerabe@gmail.com, tiantheunissen@gmail.com'
 __description__ = 'Contains an example template for a custom model. This is an MLP.'
 
+# Utils
+from typing import Union
+import warnings
+
+# Machine Learning Libs
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -14,12 +19,8 @@ HP_dict = {'depth': 3,
            'width': 256,
            'batchnorm': True,
            'dropout': 0.5,
-           'activations': 'ReLU'}
-
-# Todo:
-# 1) Many activation functions: need to ensure correct spelling with current solution   
-# 2) For classification: what type of output ie sigmoid, softmax, etc
-# 3) At setting the task type, both seem to be doing the same thing
+           'activations': 'ReLU',
+           'output_activation': 'Softmax'}
 
 class Model(nn.Module):
     """
@@ -35,7 +36,9 @@ class Model(nn.Module):
                  width: int = HP_dict['width'], 
                  batchnorm: bool = HP_dict['batchnorm'], 
                  dropout: float = HP_dict['dropout'], 
-                 activations: str = HP_dict['activations']):
+                 activations: str = HP_dict['activations'],
+                 output_activation: Union[str, None] = HP_dict['output_activation']
+                 ):
         
         super(Model, self).__init__()
         
@@ -56,6 +59,12 @@ class Model(nn.Module):
             raise TypeError("dropout must be of type float")
         if not isinstance(activations, str):
             raise TypeError("activations must be of type str")
+        if not isinstance(output_activation, Union[str, None]):
+            raise TypeError("output_activation must be of type str or None")
+        
+        # Warnings
+        if output_activation == 'Sigmoid' and output_dim > 1:
+            warnings.warn("Sigmoid gives incorrect results for output_dim > 1. Softmax is recommended in this case.")
         
         # Hyperparameters
         self.input_dim = input_dim
@@ -65,50 +74,70 @@ class Model(nn.Module):
         self.batchnorm = batchnorm
         self.dropout = dropout
         self.activations = activations
+        self.output_activation = output_activation
+        
+        # Input layer
+        layers = []
+        layers.append(nn.Linear(self.input_dim, self.hidden_width, bias=True))
+        if self.batchnorm:
+            layers.append(nn.BatchNorm1d(self.hidden_width))
+        layers.append(getattr(nn, self.activations)()) 
+        layers.append(nn.Dropout(p=self.dropout))
         
         # Construct MLP hidden layers
-        self._build_hidden_layers()
-        self.hidden_stack = nn.Sequential(*self.hidden_block)
+        layers = layers + self._build_hidden_layers()
         
         # Set output layer according to task type
         assert task_name in available_tasks, "Error: Task must be either: \'regression\' or \'classification\'"
         self.task_name = task_name
         
         if self.task_name == 'regression':
-            self.output_layer = nn.Linear(self.hidden_width, self.output_dim, bias=True)
+            output_layer = nn.Linear(self.hidden_width, self.output_dim, bias=False)
+            layers.append(output_layer)
         if self.task_name == 'classification':
-            self.output_layer = nn.Linear(self.hidden_width, self.output_dim, bias=True)    
-        
+            output_layer = nn.Linear(self.hidden_width, self.output_dim, bias=False)
+            if self.output_activation == 'Softmax':
+                output_layer_activation = getattr(nn, self.output_activation)(dim=1)
+            else:
+                output_layer_activation = getattr(nn, self.output_activation)()
+            layers.append(output_layer)
+            layers.append(output_layer_activation)
+            
+        # Merge layers together in Sequential
+        self.model = nn.Sequential(*layers)
             
     def _build_hidden_layers(self):
-        """Construct the hidden layers of the MLP using the user-specified parameters"""
+        """Construct the hidden layers of the MLP using the user-specified parameters."""
         
-        self.hidden_block = []
-        for _ in range(self.hidden_depth):
-            self.hidden_block.append(nn.Linear(self.hidden_width, self.hidden_width, bias=True))
+        hidden_blocks = []
+        for _ in range(self.hidden_depth - 1):
+            hidden_blocks.append(nn.Linear(self.hidden_width, self.hidden_width, bias=True))
             if self.batchnorm:
-                self.hidden_block.append(nn.BatchNorm1d(self.hidden_width))
-            self.hidden_block.append(getattr(nn, self.activations)()) 
-            self.hidden_block.append(nn.Dropout(p=self.dropout))
+                hidden_blocks.append(nn.BatchNorm1d(self.hidden_width))
+            hidden_blocks.append(getattr(nn, self.activations)()) 
+            hidden_blocks.append(nn.Dropout(p=self.dropout))
+        
+        return hidden_blocks
             
 
     def regression(self, input):
-        """Todo"""
+        """Performs a forward pass over the regression MLP.
         
-        # test
-        output = self.output_layer(self.hidden_stack(input))
+        Returns a tensor of shape (batch_size, output_dim)"""
         
-        return output
+        return self.model(input)
 
     def classification(self, input):
-        """Todo"""
+        """Performs a forward pass over the classifier MLP.
         
-        output = self.output_layer(self.hidden_stack(input))
+        Returns a tensor of shape (batch_size, output_dim)"""
           
-        return nn.Softmax()(output)
+        return self.model(input)
 
     def forward(self, input):
-        """Todo"""
+        """Based on the user task, passes the input to the relevant forward function.
+        
+        Returns an output tensor of shape (batch_size, output_dim)"""
         
         if self.task_name == 'regression':
             output = self.regression(input)
@@ -116,4 +145,3 @@ class Model(nn.Module):
         if self.task_name == 'classification':
             output = self.classification(input)
             return output
-        return None
