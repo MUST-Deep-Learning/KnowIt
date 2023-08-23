@@ -1,10 +1,17 @@
-__author__ = 'tiantheunissen@gmail.com'
+__author__ = 'randlerabe@gmail.com, tiantheunissen@gmail.com'
 __description__ = 'Contains an example template for a custom model. This is an MLP.'
 
+# Utils
+from typing import Union
+import warnings
+
+# Machine Learning Libs
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+
+model_name = "MLP"
 
 available_tasks = ('regression', 'classification')
 
@@ -12,8 +19,8 @@ HP_dict = {'depth': 3,
            'width': 256,
            'batchnorm': True,
            'dropout': 0.5,
-           'activations': 'ReLU'}
-
+           'activations': 'ReLU',
+           'output_activation': None}
 
 class Model(nn.Module):
     """
@@ -21,61 +28,116 @@ class Model(nn.Module):
     Paper link: ???
     """
 
-    def __init__(self, hp_dict):
+    def __init__(self, 
+                 input_dim: int, 
+                 output_dim: int,
+                 task_name: str, 
+                 depth: int = HP_dict['depth'], 
+                 width: int = HP_dict['width'], 
+                 batchnorm: bool = HP_dict['batchnorm'], 
+                 dropout: float = HP_dict['dropout'], 
+                 activations: str = HP_dict['activations'],
+                 output_activation: Union[str, None] = HP_dict['output_activation']
+                 ):
+        
         super(Model, self).__init__()
-        self.task_name = hp_dict['task']
-        self.input_dim = hp_dict['input_dim']
-        self.output_dim = hp_dict['output_dim']
-        self.hidden_dim = hp_dict['hidden_dim']
-        self.batchnorm = hp_dict['batchnorm']
-
-        self.hidden_block = [nn.Linear(self.hidden_dim, self.hidden_dim, bias=True),
-                             nn.BatchNorm1d(self.hidden_dim),
-                             nn.ReLU(),
-                             nn.Dropout(p=)]
-
+        
+        # Input data type check
+        if not isinstance(input_dim, int):
+            raise TypeError("input_dim must be of type int")
+        if not isinstance(output_dim, int):
+            raise TypeError("output_dim must be of type int")
+        if not isinstance(task_name, str):
+            raise TypeError("task_name must be of type str")
+        if not isinstance(depth, int):
+            raise TypeError("depth must be of type int")
+        if not isinstance(width, int):
+            raise TypeError("width must be of type int")
+        if not isinstance(batchnorm, bool):
+            raise TypeError("batchnorm must be of type bool")
+        if not isinstance(dropout, float):
+            raise TypeError("dropout must be of type float")
+        if not isinstance(activations, str):
+            raise TypeError("activations must be of type str")
+        if not isinstance(output_activation, Union[str, None]):
+            raise TypeError("output_activation must be of type str or None")
+        
+        # Hyperparameters
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.hidden_depth = depth
+        self.hidden_width = width
+        self.batchnorm = batchnorm
+        self.dropout = dropout
+        self.activations = activations
+        self.output_activation = output_activation
+        
+        # Input layer
+        layers = []
+        layers.append(nn.Linear(self.input_dim, self.hidden_width, bias=True))
+        if self.batchnorm:
+            layers.append(nn.BatchNorm1d(self.hidden_width))
+        layers.append(getattr(nn, self.activations)()) 
+        layers.append(nn.Dropout(p=self.dropout))
+        
+        # Construct MLP hidden layers
+        layers = layers + self._build_hidden_layers()
+        
+        # Set output layer according to task type
+        assert task_name in available_tasks, "Error: Task must be either: \'regression\' or \'classification\'"
+        self.task_name = task_name
+        
         if self.task_name == 'regression':
-            self.projection = nn.Linear(self.hidden_dim, self.output_dim, bias=True)
+            output_layer = nn.Linear(self.hidden_width, self.output_dim, bias=False)
+            layers.append(output_layer)
         if self.task_name == 'classification':
-            self.projection = nn.Linear(self.hidden_dim, self.output_dim, bias=True)
+            output_layer = nn.Linear(self.hidden_width, self.output_dim, bias=False)
+            if self.output_activation == 'Softmax':
+                output_layer_activation = getattr(nn, self.output_activation)(dim=1)
+            else:
+                output_layer_activation = getattr(nn, self.output_activation)()
+            layers.append(output_layer)
+            layers.append(output_layer_activation)
+            
+        # Merge layers together in Sequential
+        self.model = nn.Sequential(*layers)
+            
+    def _build_hidden_layers(self):
+        """Construct the hidden layers of the MLP using the user-specified parameters."""
+        
+        hidden_blocks = []
+        for _ in range(self.hidden_depth - 1):
+            hidden_blocks.append(nn.Linear(self.hidden_width, self.hidden_width, bias=True))
+            if self.batchnorm:
+                hidden_blocks.append(nn.BatchNorm1d(self.hidden_width))
+            hidden_blocks.append(getattr(nn, self.activations)()) 
+            hidden_blocks.append(nn.Dropout(p=self.dropout))
+        
+        return hidden_blocks
+            
 
-    def regression(self, x_enc, x_mark_enc):
-        # Embedding
-        enc_out = self.enc_embedding(x_enc, None)
-        enc_out, attns = self.encoder(enc_out, attn_mask=None)
+    def regression(self, input):
+        """Performs a forward pass over the regression MLP.
+        
+        Returns a tensor of shape (batch_size, output_dim)"""
+        
+        return self.model(input)
 
-        # Output
-        output = self.act(enc_out)  # the output transformer encoder/decoder embeddings don't include non-linearity
-        output = self.dropout(output)
-        output = output * x_mark_enc.unsqueeze(-1)  # zero-out padding embeddings
-        output = output.reshape(output.shape[0], -1)  # (batch_size, seq_length * d_model)
-        output = self.projection(output)  # (batch_size, num_classes)
-        return output
+    def classification(self, input):
+        """Performs a forward pass over the classifier MLP.
+        
+        Returns a tensor of shape (batch_size, output_dim)"""
+          
+        return self.model(input)
 
-    def classification(self, x_enc, x_mark_enc):
-        # Embedding
-        enc_out = self.enc_embedding(x_enc, None)
-        enc_out, attns = self.encoder(enc_out, attn_mask=None)
-
-        # Output
-        output = self.act(enc_out)  # the output transformer encoder/decoder embeddings don't include non-linearity
-        output = self.dropout(output)
-        output = output * x_mark_enc.unsqueeze(-1)  # zero-out padding embeddings
-        output = output.reshape(output.shape[0], -1)  # (batch_size, seq_length * d_model)
-        output = self.projection(output)  # (batch_size, num_classes)
-        return output
-
-    def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
-        if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
-            dec_out = self.forecast(x_enc, x_mark_enc, x_dec, x_mark_dec)
-            return dec_out[:, -self.pred_len:, :]  # [B, L, D]
-        if self.task_name == 'imputation':
-            dec_out = self.imputation(x_enc, x_mark_enc, x_dec, x_mark_dec, mask)
-            return dec_out  # [B, L, D]
-        if self.task_name == 'anomaly_detection':
-            dec_out = self.anomaly_detection(x_enc)
-            return dec_out  # [B, L, D]
+    def forward(self, input):
+        """Based on the user task, passes the input to the relevant forward function.
+        
+        Returns an output tensor of shape (batch_size, output_dim)"""
+        
+        if self.task_name == 'regression':
+            output = self.regression(input)
+            return output
         if self.task_name == 'classification':
-            dec_out = self.classification(x_enc, x_mark_enc)
-            return dec_out  # [B, N]
-        return None
+            output = self.classification(input)
+            return output
