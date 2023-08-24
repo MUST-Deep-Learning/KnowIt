@@ -15,12 +15,21 @@ model_name = "MLP"
 
 available_tasks = ('regression', 'classification')
 
-HP_dict = {'depth': 3,
+# Default hyperparameter values
+HP_defaults_dict = {'depth': 3,
            'width': 256,
            'batchnorm': True,
            'dropout': 0.5,
            'activations': 'ReLU',
            'output_activation': None}
+
+# The ranges for each hyperparameter (used later for Knowit Tuner module)
+HP_ranges_dict = {'depth': range(2, 128, 1),
+           'width': range(2, 1024, 1),
+           'batchnorm': (True, False),
+           'dropout': np.arange(0, 1, 0.1),
+           'activations': ('ReLU', 'LeakyReLU', 'Tanh', 'GLU'), # see Pytorch docs for more options
+           'output_activation': (None, 'Sigmoid', 'Softmax')}
 
 class Model(nn.Module):
     """
@@ -32,12 +41,12 @@ class Model(nn.Module):
                  input_dim: int, 
                  output_dim: int,
                  task_name: str, 
-                 depth: int = HP_dict['depth'], 
-                 width: int = HP_dict['width'], 
-                 batchnorm: bool = HP_dict['batchnorm'], 
-                 dropout: float = HP_dict['dropout'], 
-                 activations: str = HP_dict['activations'],
-                 output_activation: Union[str, None] = HP_dict['output_activation']
+                 depth: int = HP_defaults_dict['depth'], 
+                 width: int = HP_defaults_dict['width'], 
+                 batchnorm: bool = HP_defaults_dict['batchnorm'], 
+                 dropout: float = HP_defaults_dict['dropout'], 
+                 activations: str = HP_defaults_dict['activations'],
+                 output_activation: Union[str, None] = HP_defaults_dict['output_activation']
                  ):
         
         super(Model, self).__init__()
