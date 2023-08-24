@@ -24,10 +24,10 @@ HP_defaults_dict = {'depth': 3,
            'output_activation': None}
 
 # The ranges for each hyperparameter (used later for Knowit Tuner module)
-HP_ranges_dict = {'depth': range(2, 128, 1),
-           'width': range(2, 1024, 1),
+HP_ranges_dict = {'depth': range(1, 21, 1),
+           'width': range(2, 1025, 1),
            'batchnorm': (True, False),
-           'dropout': np.arange(0, 1, 0.1),
+           'dropout': np.arange(0, 1.1, 0.1),
            'activations': ('ReLU', 'LeakyReLU', 'Tanh', 'GLU'), # see Pytorch docs for more options
            'output_activation': (None, 'Sigmoid', 'Softmax')}
 
