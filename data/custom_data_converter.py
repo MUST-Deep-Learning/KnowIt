@@ -1,8 +1,10 @@
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the methods to convert raw data to a dataset option.'
 
+
 import pandas as pd
 import numpy as np
+from collections import defaultdict
 
 from helpers.read_configs import load_from_path
 from helpers.logger import get_logger
@@ -10,10 +12,12 @@ from helpers.logger import get_logger
 logger = get_logger()
 
 
-def extract_df(path, meta=None, fill_nans=True):
-
-    # load dataframe
+def convert_df_from_path(path, fill_nans, meta=None):
     data_df = load_from_path(path)
+    return convert_df(data_df, fill_nans, meta)
+
+
+def convert_df(data_df, fill_nans, meta=None):
 
     # find meta data
     data_meta = meta
@@ -37,23 +41,47 @@ def extract_df(path, meta=None, fill_nans=True):
     the_data = clean_data(the_data, data_meta, fill_nans)
     the_data = compile_data(the_data, data_meta)
 
-    data_meta['the_data'] = the_data
+    # construct dataset
+    dataset_dict = {}
+    dataset_dict.update(data_meta)
+    dataset_dict['the_data'] = the_data
 
-    return data_meta
+    return dataset_dict
 
 
 def compile_data(the_data, data_meta):
 
+    back_chunk = data_meta['io_window'][0]
+    forward_chunk = data_meta['io_window'][1]
+    chunk_size = sum(data_meta['io_window'])
+
+    to_remove = defaultdict(list)
     for i in the_data:
         for s in range(len(the_data[i])):
+
             d = the_data[i][s]
-            t = d.index
-            x = d[data_meta['input_components']]
-            y = d[data_meta['target_components']]
-            #TODO: WIP
+            t = d.index.to_numpy()
+            x = d[data_meta['input_components']].to_numpy()
+            y = d[data_meta['target_components']].to_numpy()
+            if len(t) > chunk_size:
+                # kill targets that don't have corresponding
+                y[:back_chunk, :] = np.nan
+                y[-forward_chunk:, :] = np.nan
+            else:
+                to_remove[i].append(s)
+            the_data[i][s] = {'t': t, 'x': x, 'y': y}
 
+    # remove slices that are too short for even 1 prediction
+    for i in to_remove:
+        to_remove[i].reverse()
+        for s in to_remove[i]:
+            del the_data[i][s]
 
-            ping = 0
+    # remove instances that don't have any appropriate slices
+    instances = list(the_data.keys())
+    for i in instances:
+        if len(the_data[i]) == 0:
+            del the_data[i]
 
     return the_data
 
@@ -185,6 +213,3 @@ def check_df(df, meta):
     df[meta['target_components']].apply(lambda s: pd.to_numeric(s, errors='coerce').notnull().all())
 
     return df
-
-
-extract_df('/home/tian/postdoc_work/knowit/dummy_raw_data/dummy_zero/dummy_zero.pickle')

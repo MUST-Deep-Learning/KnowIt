@@ -1,3 +1,4 @@
+import os
 import yaml
 import bz2
 import pickle
@@ -8,6 +9,15 @@ import lzma
 from helpers.logger import get_logger
 
 logger = get_logger()
+
+def safe_dump(data, path, safe_mode):
+    if os.path.exists(path) and safe_mode:
+        logger.error('File already exists: %s.',
+                     path)
+        exit(101)
+    else:
+        dump_at_path(data, path)
+
 
 def yaml_to_dict(config_path):
 
