@@ -1,7 +1,7 @@
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the prepared dataset class.'
 
-from data.dataset import BaseDataset
+from data.base_dataset import BaseDataset
 
 class PreparedDataset(BaseDataset):
 
