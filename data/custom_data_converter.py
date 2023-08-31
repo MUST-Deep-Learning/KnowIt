@@ -12,12 +12,12 @@ from helpers.logger import get_logger
 logger = get_logger()
 
 
-def convert_df_from_path(path, fill_nans, meta=None):
+def convert_df_from_path(path, required_meta, fill_nans, meta=None):
     data_df = load_from_path(path)
-    return convert_df(data_df, fill_nans, meta)
+    return convert_df(data_df, required_meta, fill_nans, meta)
 
 
-def convert_df(data_df, fill_nans, meta=None):
+def convert_df(data_df, required_meta, fill_nans, meta=None):
 
     # find meta data
     data_meta = meta
@@ -28,7 +28,7 @@ def convert_df(data_df, fill_nans, meta=None):
         exit(101)
 
     # check dataframe format
-    data_df = check_df(data_df, data_meta)
+    data_df = check_df(data_df, data_meta, required_meta)
 
     # split dataframe by instance if applicable
     the_data = {}
@@ -51,9 +51,21 @@ def convert_df(data_df, fill_nans, meta=None):
 
 def compile_data(the_data, data_meta):
 
-    back_chunk = data_meta['io_window'][0]
-    forward_chunk = data_meta['io_window'][1]
-    chunk_size = sum(data_meta['io_window'])
+    x0 = data_meta['in_chunk'][0]
+    x1 = data_meta['in_chunk'][1]
+    y0 = data_meta['out_chunk'][0]
+    y1 = data_meta['out_chunk'][1]
+    if x0 > x1:
+        logger.error('in_chunk undefined range %s', str(data_meta['in_chunk']))
+        exit(101)
+    if y0 > y1:
+        logger.error('out_chunk undefined range %s', str(data_meta['out_chunk']))
+        exit(101)
+
+    back_chunk = min(x0, y0)
+    forward_chunk = max(x1, y1)
+
+    chunk_size = sum([abs(back_chunk), abs(forward_chunk)])
 
     to_remove = defaultdict(list)
     for i in the_data:
@@ -65,8 +77,10 @@ def compile_data(the_data, data_meta):
             y = d[data_meta['target_components']].to_numpy()
             if len(t) > chunk_size:
                 # kill targets that don't have corresponding
-                y[:back_chunk, :] = np.nan
-                y[-forward_chunk:, :] = np.nan
+                if back_chunk < 0:
+                    y[:abs(back_chunk), :] = np.nan
+                if forward_chunk > 0:
+                    y[-forward_chunk:, :] = np.nan
             else:
                 to_remove[i].append(s)
             the_data[i][s] = {'t': t, 'x': x, 'y': y}
@@ -170,7 +184,24 @@ def split_on_nan(d, components):
     return d_slices
 
 
-def check_df(df, meta):
+def check_df(df, meta, required_meta):
+
+    # check that all meta arguments are present
+    if not set(required_meta).issubset(set(list(meta.keys()))):
+        logger.error('Not all meta arguments provided.')
+        exit(101)
+
+    # check meta type format
+    for m in meta:
+        good = False
+        for m_type in required_meta[m]:
+            if isinstance(meta[m], m_type):
+                good = True
+                break
+        if not good:
+            logger.error('Provided %s should be of type %s.', m, str(required_meta[m]))
+            exit(101)
+
 
     # check all required present components
     components = set(list(df.columns))

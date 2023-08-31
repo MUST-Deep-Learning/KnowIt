@@ -3,6 +3,7 @@ __description__ = 'Contains the base dataset class for Knowit.'
 
 import pandas as pd
 import numpy as np
+import datetime
 
 from env.env_paths import dataset_path
 from custom_data_converter import convert_df_from_path, convert_df
@@ -15,17 +16,16 @@ logger = get_logger()
 
 class BaseDataset:
 
-    def __init__(self, value, init_method: str):
+    def __init__(self, value, init_method: str,
+                 safe_mode: bool = True,
+                 fill_nans: bool = True):
 
-        self.name = ''
-        self.task = ''
-        self.input_components = []
-        self.target_components = []
-        self.time_delta = None
-        self.io_window = None
+        for m in self.required_meta():
+            self.__setattr__(m, None)
+
         self.the_data = None
 
-        self.instances = []
+        self.instances = None
         self.num_instances = None
         self.num_slices = None
         self.num_timesteps = None
@@ -34,21 +34,21 @@ class BaseDataset:
         if init_method == 'option':
             self.args_from_option(value)
         elif init_method == 'path':
-            self.args_from_path(value)
+            self.args_from_path(value, safe_mode, fill_nans)
         elif init_method == 'df':
-            self.args_from_df(value)
+            self.args_from_df(value, safe_mode, fill_nans)
         else:
             self.populate_meta(value)
 
-    def args_from_path(self, path: str, safe_mode=True):
+    def args_from_path(self, path: str, safe_mode, fill_nans):
         """create meta from path to raw data """
-        args_dict = convert_df_from_path(path, fill_nans=True)
+        args_dict = convert_df_from_path(path, self.required_meta(), fill_nans=fill_nans)
         safe_dump(args_dict, dataset_path(args_dict['name']), safe_mode)
         self.populate_meta(args_dict)
 
-    def args_from_df(self, df: pd.DataFrame, safe_mode=True):
+    def args_from_df(self, df: pd.DataFrame, safe_mode, fill_nans):
         """create meta from dataframe """
-        args_dict = convert_df(df, fill_nans=True)
+        args_dict = convert_df(df, self.required_meta(), fill_nans=fill_nans)
         safe_dump(args_dict, dataset_path(args_dict['name']), safe_mode)
         self.populate_meta(args_dict)
 
@@ -62,12 +62,9 @@ class BaseDataset:
 
     def populate_meta(self, args):
 
-        self.name = args['name']
-        self.task = args['task']
-        self.input_components = args['input_components']
-        self.target_components = args['target_components']
-        self.time_delta = args['time_delta']
-        self.io_window = args['io_window']
+        for m in self.required_meta():
+            self.__setattr__(m, args[m])
+
         self.the_data = args['the_data']
 
         self.instances = list(self.the_data.keys())
@@ -78,10 +75,12 @@ class BaseDataset:
                                               for s in self.the_data[i]])
                                          for i in self.the_data])
 
+    @staticmethod
+    def required_meta():
+        return {'name': (str,), 'task': (str,), 'input_components': (list,),
+                'target_components': (list,), 'time_delta': (pd.Timedelta, datetime.timedelta),
+                'in_chunk': (list, tuple), 'out_chunk': (list, tuple)}
 
-# DS = Dataset.from_path('/home/tian/postdoc_work/knowit/dummy_raw_data/dummy_zero/dummy_zero.pickle')
-# DS = BaseDataset.from_option('dummy_zero')
-# ping = 0
 
 # DS = BaseDataset('/home/tian/postdoc_work/knowit/dummy_raw_data/dummy_zero/dummy_zero.pickle', init_method='path')
 # DS = BaseDataset('dummy_zero', init_method='option')
