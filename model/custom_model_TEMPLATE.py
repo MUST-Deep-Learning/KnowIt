@@ -99,14 +99,22 @@ class Model(nn.Module):
         if self.task_name == 'regression':
             output_layer = nn.Linear(self.hidden_width, self.output_dim, bias=False)
             layers.append(output_layer)
+            
         if self.task_name == 'classification':
             output_layer = nn.Linear(self.hidden_width, self.output_dim, bias=False)
+            # Output layer is determined by choice of activation function
             if self.output_activation == 'Softmax':
-                output_layer_activation = getattr(nn, self.output_activation)(dim=1)
+                output_layer_activation = getattr(nn, self.output_activation)(dim=1) # Softmax needs the dim parameter
+                layers.append(output_layer)
+                layers.append(output_layer_activation)
+            elif self.output_activation == None:
+                layers.append(output_layer) # No activation function
             else:
                 output_layer_activation = getattr(nn, self.output_activation)()
-            layers.append(output_layer)
-            layers.append(output_layer_activation)
+                layers.append(output_layer)
+                layers.append(output_layer_activation)
+                
+            
             
         # Merge layers together in Sequential
         self.model = nn.Sequential(*layers)
