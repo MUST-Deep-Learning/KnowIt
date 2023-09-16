@@ -24,7 +24,7 @@ class BaseDataset:
             self.__setattr__(m, None)
 
         self.the_data = None
-
+        self.data_path = None
         self.instances = None
         self.num_instances = None
         self.num_slices = None
@@ -66,7 +66,7 @@ class BaseDataset:
             self.__setattr__(m, args[m])
 
         self.the_data = args['the_data']
-
+        self.data_path = dataset_path(args['name'])
         self.instances = list(self.the_data.keys())
         self.num_instances = len(self.instances)
         self.num_slices = sum([len(self.the_data[i]) for i in self.the_data])
@@ -81,7 +81,10 @@ class BaseDataset:
                 'target_components': (list,), 'time_delta': (pd.Timedelta, datetime.timedelta),
                 'in_chunk': (list, tuple), 'out_chunk': (list, tuple)}
 
+# ---------------------DEBUGGING----------------------------------------------------------------------------------------
 
 # DS = BaseDataset('/home/tian/postdoc_work/knowit/dummy_raw_data/dummy_zero/dummy_zero.pickle', init_method='path')
 # DS = BaseDataset('dummy_zero', init_method='option')
 # ping = 0
+
+# ---------------------DEBUGGING----------------------------------------------------------------------------------------

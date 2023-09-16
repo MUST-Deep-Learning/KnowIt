@@ -68,7 +68,7 @@ class Model(nn.Module):
             raise TypeError("dropout must be of type float")
         if not isinstance(activations, str):
             raise TypeError("activations must be of type str")
-        if not isinstance(output_activation, Union[str, None]):
+        if not isinstance(output_activation, str) and output_activation is not None:
             raise TypeError("output_activation must be of type str or None")
         
         # Hyperparameters

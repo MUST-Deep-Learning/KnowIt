@@ -7,9 +7,8 @@ from helpers.logger import get_logger
 
 logger = get_logger()
 
-def get_target_splits(data, method, portions, instances, num_targets, seed=123):
+def get_target_splits(data, method, portions, instances, num_targets, seed):
 
-    # default seed = 123
     np.random.seed(seed)
 
     # time, instance, slice, relative position
@@ -105,8 +104,9 @@ def get_target_data(data, instances):
     def constant_col(count, val):
         return np.array([val for t in range(count)])
 
-    def relative_col(count):
-        return np.array([t for t in range(count)])
+    def relative_col(mask):
+        vals = np.argwhere(mask)
+        return vals.squeeze()
 
     times = []
     targets = []
@@ -118,7 +118,7 @@ def get_target_data(data, instances):
             nn_count = np.count_nonzero(mask)
             targets.append(np.vstack((constant_col(nn_count, i),
                                       constant_col(nn_count, s),
-                                      relative_col(nn_count))))
+                                      relative_col(mask))))
             s += 1
 
     targets = np.concatenate(targets, axis=1)
