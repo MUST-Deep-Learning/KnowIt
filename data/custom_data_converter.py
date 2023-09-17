@@ -75,6 +75,7 @@ def compile_data(the_data, data_meta):
             t = d.index.to_numpy()
             x = d[data_meta['input_components']].to_numpy()
             y = d[data_meta['target_components']].to_numpy()
+            y = y.astype(float)
             if len(t) > chunk_size:
                 # kill targets that don't have corresponding
                 if back_chunk < 0:
@@ -102,6 +103,7 @@ def compile_data(the_data, data_meta):
 
 def clean_data(the_data, data_meta, fill_nans):
 
+    instances_to_keep = []
     for i in the_data:
 
         df = the_data[i]
@@ -136,7 +138,14 @@ def clean_data(the_data, data_meta, fill_nans):
             else:
                 new_d_slices.append(d)
 
-        the_data[i] = new_d_slices
+        if len(new_d_slices) > 0:
+            the_data[i] = new_d_slices
+            instances_to_keep.append(i)
+        else:
+            logger.warning('Removing instance %s.', str(i))
+
+    the_data = dict((i, the_data[i]) for i in instances_to_keep)
+
 
     return the_data
 
@@ -168,18 +177,22 @@ def split_on_nan(d, components):
     d = d.copy()
     heads = list(d.columns)
     d_slices = []
-    d['nan_group'] = d[components].isnull().any(axis=1).cumsum()
-    if d['nan_group'][0] == 1:
-        d['nan_group'] = d['nan_group'] - 1
-    unique_groups = d['nan_group'].value_counts(sort=False).to_numpy()
-    num_unique_groups = len(unique_groups)
-    for u in range(num_unique_groups):
-        potential_series = d.loc[d['nan_group'] == u, heads]
-        if not potential_series.isnull().values.any():
-            d_slices.append(potential_series)
-        elif potential_series.shape[0] != 1:
-            potential_series = potential_series.drop(index=potential_series.index[0], axis=0)
-            d_slices.append(potential_series)
+
+    if d.notna().all(axis=1).any():
+        d['nan_group'] = d[components].isnull().any(axis=1).cumsum()
+        if d['nan_group'][0] == 1:
+            d['nan_group'] = d['nan_group'] - 1
+        unique_groups = d['nan_group'].value_counts(sort=False).to_numpy()
+        num_unique_groups = len(unique_groups)
+        for u in range(num_unique_groups):
+            potential_series = d.loc[d['nan_group'] == u, heads]
+            if not potential_series.isnull().values.any():
+                d_slices.append(potential_series)
+            elif potential_series.shape[0] != 1:
+                potential_series = potential_series.drop(index=potential_series.index[0], axis=0)
+                d_slices.append(potential_series)
+    else:
+        logger.warning('No non-nan rows to split on. Ignoring slice.')
 
     return d_slices
 
@@ -217,7 +230,8 @@ def check_df(df, meta, required_meta):
 
     # check unknown components
     unknown_components = components - input_components.union(target_components)
-    if len(unknown_components) > 0 and unknown_components != set(['instance']):
+    unknown_components.remove('instance')
+    if len(unknown_components) > 0:
         logger.warning('Some unknown components in dataframe ignored: %s.',
                        str(unknown_components))
         df = df.drop(unknown_components, axis=1)

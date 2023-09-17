@@ -87,4 +87,8 @@ class BaseDataset:
 # DS = BaseDataset('dummy_zero', init_method='option')
 # ping = 0
 
+# DS = BaseDataset('/home/tian/postdoc_work/knowit/prey_capture_model/penguin_dummy.pickle', init_method='path', fill_nans=False)
+# DS = BaseDataset('penguin_dummy', init_method='option')
+# ping = 0
+
 # ---------------------DEBUGGING----------------------------------------------------------------------------------------

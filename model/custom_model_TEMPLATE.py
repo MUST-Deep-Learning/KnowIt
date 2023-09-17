@@ -103,7 +103,7 @@ class Model(nn.Module):
             output_layer = nn.Linear(self.hidden_width, self.output_dim, bias=False)
             if self.output_activation == 'Softmax':
                 output_layer_activation = getattr(nn, self.output_activation)(dim=1)
-            else:
+            elif self.output_activation is not None:
                 output_layer_activation = getattr(nn, self.output_activation)()
             layers.append(output_layer)
             layers.append(output_layer_activation)

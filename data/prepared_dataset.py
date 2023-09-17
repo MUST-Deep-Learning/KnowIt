@@ -142,42 +142,66 @@ class Customdataset(Dataset):
 # torch.manual_seed(DS.seed)
 #
 # train_loader = DS.get_dataloader('train')
-# from torch.optim import SGD, Adam
+# valid_loader = DS.get_dataloader('valid')
+#
+# from torch.optim import SGD, Adam, RAdam
 # from torch.nn import MSELoss
 # from model.custom_model_TEMPLATE import Model
 # in_dim = int(np.prod(DS.in_shape))
 # out_dim = int(np.prod(DS.out_shape))
-# my_mlp = Model(in_dim, out_dim, 'regression', width=512, depth=4, dropout=0.)
+# my_mlp = Model(in_dim, out_dim, 'regression',
+#                width=512, depth=5, dropout=0.3, batchnorm=False)
 # my_mlp.to(train_device)
-# optimizer = Adam(my_mlp.parameters(), lr=0.0005)
+# optimizer = Adam(my_mlp.parameters(), lr=0.0001)
 # loss_fn = MSELoss()
+# max_epoch = 500
 #
-# for epoch in range(500):
-#
-#     losses = []
+# epoch_losses = []
+# for epoch in range(max_epoch):
+#     train_batch_losses = []
 #     for batch_id, batch in enumerate(train_loader):
-#
 #         x = batch['x']
 #         y = batch['y']
 #         x = x.view(DS.batch_size, in_dim)
-#
 #         x = x.to(train_device)
 #         y = y.to(train_device)
-#
-#         # forward pass
 #         optimizer.zero_grad()
 #         h_n = my_mlp.forward(x)
-#         # compute and store batch loss
 #         loss = loss_fn(h_n, y)
-#         # compute gradient of the loss with respect to model parameters
 #         loss.backward()
-#         # update parameters linked to optimizer
 #         optimizer.step()
+#         train_batch_losses.append(loss.item())
+#     train_batch_losses = np.array(train_batch_losses)
+#     train_epoch_loss = (np.mean(train_batch_losses), np.std(train_batch_losses))
 #
-#         losses.append(loss.item())
+#     my_mlp.eval()
+#     valid_batch_losses = []
+#     for batch_id, batch in enumerate(valid_loader):
+#         x = batch['x']
+#         y = batch['y']
+#         x = x.view(x.shape[0], in_dim)
+#         x = x.to(train_device)
+#         y = y.to(train_device)
+#         h_n = my_mlp.forward(x)
+#         loss = loss_fn(h_n, y)
+#         valid_batch_losses.append(loss.item())
+#     valid_batch_losses = np.array(valid_batch_losses)
+#     valid_epoch_loss = (np.mean(valid_batch_losses), np.std(valid_batch_losses))
+#     my_mlp.train()
 #
-#     losses = np.array(losses)
-#     print(str(epoch) + '.   ' + str((np.mean(losses), np.std(losses))))
+#     print(str(epoch) + '.   Train: ' + str(train_epoch_loss[0]) + ', Valid: ' + str(valid_epoch_loss[0]))
+#     epoch_losses.append([train_epoch_loss[0], valid_epoch_loss[0]])
+#
+# epoch_losses = np.array(epoch_losses)
+# import matplotlib.pyplot as plt
+#
+# plt.plot(epoch_losses[:, 0], label='train MSE', color='green', alpha=0.7)
+# plt.plot(epoch_losses[:, 1], label='valid MSE', color='red', alpha=0.7)
+# plt.legend()
+# plt.xlabel('Epoch')
+# plt.show()
+# plt.close()
+#
 #
 # exit(101)
 
