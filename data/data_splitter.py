@@ -7,11 +7,12 @@ from helpers.logger import get_logger
 
 logger = get_logger()
 
-def get_target_splits(data, method, portions, instances, num_targets, seed):
+
+def get_target_splits(data, method, portions, instances, num_targets, seed, limit):
 
     np.random.seed(seed)
 
-    # time, instance, slice, relative position
+    # [instance, slice, relative position]
     targets, times = get_target_data(data, instances)
 
     if len(targets) != num_targets:
@@ -21,6 +22,14 @@ def get_target_splits(data, method, portions, instances, num_targets, seed):
     if sum(portions) != 1.0:
         logger.error('Split portions do not add up to one.')
         exit(101)
+
+    if limit != -1:
+        if limit > num_targets:
+            logger.error('Data limiter %s larger than available training data.', str(limit))
+            exit(101)
+        else:
+            logger.warning('Limiting data to %s points.', str(limit))
+            targets = targets[:limit, :]
 
     train_targets, valid_targets, eval_targets = do_split(targets, times, portions, method)
 
@@ -50,6 +59,11 @@ def do_split(target_data, times, portions, method):
         exit(101)
 
     train_selection, valid_selection, eval_selection = ordered_split(new_order, portions)
+
+    if len(train_selection) < 1 or len(valid_selection) < 1 or len(eval_selection) < 1:
+        logger.error('Data segments too limited for selected splitting method %s', method)
+        exit(101)
+
     train_targets = sample_and_stack(target_data, sub_indices, train_selection)
     valid_targets = sample_and_stack(target_data, sub_indices, valid_selection)
     eval_targets = sample_and_stack(target_data, sub_indices, eval_selection)
