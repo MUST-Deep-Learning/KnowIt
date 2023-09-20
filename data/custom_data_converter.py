@@ -1,6 +1,26 @@
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the methods to convert raw data to a dataset option.'
 
+"""
+
+A BaseDataset object can be initialized with a pd.DataFrame containing raw, unclean data,
+or a path to one. This script contains the methods that convert such a dataframe into the required 
+dataset option.
+
+--------------
+Expected input
+--------------
+
+Whether a dataframe `df` or path to one is provided, we expect it to meet some conditions:
+1.  df.attrs must contain the required (as defined in BaseDataset.required_base_meta) meta data.
+    Otherwise it can be provided in the form of a 'meta' dictionary in convert_df and convert_df_from_path.
+2.  The headers of df must contain the components defined in the metadata from point 1.
+3.  df must be time indexed.
+4.  df must not contain any all-NaN columns.
+5.  Values in the columns corresponding to the input components (as defined in the metadata) must be numeric.
+    If the task is 'regression', this also applies to the target components.
+
+"""
 
 import pandas as pd
 import numpy as np
@@ -13,11 +33,34 @@ logger = get_logger()
 
 
 def convert_df_from_path(path, required_meta, fill_nans, meta=None):
+    """load the given dataframe and pass it along"""
     data_df = load_from_path(path)
     return convert_df(data_df, required_meta, fill_nans, meta)
 
 
 def convert_df(data_df, required_meta, fill_nans, meta=None):
+    """
+    Convert a DataFrame into a dataset dictionary with metadata.
+
+    Parameters:
+    data_df (pandas.DataFrame): The DataFrame containing the raw data.
+    required_meta (dict[str]): A dictionary of required metadata.
+    fill_nans (bool): If True, fill missing values with linear interpolation during data cleaning.
+    meta (dict, optional): A dictionary containing metadata for the dataset. If not provided,
+                          the function will attempt to extract metadata from the DataFrame's attributes.
+
+    Returns:
+    dict: A dictionary containing the dataset and its metadata.
+
+    The function performs the following steps:
+    1. Extract or use provided metadata for the dataset.
+    2. Check the format of the DataFrame to ensure it matches the expected format.
+    3. Split the DataFrame into instances if an 'instance' column is present.
+    4. Clean the data by filling or splitting missing values and other necessary operations.
+    5. Compile the cleaned data into a structured format.
+    6. Construct a dataset dictionary with metadata and the cleaned data.
+
+    """
 
     # find meta data
     data_meta = meta
@@ -51,6 +94,9 @@ def convert_df(data_df, required_meta, fill_nans, meta=None):
 
 def compile_data(the_data, data_meta):
 
+    """Format the clean dataframe into the knowit the_data structure."""
+
+    # check that the defined io chunks are welldefined
     x0 = data_meta['in_chunk'][0]
     x1 = data_meta['in_chunk'][1]
     y0 = data_meta['out_chunk'][0]
@@ -75,8 +121,9 @@ def compile_data(the_data, data_meta):
             t = d.index.to_numpy()
             x = d[data_meta['input_components']].to_numpy()
             y = d[data_meta['target_components']].to_numpy()
+            y = y.astype(float)
             if len(t) > chunk_size:
-                # kill targets that don't have corresponding
+                # kill targets that don't have corresponding inputs
                 if back_chunk < 0:
                     y[:abs(back_chunk), :] = np.nan
                 if forward_chunk > 0:
@@ -101,7 +148,28 @@ def compile_data(the_data, data_meta):
 
 
 def clean_data(the_data, data_meta, fill_nans):
+    """
+    Clean and preprocess the data within each instance in 'the_data' dictionary.
 
+    Parameters:
+    the_data (dict): A dictionary containing instances of data to be cleaned.
+    data_meta (dict): Metadata describing the structure of the data.
+    fill_nans (bool): If True, fill missing values with linear interpolation; otherwise, split on missing values.
+
+    Returns:
+    dict: A dictionary containing cleaned and preprocessed data instances.
+
+    The function performs the following steps for each instance in 'the_data':
+    1. Order the data and remove duplicate time steps within the instance.
+    2. Split the instance into contiguous blocks based on the specified time delta.
+    3. Handle missing values within each block:
+       - If 'fill_nans' is True, missing values are filled using linear interpolation.
+       - If 'fill_nans' is False, the block is split into smaller blocks at missing value boundaries.
+    4. Keep the cleaned data instances and remove instances with no valid data.
+
+    """
+
+    instances_to_keep = []
     for i in the_data:
 
         df = the_data[i]
@@ -136,12 +204,35 @@ def clean_data(the_data, data_meta, fill_nans):
             else:
                 new_d_slices.append(d)
 
-        the_data[i] = new_d_slices
+        if len(new_d_slices) > 0:
+            the_data[i] = new_d_slices
+            instances_to_keep.append(i)
+        else:
+            logger.warning('Removing instance %s.', str(i))
+
+    the_data = dict((i, the_data[i]) for i in instances_to_keep)
 
     return the_data
 
 
 def split_on_timedelta(df, timedelta):
+    """
+    Split a DataFrame 'df' into contiguous blocks based on a specified time delta.
+
+    Parameters:
+    df (pandas.DataFrame): The DataFrame to be split.
+    timedelta (str or pandas.Timedelta): The time duration used to split the DataFrame.
+
+    Returns:
+    list of pandas.DataFrame: A list of DataFrames, where each DataFrame represents a contiguous time block.
+
+    The function splits the input DataFrame 'df' into contiguous blocks based on the 'timedelta' parameter.
+    It creates a new column 'split_group' in the DataFrame to label each block. Blocks are identified based on
+    gaps in time greater than the specified 'timedelta'. The resulting list contains DataFrames representing
+    each contiguous time block.
+
+    """
+
     deltas = df.index.to_series().diff()
     mask = deltas > timedelta
     heads = list(df.columns)
@@ -165,26 +256,49 @@ def split_on_timedelta(df, timedelta):
 
 
 def split_on_nan(d, components):
+    """
+    Split a DataFrame 'd' into contiguous blocks based on missing values in specified 'components'.
+
+    Parameters:
+    d (pandas.DataFrame): The DataFrame to be split.
+    components (list of str): A list of column names in 'd' to consider for missing value-based splitting.
+
+    Returns:
+    list of pandas.DataFrame: A list of DataFrames, where each DataFrame represents a contiguous block
+                              with no missing values in the specified components.
+
+    The function creates contiguous blocks within the input DataFrame 'd' based on missing values in the
+    specified 'components'. It adds a 'nan_group' column to label each block. Blocks are identified based
+    on the presence of rows without missing values in the specified components. The resulting list contains
+    DataFrames representing each contiguous block.
+
+    """
+
     d = d.copy()
     heads = list(d.columns)
     d_slices = []
-    d['nan_group'] = d[components].isnull().any(axis=1).cumsum()
-    if d['nan_group'][0] == 1:
-        d['nan_group'] = d['nan_group'] - 1
-    unique_groups = d['nan_group'].value_counts(sort=False).to_numpy()
-    num_unique_groups = len(unique_groups)
-    for u in range(num_unique_groups):
-        potential_series = d.loc[d['nan_group'] == u, heads]
-        if not potential_series.isnull().values.any():
-            d_slices.append(potential_series)
-        elif potential_series.shape[0] != 1:
-            potential_series = potential_series.drop(index=potential_series.index[0], axis=0)
-            d_slices.append(potential_series)
+
+    if d.notna().all(axis=1).any():
+        d['nan_group'] = d[components].isnull().any(axis=1).cumsum()
+        if d['nan_group'][0] == 1:
+            d['nan_group'] = d['nan_group'] - 1
+        unique_groups = d['nan_group'].value_counts(sort=False).to_numpy()
+        num_unique_groups = len(unique_groups)
+        for u in range(num_unique_groups):
+            potential_series = d.loc[d['nan_group'] == u, heads]
+            if not potential_series.isnull().values.any():
+                d_slices.append(potential_series)
+            elif potential_series.shape[0] != 1:
+                potential_series = potential_series.drop(index=potential_series.index[0], axis=0)
+                d_slices.append(potential_series)
+    else:
+        logger.warning('No non-nan rows to split on. Ignoring slice.')
 
     return d_slices
 
 
 def check_df(df, meta, required_meta):
+    """performs various checks on the provided dataframe and metadata"""
 
     # check that all meta arguments are present
     if not set(required_meta).issubset(set(list(meta.keys()))):
@@ -217,7 +331,9 @@ def check_df(df, meta, required_meta):
 
     # check unknown components
     unknown_components = components - input_components.union(target_components)
-    if len(unknown_components) > 0 and unknown_components != set(['instance']):
+    if 'instance' in unknown_components:
+        unknown_components.remove('instance')
+    if len(unknown_components) > 0:
         logger.warning('Some unknown components in dataframe ignored: %s.',
                        str(unknown_components))
         df = df.drop(unknown_components, axis=1)
@@ -241,6 +357,7 @@ def check_df(df, meta, required_meta):
 
     # check that inputs and targets are numeric
     df[meta['input_components']].apply(lambda s: pd.to_numeric(s, errors='coerce').notnull().all())
-    df[meta['target_components']].apply(lambda s: pd.to_numeric(s, errors='coerce').notnull().all())
+    if meta['task'] == 'regression':
+        df[meta['target_components']].apply(lambda s: pd.to_numeric(s, errors='coerce').notnull().all())
 
     return df

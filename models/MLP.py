@@ -1,14 +1,8 @@
 __author__ = 'randlerabe@gmail.com, tiantheunissen@gmail.com'
-__description__ = 'Contains an example template for a custom model. This is an MLP.'
+__description__ = 'This is an MLP.'
 
-# Utils
 from typing import Union
-import warnings
-
-# Machine Learning Libs
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 
 model_name = "MLP"
