@@ -1,14 +1,8 @@
 __author__ = 'randlerabe@gmail.com, tiantheunissen@gmail.com'
-__description__ = 'Contains an example template for a custom model. This is an MLP.'
+__description__ = 'This is an MLP.'
 
-# Utils
 from typing import Union
-import warnings
-
-# Machine Learning Libs
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 
 model_name = "MLP"
@@ -99,20 +93,16 @@ class Model(nn.Module):
         if self.task_name == 'regression':
             output_layer = nn.Linear(self.hidden_width, self.output_dim, bias=False)
             layers.append(output_layer)
-            
         if self.task_name == 'classification':
             output_layer = nn.Linear(self.hidden_width, self.output_dim, bias=False)
-            # Output layer is determined by choice of activation function
             if self.output_activation == 'Softmax':
                 output_layer_activation = getattr(nn, self.output_activation)(dim=1)
             elif self.output_activation is None:
                 output_layer_activation = nn.Identity()
             else:
                 output_layer_activation = getattr(nn, self.output_activation)()
-                layers.append(output_layer)
-                layers.append(output_layer_activation)
-                
-            
+            layers.append(output_layer)
+            layers.append(output_layer_activation)
             
         # Merge layers together in Sequential
         self.model = nn.Sequential(*layers)
