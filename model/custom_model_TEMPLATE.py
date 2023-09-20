@@ -109,8 +109,8 @@ class Model(nn.Module):
                 output_layer_activation = nn.Identity()
             else:
                 output_layer_activation = getattr(nn, self.output_activation)()
-                layers.append(output_layer)
-                layers.append(output_layer_activation)
+            layers.append(output_layer)
+            layers.append(output_layer_activation)
                 
             
             
