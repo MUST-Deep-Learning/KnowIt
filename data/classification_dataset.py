@@ -11,15 +11,15 @@ class ClassificationDataset(PreparedDataset):
         super().__init__(**args)
 
         self.class_set = None
-        self.get_classes()
+        self.__get_classes()
 
-    def get_classes(self):
+    def __get_classes(self):
 
         the_data = self.get_the_data()
         found_class_set = set()
         for i in self.instances:
             for s in the_data[i]:
-                unique_entries = unique(s['y'][~isnan(s['y'])], axis=0)
+                unique_entries = unique(s['d'][:, self.y_map][~isnan(s['d'][:, self.y_map])], axis=0)
                 unique_entries = [u for u in unique_entries]
                 found_class_set.update(set(unique_entries))
         found_class_set = list(found_class_set)
@@ -63,5 +63,5 @@ class CustomClassificationDataset(Dataset):
         output_y = self.y[idx]
         input_x = input_x.astype('float')
         sample = {'x': from_numpy(input_x).float(),
-                  'y': output_y}
+                  'y': output_y, 's_id': idx}
         return sample
