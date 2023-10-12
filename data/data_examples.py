@@ -1,3 +1,5 @@
+import torch
+
 from helpers.logger import get_logger
 
 logger = get_logger()
@@ -10,23 +12,23 @@ from data.classification_dataset import ClassificationDataset
 
 # 1. Generate a data option of your raw dataframe
 # from data.base_dataset import BaseDataset
-# path_to_my_raw_data = '/home/tian/postdoc_work/knowit/prey_capture_model/penguin_dummy.pickle'
-# BaseDataset.from_path(path_to_my_raw_data, safe_mode=True, base_nan_filler='split', nan_filled_components=None)
+# path_to_my_raw_data = '/home/tian/postdoc_work/penguin_PCE/data_as_received/penguin_pce_full.pkl'
+# baseDS = BaseDataset.from_path(path_to_my_raw_data, safe_mode=False, base_nan_filler='split', nan_filled_components=None)
 
 # 2. Generate a classification dataset from stored data option
-data_option = 'penguin_dummy'
+data_option = 'penguin_pce_full'
 classification_DS = ClassificationDataset(name=data_option,
-                                          in_components=['accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'gyroZ', 'Depth'],
+                                          in_components=['accX', 'accY', 'accZ'],
                                           out_components=['PCE'], in_chunk=[-25, 25], out_chunk=[0, 0],
-                                          split_portions=(0.6, 0.2, 0.2), seed=666, batch_size=32, limit=10000,
+                                          split_portions=(0.6, 0.2, 0.2), seed=666, batch_size=32, limit=500000,
                                           min_slice=10, scaling_method='z-norm', scaling_tag='in_only',
-                                          split_method='chronological')
+                                          split_method='instance-random')
 
 # 4. Train your model with it (or something)
 from torch import argmax
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
-from models.MLP import Model as mlp
+from archs.MLP import Model as mlp
 import numpy as np
 
 train_loader = classification_DS.get_dataloader('train')
@@ -47,8 +49,11 @@ for epoch in range(100):
         loss.backward()
         optim.step()
 
-        # pred = argmax(h_n, dim=1)
-        # correct +=
+        pred = argmax(h_n, dim=1)
+        tp = torch.count_nonzero(torch.logical_and(pred, y))
+        fp = torch.count_nonzero(torch.logical_and(pred, torch.logical_not(y)))
+        fn = torch.count_nonzero(torch.logical_and(y, torch.logical_not(pred)))
+        ping = 0
 
 
     print('last batch loss: ' + str(loss.item()))

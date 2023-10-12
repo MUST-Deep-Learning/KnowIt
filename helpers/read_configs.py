@@ -103,7 +103,7 @@ def load_from_path(path):
         if file_ext == '.pbz2':
             result = bz2.BZ2File(path, 'rb')
             result = cPickle.load(result)
-        elif file_ext == '.pickle':
+        elif file_ext == '.pickle' or file_ext == '.pkl':
             with open(path, 'rb') as handle:
                 result = pickle.load(handle)
         elif file_ext == '.gz':

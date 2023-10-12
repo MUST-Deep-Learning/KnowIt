@@ -172,6 +172,18 @@ class PreparedDataset(BaseDataset):
         'selection' variable in a selection matrix."""
 
         logger.info('Preparing overhead.')
+
+        missing_in_components = set(self.in_components) - set(self.components)
+        if len(missing_in_components) > 0:
+            logger.error('Defined in_components %s not in data option.',
+                         str(missing_in_components))
+            exit(101)
+        missing_out_components = set(self.out_components) - set(self.components)
+        if len(missing_out_components) > 0:
+            logger.error('Defined out_components %s not in data option.',
+                         str(missing_out_components))
+            exit(101)
+
         self.y_map = array([i for i, e in enumerate(self.components)
                             if e in self.out_components])
         self.x_map = array([i for i, e in enumerate(self.components)
