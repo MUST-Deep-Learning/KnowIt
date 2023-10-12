@@ -1,6 +1,8 @@
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the prepared dataset class.'
 
+import numpy as np
+
 """
 ---------------
 PreparedDataset
@@ -30,7 +32,7 @@ Splitting & Limiting
 --------------------
 The first step in preparing the dataset is to split it into a train-, validation-, 
 and evaluation set (train, valid, eval) along with limiting it if applicable. 
-This is done in the data_splitter.py script. 
+This is done in the data_splitting.py script. 
 More details can be found there, but we summarize the options here:
 - `split_method` = 
     - 'random': Ignore all distinction between instances and slices, 
@@ -69,12 +71,11 @@ If the task is regression, then the scaling also applies to the output features.
 
 """
 
-from numpy import array
-from numpy import random
+from numpy import (array, random)
 
 from data.base_dataset import BaseDataset
-from data.data_splitter import get_target_splits
-from data.data_scaler import get_scaler
+from data.data_splitting import DataSplitter
+from data.data_scaling import DataScaler
 from helpers.logger import get_logger
 from helpers.read_configs import load_from_path
 
@@ -83,37 +84,40 @@ logger = get_logger()
 
 class PreparedDataset(BaseDataset):
 
-    def __init__(self, name: str,
-                 split_method: str,
-                 split_portions: tuple,
-                 scaling_method: str,
-                 scaling_mode: str,
-                 batch_size: int,
-                 shuffle_train: bool,
-                 sampling_method: str,
-                 seed: int,
-                 limit: int = -1):
+    def __init__(self, **args):
 
         """Initialize a PreparedDataset object with the specified configuration."""
 
-        # 1. Init super class
-        super().__init__(name, 'option')
+        # inherited from BaseDataset
+        self.components = None
+        self.data_path = None
+        self.instances = None
+        self.time_delta = None
+        self.base_nan_filler = None
+        self.nan_filled_components = None
 
-        # 2. Save given arguments
-        self.split_method = split_method
-        self.split_portions = split_portions
-        self.scaling_method = scaling_method
-        self.scaling_mode = scaling_mode
-        self.seed = seed
-        self.limit = limit
+        # required as arguments
+        self.name = None
+        self.in_components = None
+        self.out_components = None
+        self.in_chunk = None
+        self.out_chunk = None
+        self.split_portions = None
+        self.seed = None
+        self.batch_size = None
 
-        # TODO: These three are not used in PreparedDataset but in child classes
-        # RegressionDataset and ClassificationDataset. Should think if we want to move them.
-        self.batch_size = batch_size
-        self.shuffle_train = shuffle_train
-        self.sampling_method = sampling_method
+        # optional arguments
+        self.split_method = None
+        self.scaling_method = None
+        self.scaling_tag = None
+        self.shuffle_train = None
+        self.limit = None
+        self.padding_method = None
+        self.min_slice = None
 
-        # 3. Additional variables to be filled dynamically
+        # to be filled
+        self.x_map = None
+        self.y_map = None
         self.train_set_size = None
         self.valid_set_size = None
         self.eval_set_size = None
@@ -123,39 +127,88 @@ class PreparedDataset(BaseDataset):
         self.in_shape = None
         self.out_shape = None
 
-        # 4. Initiate the data preparation
-        random.seed(seed)
-        self.prepare()
+        for key, value in self.__required_prepared_meta().items():
+            if key not in args:
+                logger.error('Argument %s not provided for prepared dataset.', key)
+                exit(101)
+            if isinstance(args[key], value):
+                setattr(self, key, args[key])
+            else:
+                logger.error('Provided %s should be of type %s.', key,
+                             str(value))
+                exit(101)
 
-    def prepare(self):
+        super().__init__(args['name'], mem_light=False)
+
+        # 2. Save default optional arguments
+        self.__setattr_or_default(args, 'split_method', 'chronological')
+        self.__setattr_or_default(args, 'scaling_method', 'z-norm')
+        self.__setattr_or_default(args, 'scaling_tag', None)
+        self.__setattr_or_default(args, 'shuffle_train', True)
+        self.__setattr_or_default(args, 'limit', -1)
+        self.__setattr_or_default(args, 'padding_method', 'zero')
+        self.__setattr_or_default(args, 'min_slice', None)
+
+        # 4. Initiate the data preparation
+        random.seed(self.seed)
+        self.__prepare()
+
+    def get_the_data(self):
+        if hasattr(self, 'the_data'):
+            return self.the_data
+        else:
+            return load_from_path(self.data_path)['the_data']
+
+    def __setattr_or_default(self, args, name, default):
+        if name in args:
+            setattr(self, name, args[name])
+        else:
+            setattr(self, name, default)
+
+    def __prepare(self):
 
         """Prepare the underlying BaseDataset by splitting and scaling the data.
         Note that this is not done directly on the data. The splits are defined in the
         'selection' variable in a selection matrix."""
 
-        # 1. split data
-        train_select, valid_select, eval_select = (
-            get_target_splits(self.the_data, self.split_method,
-                              self.split_portions, self.instances,
-                              self.num_target_timesteps, self.seed, self.limit))
-        self.train_set_size = train_select.shape[0]
-        self.valid_set_size = valid_select.shape[0]
-        self.eval_set_size = eval_select.shape[0]
-        self.selection = {'train': train_select, 'valid': valid_select, 'eval': eval_select}
+        logger.info('Preparing overhead.')
 
-        # 2. get_scaler
-        self.x_scaler, self.y_scaler = get_scaler(self.the_data, self.selection,
-                                                  self.instances, self.in_chunk,
-                                                  self.out_chunk, self.task,
-                                                  mode=self.scaling_mode,
-                                                  method=self.scaling_method)
+        missing_in_components = set(self.in_components) - set(self.components)
+        if len(missing_in_components) > 0:
+            logger.error('Defined in_components %s not in data option.',
+                         str(missing_in_components))
+            exit(101)
+        missing_out_components = set(self.out_components) - set(self.components)
+        if len(missing_out_components) > 0:
+            logger.error('Defined out_components %s not in data option.',
+                         str(missing_out_components))
+            exit(101)
 
-        # 3. define io dimensions
-        self.in_shape = (self.in_chunk[1] - self.in_chunk[0] + 1, len(self.input_components))
-        self.out_shape = (self.out_chunk[1] - self.out_chunk[0] + 1, len(self.target_components))
+        self.y_map = array([i for i, e in enumerate(self.components)
+                            if e in self.out_components])
+        self.x_map = array([i for i, e in enumerate(self.components)
+                            if e in self.in_components])
+        self.in_shape = (self.in_chunk[1] - self.in_chunk[0] + 1, len(self.in_components))
+        self.out_shape = (self.out_chunk[1] - self.out_chunk[0] + 1, len(self.out_components))
 
-        # 4. Remove the datastructure
-        delattr(self, 'the_data')
+        logger.info('Preparing data splits (selection).')
+        self.selection = DataSplitter(self.get_the_data(), self.split_method,
+                                      self.split_portions, self.instances,
+                                      self.limit, self.y_map, self.out_chunk,
+                                      self.min_slice).get_selection()
+        self.train_set_size = len(self.selection['train'])
+        self.valid_set_size = len(self.selection['valid'])
+        self.eval_set_size = len(self.selection['eval'])
+        logger.info('Data split sizes: ' + str((self.train_set_size, self.valid_set_size, self.eval_set_size)))
+
+
+        logger.info('Preparing data scalers, if relevant.')
+        self.x_scaler, self.y_scaler = DataScaler(self.extract_dataset('train'),
+                                                  self.scaling_method,
+                                                  self.scaling_tag).get_scalers()
+
+        if hasattr(self, 'the_data'):
+            delattr(self, 'the_data')
 
     def extract_dataset(self, set_tag):
 
@@ -164,31 +217,103 @@ class PreparedDataset(BaseDataset):
         the_data = self.get_the_data()
 
         # [sample][time steps][features]
-        x_vals = array([self.extract_sample(s[0], s[1], s[2], 'x', the_data) for s in self.selection[set_tag]])
-        y_vals = array([self.extract_sample(s[0], s[1], s[2], 'y', the_data) for s in self.selection[set_tag]])
+        x_vals, y_vals = self.__fast_extract(the_data, set_tag)
 
-        x_vals = self.x_scaler.transform(x_vals)
-        y_vals = self.y_scaler.transform(y_vals)
+        if self.x_scaler:
+            x_vals = self.x_scaler.transform(x_vals)
+        if self.y_scaler:
+            y_vals = self.y_scaler.transform(y_vals)
 
         return {'x': x_vals, 'y': y_vals}
 
-    def extract_sample(self, i, s, t, io, the_data):
+    def __fast_extract(self, the_data, set_tag):
 
-        """Extracts the relevant sample as defined from the selection matrix."""
+        selection = self.selection[set_tag]
+        relevant_slice_indx = np.unique(selection[:, :2], axis=0)
+        max_pad = max(abs(array(self.in_chunk))) + 1
 
-        if io == 'y':
-            return the_data[self.instances[i]][s][io][t + self.out_chunk[0]:t + self.out_chunk[1] + 1, :]
-        elif io == 'x':
-            return the_data[self.instances[i]][s][io][t + self.in_chunk[0]:t + self.in_chunk[1] + 1, :]
+        padded_slices = {}
+        for r in relevant_slice_indx:
+            i = self.instances[r[0]]
+            s = r[1]
+            padded_slices[tuple(r)] = the_data[i][s]['d'][:, self.x_map]
+            padded_slices[tuple(r)] = self.__do_padding(padded_slices[tuple(r)],
+                                                        'backward',
+                                                        self.padding_method,
+                                                        len(padded_slices[tuple(r)]) + max_pad)
+            padded_slices[tuple(r)] = self.__do_padding(padded_slices[tuple(r)],
+                                                        'forward',
+                                                        self.padding_method,
+                                                        len(padded_slices[tuple(r)]) + max_pad)
+
+        x_vals, y_vals = PreparedDataset.__parr_sample(selection, self.in_chunk, self.out_chunk,
+                                                       max_pad, padded_slices, the_data,
+                                                       self.instances, self.y_map)
+
+        return x_vals, y_vals
+
+    @staticmethod
+    def __parr_sample(selection, in_chunk, out_chunk, max_pad, padded_slices, the_data,
+                      instances, y_map):
+
+        def sample_blocks(t, chunk, pad):
+            x_blocks = np.arange(chunk[0] + pad, chunk[1] + pad + 1)
+            x_blocks = np.expand_dims(x_blocks, axis=0)
+            t_selection = t
+            x_blocks = np.repeat(x_blocks, len(t_selection), axis=0)
+            t_selection = np.expand_dims(t_selection, axis=1)
+            t_selection = np.repeat(t_selection, x_blocks.shape[1], axis=1)
+            x_blocks += t_selection
+            return x_blocks
+
+        x_blocks = sample_blocks(selection[:, 2], in_chunk, max_pad)
+        y_blocks = sample_blocks(selection[:, 2], out_chunk, 0)
+        x_vals = []
+        y_vals = []
+        s_indx = 0
+        for s in selection:
+            x_vals.append(padded_slices[(s[0], s[1])][x_blocks[s_indx]])
+            y_vals.append(the_data[instances[s[0]]][s[1]]['d'][y_blocks[s_indx], y_map])
+            s_indx += 1
+        x_vals = array(x_vals)
+        y_vals = array(y_vals)
+
+        return x_vals, y_vals
+
+    @staticmethod
+    def __do_padding(vals, direction, method, cap):
+
+        if direction == 'backward':
+            pw = ((cap - vals.shape[0], 0), (0, 0))
+        elif direction == 'forward':
+            pw = ((0, cap - vals.shape[0]), (0, 0))
         else:
-            logger.error('Unknown io type for sample extraction %s.', io)
+            logger.error('Unknown padding direction %s.', direction)
             exit(101)
 
-    def get_the_data(self):
-        return load_from_path(self.data_path)['the_data']
+        pw = np.array(pw)
+        if method == 'zero':
+            ret_vals = np.pad(vals,
+                              pad_width=pw,
+                              mode='constant')
+        else:
+            ret_vals = np.pad(vals,
+                              pad_width=pw,
+                              mode=method)
 
+        return ret_vals
 
+    @staticmethod
+    def __required_prepared_meta():
 
+        return {'name': (str,),
+                'in_components': (list,),
+                'out_components': (list,),
+                'in_chunk': (list, tuple),
+                'out_chunk': (list, tuple),
+                'split_portions': (list, tuple),
+                'seed': (int,),
+                'batch_size': (int,)}
 
 
 
