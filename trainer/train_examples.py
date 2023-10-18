@@ -20,18 +20,18 @@ def main():
     
     trainer_loader = datamodule.get_dataloader('train')
     val_loader = datamodule.get_dataloader('valid')
+    print(trainer_loader)
     #test_loader = datamodule.get_dataloader('test')
-    d = next(iter(trainer_loader))
-    print(d.keys())
+    #d = next(iter(trainer_loader))
+    #print(d.keys())
     # print(d['x'].shape)
     # print(d['y'].shape)
     # print(d['s_id'].shape)
     # print(d['y'])
-    print(d['x'].shape)
-    print(torch.flatten(d['x'], start_dim=1, end_dim=-1).shape)
+    #print(d['x'].shape)
     
-    model = Model(input_dim=51*3, # 51 in_chunk, 3 in_components
-                  output_dim=1, # out_chunk=[0, 0] ie window of size 1
+    model = Model(input_dim=datamodule.in_shape, # 51 in_chunk, 3 in_components
+                  output_dim=datamodule.out_shape, # out_chunk=[0, 0] ie window of size 1
                   task_name='classification',
                   output_activation='Softmax')
     
@@ -39,15 +39,15 @@ def main():
                         loss_fn='cross_entropy',
                         optim='Adam',
                         max_epochs=10,
-                        early_stopping=False,
+                        early_stopping=True,
                         learning_rate=1e-03,
                         learning_rate_schedule='None', # fix this, does nothing at the moment
                         loaders=(trainer_loader, val_loader),
                         model=model)
+    # train
+    trainer._fit_model()
     
-    test_batch = zip(torch.flatten(d['x'], start_dim=1, end_dim=-1), d['y'])
-    print(set(test_batch)[0])
+    # test
+    trainer._test_model()
     
-    #print(trainer.lit_model.training_step(batch=test_batch, batch_idx=d['s_id']))
-
 main()

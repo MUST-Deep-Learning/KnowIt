@@ -14,16 +14,18 @@ __description__ = 'Contains the trainer module.'
 #   > devices: gpu, cpu, etc
 #   > test model using test dataloader from data module?
 #   > callbacks?
+#   > change imports to from
 
 import os
+from env import env_user
+
 import torch
 from torch import nn
 import torch.nn.functional as F
-from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
+
 import lightning.pytorch as pl
-
-
+from lightning.pytorch import loggers as pl_loggers
+from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 
 class PLModel(pl.LightningModule):
     
@@ -45,35 +47,38 @@ class PLModel(pl.LightningModule):
         
     def training_step(self, batch, batch_idx):
         
-        x, y = batch
+        x = batch['x']
+        y = batch['y']
         
         y_pred = self.model.forward(x)
         loss = self._loss_function(y_pred, y)
         
-        # todo: log loss - see your training notebook
+        self.log("Train_loss", loss, on_epoch=True, on_step=False)
         
         return loss
     
     def validation_step(self, batch, batch_idx):
         
-        x, y = batch
+        x = batch['x']
+        y = batch['y']
         
         y_pred = self.model.forward(x)
         loss = self._loss_function(y_pred, y)
         
-        # todo: log loss - see your training notebook
+        self.log("Val_loss", loss, on_epoch=True, on_step=False)
         
         return loss    
     
     
     def test_step(self, batch, batch_idx):
         
-        x, y = batch
+        x = batch['x']
+        y = batch['y']
         
         y_pred = self.model.forward(x)
         loss = self._loss_function(y_pred, y)
         
-        # todo: log loss - see your training notebook
+        self.log("Test_loss", loss, on_epoch=True, on_step=False)
         
         return loss
         
@@ -131,10 +136,25 @@ class KITrainer():
                                  model=self.model, 
                                  learning_rate=self.learning_rate)
         
-    def _train_model(self):
-        # use pl.Trainer
-        pass
+    def _fit_model(self):
+        # todo: make choice of logger optional?
+        tb_logger = pl_loggers.TensorBoardLogger(save_dir=env_user.project_dir)
+        trainer = pl.Trainer(max_epochs=self.max_epochs,
+                             accelerator=self.train_device, 
+                             logger=tb_logger,
+                             devices='auto', # what other options here?
+                             callbacks=[EarlyStopping(monitor="Val_loss", mode="min") if self.early_stopping==True else None][0]) 
+        
+        trainer.fit(model=self.lit_model,
+                    train_dataloaders=self.train_dataloader,
+                    val_dataloaders=self.val_dataloader)
+        
     
+    def _test_model(self):
+        # todo: load model from checkpoint or continue using pl.Trainer above?
+        #model = 
+        pass
+        
     def _save_model_state(self):
         pass
     
