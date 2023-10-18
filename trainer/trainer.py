@@ -76,7 +76,7 @@ class PLModel(pl.LightningModule):
         # todo: log loss - see your training notebook
         
         return loss
-    
+        
     def configure_optimizers(self):
         optimizer = getattr(torch.optim, self.optimizer)(self.model.parameters(), lr=self.lr)
         
@@ -120,9 +120,8 @@ class KITrainer():
         self.model = model
         
         # dataloaders from data module
-        self.train_dataloader = loaders[0]
+        self.train_dataloader = loaders[0] # this expects an ordering -> can I do this without assuming that
         self.val_dataloader = loaders[1]
-        self.test_dataloader = loaders[2]
         
         # todo: perform checks on above vals
         
@@ -130,11 +129,10 @@ class KITrainer():
         self.lit_model = PLModel(loss=self.loss_fn,
                                  optimizer=self.optim, 
                                  model=self.model, 
-                                 lr=self.learning_rate)
+                                 learning_rate=self.learning_rate)
         
-        
-    
     def _train_model(self):
+        # use pl.Trainer
         pass
     
     def _save_model_state(self):
