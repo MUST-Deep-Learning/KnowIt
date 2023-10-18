@@ -1,6 +1,54 @@
-from pandas import DatetimeIndex, concat
+__author__ = 'tiantheunissen@gmail.com'
+__description__ = 'Contains the RawDataConverter class for Knowit.'
+
+"""
+--------------------
+RawDataConverter
+--------------------
+This module takes a given dataframe and converts it to a known datastructure for Knowit.
+The dataframe needs to comply with a set of conditions to be properly converted:
+1. Must be time indexed. (with a pandas.Timedelta or datetime.timedelta, not strings)
+2. Must contain the required meta data (as defined in BaseDataset.__required_base_meta).
+    in the dataframe.attrs dictionary. Meta data can alternatively be passed with the 'meta' argument.
+     - name (str)
+     - components (list)
+     - time_delta (Timedelta, timedelta)
+3. Must contain no all-NaN columns.
+4. Must contain columns corresponding to the components defined in the meta data.
+5. If instances are desired, they must be defined in the meta data as instances(list)
+    And a corresponding column 'instance' must be present in the dataframe. 
+    This column cannot have any NaNs.
+    
+The resulting datastructure can be returned with the RawDataConverter.get_new_data function.
+The format of the resulting data structure is defined at the top of the base_dataset.py script.
+
+--------------------
+Handling NaNs
+--------------------
+RawDataConverter is instantiated with two special variables to handle possible NaNs:
+ - nan_filler (str, None): 
+    - None (default): No NaNs will be filled. 
+    - split:          Slices will be split on NaNs.
+    - ''method'' from pandas.DataFrame.interpolate used to interpolate NaNs in both directions.
+        (https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.interpolate.html)
+ - nan_filled_components (str, None)
+    - None (default): All columns with float datatype will be flagged for NaN-handling.
+    - A list of column headers to flag for NaN-handling.
+    
+--------
+Note!
+--------
+
+- Duplicate time steps within an instance are dropped after ordering chronologically.
+- Time series are split into slices based on the time_delta presented in the meta data.
+
+"""
+
+# external imports
+from pandas import DatetimeIndex, concat, DataFrame
 from numpy import array
 
+# internal imports
 from helpers.logger import get_logger
 
 logger = get_logger()
@@ -8,7 +56,25 @@ logger = get_logger()
 
 class RawDataConverter:
 
-    def __init__(self, df, required_meta, nan_filler, nan_filled_components, meta=None):
+    def __init__(self, df: DataFrame, required_meta: dict,
+                 nan_filler: str = None,
+                 nan_filled_components: str = None,
+                 meta: dict = None):
+        """
+        Instantiate the RawDataConverter module with the given arguments.
+
+        Parameters:
+            df (DataFrame): The DataFrame containing the raw data to be processed.
+            required_meta (dict): A dictionary specifying the required metadata for processing.
+            nan_filler (str, optional): A string representing how to handle missing values
+                in the data (default is None).
+            nan_filled_components (str, optional): A string specifying which components to treat
+                for missing values (default is None).
+            meta (dict, optional): Alternative metadata to be associated
+                with the raw data (default is None).
+
+        Calls internal methods to check metadata, DataFrame, split data by instances, and compile the data.
+        """
 
         self.df = df
         self.required_meta = required_meta
@@ -24,6 +90,7 @@ class RawDataConverter:
         self.__compile_data()
 
     def get_new_data(self):
+        """ Return the converted data structure. """
         new_data = {}
         new_data.update(self.meta)
         new_data['instances'] = self.instances
@@ -33,6 +100,8 @@ class RawDataConverter:
         return new_data
 
     def __compile_data(self):
+        """ For each instance and slice, drop duplicates, split on time delta,
+            and handling missing values"""
 
         instance_to_keep = []
         for i in self.the_data:
@@ -69,6 +138,7 @@ class RawDataConverter:
             exit(101)
 
     def __split_by_instance(self):
+        """ Create a dictionary of instances for further processing. """
         self.the_data = {}
         if self.instances:
             for i, df in self.df.groupby(self.df['instance']):
@@ -78,6 +148,7 @@ class RawDataConverter:
             self.instances = ['super_instance']
 
     def __check_df(self):
+        """ Check that the dataframe meets the required conditions. """
 
         # check all required present components
         components = set(list(self.df.columns))
@@ -108,6 +179,7 @@ class RawDataConverter:
                 exit(101)
 
     def __check_meta(self):
+        """ Check that the metadata is correctly provided. """
 
         # find meta
         if not self.meta:
@@ -137,7 +209,8 @@ class RawDataConverter:
             self.instances = self.meta['instances']
         self.meta = new_meta
 
-    def __handle_nans(self, i, i_slices):
+    def __handle_nans(self, i: object, i_slices: list):
+        """ Handle missing values in the given slices. """
 
         has_nans = False
         for s in i_slices:
@@ -148,7 +221,7 @@ class RawDataConverter:
         if has_nans:
             if self.nan_filler == 'split':
                 logger.warning('Instance %s has NaN values. Splitting on NaNs.', str(i))
-                i_slices = self.__split_nans(i_slices)
+                i_slices = self.__split_nans(i_slices, self.nan_filled_components)
             elif self.nan_filler:
                 logger.warning('Instance %s has NaN values. Filling with %s.', str(i),
                                self.nan_filler)
@@ -161,10 +234,14 @@ class RawDataConverter:
         return i_slices
 
     @staticmethod
-    def __split_nans(slices):
+    def __split_nans(slices: list, nan_filled_components: str):
+        """ Split slices on NaN values. """
         new_slices = []
         for d in slices:
-            float_columns = d.select_dtypes(include=[float]).columns
+            if nan_filled_components:
+                float_columns = nan_filled_components
+            else:
+                float_columns = d.select_dtypes(include=[float]).columns
             d = d.copy()
             heads = list(d.columns)
             d_slices = []
@@ -187,7 +264,8 @@ class RawDataConverter:
         return new_slices
 
     @staticmethod
-    def __fill_nans(slices, nan_filler, nan_filled_components):
+    def __fill_nans(slices: list, nan_filler: str, nan_filled_components: str):
+        """ Fill NaNs in proved slices. """
         new_slices = []
         for s in slices:
             if nan_filled_components:
@@ -203,7 +281,8 @@ class RawDataConverter:
         return new_slices
 
     @staticmethod
-    def __split_on_timedelta(df, time_delta):
+    def __split_on_timedelta(df: DataFrame, time_delta: object):
+        """ Split dataframe (df) based on time_delta. """
         deltas = df.index.to_series().diff()
         mask = deltas > time_delta
         heads = list(df.columns)
@@ -226,7 +305,8 @@ class RawDataConverter:
         return d_slices
 
     @staticmethod
-    def __drop_duplicates(df):
+    def __drop_duplicates(df: DataFrame):
+        """ Drop duplicates from dataframe (df). """
         len_check = len(df)
         df = df.sort_index()
         df = df[~df.index.duplicated(keep='first')]
