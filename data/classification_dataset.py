@@ -10,6 +10,7 @@ dataloader ready for classification tasks. It inherits from PreparedDataset.
 
 In addition to all the functionality of PreparedDataset, it also determines the class set 
 in the data. It assumes that each unique state of the output components is a single class.
+It also changes the PreparedDataset.out_shape to (1, c), where c is the number of classes.
 
 Additionally, the ClassificationDataset.get_dataloader function 
 extracts the corresponding dataset split, casts it as a CustomClassificationDataset 
@@ -44,6 +45,13 @@ class ClassificationDataset(PreparedDataset):
 
     def __init__(self, **args):
         super().__init__(**args)
+
+        if self.out_chunk[0] != self.out_chunk[1]:
+            logger.error('Currently, Knowit can only perform classification at a specific time step at a time. '
+                         'Please change the out_chunk %s argument to reflect this. Both values must match.',
+                         str(self.out_chunk))
+            exit(101)
+
         self.class_set = None
         self.__get_classes()
 
@@ -73,6 +81,8 @@ class ClassificationDataset(PreparedDataset):
         logger.info('Found %s unique classes.',
                     str(len(self.class_set)))
         logger.info(self.class_set)
+
+        self.out_shape = (1, len(self.class_set))
 
     def get_dataloader(self, set_tag: str):
         dataset = CustomClassificationDataset(self.class_set, **self.extract_dataset(set_tag))
