@@ -1,6 +1,10 @@
 This directory contains the scripts for managing datastructures in Knowit.
 We call these scripts the "data framework" collectively.
 
+Generally, the data framework creates and loads custom data options that 
+are stored in the 'datasets' subdirectory of Knowit. 
+It then loads this data and prepares it for other modules in Knowit.
+
 **1. Modules**
 
 The data framework of Knowit consists of four classes with the following inheritance structure:
@@ -9,20 +13,23 @@ The data framework of Knowit consists of four classes with the following inherit
     - RegressionDataset
     - ClassificationDataset
 
+Se the corresponding UML diagram (https://drive.google.com/file/d/1Azq8f54vIubUOYsDDmJ35FvDSLcRDAKS/view?usp=sharing)
+for more details.
+
 **2. BaseDataset**
 
 The _BaseDataset_ represents the bare minimum info Knowit requires.
 It serves to load, clean, compile, and store raw data (with critical metadata).
 It does not carry any concept of models or training, only information related
-to the data and task is stored. See the top of the _base_dataset.py_ 
+to the data is stored. See the top of the _base_dataset.py_ 
 script for more details.
 
 **3. PreparedDataset(BaseDataset)**
 
 The _PreparedDataset_ represents a dataset that is preprocessed for model training.
-It contains all the variables in _BaseDataset_, in addition to metadata regarding 
-data splitting, scaling, sampling, and shuffling. See the top of the _prepared_dataset.py_ 
-script for more details.
+It is meant to be an abstract class. It contains all the variables in _BaseDataset_, 
+in addition to metadata regarding data splitting, scaling, sampling, 
+and shuffling. See the top of the _prepared_dataset.py_ script for more details.
 
 **4. RegressionDataset(PreparedDataset)**
 
@@ -40,9 +47,10 @@ _PreparedDataset_, in addition to methods that can
 create a Pytorch dataloader ready for training a classification model. See the top 
 of the _classification_dataset.py_ script for more details.
 
-**Other subfunctions**
+**Additional sub-modules**
 
-- custom_data_converter: Methods used by BaseDataset to create new dataset options from given pickles.
-- data_splitter: Methods used by PreparedDataset to split the raw data into train/valid/eval sets.
-- data_scaler: Methods used by PreparedDataset to scale the raw data for model training.
+- RawDataConverter: Used by BaseDataset to create new dataset options from a given dataframe.
+- DataSplitter: Used by PreparedDataset to split the raw data into train/valid/eval sets.
+- DataScaler: Used by PreparedDataset to scale the raw data for model training.
+See the corresponding scripts for details.
 
