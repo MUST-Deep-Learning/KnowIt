@@ -66,7 +66,6 @@ class CustomRegressionDataset(Dataset):
         output_y = self.y[idx, :, :]
         input_x = input_x.astype('float')
         output_y = output_y.astype('float')
-        output_y = output_y.squeeze()
         sample = {'x': from_numpy(input_x).float(),
                   'y': from_numpy(output_y).float(),
                   's_id': idx}
