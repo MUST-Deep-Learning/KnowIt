@@ -15,6 +15,7 @@ __description__ = 'Contains the trainer module.'
 #   > test model using test dataloader from data module?
 #   > callbacks?
 #   > change imports to from
+#   > optimizer: momentum arg?
 
 import os
 from env import env_user
@@ -33,17 +34,34 @@ class PLModel(pl.LightningModule):
                  loss: str,
                  learning_rate: float, 
                  optimizer: str,
-                 model: object):
+                 model: object,
+                 learning_rate_scheduler: dict):
         super().__init__()
         
         self.loss = loss
         self.lr = learning_rate
+        if learning_rate_scheduler:
+            self.lr_scheduler = learning_rate_scheduler.pop('lr_scheduler') # save choice & remove from dict 
+            if 'monitor' in learning_rate_scheduler.keys():
+                self.monitor = learning_rate_scheduler.pop('monitor') # save choice & remove from dict
+            else:
+                self.monitor = None
+            self.lr_scheduler_kwargs = learning_rate_scheduler # only kwargs remain
+        else:
+            self.lr_scheduler = None
         self.optimizer = optimizer
         self.model = model
         
-    def _loss_function(self, y_pred, y):
+    def __get_loss_function(self):
         # todo: what if user needs to provide more info when calling loss?
-        return getattr(F, self.loss)(y_pred, y)
+        return getattr(F, self.loss)
+    
+    def __get_optim(self):
+        # todo: use kwargs for variable user parameters
+        return getattr(torch.optim, self.optimizer)
+    
+    def __get_lr_scheduler(self):
+        return getattr(torch.optim.lr_scheduler, self.lr_scheduler)
         
     def training_step(self, batch, batch_idx):
         
@@ -51,9 +69,9 @@ class PLModel(pl.LightningModule):
         y = batch['y']
         
         y_pred = self.model.forward(x)
-        loss = self._loss_function(y_pred, y)
+        loss = self.__get_loss_function()(y_pred, y)
         
-        self.log("Train_loss", loss, on_epoch=True, on_step=False)
+        self.log("train_loss", loss, on_epoch=True, on_step=False)
         
         return loss
     
@@ -63,9 +81,9 @@ class PLModel(pl.LightningModule):
         y = batch['y']
         
         y_pred = self.model.forward(x)
-        loss = self._loss_function(y_pred, y)
+        loss = self.__get_loss_function()(y_pred, y)
         
-        self.log("Val_loss", loss, on_epoch=True, on_step=False)
+        self.log("val_loss", loss, on_epoch=True, on_step=False)
         
         return loss    
     
@@ -76,16 +94,25 @@ class PLModel(pl.LightningModule):
         y = batch['y']
         
         y_pred = self.model.forward(x)
-        loss = self._loss_function(y_pred, y)
+        loss = self.__get_loss_function()(y_pred, y)
         
-        self.log("Test_loss", loss, on_epoch=True, on_step=False)
+        self.log("test_loss", loss, on_epoch=True, on_step=False)
         
         return loss
         
     def configure_optimizers(self):
-        optimizer = getattr(torch.optim, self.optimizer)(self.model.parameters(), lr=self.lr)
+        # get user's optimizer
+        optimizer = self.__get_optim()(self.model.parameters(), lr=self.lr)
         
-        return optimizer
+        # get user's lr scheduler
+        if self.lr_scheduler:
+            scheduler = self.__get_lr_scheduler()(optimizer, **self.lr_scheduler_kwargs) # unpack any kwargs needed for choice of optimizer
+            if self.monitor: # todo: does monitor only get used here?
+                return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler, "monitor": self.monitor}}
+            else:
+                return {"optimizer": optimizer, "lr_scheduler": scheduler}
+        else:
+            return {"optimizer": optimizer}        
 
 
 class KITrainer():
@@ -97,9 +124,9 @@ class KITrainer():
                  max_epochs: int,
                  early_stopping: bool,
                  learning_rate: float,
-                 learning_rate_schedule: str,
                  loaders: tuple,
-                 model: object):
+                 model: object,
+                 learning_rate_scheduler: dict = {}):
         
         """"Args:
         - train_device: (device),
@@ -119,7 +146,7 @@ class KITrainer():
         self.max_epochs = max_epochs
         self.early_stopping = early_stopping
         self.learning_rate = learning_rate
-        self.learning_rate_schedule = learning_rate_schedule
+        self.learning_rate_scheduler = learning_rate_scheduler # dict: choice of lr_scheduler and kwargs
         
         # instance of model class
         self.model = model
@@ -134,28 +161,29 @@ class KITrainer():
         self.lit_model = PLModel(loss=self.loss_fn,
                                  optimizer=self.optim, 
                                  model=self.model, 
-                                 learning_rate=self.learning_rate)
+                                 learning_rate=self.learning_rate,
+                                 learning_rate_scheduler=self.learning_rate_scheduler)
         
-    def _fit_model(self):
+    def fit_model(self):
         # todo: make choice of logger optional?
         tb_logger = pl_loggers.TensorBoardLogger(save_dir=env_user.project_dir)
         trainer = pl.Trainer(max_epochs=self.max_epochs,
                              accelerator=self.train_device, 
                              logger=tb_logger,
                              devices='auto', # what other options here?
-                             callbacks=[EarlyStopping(monitor="Val_loss", mode="min") if self.early_stopping==True else None][0]) 
+                             callbacks=[EarlyStopping(monitor="val_loss", mode="min") if self.early_stopping==True else None][0]) 
         
         trainer.fit(model=self.lit_model,
                     train_dataloaders=self.train_dataloader,
                     val_dataloaders=self.val_dataloader)
         
     
-    def _test_model(self):
+    def test_model(self):
         # todo: load model from checkpoint or continue using pl.Trainer above?
         #model = 
         pass
         
-    def _save_model_state(self):
+    def __save_model_state(self):
         pass
     
         
