@@ -380,7 +380,9 @@ class PreparedDataset(BaseDataset):
         # TODO: Here is still a bottleneck. But at least it is just sampling now.
         for s in selection:
             x_vals.append(padded_slices[(s[0], s[1])][x_blocks[s_indx]])
-            y_vals.append(the_data[instances[s[0]]][s[1]]['d'][y_blocks[s_indx], y_map])
+            # y_vals.append(the_data[instances[s[0]]][s[1]]['d'][y_blocks[s_indx], y_map])
+            y_vals.append(the_data[instances[s[0]]][s[1]]['d'][y_blocks[s_indx]][:, y_map])
+
             s_indx += 1
         x_vals = array(x_vals)
         y_vals = array(y_vals)
