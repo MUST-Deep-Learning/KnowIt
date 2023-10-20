@@ -51,7 +51,7 @@ def main():
                         model=model)
     
     # trainer = KITrainer(train_device='gpu',
-    #                     loss_fn='sgd',
+    #                     loss_fn='mse_loss',
     #                     optim='Adam',
     #                     max_epochs=250,
     #                     early_stopping=True,

@@ -116,7 +116,7 @@ class CustomClassificationDataset(Dataset):
             # self.y[y.squeeze() == k] = v
 
             got_class = (y == k).all(axis=1)
-            self.y[got_class] = v
+            self.y[got_class.squeeze()] = v
 
     def __len__(self):
         return self.y.shape[0]

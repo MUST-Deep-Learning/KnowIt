@@ -16,6 +16,8 @@ __description__ = 'Contains the trainer module.'
 #   > callbacks?
 #   > change imports to from
 #   > optimizer: momentum arg?
+#   > average loss per epoch, not per batch
+#   > hardcode performence metrics based on task: regression (same as your loss), classification (accuracy: multiclass, binary: f1) -> also per epoch like previous point
 
 import os
 from env import env_user
