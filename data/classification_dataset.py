@@ -33,6 +33,7 @@ x is cast as a Tensor with float type, and the unique sample index is also retur
 from numpy import isnan, unique, zeros
 from torch.utils.data import Dataset, DataLoader
 from torch import is_tensor, from_numpy
+from torch import zeros as zeros_tensor
 
 # internal imports
 from data.prepared_dataset import PreparedDataset
@@ -116,7 +117,8 @@ class CustomClassificationDataset(Dataset):
             # self.y[y.squeeze() == k] = v
 
             got_class = (y == k).all(axis=1)
-            self.y[got_class] = v
+            # self.y[got_class] = v
+            self.y[got_class.squeeze()] = v
 
     def __len__(self):
         return self.y.shape[0]
@@ -125,7 +127,12 @@ class CustomClassificationDataset(Dataset):
         if is_tensor(idx):
             idx = idx.tolist()
         input_x = self.x[idx, :, :]
+
         output_y = self.y[idx]
+        new_output_y = zeros_tensor(len(self.c))
+        new_output_y[output_y] = 1
+        output_y = new_output_y
+
         input_x = input_x.astype('float')
         sample = {'x': from_numpy(input_x).float(),
                   'y': output_y, 's_id': idx}
