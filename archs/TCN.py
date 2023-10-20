@@ -1,14 +1,20 @@
 __author__ = 'tiantheunissen@gmail.com'
-__description__ = 'This is a Temporal Convolutional Network.'
+__description__ = 'This is a Temporal Convolutional Network (TCN)'
 
 """ 
 
-This is an architecture that performs 1D convolutions over the time domain, 
-and regards components as channels. It uses dilated causal convolutions and padding, 
-to ensure that there is no information leakage from future values.
-The convolutional stage outputs a sequence equal in length to the output.
+This is a TCN stage followed by a secondary block that depends on the task.
 
-It contains a number of ConvBlock modules followed by a FinalBlock module.
+A TCN architecture is a fully convolutional architecture that performs 1D convolutions 
+over the time domain. It uses dilated causal convolutions and padding, to ensure that 
+there is no information leakage from future values and it outputs a sequence equal in 
+length to the input.
+
+See the following links for details.
+https://unit8.com/resources/temporal-convolutional-networks-and-forecasting/
+https://arxiv.org/abs/1803.01271
+
+The overall architecture contains a number of ConvBlock modules followed by a FinalBlock module.
 
 
 ------------
@@ -16,14 +22,15 @@ ConvBlock
 ------------
 
 This module consists of 5 layers.
+* is optional
 
 [convolution] -> [normalization*] -> [activation] -> [dropout] -> [residual connection*]
 
     -   [convolution] = nn.Conv1d(num_input_components, num_filters)    ... if at input
                         nn.Conv1d(num_filters, num_filters)             ... if in between
                         nn.Conv1d(num_filters, num_output_components)   ... if at the end
-            -   This layer performs 1D convolution over the time steps, with the the input components
-                as channels.
+            -   This layer performs 1D convolution over the time steps, with the the input 
+                components as channels.
             -   It outputs a tensor of (batch_size, num_time_steps, num_filters)
     -   [normalization] = depends on the normalization hyperparameter
             - nn.utils.weight_norm if normalization='weight'
@@ -32,33 +39,53 @@ This module consists of 5 layers.
     -   [activation] = depends on the 'activations' hyperparameter
     -   [dropout] = nn.Dropout
     -   [residual connection] = The input to the block is added to the output. 
-            A 1x1 conv is used to resize the input if the input size != output size
+            A 1x1 conv is used to resize the input if the input size != output size.
+            
+------------
+FinalBlock
+------------
+
+After the TCN stage we have a tensor T(batch_size, num_input_time_steps, num_output_components).
+If task_name = 'regression'
+    -   T is flattened to T(batch_size, num_input_time_steps * num_output_components) 
+            a linear layer is applied, and it is reshaped to the desired output
+            T(batch_size, num_output_time_steps, num_output_components).
+If task_name = 'classification'
+    -   T is flattened to T(batch_size, num_input_time_steps * num_output_components) 
+            a linear layer is applied, which outputs
+            T(batch_size, num_output_components).
+If task_name = 'forecast' (WIP)
+    -   T(batch_size, num_output_time_steps, num_output_components) is return where the 
+           num_output_time_steps is the last chunk from num_input_time_steps.           
 
 
 """
 
-from typing import Union
 import torch.nn as nn
 import numpy as np
 from torch.nn.utils import weight_norm
 
+
+from helpers.logger import get_logger
+logger = get_logger()
+
 model_name = "TCN"
 
-available_tasks = ('regression', 'classification')
+available_tasks = ('regression', 'classification', 'forecasting')
 
 # Default hyperparameter values
-HP_defaults_dict = {'depth': 3,
-                    'num_filters': 64,
+HP_defaults_dict = {'num_filters': 64,
                     'kernel_size': 3,
-                    'normalization': 'weight',
+                    'normalization': 'batch',
                     'dropout': 0.3,
                     'activations': 'ReLU',
                     'output_activation': None,
                     'residual_connect': True,
-                    'latent_dim': 256}
+                    'dilation_base': 2,
+                    'depth': -1}
 
 # The ranges for each hyperparameter (used later for Knowit Tuner module)
-HP_ranges_dict = {'depth': range(1, 21, 1),
+HP_ranges_dict = {'depth': range(-1, 21, 1),
                   'num_filters': range(3, 1025, 1),
                   'kernel_size': range(3, 31, 1),
                   'normalization': ('batch', 'weight', None),
@@ -66,7 +93,7 @@ HP_ranges_dict = {'depth': range(1, 21, 1),
                   'activations': ('ReLU', 'LeakyReLU', 'Tanh', 'GLU'),  # see Pytorch docs for more options
                   'output_activation': (None, 'Sigmoid', 'Softmax'),
                   'residual_connect': (True, False),
-                  'latent_dim': (2, 1024, 1)}
+                  'dilation_base': (2, 30, 1)}
 
 
 class Model(nn.Module):
@@ -87,7 +114,7 @@ class Model(nn.Module):
                  activations: str = HP_defaults_dict['activations'],
                  output_activation: str = HP_defaults_dict['output_activation'],
                  residual_connect: bool = HP_defaults_dict['residual_connect'],
-                 latent_dim: int = HP_defaults_dict['latent_dim']
+                 dilation_base: int = HP_defaults_dict['dilation_base']
                  ):
 
         super(Model, self).__init__()
@@ -103,7 +130,7 @@ class Model(nn.Module):
         self.__check_and_add_arg('dropout', dropout, float)
         self.__check_and_add_arg('activations', activations, str)
         self.__check_and_add_arg('residual_connect', residual_connect, bool)
-        self.__check_and_add_arg('latent_dim', latent_dim, int)
+        self.__check_and_add_arg('dilation_base', dilation_base, int)
         if output_activation is not None:
             self.__check_and_add_arg('output_activation', output_activation, str)
         else:
@@ -113,10 +140,18 @@ class Model(nn.Module):
         else:
             self.normalization = None
 
+        if self.kernel_size < self.dilation_base:
+            logger.warning('Kernel size %s < dilation base %s. There will be holes in the receptive field of TCN.',
+                           str(self.kernel_size), str(self.dilation_base))
+
         self.num_model_in_time_steps = input_dim[0]
         self.num_model_in_channels = input_dim[1]
         self.num_model_out_time_steps = output_dim[0]
         self.num_model_out_channels = output_dim[1]
+
+        min_depth = self.calc_min_depth(dilation_base, self.num_model_in_time_steps, kernel_size)
+        if self.depth != -1 and self.depth < min_depth:
+            logger.warning('TCN receptive field below input sequence length.')
 
         # build model arch
         self.network = self.__build_fcn()
@@ -127,45 +162,50 @@ class Model(nn.Module):
         else:
             self.__setattr__(name, val)
 
-    def __build_fcn(self):
-        # import math
-        # dilation_base = 2
-        # num_layers = math.ceil(
-        #     math.log(
-        #         (self.num_model_in_time_steps - 1)
-        #         * (dilation_base - 1)
-        #         / (self.kernel_size - 1)
-        #         / 2
-        #         + 1,
-        #         dilation_base,
-        #     )
-        # )
-        #
-        # effective_depth = np.ceil(self.num_model_in_time_steps/(self.kernel_size - 1))
+    def __build_fcn(self, dilation_base=2):
+
+        depth = self.depth
+        if depth == -1:
+            depth = int(np.ceil(np.emath.logn(dilation_base,
+                                          (((self.num_model_in_time_steps - 1) *
+                                            (dilation_base - 1)) /
+                                           (self.kernel_size - 1)) + 1)))
+            logger.info('Using minimum TCN depth %s.', str(depth))
 
         layers = []
-        for i in range(self.depth):
+        for i in range(depth):
             layers += [ConvBlock(n_inputs=self.num_model_in_channels if i == 0 else self.num_filters,
-                                 n_outputs=self.num_model_out_channels if i == self.depth - 1 else self.num_filters,
+                                 n_outputs=self.num_model_out_channels if i == depth - 1 else self.num_filters,
                                  kernel_size=self.kernel_size,
                                  stride=1,
-                                 dilation=2 ** i,
-                                 padding=(self.kernel_size-1) * (2 ** i),
+                                 dilation=self.dilation_base ** i,
+                                 padding=(self.kernel_size-1) * (self.dilation_base ** i),
                                  dropout=self.dropout,
                                  normalization=self.normalization,
                                  activations=self.activations,
-                                 residual_connect=True)]
+                                 residual_connect=self.residual_connect)]
 
         layers += [FinalBlock(self.num_model_in_time_steps, self.num_model_out_channels,
                               self.num_model_out_time_steps, self.output_activation, self.task_name)]
 
         return nn.Sequential(*layers)
 
+    @staticmethod
+    def calc_min_depth(dilation_base, num_model_in_time_steps, kernel_size):
+        depth = int(np.ceil(np.emath.logn(dilation_base,
+                                          (((num_model_in_time_steps - 1) *
+                                            (dilation_base - 1)) /
+                                           (kernel_size - 1)) + 1)))
+        return depth
+
     def forward(self, x):
         return self.network(x)
 
 
 class FinalBlock(nn.Module):
+
+    """ Performs the necessary manipulation of the TCN output for the current task. """
+
     def __init__(self, num_model_in_time_steps, num_model_out_channels,
                  num_model_out_time_steps, output_activation, task):
 
@@ -185,11 +225,11 @@ class FinalBlock(nn.Module):
                 self.act = getattr(nn, self.output_activation)
 
         if task == 'classification':
-            self.trans = nn.Linear(self.expected_in_t * self.expected_in_c, self.desired_out_c)
+            self.trans = nn.Linear(self.expected_in_t * self.expected_in_c, self.desired_out_c, bias=False)
             self.init_mod(self.trans)
         elif task == 'regression':
             self.trans = nn.Linear(self.expected_in_t * self.expected_in_c,
-                                   self.desired_out_c * self.desired_out_t)
+                                   self.desired_out_c * self.desired_out_t, bias=False)
             self.init_mod(self.trans)
 
     @staticmethod
@@ -228,6 +268,9 @@ class FinalBlock(nn.Module):
 
 
 class ConvBlock(nn.Module):
+
+    """ A single fully convolutional block for the TCN. """
+
     def __init__(self, n_inputs, n_outputs, kernel_size,
                  stride, dilation, padding, dropout, normalization,
                  activations, residual_connect):
@@ -237,17 +280,20 @@ class ConvBlock(nn.Module):
         conv_layer = nn.Conv1d(n_inputs, n_outputs, kernel_size, stride=stride,
                                padding=padding, dilation=dilation)
         if normalization == 'weight':
-            self.conv = weight_norm(conv_layer)
+            self.block = nn.Sequential(weight_norm(conv_layer), ClipRightPad(padding),
+                                       getattr(nn, activations)(),
+                                       nn.Dropout(p=dropout))
         elif normalization == 'batch':
-            self.conv = nn.Sequential(conv_layer,
-                                      nn.BatchNorm1d(n_outputs))
+            self.block = nn.Sequential(conv_layer, ClipRightPad(padding),
+                                       nn.BatchNorm1d(n_outputs),
+                                       getattr(nn, activations)(),
+                                       nn.Dropout(p=dropout))
         else:
-            self.conv = conv_layer
+            self.block = nn.Sequential(conv_layer, ClipRightPad(padding),
+                                       getattr(nn, activations)(),
+                                       nn.Dropout(p=dropout))
 
-        self.net = nn.Sequential(self.conv,Chomp1d(padding),
-                                 getattr(nn, activations)(),
-                                 nn.Dropout(p=dropout))
-        self.init_mod(self.net)
+        self.init_mod(self.block)
 
         self.res_connect = None
         if residual_connect:
@@ -267,7 +313,7 @@ class ConvBlock(nn.Module):
 
     def forward(self, x):
         x = x.transpose(1, 2)
-        out = self.net(x)
+        out = self.block(x)
         if self.res_connect:
             res = self.res_connect(x)
             out = out + res
@@ -275,10 +321,13 @@ class ConvBlock(nn.Module):
         return out
 
 
-class Chomp1d(nn.Module):
-    def __init__(self, chomp_size):
-        super(Chomp1d, self).__init__()
-        self.chomp_size = chomp_size
+class ClipRightPad(nn.Module):
+
+    """ This module removes the right padding to ensure causality. """
+
+    def __init__(self, clip_size):
+        super(ClipRightPad, self).__init__()
+        self.clip_size = clip_size
 
     def forward(self, x):
-        return x[:, :, :-self.chomp_size].contiguous()
+        return x[:, :, :-self.clip_size].contiguous()
