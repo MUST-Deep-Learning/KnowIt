@@ -1,62 +1,12 @@
 __author__ = 'tiantheunissen@gmail.com'
-__description__ = 'This is a Temporal Convolutional Network (TCN)'
+__description__ = 'This is a 1D convolutional neural network.'
 
 """ 
 
-This is a TCN stage followed by a secondary block that depends on the task.
+This is the same as the TCN but made non-causal by removing the padding and clipping, 
+as suggested here. https://github.com/locuslab/TCN/issues/45.
 
-A TCN architecture is a fully convolutional architecture that performs 1D convolutions 
-over the time domain. It uses dilated causal convolutions and padding, to ensure that 
-there is no information leakage from future values and it outputs a sequence equal in 
-length to the input.
-
-See the following links for details.
-https://unit8.com/resources/temporal-convolutional-networks-and-forecasting/
-https://arxiv.org/abs/1803.01271
-
-The overall architecture contains a number of ConvBlock modules followed by a FinalBlock module.
-
-
-------------
-ConvBlock
-------------
-
-This module consists of 5 layers.
-* is optional
-
-[convolution] -> [normalization*] -> [activation] -> [dropout] -> [residual connection*]
-
-    -   [convolution] = nn.Conv1d(num_input_components, num_filters)    ... if at input
-                        nn.Conv1d(num_filters, num_filters)             ... if in between
-                        nn.Conv1d(num_filters, num_output_components)   ... if at the end
-            -   This layer performs 1D convolution over the time steps, with the the input 
-                components as channels.
-            -   It outputs a tensor of (batch_size, num_time_steps, num_filters)
-    -   [normalization] = depends on the normalization hyperparameter
-            - nn.utils.weight_norm if normalization='weight'
-            - nn.BatchNorm1d if normalization='batch'
-            - skipped if normalization=None
-    -   [activation] = depends on the 'activations' hyperparameter
-    -   [dropout] = nn.Dropout
-    -   [residual connection] = The input to the block is added to the output. 
-            A 1x1 conv is used to resize the input if the input size != output size.
-            
-------------
-FinalBlock
-------------
-
-After the TCN stage we have a tensor T(batch_size, num_input_time_steps, num_output_components).
-If task_name = 'regression'
-    -   T is flattened to T(batch_size, num_input_time_steps * num_output_components) 
-            a linear layer is applied, and it is reshaped to the desired output
-            T(batch_size, num_output_time_steps, num_output_components).
-If task_name = 'classification'
-    -   T is flattened to T(batch_size, num_input_time_steps * num_output_components) 
-            a linear layer is applied, which outputs
-            T(batch_size, num_output_components).
-If task_name = 'forecast' (WIP)
-    -   T(batch_size, num_output_time_steps, num_output_components) is return where the 
-           num_output_time_steps is the last chunk from num_input_time_steps.           
+Otherwise it performs in the exact same way.           
 
 
 """
@@ -65,11 +15,11 @@ import torch.nn as nn
 import numpy as np
 from torch.nn.utils import weight_norm
 
-
 from helpers.logger import get_logger
+
 logger = get_logger()
 
-model_name = "TCN"
+model_name = "CNN"
 
 available_tasks = ('regression', 'classification', 'forecasting')
 
@@ -98,8 +48,9 @@ HP_ranges_dict = {'depth': range(-1, 21, 1),
 
 class Model(nn.Module):
     """
-    Temporal Convolutional Network
+    1D Convolutional Network
     Paper link: https://arxiv.org/abs/1803.01271
+    But without the causal convolutions.
     """
 
     def __init__(self,
@@ -141,7 +92,8 @@ class Model(nn.Module):
             self.normalization = None
 
         if self.kernel_size < self.dilation_base:
-            logger.warning('Kernel size %s < dilation base %s. There will be holes in the receptive field of TCN.',
+            # TODO: To check
+            logger.warning('Kernel size %s < dilation base %s. There will be holes in the receptive field of CNN.',
                            str(self.kernel_size), str(self.dilation_base))
 
         self.num_model_in_time_steps = input_dim[0]
@@ -151,7 +103,8 @@ class Model(nn.Module):
 
         min_depth = self.calc_min_depth(dilation_base, self.num_model_in_time_steps, kernel_size)
         if self.depth != -1 and self.depth < min_depth:
-            logger.warning('TCN receptive field below input sequence length.')
+            # TODO: To check
+            logger.warning('CNN receptive field below input sequence length.')
 
         # build model arch
         self.network = self.__build_fcn()
@@ -167,10 +120,11 @@ class Model(nn.Module):
         depth = self.depth
         if depth == -1:
             depth = int(np.ceil(np.emath.logn(dilation_base,
-                                          (((self.num_model_in_time_steps - 1) *
-                                            (dilation_base - 1)) /
-                                           (self.kernel_size - 1)) + 1)))
-            logger.info('Using minimum TCN depth %s.', str(depth))
+                                              (((self.num_model_in_time_steps - 1) *
+                                                (dilation_base - 1)) /
+                                               (self.kernel_size - 1)) + 1)))
+            # TODO: To check
+            logger.info('Using minimum CNN depth %s.', str(depth))
 
         layers = []
         for i in range(depth):
@@ -179,7 +133,7 @@ class Model(nn.Module):
                                  kernel_size=self.kernel_size,
                                  stride=1,
                                  dilation=self.dilation_base ** i,
-                                 padding=(self.kernel_size-1) * (self.dilation_base ** i),
+                                 padding=self.dilation_base ** i,
                                  dropout=self.dropout,
                                  normalization=self.normalization,
                                  activations=self.activations,
@@ -203,8 +157,7 @@ class Model(nn.Module):
 
 
 class FinalBlock(nn.Module):
-
-    """ Performs the necessary manipulation of the TCN output for the current task. """
+    """ Performs the necessary manipulation of the CNN output for the current task. """
 
     def __init__(self, num_model_in_time_steps, num_model_out_channels,
                  num_model_out_time_steps, output_activation, task):
@@ -268,8 +221,7 @@ class FinalBlock(nn.Module):
 
 
 class ConvBlock(nn.Module):
-
-    """ A single fully convolutional block for the TCN. """
+    """ A single fully convolutional block for the CNN. """
 
     def __init__(self, n_inputs, n_outputs, kernel_size,
                  stride, dilation, padding, dropout, normalization,
@@ -280,16 +232,16 @@ class ConvBlock(nn.Module):
         conv_layer = nn.Conv1d(n_inputs, n_outputs, kernel_size, stride=stride,
                                padding=padding, dilation=dilation)
         if normalization == 'weight':
-            self.block = nn.Sequential(weight_norm(conv_layer), ClipRightPad(padding),
+            self.block = nn.Sequential(weight_norm(conv_layer),
                                        getattr(nn, activations)(),
                                        nn.Dropout(p=dropout))
         elif normalization == 'batch':
-            self.block = nn.Sequential(conv_layer, ClipRightPad(padding),
+            self.block = nn.Sequential(conv_layer,
                                        nn.BatchNorm1d(n_outputs),
                                        getattr(nn, activations)(),
                                        nn.Dropout(p=dropout))
         else:
-            self.block = nn.Sequential(conv_layer, ClipRightPad(padding),
+            self.block = nn.Sequential(conv_layer,
                                        getattr(nn, activations)(),
                                        nn.Dropout(p=dropout))
 
@@ -319,15 +271,3 @@ class ConvBlock(nn.Module):
             out = out + res
         out = out.transpose(1, 2)
         return out
-
-
-class ClipRightPad(nn.Module):
-
-    """ This module removes the right padding to ensure causality. """
-
-    def __init__(self, clip_size):
-        super(ClipRightPad, self).__init__()
-        self.clip_size = clip_size
-
-    def forward(self, x):
-        return x[:, :, :-self.clip_size].contiguous()
