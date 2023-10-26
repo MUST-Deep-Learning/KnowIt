@@ -16,15 +16,19 @@ __description__ = 'Contains the trainer module.'
 #   > callbacks?
 #   > change imports to from
 #   > optimizer: momentum arg?
-#   > average loss per epoch, not per batch
-#   > hardcode performence metrics based on task: regression (same as your loss), classification (accuracy: multiclass, binary: f1) -> also per epoch like previous point
+#   > hardcode performence metrics based on task: regression (same as your loss), 
+#       classification (accuracy: multiclass, binary: f1) -> also per epoch like previous point
+#   > save logging results as csv
+#   > refactor some of the code
 
 import os
+from typing import Union
 from env import env_user
 
 import torch
+import torchmetrics
 from torch import nn
-import torch.nn.functional as F
+from torch.nn import functional as F
 
 import lightning.pytorch as pl
 from lightning.pytorch import loggers as pl_loggers
@@ -33,59 +37,105 @@ from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 class PLModel(pl.LightningModule):
     
     def __init__(self, 
-                 loss: str,
+                 loss: Union[str, dict],
                  learning_rate: float, 
-                 optimizer: str,
+                 optimizer: Union[str, dict],
                  model: object,
-                 learning_rate_scheduler: dict):
+                 learning_rate_scheduler: dict,
+                 performance_metrics: Union[None, dict]):
         super().__init__()
         
         self.loss = loss
         self.lr = learning_rate
-        if learning_rate_scheduler:
-            self.lr_scheduler = learning_rate_scheduler.pop('lr_scheduler') # save choice & remove from dict 
-            if 'monitor' in learning_rate_scheduler.keys():
-                self.monitor = learning_rate_scheduler.pop('monitor') # save choice & remove from dict
-            else:
-                self.monitor = None
-            self.lr_scheduler_kwargs = learning_rate_scheduler # only kwargs remain
-        else:
-            self.lr_scheduler = None
+        self.lr_scheduler = learning_rate_scheduler
         self.optimizer = optimizer
         self.model = model
+        self.performance_metrics = performance_metrics
         
-    def __get_loss_function(self):
+    def __get_loss_function(self, loss):
+        """Helper method to retrieve user's choice of loss function."""
         # todo: what if user needs to provide more info when calling loss?
-        return getattr(F, self.loss)
+        return getattr(F, loss)
     
-    def __get_optim(self):
+    def __get_optim(self, optimizer):
+        """Helper method to retrieve user's choice of optimizer."""
         # todo: use kwargs for variable user parameters
-        return getattr(torch.optim, self.optimizer)
+        return getattr(torch.optim, optimizer)
     
-    def __get_lr_scheduler(self):
-        return getattr(torch.optim.lr_scheduler, self.lr_scheduler)
+    def __get_lr_scheduler(self, scheduler):
+        """Helper method to retrieve user's choice of learning rate scheduler."""
+        return getattr(torch.optim.lr_scheduler, scheduler)
+    
+    def __get_performance_metric(self, metric):
+        """Helper method to retrieve user's choice of performance metric."""
+        return getattr(torchmetrics.functional, metric)
         
     def training_step(self, batch, batch_idx):
+        
+        # to add:
+        # > performence metrics also logged in the same way.
+        
+        metrics = {} # metrics to be logged
         
         x = batch['x']
         y = batch['y']
         
         y_pred = self.model.forward(x)
-        loss = self.__get_loss_function()(y_pred, y)
         
-        self.log("train_loss", loss, on_epoch=True, on_step=False)
+        # compute loss; depends on whether user gave kwargs
+        if self.loss:
+            if isinstance(self.loss, dict):
+                for loss_metric in self.loss.keys():
+                    loss_kwargs = self.loss[loss_metric]
+                    loss = self.__get_loss_function(loss_metric)(y_pred, y, **loss_kwargs)
+                    metrics['train_loss_' + loss_metric] = loss
+            elif isinstance(self.loss, str): # only a metric (string) is given, no kwargs
+                loss = self.__get_loss_function(self.loss)(y_pred, y)
+                metrics['train_loss_' + self.loss] = loss
+        
+        if self.performance_metrics:
+            if isinstance(self.performance_metrics, dict):
+                for p_metric in self.performance_metrics.keys():
+                    perf_kwargs = self.performance_metrics[p_metric]
+                    metrics['train_perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
+            elif isinstance(self.performance_metrics, str): # only a metric (string) is given, no kwargs
+                metrics['train_perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
+        
+        # logs every epoch: the loss and performance is accumulated and averaged over the epoch
+        self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
         
         return loss
     
     def validation_step(self, batch, batch_idx):
         
+        metrics = {}
+        
         x = batch['x']
         y = batch['y']
         
         y_pred = self.model.forward(x)
-        loss = self.__get_loss_function()(y_pred, y)
         
-        self.log("val_loss", loss, on_epoch=True, on_step=False)
+        # compute loss; depends on whether user gave kwargs
+        if self.loss:
+            if isinstance(self.loss, dict):
+                for loss_metric in self.loss.keys():
+                    loss_kwargs = self.loss[loss_metric]
+                    loss = self.__get_loss_function(loss_metric)(y_pred, y, **loss_kwargs)
+                    metrics['val_loss_' + loss_metric] = loss
+            elif isinstance(self.loss, str): # only a metric (string) is given, no kwargs
+                loss = self.__get_loss_function(self.loss)(y_pred, y)
+                metrics['val_loss_' + self.loss] = loss
+        
+        if self.performance_metrics:
+            if isinstance(self.performance_metrics, dict):
+                for p_metric in self.performance_metrics.keys():
+                    perf_kwargs = self.performance_metrics[p_metric]
+                    metrics['val_perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
+            elif isinstance(self.performance_metrics, str): # only a metric (string) is given, no kwargs
+                metrics['val_perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
+        
+        # logs every epoch: the loss and performance is accumulated and averaged over the epoch
+        self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
         
         return loss    
     
@@ -104,31 +154,51 @@ class PLModel(pl.LightningModule):
         
     def configure_optimizers(self):
         # get user's optimizer
-        optimizer = self.__get_optim()(self.model.parameters(), lr=self.lr)
+        if self.optimizer:
+            if isinstance(self.optimizer, dict):
+                # optimizer has kwargs
+                for optim in self.optimizer.keys():
+                    opt_kwargs = self.optimizer[optim]
+                    optimizer = self.__get_optim(optim)(self.model.parameters(), lr=self.lr, **opt_kwargs)
+            elif isinstance(self.optimizer, str):
+                # optimizer has no kwargs
+                optimizer = self.__get_optim(self.optimizer)(self.model.parameters(), lr=self.lr)
         
-        # get user's lr scheduler
+        # get user's learning rate scheduler
         if self.lr_scheduler:
-            scheduler = self.__get_lr_scheduler()(optimizer, **self.lr_scheduler_kwargs) # unpack any kwargs needed for choice of optimizer
-            if self.monitor: # todo: does monitor only get used here?
-                return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler, "monitor": self.monitor}}
-            else:
+            if isinstance(self.lr_scheduler, dict):
+                # lr schedular has kwargs
+                lr_dict = {}
+                for sched in self.lr_scheduler.keys():
+                        sched_kwargs = self.lr_scheduler[sched]
+                        if 'monitor' in sched_kwargs:
+                            monitor = sched_kwargs.pop('monitor')
+                            lr_dict['monitor'] = monitor
+                        scheduler = self.__get_lr_scheduler(sched)(optimizer, **sched_kwargs)                    
+                        lr_dict['scheduler'] = scheduler
+                return {"optimizer": optimizer, "lr_scheduler": lr_dict}
+            elif isinstance(self.lr_scheduler, str):
+                # lr scheduler has no kwargs
+                scheduler = self.__get_lr_scheduler(self.lr_scheduler)(optimizer)
                 return {"optimizer": optimizer, "lr_scheduler": scheduler}
         else:
-            return {"optimizer": optimizer}        
-
+            # no scheduler
+            return {"optimizer": optimizer}
+                    
 
 class KITrainer():
     
     def __init__(self,
                  train_device: str,
-                 loss_fn: str,
-                 optim: str,
+                 loss_fn: Union[str, dict],
+                 optim: Union[str, dict],
                  max_epochs: int,
                  early_stopping: bool,
                  learning_rate: float,
                  loaders: tuple,
                  model: object,
-                 learning_rate_scheduler: dict = {}):
+                 learning_rate_scheduler: dict = {},
+                 performance_metrics: Union[None, dict] = None):
         
         """"Args:
         - train_device: (device),
@@ -149,6 +219,7 @@ class KITrainer():
         self.early_stopping = early_stopping
         self.learning_rate = learning_rate
         self.learning_rate_scheduler = learning_rate_scheduler # dict: choice of lr_scheduler and kwargs
+        self.performance_metrics = performance_metrics # dict: choice of metric and any needed kwargs
         
         # instance of model class
         self.model = model
@@ -160,11 +231,13 @@ class KITrainer():
         # todo: perform checks on above vals
         
         # initialize PL object
+        # todos: move model initialization to seperate method? Should all these be global vars if it stays in __init__?
         self.lit_model = PLModel(loss=self.loss_fn,
                                  optimizer=self.optim, 
                                  model=self.model, 
                                  learning_rate=self.learning_rate,
-                                 learning_rate_scheduler=self.learning_rate_scheduler)
+                                 learning_rate_scheduler=self.learning_rate_scheduler,
+                                 performance_metrics=self.performance_metrics)
         
     def fit_model(self):
         # todo: make choice of logger optional?

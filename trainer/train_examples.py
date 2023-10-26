@@ -3,71 +3,140 @@ from data.regression_dataset import RegressionDataset
 from data.base_dataset import BaseDataset
 from trainer import KITrainer
 
-from archs.MLP import Model
+#from archs.MLP import Model
+from archs.TCN import Model
 
 import torch
+from torchmetrics import F1Score, Accuracy
 
-import pickle
+from helpers.logger import get_logger
 
-def test_func(**kwargs):
-    for key, value in kwargs.items():
-        print("%s==%s" % (key, value))
+logger = get_logger()
+logger.setLevel(20)
 
 def main():
-    data_option = "penguin_pce_full"
-    datamodule = ClassificationDataset(name=data_option,
-                     in_components=['accX', 'accY', 'accZ'], out_components=['PCE'], 
-                     in_chunk=[-25, 25], out_chunk=[0, 0], 
-                     split_portions=(0.6, 0.2, 0.2), 
-                     seed=333, batch_size=32, limit=10000, 
-                     min_slice=10, scaling_method='z-norm', 
-                     scaling_tag='in_only', split_method='chronological')
     
-    # data_option = 'dummy_zero'
-    # datamodule = RegressionDataset(name=data_option,
-    #                                       in_components=['x1', 'x2', 'x3', 'x4'],
-    #                                       out_components=['y1', 'y2'], in_chunk=[-5, 5], out_chunk=[0, 0],
-    #                                       split_portions=(0.6, 0.2, 0.2), seed=666, batch_size=64, limit=None,
-    #                                       min_slice=10, scaling_method='zero-one', scaling_tag='full',
-    #                                       split_method='slice-random')
+    ############################################################################################
+    ###############################   CLASSIFICATION   #########################################
+    
+    # data_option = "penguin_pce_full"
+    # datamodule = ClassificationDataset(name=data_option,
+    #                  in_components=['accX', 'accY', 'accZ'], out_components=['PCE'], 
+    #                  in_chunk=[-25, 25], out_chunk=[0, 0], 
+    #                  split_portions=(0.6, 0.2, 0.2), 
+    #                  seed=333, batch_size=32, limit=10000, 
+    #                  min_slice=10, scaling_method='z-norm', 
+    #                  scaling_tag='in_only', split_method='chronological')
+    
+    # trainer_loader = datamodule.get_dataloader('train')
+    # val_loader = datamodule.get_dataloader('valid')
+    
+    # model = Model(input_dim=datamodule.in_shape, 
+    #               output_dim=datamodule.out_shape,
+    #               task_name='classification')
+    
+    # pm = {
+    #     'f1_score': {
+    #         'num_classes': 2,
+    #         'task': 'binary'
+    #     }
+    #     # 'accuracy': {
+    #     #     'num_classes': 2,
+    #     #     'task': 'binary'
+    #     # }
+    # }
+    
+    # loss_fn = {
+    #     'cross_entropy':{
+    #         'weight': torch.Tensor([0.00972, 1.0]).to('cuda')
+    #     }
+    # }
+    
+    # # if 'ReduceLROnPlateau', must use "train_or_val_loss" + "loss_function" as specified elsewhere
+    # # lr = {
+    # #     'ReduceLROnPlateau':{
+    # #         'mode': 'min',
+    # #         'patience': 5,
+    # #         'monitor': 'train_loss_cross_entropy'
+    # #     }
+    # # }
+    
+    # lr = {
+    #     'ExponentialLR':{
+    #         'gamma': 0.9
+    #     }
+    # }
+    
+    # optim ={
+    #     'Adam':{
+    #         'weight_decay': 0.5
+    #     }
+    # }
+    
+    # trainer = KITrainer(train_device='gpu',
+    #                     loss_fn=loss_fn,
+    #                     performance_metrics=pm, 
+    #                     optim=optim,
+    #                     max_epochs=20,
+    #                     early_stopping=False,
+    #                     learning_rate=1e-03,
+    #                     #learning_rate_scheduler={'lr_scheduler': 'ReduceLROnPlateau', 'monitor': 'train_loss', 'mode': 'min', 'patience': 2},
+    #                     learning_rate_scheduler=lr,
+    #                     loaders=(trainer_loader, val_loader),
+    #                     model=model)
+    
+    ############################################################################################
+    ###############################   REGRESSION   #############################################
+    
+    data_option = 'dummy_zero'
+    datamodule = RegressionDataset(name=data_option,
+                                           in_components=['x1', 'x2', 'x3', 'x4'],
+                                           out_components=['y1', 'y2'], in_chunk=[-5, 5], out_chunk=[0, 0],
+                                           split_portions=(0.6, 0.2, 0.2), seed=666, batch_size=64, limit=None,
+                                           min_slice=10, scaling_method='zero-one', scaling_tag='full',
+                                           split_method='slice-random')
     
     trainer_loader = datamodule.get_dataloader('train')
     val_loader = datamodule.get_dataloader('valid')
     
     model = Model(input_dim=datamodule.in_shape, 
                   output_dim=datamodule.out_shape,
-                  task_name='regression',
-                  output_activation='Softmax')
+                  task_name='regression')
     
+    pm = 'mean_squared_error'
+    
+    loss_fn = 'mse_loss'
+    
+    
+    lr = {
+        'ExponentialLR':{
+            'gamma': 0.9
+        }
+    }
+    
+    optim ={
+        'SGD':{
+            'momentum': 0.9
+        }
+    }
     trainer = KITrainer(train_device='gpu',
-                        loss_fn='cross_entropy',
-                        optim='Adam',
+                        loss_fn=loss_fn,
+                        optim=optim,
+                        performance_metrics=pm,
                         max_epochs=250,
-                        early_stopping=True,
+                        early_stopping=False,
                         learning_rate=1e-03,
-                        #learning_rate_scheduler={'lr_scheduler': 'ReduceLROnPlateau', 'monitor': 'train_loss', 'mode': 'min', 'patience': 2},
-                        learning_rate_scheduler={'lr_scheduler': 'ExponentialLR', 'gamma': 0.9},
+                        learning_rate_scheduler=lr,
                         loaders=(trainer_loader, val_loader),
                         model=model)
     
-    # trainer = KITrainer(train_device='gpu',
-    #                     loss_fn='mse_loss',
-    #                     optim='Adam',
-    #                     max_epochs=250,
-    #                     early_stopping=True,
-    #                     learning_rate=1e-03,
-    #                     #learning_rate_scheduler={'lr_scheduler': 'ReduceLROnPlateau', 'monitor': 'train_loss', 'mode': 'min', 'patience': 2},
-    #                     learning_rate_scheduler={'lr_scheduler': 'ExponentialLR', 'gamma': 0.9},
-    #                     loaders=(trainer_loader, val_loader),
-    #                     model=model)
+    ############################################################################################
+    #####################################  RUN TRAINER  ########################################
     
     # train
     trainer.fit_model()
     
     # test
     trainer.test_model()
-    # test_dic = {"a": 0, "b": 1}
-    # #test_func(**test_dic)
-
-    
+        
 main()
