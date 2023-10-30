@@ -19,94 +19,48 @@ def main():
     ############################################################################################
     ###############################   CLASSIFICATION   #########################################
     
-    # data_option = "penguin_pce_full"
-    # datamodule = ClassificationDataset(name=data_option,
-    #                  in_components=['accX', 'accY', 'accZ'], out_components=['PCE'], 
-    #                  in_chunk=[-25, 25], out_chunk=[0, 0], 
-    #                  split_portions=(0.6, 0.2, 0.2), 
-    #                  seed=333, batch_size=32, limit=10000, 
-    #                  min_slice=10, scaling_method='z-norm', 
-    #                  scaling_tag='in_only', split_method='chronological')
-    
-    # trainer_loader = datamodule.get_dataloader('train')
-    # val_loader = datamodule.get_dataloader('valid')
-    
-    # model = Model(input_dim=datamodule.in_shape, 
-    #               output_dim=datamodule.out_shape,
-    #               task_name='classification')
-    
-    # pm = {
-    #     'f1_score': {
-    #         'num_classes': 2,
-    #         'task': 'binary'
-    #     }
-    #     # 'accuracy': {
-    #     #     'num_classes': 2,
-    #     #     'task': 'binary'
-    #     # }
-    # }
-    
-    # loss_fn = {
-    #     'cross_entropy':{
-    #         'weight': torch.Tensor([0.00972, 1.0]).to('cuda')
-    #     }
-    # }
-    
-    # # if 'ReduceLROnPlateau', must use "train_or_val_loss" + "loss_function" as specified elsewhere
-    # # lr = {
-    # #     'ReduceLROnPlateau':{
-    # #         'mode': 'min',
-    # #         'patience': 5,
-    # #         'monitor': 'train_loss_cross_entropy'
-    # #     }
-    # # }
-    
-    # lr = {
-    #     'ExponentialLR':{
-    #         'gamma': 0.9
-    #     }
-    # }
-    
-    # optim ={
-    #     'Adam':{
-    #         'weight_decay': 0.5
-    #     }
-    # }
-    
-    # trainer = KITrainer(train_device='gpu',
-    #                     loss_fn=loss_fn,
-    #                     performance_metrics=pm, 
-    #                     optim=optim,
-    #                     max_epochs=20,
-    #                     early_stopping=False,
-    #                     learning_rate=1e-03,
-    #                     #learning_rate_scheduler={'lr_scheduler': 'ReduceLROnPlateau', 'monitor': 'train_loss', 'mode': 'min', 'patience': 2},
-    #                     learning_rate_scheduler=lr,
-    #                     loaders=(trainer_loader, val_loader),
-    #                     model=model)
-    
-    ############################################################################################
-    ###############################   REGRESSION   #############################################
-    
-    data_option = 'dummy_zero'
-    datamodule = RegressionDataset(name=data_option,
-                                           in_components=['x1', 'x2', 'x3', 'x4'],
-                                           out_components=['y1', 'y2'], in_chunk=[-5, 5], out_chunk=[0, 0],
-                                           split_portions=(0.6, 0.2, 0.2), seed=666, batch_size=64, limit=None,
-                                           min_slice=10, scaling_method='zero-one', scaling_tag='full',
-                                           split_method='slice-random')
+    data_option = "penguin_pce_full"
+    datamodule = ClassificationDataset(name=data_option,
+                     in_components=['accX', 'accY', 'accZ'], out_components=['PCE'], 
+                     in_chunk=[-25, 25], out_chunk=[0, 0], 
+                     split_portions=(0.6, 0.2, 0.2), 
+                     seed=333, batch_size=32, limit=10000, 
+                     min_slice=10, scaling_method='z-norm', 
+                     scaling_tag='in_only', split_method='chronological')
     
     trainer_loader = datamodule.get_dataloader('train')
     val_loader = datamodule.get_dataloader('valid')
+    test_loader = datamodule.get_dataloader('eval')
     
     model = Model(input_dim=datamodule.in_shape, 
                   output_dim=datamodule.out_shape,
-                  task_name='regression')
+                  task_name='classification')
     
-    pm = 'mean_squared_error'
+    pm = {
+        'f1_score': {
+            'num_classes': 2,
+            'task': 'binary'
+        },
+        'accuracy': {
+            'num_classes': 2,
+            'task': 'binary'
+        }
+    }
     
-    loss_fn = 'mse_loss'
+    loss_fn = {
+        'cross_entropy':{
+            'weight': torch.Tensor([0.00972, 1.0]).to('cuda')
+        }
+    }
     
+    # if 'ReduceLROnPlateau', must use "train_or_val_loss" + "loss_function" as specified elsewhere
+    # lr = {
+    #     'ReduceLROnPlateau':{
+    #         'mode': 'min',
+    #         'patience': 5,
+    #         'monitor': 'train_loss_cross_entropy'
+    #     }
+    # }
     
     lr = {
         'ExponentialLR':{
@@ -115,28 +69,96 @@ def main():
     }
     
     optim ={
-        'SGD':{
-            'momentum': 0.9
+        'Adam':{
+            'weight_decay': 0.5
         }
     }
+    
+    early_stopping = {
+        True:
+            {
+                'monitor': 'val_loss',
+                'mode': 'min'
+            }
+    }
+    
+    # early_stopping = {
+    #     True
+    # }
+        
     trainer = KITrainer(train_device='gpu',
                         loss_fn=loss_fn,
+                        performance_metrics=pm, 
                         optim=optim,
-                        performance_metrics=pm,
-                        max_epochs=250,
-                        early_stopping=False,
+                        max_epochs=10,
+                        #early_stopping=early_stopping,
                         learning_rate=1e-03,
-                        learning_rate_scheduler=lr,
+                        #learning_rate_scheduler=lr,
                         loaders=(trainer_loader, val_loader),
                         model=model)
+    
+    # train
+    #trainer.fit_model()
+    
+    # test
+    best_model_path = '/home/randle/projects/KnowIt/checkpoints/Checkpoint_2023-10-30 16:49:21/bestmodel-epoch=9-val_loss=0.01 2023-10-30 16:49:21.ckpt'
+    trainer.test_model(test_dataloader=test_loader, from_checkpoint=best_model_path)
+    #trainer.test_model(test_dataloader=test_loader)
+    
+    ############################################################################################
+    ###############################   REGRESSION   #############################################
+    
+    # data_option = 'dummy_zero'
+    # datamodule = RegressionDataset(name=data_option,
+    #                                        in_components=['x1', 'x2', 'x3', 'x4'],
+    #                                        out_components=['y1', 'y2'], in_chunk=[-5, 5], out_chunk=[0, 0],
+    #                                        split_portions=(0.6, 0.2, 0.2), seed=666, batch_size=64, limit=None,
+    #                                        min_slice=10, scaling_method='zero-one', scaling_tag='full',
+    #                                        split_method='slice-random')
+    
+    # trainer_loader = datamodule.get_dataloader('train')
+    # val_loader = datamodule.get_dataloader('valid')
+    
+    # model = Model(input_dim=datamodule.in_shape, 
+    #               output_dim=datamodule.out_shape,
+    #               task_name='regression')
+    
+    # pm = 'mean_squared_error'
+    
+    # loss_fn = 'mse_loss'
+    
+    
+    # lr = {
+    #     'ExponentialLR':{
+    #         'gamma': 0.9
+    #     }
+    # }
+    
+    # optim ={
+    #     'SGD':{
+    #         'momentum': 0.9
+    #     }
+    # }
+    # trainer = KITrainer(train_device='gpu',
+    #                     loss_fn=loss_fn,
+    #                     optim=optim,
+    #                     performance_metrics=pm,
+    #                     max_epochs=250,
+    #                     early_stopping=False,
+    #                     learning_rate=1e-03,
+    #                     learning_rate_scheduler=lr,
+    #                     loaders=(trainer_loader, val_loader),
+    #                     model=model)
+    
+    # train
+    #trainer.fit_model()
+    
+    # test
+    #trainer.test_model(test_dataloader=test_loader)
     
     ############################################################################################
     #####################################  RUN TRAINER  ########################################
     
-    # train
-    trainer.fit_model()
     
-    # test
-    trainer.test_model()
         
 main()
