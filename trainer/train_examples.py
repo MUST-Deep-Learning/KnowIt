@@ -14,6 +14,9 @@ from helpers.logger import get_logger
 logger = get_logger()
 logger.setLevel(20)
 
+# Todo:
+#   > write instructions/documentation on how to use KITrainer below.
+
 def main():
     
     ############################################################################################
@@ -86,24 +89,30 @@ def main():
     #     True
     # }
         
-    trainer = KITrainer(train_device='gpu',
-                        loss_fn=loss_fn,
-                        performance_metrics=pm, 
-                        optim=optim,
-                        max_epochs=10,
-                        #early_stopping=early_stopping,
-                        learning_rate=1e-03,
-                        #learning_rate_scheduler=lr,
-                        loaders=(trainer_loader, val_loader),
-                        model=model)
+    # trainer = KITrainer(train_device='gpu',
+    #                     loss_fn=loss_fn,
+    #                     performance_metrics=pm, 
+    #                     optim=optim,
+    #                     max_epochs=20,
+    #                     #early_stopping=early_stopping,
+    #                     learning_rate=1e-03,
+    #                     #learning_rate_scheduler=lr,
+    #                     loaders=(trainer_loader, val_loader),
+    #                     model=model)
     
     # train
-    #trainer.fit_model()
+    # trainer.fit_model()
+    
+    # restore from ckpt and test
+    best_model_path = '/home/randle/projects/KnowIt/checkpoints/Checkpoint_2023-10-31 17:24:43/bestmodel-epoch=8-val_loss=0.00 2023-10-31 17:24:43.ckpt'
+    
+    trainer = KITrainer.build_from_ckpt(best_model_path)
     
     # test
-    best_model_path = '/home/randle/projects/KnowIt/checkpoints/Checkpoint_2023-10-30 16:49:21/bestmodel-epoch=9-val_loss=0.01 2023-10-30 16:49:21.ckpt'
-    trainer.test_model(test_dataloader=test_loader, from_checkpoint=best_model_path)
-    #trainer.test_model(test_dataloader=test_loader)
+    trainer.test_model(test_dataloader=test_loader)
+    
+    
+    
     
     ############################################################################################
     ###############################   REGRESSION   #############################################

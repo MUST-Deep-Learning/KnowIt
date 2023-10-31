@@ -14,6 +14,11 @@ __description__ = 'Contains the trainer module.'
 #       >> torchmetrics does not seem to have cross entropy.
 #   > add performance method to run on test dataloader
 #   > run eval from current training session or from checkpoint (complete classmethod)
+#   > write docstrings.
+#   > (fix) currently, checkpoint dir is being created even if training loops are not completed, resulting in empty folders
+#   > (fix) Checkpointing currently works but I get the warning:
+#        UserWarning: Attribute 'model' is an instance of `nn.Module` and is already saved during checkpointing. 
+#       It is recommended to ignore them using `self.save_hyperparameters(ignore=['model'])`.
 
 import os
 from typing import Union
@@ -52,6 +57,7 @@ class PLModel(pl.LightningModule):
         self.model = model
         self.performance_metrics = performance_metrics
         
+        #self.save_hyperparameters(ignore=["model"])
         self.save_hyperparameters()
         
     def __get_loss_function(self, loss):
@@ -217,7 +223,8 @@ class KITrainer():
                  model: object,
                  learning_rate_scheduler: dict = {},
                  performance_metrics: Union[None, dict] = None,
-                 early_stopping: Union[bool, dict] = False):
+                 early_stopping: Union[bool, dict] = False,
+                 train_flag: bool = True):
         
         """"Args:
         - train_device: (device),
@@ -228,42 +235,74 @@ class KITrainer():
         - learning_rate: (float) -> 1e-03
         - learning_rate_schedule: (str) -> ..."""
         
-        # device to use
-        self.train_device = train_device
+        self.train_flag = train_flag
         
-        # model hyperparameters
-        self.loss_fn = loss_fn
-        self.optim = optim
-        self.max_epochs = max_epochs
-        self.early_stopping = early_stopping
-        self.learning_rate = learning_rate
-        self.learning_rate_scheduler = learning_rate_scheduler # dict: choice of lr_scheduler and kwargs
-        self.performance_metrics = performance_metrics # dict: choice of metric and any needed kwargs
+        if train_flag == True:
+            # device to use
+            self.train_device = train_device
         
-        # construct trainer
-        self.trainer = self._build_PL_trainer()
+            # model hyperparameters
+            self.loss_fn = loss_fn
+            self.optim = optim
+            self.max_epochs = max_epochs
+            self.early_stopping = early_stopping
+            self.learning_rate = learning_rate
+            self.learning_rate_scheduler = learning_rate_scheduler # dict: choice of lr_scheduler and kwargs
+            self.performance_metrics = performance_metrics # dict: choice of metric and any needed kwargs
+            self.model = model # this is a Pytorch model if train_flag=True
         
-        # instance of model class
-        self.model = model
-        
-        # dataloaders from data module
-        self.train_dataloader = loaders[0] # this expects an ordering -> can I do this without assuming that
-        self.val_dataloader = loaders[1]
-        
-        # todo: perform checks on above vals
-        
-        # initialize PL object
-        # todos: move model initialization to seperate method? Should all these be global vars if it stays in __init__?
-        self.lit_model = PLModel(loss=self.loss_fn,
+            # construct trainer
+       
+            self.trainer = self._build_PL_trainer()
+            
+            # dataloaders from data module
+            self.train_dataloader = loaders[0] # this expects an ordering -> can I do this without assuming that
+            self.val_dataloader = loaders[1]
+            
+            # build model from arguments (untrained)
+            self.lit_model = PLModel(loss=self.loss_fn,
                                  optimizer=self.optim, 
                                  model=self.model, 
                                  learning_rate=self.learning_rate,
                                  learning_rate_scheduler=self.learning_rate_scheduler,
                                  performance_metrics=self.performance_metrics)
         
+        if train_flag == False:
+        
+            # instance of model class
+            self.lit_model = model # this is a Pytorch Lightning model if train_flag=False
+        
+        
+        
+        # todo: perform checks on above vals
+        
+        # initialize PL object
+        # todos: move model initialization to seperate method? Should all these be global vars if it stays in __init__?
+        # Two states: build model from user parameters or build model from checkpoint
+        
+        
+        
+        # build model from checkpoint (trained)
+        
+        
+        
     @classmethod
-    def construct_from_ckpt(cls, path_to_checkpoint):
-        pass
+    def build_from_ckpt(cls, path_to_checkpoint):
+        # init PLModel from checkpoint using hparams
+        model = PLModel.load_from_checkpoint(path_to_checkpoint)
+        
+        kitrainer = cls(
+            train_device=None,
+            loss_fn=None,
+            optim=True,
+            max_epochs=None,
+            learning_rate=None,
+            loaders=None,
+            model=model,
+            train_flag=False
+        )
+        
+        return kitrainer
         
         
     def fit_model(self):
@@ -277,15 +316,13 @@ class KITrainer():
     def test_model(self, test_dataloader, from_checkpoint=None):
         # todo: choice to either load from checkpoint or from current completed training loop.
         
-        try:
+        if self.train_flag:
             logger.info("Testing model on the current training run's best checkpoint.")
             self.trainer.test(ckpt_path='best', dataloaders=test_dataloader)
-        except:
-            logger.info("Initialising model from checkpoint.")
-            model = PLModel.load_from_checkpoint(from_checkpoint)
-            logger.info("Testing model on checkpoint.")
-            trainer = pl.Trainer(model=model)
-            trainer.test(ckpt_path=from_checkpoint, dataloaders=test_dataloader)
+        else:
+            logger.info("Testing model loaded from checkpoint.")
+            trainer = pl.Trainer()
+            trainer.test(model=self.lit_model, dataloaders=test_dataloader)
         
         
     def _build_PL_trainer(self):
@@ -325,14 +362,14 @@ class KITrainer():
         
         # best models are saved to a folder named as a datetime string
         file_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        path = os.path.join(project_path, 'Checkpoint_' + file_name)
+        ckpt_path = os.path.join(project_path, 'Checkpoint_' + file_name)
         
         try:
-            os.mkdir(path)
+            os.mkdir(ckpt_path)
         except OSError as error:
             print(error) # folder already exists
         
-        return ModelCheckpoint(dirpath=path,
+        return ModelCheckpoint(dirpath=ckpt_path,
                                monitor='val_loss',
                                filename='bestmodel-{epoch}-{val_loss:.2f} ' + file_name)
     
