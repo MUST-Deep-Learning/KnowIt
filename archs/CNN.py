@@ -123,6 +123,7 @@ class Model(nn.Module):
                                               (((self.num_model_in_time_steps - 1) *
                                                 (dilation_base - 1)) /
                                                (self.kernel_size - 1)) + 1)))
+            depth = max(depth, 1)
             # TODO: To check
             logger.info('Using minimum CNN depth %s.', str(depth))
 

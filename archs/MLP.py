@@ -76,6 +76,7 @@ class Model(nn.Module):
 
         self.model_in_dim = int(np.prod(input_dim))
         self.model_out_dim = int(np.prod(output_dim))
+        self.final_out_dim = output_dim
         
         # Input layer
         layers = []
@@ -127,15 +128,20 @@ class Model(nn.Module):
         """Performs a forward pass over the regression MLP.
         
         Returns a tensor of shape (batch_size, output_dim)"""
+
+        out = self.model(input)
+        out = out.view(out.shape[0], self.final_out_dim[0], self.final_out_dim[1])
         
-        return self.model(input)
+        return out
 
     def classification(self, input):
         """Performs a forward pass over the classifier MLP.
         
         Returns a tensor of shape (batch_size, output_dim)"""
+
+        out = self.model(input)
           
-        return self.model(input)
+        return out
 
     def forward(self, input):
         """Based on the user task, passes the input to the relevant forward function.
