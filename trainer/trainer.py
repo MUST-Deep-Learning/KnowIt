@@ -19,9 +19,10 @@ __description__ = 'Contains the trainer module.'
 #   > (fix) Checkpointing currently works but I get the warning:
 #        UserWarning: Attribute 'model' is an instance of `nn.Module` and is already saved during checkpointing. 
 #       It is recommended to ignore them using `self.save_hyperparameters(ignore=['model'])`.
+#   > add model name to saved checkpoint file
 
 import os
-from typing import Union
+from typing import Union, Literal
 from datetime import datetime
 
 from env import env_user
@@ -38,6 +39,7 @@ import lightning.pytorch as pl
 from lightning.pytorch import loggers as pl_loggers
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch import seed_everything
 
 class PLModel(pl.LightningModule):
     
@@ -97,6 +99,10 @@ class PLModel(pl.LightningModule):
             elif isinstance(self.loss, str): # only a metric (string) is given, no kwargs
                 loss = self.__get_loss_function(self.loss)(y_pred, y)
                 metrics['train_loss'] = loss
+                
+        if torch.isnan(loss):
+            print("Loss Error: Loss NaN!")
+            exit(101)
         
         if self.performance_metrics:
             if isinstance(self.performance_metrics, dict):
@@ -224,7 +230,9 @@ class KITrainer():
                  learning_rate_scheduler: dict = {},
                  performance_metrics: Union[None, dict] = None,
                  early_stopping: Union[bool, dict] = False,
-                 train_flag: bool = True):
+                 train_flag: bool = True,
+                 set_seed: Union[int, bool] = False,
+                 deterministic: Union[bool, Literal['warn'], None] = None):
         
         """"Args:
         - train_device: (device),
@@ -236,10 +244,13 @@ class KITrainer():
         - learning_rate_schedule: (str) -> ..."""
         
         self.train_flag = train_flag
+        if set_seed:
+            self.set_seed = set_seed
         
         if train_flag == True:
             # device to use
             self.train_device = train_device
+            self.deterministic = deterministic
         
             # model hyperparameters
             self.loss_fn = loss_fn
@@ -275,20 +286,16 @@ class KITrainer():
         
         
         # todo: perform checks on above vals
-        
-        # initialize PL object
         # todos: move model initialization to seperate method? Should all these be global vars if it stays in __init__?
         # Two states: build model from user parameters or build model from checkpoint
         
         
         
-        # build model from checkpoint (trained)
-        
         
         
     @classmethod
     def build_from_ckpt(cls, path_to_checkpoint):
-        # init PLModel from checkpoint using hparams
+        # init PLModel from checkpoint with hyperparameters
         model = PLModel.load_from_checkpoint(path_to_checkpoint)
         
         kitrainer = cls(
@@ -320,7 +327,7 @@ class KITrainer():
             logger.info("Testing model on the current training run's best checkpoint.")
             self.trainer.test(ckpt_path='best', dataloaders=test_dataloader)
         else:
-            logger.info("Testing model loaded from checkpoint.")
+            logger.info("Testing on model loaded from checkpoint.")
             trainer = pl.Trainer()
             trainer.test(model=self.lit_model, dataloaders=test_dataloader)
         
@@ -328,8 +335,8 @@ class KITrainer():
     def _build_PL_trainer(self):
         
         # training logger
-        tb_logger = pl_loggers.TensorBoardLogger(save_dir=env_user.project_dir)
-        #csv_logger = pl_loggers.CSVLogger(save_dir=env_user.project_dir)
+        #tb_logger = pl_loggers.TensorBoardLogger(save_dir=env_user.project_dir)
+        csv_logger = pl_loggers.CSVLogger(save_dir=env_user.project_dir)
         
         # save best model state
         ckpt_callback = self.__save_model_state()
@@ -344,14 +351,19 @@ class KITrainer():
         
         callbacks = [c for c in [ckpt_callback, early_stopping] if c != None]
         
+        # set seed
+        if self.set_seed:
+            seed_everything(self.set_seed, workers=True)            
+        
         # Pytorch Lightning trainer object
         trainer = pl.Trainer(max_epochs=self.max_epochs,
                              accelerator=self.train_device, 
-                             logger=tb_logger,
+                             logger=csv_logger,
                              devices='auto', # what other options here?
                              callbacks=callbacks,
                              detect_anomaly=True,
-                             default_root_dir=env_user.project_dir
+                             default_root_dir=env_user.project_dir,
+                             deterministic=self.deterministic
                              )
         
         return trainer
