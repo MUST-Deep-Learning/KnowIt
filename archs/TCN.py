@@ -170,6 +170,7 @@ class Model(nn.Module):
                                           (((self.num_model_in_time_steps - 1) *
                                             (dilation_base - 1)) /
                                            (self.kernel_size - 1)) + 1)))
+            depth = max(depth, 1)
             logger.info('Using minimum TCN depth %s.', str(depth))
 
         layers = []
