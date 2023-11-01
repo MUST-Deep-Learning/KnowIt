@@ -13,6 +13,7 @@ repo_dir = os.path.expanduser('~/Dev/KnowIt')
 
 dataset_dir = os.path.join(repo_dir, 'datasets')
 archs_dir = os.path.join(repo_dir, 'archs')
+checkpoints_dir = os.path.join(project_dir, 'checkpoints')
 
 # -----------------------------------------------------------------------------
 
