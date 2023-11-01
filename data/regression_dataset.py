@@ -25,7 +25,6 @@ each value is cast as a Tensor with float type, and the unique sample index is a
 """
 
 # external imports
-import torch
 from torch.utils.data import Dataset, DataLoader
 from torch import is_tensor, from_numpy
 
@@ -70,5 +69,4 @@ class CustomRegressionDataset(Dataset):
         sample = {'x': from_numpy(input_x).float(),
                   'y': from_numpy(output_y).float(),
                   's_id': idx}
-        
         return sample

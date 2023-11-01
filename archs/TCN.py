@@ -60,7 +60,7 @@ If task_name = 'forecast' (WIP)
 
 
 """
-import torch
+
 import torch.nn as nn
 import numpy as np
 from torch.nn.utils import weight_norm
@@ -254,7 +254,6 @@ class FinalBlock(nn.Module):
         if self.output_activation:
             out = self.act(out)
         out = out.reshape(out.shape[0], self.desired_out_t, self.desired_out_c)
-            
         return out
 
     def forward(self, x):

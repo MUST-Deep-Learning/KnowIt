@@ -99,10 +99,6 @@ class PLModel(pl.LightningModule):
             elif isinstance(self.loss, str): # only a metric (string) is given, no kwargs
                 loss = self.__get_loss_function(self.loss)(y_pred, y)
                 metrics['train_loss'] = loss
-                
-        if torch.isnan(loss):
-            print("Loss Error: Loss NaN!")
-            exit(101)
         
         if self.performance_metrics:
             if isinstance(self.performance_metrics, dict):
