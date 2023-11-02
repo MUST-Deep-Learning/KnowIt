@@ -35,11 +35,11 @@ import torchmetrics
 from torch import nn
 from torch.nn import functional as F
 
-import lightning.pytorch as pl
-from lightning.pytorch import loggers as pl_loggers
-from lightning.pytorch.callbacks.early_stopping import EarlyStopping
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch import seed_everything
+import pytorch_lightning as pl
+from pytorch_lightning import loggers as pl_loggers
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning import seed_everything
 
 class PLModel(pl.LightningModule):
     
@@ -59,8 +59,8 @@ class PLModel(pl.LightningModule):
         self.model = model
         self.performance_metrics = performance_metrics
         
-        #self.save_hyperparameters(ignore=["model"])
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=["model"])
+        # self.save_hyperparameters()
         
     def __get_loss_function(self, loss):
         """Helper method to retrieve user's choice of loss function."""
