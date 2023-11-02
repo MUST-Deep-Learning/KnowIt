@@ -180,19 +180,11 @@ class FinalBlock(nn.Module):
 
         if task == 'classification':
             self.trans = nn.Linear(self.expected_in_t * self.expected_in_c, self.desired_out_c, bias=False)
-            self.init_mod(self.trans)
+            init_mod(self.trans)
         elif task == 'regression':
             self.trans = nn.Linear(self.expected_in_t * self.expected_in_c,
                                    self.desired_out_c * self.desired_out_t, bias=False)
-            self.init_mod(self.trans)
-
-    @staticmethod
-    def init_mod(mod):
-        for name, parameters in mod.named_parameters():
-            if 'weight' in name:
-                nn.init.normal_(parameters)
-            elif 'bias' in name:
-                nn.init.zeros_(parameters)
+            init_mod(self.trans)
 
     def classify(self, x):
         x = x.reshape(x.shape[0], self.expected_in_t * self.expected_in_c)
@@ -246,23 +238,15 @@ class ConvBlock(nn.Module):
                                        getattr(nn, activations)(),
                                        nn.Dropout(p=dropout))
 
-        self.init_mod(self.block)
+        init_mod(self.block)
 
         self.res_connect = None
         if residual_connect:
             if n_inputs != n_outputs:
                 self.res_connect = nn.Conv1d(n_inputs, n_outputs, kernel_size=1)
-                self.init_mod(self.res_connect)
+                init_mod(self.res_connect)
             else:
                 self.res_connect = nn.Identity()
-
-    @staticmethod
-    def init_mod(mod):
-        for name, parameters in mod.named_parameters():
-            if 'weight' in name:
-                nn.init.normal_(parameters)
-            elif 'bias' in name:
-                nn.init.zeros_(parameters)
 
     def forward(self, x):
         x = x.transpose(1, 2)
@@ -272,3 +256,15 @@ class ConvBlock(nn.Module):
             out = out + res
         out = out.transpose(1, 2)
         return out
+
+
+def init_mod(mod):
+    for name, parameters in mod.named_parameters():
+        if 'weight' in name:
+            # nn.init.normal_(parameters)
+            try:
+                nn.init.kaiming_uniform_(parameters)
+            except:
+                nn.init.normal_(parameters)
+        elif 'bias' in name:
+            nn.init.zeros_(parameters)
