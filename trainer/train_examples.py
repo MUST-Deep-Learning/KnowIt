@@ -152,7 +152,7 @@ def main():
                                            in_components=['x1', 'x2', 'x3', 'x4'],
                                            out_components=['y1', 'y2'], in_chunk=[-5, 5], out_chunk=[0, 0],
                                            split_portions=(0.6, 0.2, 0.2), seed=666, batch_size=64, limit=None,
-                                           min_slice=10, scaling_method='zero-one', scaling_tag='full',
+                                           min_slice=10, scaling_method='z-norm', scaling_tag='full',
                                            split_method='slice-random')
     
     trainer_loader = datamodule.get_dataloader('train')
