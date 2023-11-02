@@ -3,8 +3,9 @@ from data.regression_dataset import RegressionDataset
 from data.base_dataset import BaseDataset
 from trainer import KITrainer
 
-from archs.MLP import Model
-#from archs.TCN import Model
+#from archs.MLP import Model
+from archs.TCN import Model
+#from archs.CNN import Model
 
 import torch
 from torchmetrics import F1Score, Accuracy
@@ -133,6 +134,18 @@ def main():
     
     ############################################################################################
     ###############################   REGRESSION   #############################################
+    # PATH='/home/randle/projects/KnowIt/models/Checkpoint_2023-11-01 16:37:33/bestmodel-epoch=18-val_loss=0.00 2023-11-01 16:37:33.ckpt'
+    # torch.save({
+    #         'Knowit_test': "This is a test"
+    #         }, PATH)
+    
+    # checkpoint = torch.load(PATH, map_location=lambda storage, loc: storage)
+    # print(checkpoint.keys())
+    # print(checkpoint['state_dict'])
+    
+    
+    
+    #exit()
     
     data_option = 'dummy_zero'
     datamodule = RegressionDataset(name=data_option,
@@ -144,7 +157,7 @@ def main():
     
     trainer_loader = datamodule.get_dataloader('train')
     val_loader = datamodule.get_dataloader('valid')
-    test_loader = datamodule.get_dataloader('eval')
+    eval_loader = datamodule.get_dataloader('eval')
     
     
     model = Model(input_dim=datamodule.in_shape, 
@@ -176,7 +189,7 @@ def main():
             }
     }
     
-    trainer = KITrainer(train_device='cpu',
+    trainer = KITrainer(train_device='gpu',
                         loss_fn=loss_fn,
                         optim=optim,
                         performance_metrics=pm,
@@ -184,21 +197,23 @@ def main():
                         early_stopping=early_stopping,
                         learning_rate=1e-02,
                         learning_rate_scheduler=lr,
+                        gradient_clip_val=0.5, # TCN
+                        gradient_clip_algorithm='norm', # TCN
                         loaders=(trainer_loader, val_loader),
                         model=model,
                         set_seed=42,
-                        deterministic=True)
+                        deterministic=False)
     
     # train
     trainer.fit_model()
     
     # restore from ckpt and test
-    # best_model_path = '/home/randle/projects/KnowIt/checkpoints/Checkpoint_2023-11-01 11:21:27/bestmodel-epoch=11-val_loss=0.03 2023-11-01 11:21:27.ckpt'
+    # best_model_path = '/home/randle/projects/KnowIt/models/Checkpoint_2023-11-02 09:32:04/bestmodel-epoch=14-val_loss=0.00 2023-11-02 09:32:04.ckpt'
     
     # trainer = KITrainer.build_from_ckpt(best_model_path)
     
     # test
-    trainer.test_model(test_dataloader=test_loader)
+    trainer.evaluate_model(eval_dataloader=eval_loader)
     
     ############################################################################################
     #####################################  RUN TRAINER  ########################################

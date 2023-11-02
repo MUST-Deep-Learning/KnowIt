@@ -12,7 +12,6 @@ __description__ = 'Contains the trainer module.'
 #   > refactor some of the code (see the regular blocks of code that unpacks user kwargs)
 #   > currently using metrics from torch.nn.functional and torchmetrics. Should pick one.
 #       >> torchmetrics does not seem to have cross entropy.
-#   > add performance method to run on test dataloader
 #   > run eval from current training session or from checkpoint (complete classmethod)
 #   > write docstrings.
 #   > (fix) currently, checkpoint dir is being created even if training loops are not completed, resulting in empty folders
@@ -20,6 +19,23 @@ __description__ = 'Contains the trainer module.'
 #        UserWarning: Attribute 'model' is an instance of `nn.Module` and is already saved during checkpointing. 
 #       It is recommended to ignore them using `self.save_hyperparameters(ignore=['model'])`.
 #   > add model name to saved checkpoint file
+
+# Notes:
+# > for eval log, want corresponding best model's results and epoch
+# > add option to mute logging during tuner
+# > Output folder is experiment specific: Trainer will be given experiment subfolder. Ckpts and logs for that experiment goes in here.
+# > Metadata? What settings did trainer use to create that ckpt that was saved.
+# 	>> Also the model performance
+# > Add safemode capabilities: As die experiment_name klaar in die projects folder is en safemode is aan abort.
+# default is safemode af.
+
+# Single package:
+# 	ckpt
+# 	learning curves
+# 	hyperparameters
+# 	final performance
+#
+
 
 import os
 from typing import Union, Literal
@@ -59,8 +75,8 @@ class PLModel(pl.LightningModule):
         self.model = model
         self.performance_metrics = performance_metrics
         
-        #self.save_hyperparameters(ignore=["model"])
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=["model"])
+        #self.save_hyperparameters()
         
     def __get_loss_function(self, loss):
         """Helper method to retrieve user's choice of loss function."""
@@ -162,18 +178,18 @@ class PLModel(pl.LightningModule):
                 for loss_metric in self.loss.keys():
                     loss_kwargs = self.loss[loss_metric]
                     loss = self.__get_loss_function(loss_metric)(y_pred, y, **loss_kwargs)
-                    metrics['test_loss'] = loss
+                    metrics['eval_loss'] = loss
             elif isinstance(self.loss, str): # only a metric (string) is given, no kwargs
                 loss = self.__get_loss_function(self.loss)(y_pred, y)
-                metrics['test_loss'] = loss
+                metrics['eval_loss'] = loss
                 
         if self.performance_metrics:
             if isinstance(self.performance_metrics, dict):
                 for p_metric in self.performance_metrics.keys():
                     perf_kwargs = self.performance_metrics[p_metric]
-                    metrics['test_perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
+                    metrics['eval_perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
             elif isinstance(self.performance_metrics, str): # only a metric (string) is given, no kwargs
-                metrics['test_perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
+                metrics['eval_perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
 
             self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
             
@@ -226,9 +242,12 @@ class KITrainer():
                  learning_rate_scheduler: dict = {},
                  performance_metrics: Union[None, dict] = None,
                  early_stopping: Union[bool, dict] = False,
+                 gradient_clip_val: float=0.0,
+                 gradient_clip_algorithm: str='norm',
                  train_flag: bool = True,
                  set_seed: Union[int, bool] = False,
-                 deterministic: Union[bool, Literal['warn'], None] = None):
+                 deterministic: Union[bool, Literal['warn'], None] = None,
+                 safe_mode: bool = False):
         
         """"Args:
         - train_device: (device),
@@ -242,6 +261,8 @@ class KITrainer():
         self.train_flag = train_flag
         if set_seed:
             self.set_seed = set_seed
+        else:
+            self.set_seed = False
         
         if train_flag == True:
             # device to use
@@ -257,6 +278,8 @@ class KITrainer():
             self.learning_rate_scheduler = learning_rate_scheduler # dict: choice of lr_scheduler and kwargs
             self.performance_metrics = performance_metrics # dict: choice of metric and any needed kwargs
             self.model = model # this is a Pytorch model if train_flag=True
+            self.gradient_clip_val = gradient_clip_val
+            self.gradient_clip_algorithm = gradient_clip_algorithm
         
             # construct trainer
        
@@ -316,16 +339,16 @@ class KITrainer():
                     val_dataloaders=self.val_dataloader)
         
         
-    def test_model(self, test_dataloader, from_checkpoint=None):
+    def evaluate_model(self, eval_dataloader):
         # todo: choice to either load from checkpoint or from current completed training loop.
         
         if self.train_flag:
             logger.info("Testing model on the current training run's best checkpoint.")
-            self.trainer.test(ckpt_path='best', dataloaders=test_dataloader)
+            self.trainer.test(ckpt_path='best', dataloaders=eval_dataloader)
         else:
             logger.info("Testing on model loaded from checkpoint.")
             trainer = pl.Trainer()
-            trainer.test(model=self.lit_model, dataloaders=test_dataloader)
+            trainer.test(model=self.lit_model, dataloaders=eval_dataloader)
         
         
     def _build_PL_trainer(self):
@@ -359,14 +382,16 @@ class KITrainer():
                              callbacks=callbacks,
                              detect_anomaly=True,
                              default_root_dir=env_user.project_dir,
-                             deterministic=self.deterministic
+                             deterministic=self.deterministic,
+                             gradient_clip_val=self.gradient_clip_val,
+                             gradient_clip_algorithm=self.gradient_clip_algorithm
                              )
         
         return trainer
         
     def __save_model_state(self):
         
-        project_path = env_user.checkpoints_dir
+        project_path = env_user.models_dir
         
         # best models are saved to a folder named as a datetime string
         file_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
