@@ -3,8 +3,8 @@ from data.regression_dataset import RegressionDataset
 from data.base_dataset import BaseDataset
 from trainer import KITrainer
 
-#from archs.MLP import Model
-from archs.TCN import Model
+from archs.MLP import Model
+#from archs.TCN import Model
 #from archs.CNN import Model
 
 import torch
@@ -134,18 +134,6 @@ def main():
     
     ############################################################################################
     ###############################   REGRESSION   #############################################
-    # PATH='/home/randle/projects/KnowIt/models/Checkpoint_2023-11-01 16:37:33/bestmodel-epoch=18-val_loss=0.00 2023-11-01 16:37:33.ckpt'
-    # torch.save({
-    #         'Knowit_test': "This is a test"
-    #         }, PATH)
-    
-    # checkpoint = torch.load(PATH, map_location=lambda storage, loc: storage)
-    # print(checkpoint.keys())
-    # print(checkpoint['state_dict'])
-    
-    
-    
-    #exit()
     
     data_option = 'dummy_zero'
     datamodule = RegressionDataset(name=data_option,
@@ -159,10 +147,12 @@ def main():
     val_loader = datamodule.get_dataloader('valid')
     eval_loader = datamodule.get_dataloader('eval')
     
-    
-    model = Model(input_dim=datamodule.in_shape, 
-                  output_dim=datamodule.out_shape,
-                  task_name='regression')
+    model = Model
+    model_params = {
+        "input_dim": datamodule.in_shape,
+        "output_dim": datamodule.out_shape,
+        "task_name": 'regression'
+    }
     
     pm = 'mean_squared_error'
     
@@ -189,31 +179,45 @@ def main():
             }
     }
     
-    trainer = KITrainer(train_device='gpu',
-                        loss_fn=loss_fn,
+    #################### Train from scratch and test ####################
+    # file = torch.load("/home/randle/projects/KnowIt/models/Model_2023-11-06 13:09:21/bestmodel-epoch=7-val_loss=0.09 2023-11-06 13:09:21.ckpt")
+    # print(file.keys())
+    # print(file['epoch'])
+    # print(file['callbacks'].keys())
+    # print(file['callbacks']["ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"])
+    # print(file['callbacks']["ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"]["best_model_score"].item())
+    trainer = KITrainer(experiment_name='RegressionTestMLP',
+                        train_device='gpu',
+                        model=model,
+                        model_params=model_params,
+                        loss_fn=loss_fn,  
                         optim=optim,
                         performance_metrics=pm,
-                        max_epochs=20,
+                        max_epochs=10,
                         early_stopping=early_stopping,
                         learning_rate=1e-02,
                         learning_rate_scheduler=lr,
                         gradient_clip_val=0.5, # TCN
                         gradient_clip_algorithm='norm', # TCN
-                        loaders=(trainer_loader, val_loader),
-                        model=model,
                         set_seed=42,
-                        deterministic=False)
+                        deterministic=False,
+                        safe_mode=False)
     
-    # train
-    trainer.fit_model()
-    
-    # restore from ckpt and test
-    # best_model_path = '/home/randle/projects/KnowIt/models/Checkpoint_2023-11-02 09:32:04/bestmodel-epoch=14-val_loss=0.00 2023-11-02 09:32:04.ckpt'
-    
-    # trainer = KITrainer.build_from_ckpt(best_model_path)
-    
-    # test
+    trainer.fit_model(dataloaders=(trainer_loader, val_loader))
     trainer.evaluate_model(eval_dataloader=eval_loader)
+    
+    #################### Resume training from ckpt and test ####################
+    # best_model_path = '/home/randle/projects/KnowIt/models/Model_2023-11-06 10:52:31/bestmodel-epoch=7-val_loss=0.09 2023-11-06 10:52:31.ckpt'
+    # trainer = KITrainer.resume_from_ckpt(max_epochs=20, path_to_checkpoint=best_model_path, set_seed=42)
+    # trainer.fit_model(dataloaders=(trainer_loader, val_loader))
+    # trainer.evaluate_model(eval_dataloader=eval_loader)
+    
+    #################### Load from ckpt and test ####################
+    # restore from ckpt and test
+    # best_model_path = '/home/randle/projects/KnowIt/models/Model_2023-11-06 13:09:21/bestmodel-epoch=7-val_loss=0.09 2023-11-06 13:09:21.ckpt'
+    # trainer = KITrainer.eval_from_ckpt(path_to_checkpoint=best_model_path)
+    # trainer.evaluate_model(eval_dataloader=eval_loader)
+    
     
     ############################################################################################
     #####################################  RUN TRAINER  ########################################

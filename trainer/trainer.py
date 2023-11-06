@@ -2,23 +2,14 @@ __author__ = 'randlerabe@gmail.com'
 __description__ = 'Contains the trainer module.'
 
 #   todo:
-#   > Build a class that accepts data structure from data module
-#       1.1) User inputs: optimizer, loss, max_epochs. From the /model folder, object instance of model is passed as parameter to Trainer class
-#       1.2) Use PL to build trainer.
-#   > Logger (tensorboard, wandb, etc)?
 #   > matmul_precision: I think pl is sensitive towards this?
 #   > change imports to from
-#   > save logging results as csv
 #   > refactor some of the code (see the regular blocks of code that unpacks user kwargs)
 #   > currently using metrics from torch.nn.functional and torchmetrics. Should pick one.
 #       >> torchmetrics does not seem to have cross entropy.
 #   > run eval from current training session or from checkpoint (complete classmethod)
 #   > write docstrings.
 #   > (fix) currently, checkpoint dir is being created even if training loops are not completed, resulting in empty folders
-#   > (fix) Checkpointing currently works but I get the warning:
-#        UserWarning: Attribute 'model' is an instance of `nn.Module` and is already saved during checkpointing. 
-#       It is recommended to ignore them using `self.save_hyperparameters(ignore=['model'])`.
-#   > add model name to saved checkpoint file
 
 # Notes:
 # > for eval log, want corresponding best model's results and epoch
@@ -26,8 +17,6 @@ __description__ = 'Contains the trainer module.'
 # > Output folder is experiment specific: Trainer will be given experiment subfolder. Ckpts and logs for that experiment goes in here.
 # > Metadata? What settings did trainer use to create that ckpt that was saved.
 # 	>> Also the model performance
-# > Add safemode capabilities: As die experiment_name klaar in die projects folder is en safemode is aan abort.
-# default is safemode af.
 
 # Single package:
 # 	ckpt
@@ -38,7 +27,7 @@ __description__ = 'Contains the trainer module.'
 
 
 import os
-from typing import Union, Literal
+from typing import Any, Dict, Union, Literal
 from datetime import datetime
 
 from env import env_user
@@ -51,11 +40,11 @@ import torchmetrics
 from torch import nn
 from torch.nn import functional as F
 
-import pytorch_lightning as pl
-from pytorch_lightning import loggers as pl_loggers
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning import seed_everything
+import lightning.pytorch as pl
+from lightning.pytorch import loggers as pl_loggers
+from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch import seed_everything
 
 class PLModel(pl.LightningModule):
     
@@ -63,20 +52,24 @@ class PLModel(pl.LightningModule):
                  loss: Union[str, dict],
                  learning_rate: float, 
                  optimizer: Union[str, dict],
-                 model: object,
                  learning_rate_scheduler: dict,
-                 performance_metrics: Union[None, dict]):
+                 performance_metrics: Union[None, dict],
+                 model: type,
+                 model_params: dict):
         super().__init__()
         
         self.loss = loss
         self.lr = learning_rate
         self.lr_scheduler = learning_rate_scheduler
         self.optimizer = optimizer
-        self.model = model
+        self.model = self._build_model(model, model_params) # build Pytorch model inside PL init
         self.performance_metrics = performance_metrics
         
-        self.save_hyperparameters(ignore=["model"])
-        # self.save_hyperparameters()
+        #self.save_hyperparameters(ignore=["model"], logger=False)
+        self.save_hyperparameters()
+        
+    def _build_model(self, model, model_params):
+        return model(**model_params)
         
     def __get_loss_function(self, loss):
         """Helper method to retrieve user's choice of loss function."""
@@ -191,7 +184,7 @@ class PLModel(pl.LightningModule):
             elif isinstance(self.performance_metrics, str): # only a metric (string) is given, no kwargs
                 metrics['eval_perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
 
-            self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
+            self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True, logger=True)
             
         return metrics
         
@@ -227,29 +220,13 @@ class PLModel(pl.LightningModule):
         else:
             # no scheduler
             return {"optimizer": optimizer}
-                    
+           
+    # def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    #     checkpoint["This_is_a_test"] = self.test
 
 class KITrainer():
     
-    def __init__(self,
-                 train_device: str,
-                 loss_fn: Union[str, dict],
-                 optim: Union[str, dict],
-                 max_epochs: int,
-                 learning_rate: float,
-                 loaders: tuple,
-                 model: object,
-                 learning_rate_scheduler: dict = {},
-                 performance_metrics: Union[None, dict] = None,
-                 early_stopping: Union[bool, dict] = False,
-                 gradient_clip_val: float=0.0,
-                 gradient_clip_algorithm: str='norm',
-                 train_flag: bool = True,
-                 set_seed: Union[int, bool] = False,
-                 deterministic: Union[bool, Literal['warn'], None] = None,
-                 safe_mode: bool = False):
-        
-        """"Args:
+    """"Args:
         - train_device: (device),
         - loss_fn: (str) -> CE, MSE, W_CE
         - optim: (str) -> Adam, SGD, RAdam
@@ -257,65 +234,85 @@ class KITrainer():
         - early_stopping: (bool) -> True
         - learning_rate: (float) -> 1e-03
         - learning_rate_schedule: (str) -> ..."""
+    
+    def __init__(self,
+                 experiment_name: str,
+                 train_device: str,
+                 loss_fn: Union[str, dict],
+                 optim: Union[str, dict],
+                 max_epochs: int,
+                 learning_rate: float,
+                 model: type,
+                 model_params: dict,
+                 learning_rate_scheduler: dict = {},
+                 performance_metrics: Union[None, dict] = None,
+                 early_stopping: Union[bool, dict] = False,
+                 gradient_clip_val: float=0.0,
+                 gradient_clip_algorithm: str='norm',
+                 train_flag: bool = True,
+                 from_ckpt_flag: bool = False,
+                 set_seed: Union[int, bool] = False,
+                 deterministic: Union[bool, Literal['warn'], None] = None,
+                 path_to_checkpoint: Union[str, None] = None,
+                 safe_mode: bool = False):
+        
+        # create an experiment directory in the user's project folder
+        self.experiment_dir = self.__make_experiment_dir(name=experiment_name, safe_mode=safe_mode)
         
         self.train_flag = train_flag
-        if set_seed:
-            self.set_seed = set_seed
-        else:
-            self.set_seed = False
+        self.from_ckpt_flag = from_ckpt_flag
         
-        if train_flag == True:
-            # device to use
-            self.train_device = train_device
-            self.deterministic = deterministic
+        # set global seed
+        self.set_seed = set_seed
+        
+        # device to use
+        self.train_device = train_device
+        self.deterministic = deterministic
         
             # model hyperparameters
-            self.loss_fn = loss_fn
-            self.optim = optim
-            self.max_epochs = max_epochs
-            self.early_stopping = early_stopping
-            self.learning_rate = learning_rate
-            self.learning_rate_scheduler = learning_rate_scheduler # dict: choice of lr_scheduler and kwargs
-            self.performance_metrics = performance_metrics # dict: choice of metric and any needed kwargs
-            self.model = model # this is a Pytorch model if train_flag=True
-            self.gradient_clip_val = gradient_clip_val
-            self.gradient_clip_algorithm = gradient_clip_algorithm
+        self.loss_fn = loss_fn
+        self.optim = optim
+        self.max_epochs = max_epochs
+        self.early_stopping = early_stopping
+        self.learning_rate = learning_rate
+        self.learning_rate_scheduler = learning_rate_scheduler # dict: choice of lr_scheduler and kwargs
+        self.performance_metrics = performance_metrics # dict: choice of metric and any needed kwargs
+        self.model = model
+        self.model_params = model_params
+        self.gradient_clip_val = gradient_clip_val
+        self.gradient_clip_algorithm = gradient_clip_algorithm
         
+        # user is training from scratch
+        if train_flag == True and from_ckpt_flag == False:
+            
             # construct trainer
-       
-            self.trainer = self._build_PL_trainer()
+            self.trainer = self.__build_PL_trainer()
             
-            # dataloaders from data module
-            self.train_dataloader = loaders[0] # this expects an ordering -> can I do this without assuming that
-            self.val_dataloader = loaders[1]
-            
-            # build model from arguments (untrained)
+            # build a PL model from arguments (untrained)
             self.lit_model = PLModel(loss=self.loss_fn,
                                  optimizer=self.optim, 
-                                 model=self.model, 
+                                 model=self.model,
+                                 model_params=self.model_params, 
                                  learning_rate=self.learning_rate,
                                  learning_rate_scheduler=self.learning_rate_scheduler,
                                  performance_metrics=self.performance_metrics)
         
-        if train_flag == False:
-        
-            # instance of model class
-            self.lit_model = model # this is a Pytorch Lightning model if train_flag=False
-        
-        
-        
-        # todo: perform checks on above vals
-        # todos: move model initialization to seperate method? Should all these be global vars if it stays in __init__?
-        # Two states: build model from user parameters or build model from checkpoint
-        
-        
-        
-        
+        # user is continuing model training from saved checkpoint
+        elif train_flag == True and from_ckpt_flag == True:
+            
+            self.path_to_checkpoint = path_to_checkpoint
+            
+            # construct trainer
+            self.lit_model = PLModel.load_from_checkpoint(checkpoint_path=path_to_checkpoint)
+            self.trainer = self.__build_PL_trainer()
+            
+        # user is evaluating model from saved checkpoint
+        elif train_flag == False and from_ckpt_flag == True:
+            self.lit_model = PLModel.load_from_checkpoint(checkpoint_path=path_to_checkpoint)
+            self.trainer = pl.Trainer()
         
     @classmethod
-    def build_from_ckpt(cls, path_to_checkpoint):
-        # init PLModel from checkpoint with hyperparameters
-        model = PLModel.load_from_checkpoint(path_to_checkpoint)
+    def eval_from_ckpt(cls, path_to_checkpoint):        
         
         kitrainer = cls(
             train_device=None,
@@ -323,39 +320,68 @@ class KITrainer():
             optim=True,
             max_epochs=None,
             learning_rate=None,
-            loaders=None,
-            model=model,
-            train_flag=False
+            model=None,
+            model_params=None,
+            train_flag=False,
+            from_ckpt_flag=True,
+            path_to_checkpoint=path_to_checkpoint
+        )
+        
+        return kitrainer
+    
+    @classmethod
+    def resume_from_ckpt(cls, max_epochs, path_to_checkpoint, set_seed):
+        
+        kitrainer = cls(
+            train_device=None,
+            loss_fn=None,
+            optim=True,
+            max_epochs=max_epochs,
+            learning_rate=None,
+            model=None,
+            model_params=None,
+            train_flag=True,
+            from_ckpt_flag=True,
+            path_to_checkpoint=path_to_checkpoint,
+            set_seed=set_seed
         )
         
         return kitrainer
         
         
-    def fit_model(self):
+    def fit_model(self, dataloaders):
+        
+        # dataloaders from Knowit's data module - type: Tuple: (train_dataloader, val_dataloader)
+        train_dataloader = dataloaders[0]
+        val_dataloader = dataloaders[1]
         
         # fit trainer object to data
-        self.trainer.fit(model=self.lit_model,
-                    train_dataloaders=self.train_dataloader,
-                    val_dataloaders=self.val_dataloader)
-        
-        
+        if self.train_flag == True and self.from_ckpt_flag == False:
+            self.trainer.fit(model=self.lit_model,
+                            train_dataloaders=train_dataloader,
+                            val_dataloaders=val_dataloader)
+        elif self.train_flag == True and self.from_ckpt_flag == True:
+            self.trainer.fit(model=self.lit_model,
+                            train_dataloaders=train_dataloader,
+                            val_dataloaders=val_dataloader,
+                            ckpt_path=self.path_to_checkpoint)
+            
     def evaluate_model(self, eval_dataloader):
-        # todo: choice to either load from checkpoint or from current completed training loop.
         
         if self.train_flag:
             logger.info("Testing model on the current training run's best checkpoint.")
             self.trainer.test(ckpt_path='best', dataloaders=eval_dataloader)
         else:
             logger.info("Testing on model loaded from checkpoint.")
-            trainer = pl.Trainer()
-            trainer.test(model=self.lit_model, dataloaders=eval_dataloader)
+            self.trainer.test(model=self.lit_model, dataloaders=eval_dataloader)
+            
         
         
-    def _build_PL_trainer(self):
+    def __build_PL_trainer(self):
         
         # training logger
         #tb_logger = pl_loggers.TensorBoardLogger(save_dir=env_user.project_dir)
-        csv_logger = pl_loggers.CSVLogger(save_dir=env_user.project_dir)
+        csv_logger = pl_loggers.CSVLogger(save_dir=self.experiment_dir)
         
         # save best model state
         ckpt_callback = self.__save_model_state()
@@ -375,36 +401,74 @@ class KITrainer():
             seed_everything(self.set_seed, workers=True)            
         
         # Pytorch Lightning trainer object
-        trainer = pl.Trainer(max_epochs=self.max_epochs,
+        if self.train_flag == True and self.from_ckpt_flag == False:
+            trainer = pl.Trainer(max_epochs=self.max_epochs,
                              accelerator=self.train_device, 
                              logger=csv_logger,
                              devices='auto', # what other options here?
                              callbacks=callbacks,
                              detect_anomaly=True,
-                             default_root_dir=env_user.project_dir,
+                             default_root_dir=self.experiment_dir,
                              deterministic=self.deterministic,
                              gradient_clip_val=self.gradient_clip_val,
                              gradient_clip_algorithm=self.gradient_clip_algorithm
+                             )
+        elif self.train_flag == True and self.from_ckpt_flag == True:
+            trainer = pl.Trainer(max_epochs=self.max_epochs,
+                             default_root_dir=self.experiment_dir,
+                             callbacks=callbacks,
+                             detect_anomaly=True,
+                             logger=csv_logger
                              )
         
         return trainer
         
     def __save_model_state(self):
         
-        project_path = env_user.models_dir
+        model_dir = self.experiment_dir + '/models'
         
         # best models are saved to a folder named as a datetime string
         file_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        ckpt_path = os.path.join(project_path, 'Checkpoint_' + file_name)
-        
-        try:
-            os.mkdir(ckpt_path)
-        except OSError as error:
-            print(error) # folder already exists
+        ckpt_path = os.path.join(model_dir, 'Model_' + file_name)
         
         return ModelCheckpoint(dirpath=ckpt_path,
                                monitor='val_loss',
                                filename='bestmodel-{epoch}-{val_loss:.2f} ' + file_name)
+        
+        
+    def __make_experiment_dir(self, name, safe_mode):
+        
+        if name in os.listdir(env_user.project_dir):
+            if safe_mode == False:
+                logger.warning("A folder with the same experiment name already exists. Safe mode is set to False.")
+            else:
+                logger.info("A folder with the same experiment name already exists. Safe mode is set to True.")
+                logger.info("Aborting...")
+                exit()
+        
+        experiment_dir = os.path.join(env_user.project_dir, name)
+        os.path.join(experiment_dir, 'models')
+                    
+        return experiment_dir
+        
+    def display_results(self, path_to_ckpt):
+        ckpt = torch.load(path_to_ckpt)
+        
+        best_epoch = ckpt['Epoch']
+        best_val_score = ckpt['callbacks']["ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"]['best_model_score'].item()
+        best_model_dir = ckpt['callbacks']["ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"]['best_model_path']
+        
+        print("Best Model Location: ", best_model_dir)
+        print(f"Best Model at Epoch: ", best_epoch)
+        print(f"Best Model's Validation Score: ", best_val_score)
+        
+        
+        
+        
+        
+        
+        
+        
     
         
     
