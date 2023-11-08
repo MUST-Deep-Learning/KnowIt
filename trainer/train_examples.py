@@ -67,6 +67,8 @@ from data.regression_dataset import RegressionDataset
 from data.base_dataset import BaseDataset
 from trainer import KITrainer
 
+import torch
+
 #from archs.MLP import Model
 from archs.TCN import Model
 #from archs.CNN import Model
@@ -83,75 +85,62 @@ def main():
     # ----------------------------------------------------------------------------------------------------------------------
     
     
-    # data_option = "penguin_pce_full"
-    # datamodule = ClassificationDataset(name=data_option,
-    #                  in_components=['accX', 'accY', 'accZ'], out_components=['PCE'], 
-    #                  in_chunk=[-25, 25], out_chunk=[0, 0], 
-    #                  split_portions=(0.6, 0.2, 0.2), 
-    #                  seed=333, batch_size=32, limit=10000, 
-    #                  min_slice=10, scaling_method='z-norm', 
-    #                  scaling_tag='in_only', split_method='chronological')
+    data_option = "penguin_pce_full"
+    datamodule = ClassificationDataset(name=data_option,
+                     in_components=['accX', 'accY', 'accZ'], out_components=['PCE'], 
+                     in_chunk=[-25, 25], out_chunk=[0, 0], 
+                     split_portions=(0.6, 0.2, 0.2), 
+                     seed=333, batch_size=32, limit=10000, 
+                     min_slice=10, scaling_method='z-norm', 
+                     scaling_tag='in_only', split_method='chronological')
     
-    # trainer_loader = datamodule.get_dataloader('train')
-    # val_loader = datamodule.get_dataloader('valid')
-    # eval_loader = datamodule.get_dataloader('eval')
+    trainer_loader = datamodule.get_dataloader('train')
+    val_loader = datamodule.get_dataloader('valid')
+    eval_loader = datamodule.get_dataloader('eval')
     
-    # model = Model    
-    # model_params = {
-    #     "input_dim": datamodule.in_shape,
-    #     "output_dim": datamodule.out_shape,
-    #     "task_name": 'classification'
-    # }
+    model = Model    
+    model_params = {
+        "input_dim": datamodule.in_shape,
+        "output_dim": datamodule.out_shape,
+        "task_name": 'classification'
+    }
     
-    # pm = {
-    #     'f1_score': {
-    #         'num_classes': 2,
-    #         'task': 'binary'
-    #     },
-    #     'accuracy': {
-    #         'num_classes': 2,
-    #         'task': 'binary'
-    #     }
-    # }
+    pm = {
+        'f1_score': {
+            'num_classes': 2,
+            'task': 'binary'
+        },
+        'accuracy': {
+            'num_classes': 2,
+            'task': 'binary'
+        }
+    }
     
-    # loss_fn = {
-    #     'cross_entropy':{
-    #         'weight': torch.Tensor([0.00972, 1.0]).to('cuda')
-    #     }
-    # }
+    loss_fn = {
+        'cross_entropy':{
+            'weight': torch.Tensor([0.00972, 1.0]).to('cuda')
+        }
+    }
     
-    # if 'ReduceLROnPlateau', must use "train_or_val_loss" + "loss_function" as specified elsewhere
-    # lr = {
-    #     'ReduceLROnPlateau':{
-    #         'mode': 'min',
-    #         'patience': 5,
-    #         'monitor': 'train_loss_cross_entropy'
-    #     }
-    # }
+    lr_sched = {
+        'ExponentialLR':{
+            'gamma': 0.9
+        }
+    }
     
-    # lr_sched = {
-    #     'ExponentialLR':{
-    #         'gamma': 0.9
-    #     }
-    # }
+    optim ={
+        'Adam':{
+            'weight_decay': 0.5
+        }
+    }
     
-    # optim ={
-    #     'Adam':{
-    #         'weight_decay': 0.5
-    #     }
-    # }
-    
-    # early_stopping = {
-    #     True:
-    #         {
-    #             'monitor': 'val_loss',
-    #             'mode': 'min'
-    #         }
-    # }
-    
-    # early_stopping = {
-    #     True
-    # }
+    early_stopping = {
+        True:
+            {
+                'monitor': 'val_loss',
+                'mode': 'min'
+            }
+    }
     
     #################### State 1: Train from scratch and test ####################
     
@@ -171,101 +160,101 @@ def main():
     #                     set_seed=13)
     
     # trainer.fit_model(dataloaders=(trainer_loader, val_loader))
-    # trainer.evaluate_model(eval_dataloader=eval_loader)
+    # trainer.evaluate_model(eval_dataloader=(trainer_loader, val_loader, eval_loader))
     
     #################### State 2: Resume training from ckpt and test ####################
     # best_model_path = '/home/randle/projects/KnowIt/ClassificationTestTCN/models/Model_2023-11-07 10:46:17/bestmodel-epoch=1-val_loss=0.01 2023-11-07 10:46:17.ckpt'
-    # trainer = KITrainer.resume_from_ckpt(experiment_name="ClassificationTestTCN", max_epochs=20, path_to_checkpoint=best_model_path, set_seed=13)
+    # trainer = KITrainer.resume_from_ckpt(experiment_name="ClassificationTestTCN", max_epochs=20, path_to_checkpoint=best_model_path, set_seed=13, safe_mode=False)
     # trainer.fit_model(dataloaders=(trainer_loader, val_loader))
-    # trainer.evaluate_model(eval_dataloader=eval_loader)
+    # trainer.evaluate_model(eval_dataloader=(trainer_loader, val_loader, eval_loader))
     
     #################### State 3: Load from ckpt and test ####################
-    # best_model_path = '/home/randle/projects/KnowIt/ClassificationTestTCN/models/Model_2023-11-07 10:46:17/bestmodel-epoch=1-val_loss=0.01 2023-11-07 10:46:17.ckpt'
+    # best_model_path = '/home/randle/projects/KnowIt/ClassificationTestTCN/models/Model_2023-11-08 12:04:15/bestmodel-epoch=1-val_loss=0.01 2023-11-08 12:04:15.ckpt'
     # trainer = KITrainer.eval_from_ckpt(experiment_name="ClassificationTestTCN", path_to_checkpoint=best_model_path)
-    # trainer.evaluate_model(eval_dataloader=eval_loader)
+    # trainer.evaluate_model(eval_dataloader=(trainer_loader, val_loader, eval_loader))
         
     
     # ----------------------------------------------------------------------------------------------------------------------
     # For a regression dataset
     # ----------------------------------------------------------------------------------------------------------------------
     
-    data_option = 'dummy_zero'
-    datamodule = RegressionDataset(name=data_option,
-                                           in_components=['x1', 'x2', 'x3', 'x4'],
-                                           out_components=['y1', 'y2'], in_chunk=[-5, 5], out_chunk=[0, 0],
-                                           split_portions=(0.6, 0.2, 0.2), seed=666, batch_size=64, limit=None,
-                                           min_slice=10, scaling_method='z-norm', scaling_tag='full',
-                                           split_method='slice-random')
+    # data_option = 'dummy_zero'
+    # datamodule = RegressionDataset(name=data_option,
+    #                                        in_components=['x1', 'x2', 'x3', 'x4'],
+    #                                        out_components=['y1', 'y2'], in_chunk=[-5, 5], out_chunk=[0, 0],
+    #                                        split_portions=(0.6, 0.2, 0.2), seed=666, batch_size=64, limit=None,
+    #                                        min_slice=10, scaling_method='z-norm', scaling_tag='full',
+    #                                        split_method='slice-random')
     
-    trainer_loader = datamodule.get_dataloader('train')
-    val_loader = datamodule.get_dataloader('valid')
-    eval_loader = datamodule.get_dataloader('eval')
+    # trainer_loader = datamodule.get_dataloader('train')
+    # val_loader = datamodule.get_dataloader('valid')
+    # eval_loader = datamodule.get_dataloader('eval')
     
-    model = Model
-    model_params = {
-        "input_dim": datamodule.in_shape,
-        "output_dim": datamodule.out_shape,
-        "task_name": 'regression'
-    }
+    # model = Model
+    # model_params = {
+    #     "input_dim": datamodule.in_shape,
+    #     "output_dim": datamodule.out_shape,
+    #     "task_name": 'regression'
+    # }
     
-    pm = 'mean_squared_error'
+    # pm = 'mean_squared_error'
     
-    loss_fn = 'mse_loss'
+    # loss_fn = 'mse_loss'
     
     
-    lr = {
-        'ExponentialLR':{
-            'gamma': 0.9
-        }
-    }
+    # lr = {
+    #     'ExponentialLR':{
+    #         'gamma': 0.9
+    #     }
+    # }
     
-    optim ={
-        'SGD':{
-            'momentum': 0.9
-        }
-    }
+    # optim ={
+    #     'SGD':{
+    #         'momentum': 0.9
+    #     }
+    # }
     
-    early_stopping = {
-        True:
-            {
-                'monitor': 'val_loss',
-                'mode': 'min'
-            }
-    }
+    # early_stopping = {
+    #     True:
+    #         {
+    #             'monitor': 'val_loss',
+    #             'mode': 'min'
+    #         }
+    # }
     
     #################### State 1: Train from scratch and test ####################
-    trainer = KITrainer(experiment_name='RegressionTestMLP',
-                        train_device='cpu',
-                        model=model,
-                        model_params=model_params,
-                        loss_fn=loss_fn,  
-                        optim=optim,
-                        performance_metrics=pm,
-                        max_epochs=5,
-                        early_stopping=early_stopping,
-                        learning_rate=1e-02,
-                        learning_rate_scheduler=lr,
-                        gradient_clip_val=0.5, # TCN
-                        gradient_clip_algorithm='norm', # TCN
-                        set_seed=42,
-                        deterministic=False,
-                        safe_mode=False,
-                        mute_logger=False)
+    # trainer = KITrainer(experiment_name='RegressionTestMLP',
+    #                     train_device='cpu',
+    #                     model=model,
+    #                     model_params=model_params,
+    #                     loss_fn=loss_fn,  
+    #                     optim=optim,
+    #                     performance_metrics=pm,
+    #                     max_epochs=5,
+    #                     early_stopping=early_stopping,
+    #                     learning_rate=1e-02,
+    #                     learning_rate_scheduler=lr,
+    #                     gradient_clip_val=0.5, # TCN
+    #                     gradient_clip_algorithm='norm', # TCN
+    #                     set_seed=42,
+    #                     deterministic=False,
+    #                     safe_mode=False,
+    #                     mute_logger=False)
     
-    trainer.fit_model(dataloaders=(trainer_loader, val_loader))
-    trainer.evaluate_model(eval_dataloader=(trainer_loader, val_loader, eval_loader))
+    # trainer.fit_model(dataloaders=(trainer_loader, val_loader))
+    # trainer.evaluate_model(eval_dataloader=(trainer_loader, val_loader, eval_loader))
     
     #################### State 2: Resume training from ckpt and test ####################
     # best_model_path = '/home/randle/projects/KnowIt/models/Model_2023-11-06 10:52:31/bestmodel-epoch=7-val_loss=0.09 2023-11-06 10:52:31.ckpt'
-    # trainer = KITrainer.resume_from_ckpt(max_epochs=20, path_to_checkpoint=best_model_path, set_seed=42)
+    # trainer = KITrainer.resume_from_ckpt(experiment_name='RegressionTestMLP', max_epochs=20, path_to_checkpoint=best_model_path, set_seed=42, safe_mode=False)
     # trainer.fit_model(dataloaders=(trainer_loader, val_loader))
-    # trainer.evaluate_model(eval_dataloader=eval_loader)
+    # trainer.evaluate_model(eval_dataloader=(trainer_loader, val_loader, eval_loader))
     
     #################### State 3: Load from ckpt and test ####################
     # restore from ckpt and test
-    # best_model_path = '/home/randle/projects/KnowIt/models/Model_2023-11-06 13:09:21/bestmodel-epoch=7-val_loss=0.09 2023-11-06 13:09:21.ckpt'
-    # trainer = KITrainer.eval_from_ckpt(path_to_checkpoint=best_model_path)
-    # trainer.evaluate_model(eval_dataloader=eval_loader)
+    # best_model_path = '/home/randle/projects/KnowIt/RegressionTestMLP/models/Model_2023-11-08 11:49:25/bestmodel-epoch=4-val_loss=0.09 2023-11-08 11:49:25.ckpt'
+    # trainer = KITrainer.eval_from_ckpt(experiment_name='RegressionTestMLP', path_to_checkpoint=best_model_path)
+    # trainer.evaluate_model(eval_dataloader=(trainer_loader, val_loader, eval_loader))
     
     
     ############################################################################################

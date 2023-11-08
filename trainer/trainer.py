@@ -512,7 +512,7 @@ class KITrainer():
         return kitrainer
     
     @classmethod
-    def resume_from_ckpt(cls, experiment_name, max_epochs, path_to_checkpoint, set_seed=None):
+    def resume_from_ckpt(cls, experiment_name, max_epochs, path_to_checkpoint, set_seed=None, safe_mode=False):
         """A constructor initializing KITrainer in state 2 (resume model training from checkpoint).
 
         Args:
@@ -521,7 +521,9 @@ class KITrainer():
             max_epochs (int)            : The number of further epochs to train the model. If the pretrained model
                                             was trained for x epochs and the user wants to train for a further y epochs,
                                             then this should be set to max_epochs = x+y.
-            set_seed   (None or int)    : The seed value that was used for the pretrained model.
+            set_seed (None or int)      : The seed value that was used for the pretrained model.
+            safe_mode (bool)            : If set to True, aborts the model training if the experiment name already 
+                                            exists in the user's project output folder.
             
         """
         
@@ -537,7 +539,8 @@ class KITrainer():
             train_flag=True,
             from_ckpt_flag=True,
             path_to_checkpoint=path_to_checkpoint,
-            set_seed=set_seed
+            set_seed=set_seed,
+            safe_mode=safe_mode
         )
         
         return kitrainer
