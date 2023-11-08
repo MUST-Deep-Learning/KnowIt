@@ -234,20 +234,14 @@ def main():
     }
     
     #################### State 1: Train from scratch and test ####################
-    # file = torch.load("/home/randle/projects/KnowIt/models/Model_2023-11-06 13:09:21/bestmodel-epoch=7-val_loss=0.09 2023-11-06 13:09:21.ckpt")
-    # print(file.keys())
-    # print(file['epoch'])
-    # print(file['callbacks'].keys())
-    # print(file['callbacks']["ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"])
-    # print(file['callbacks']["ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"]["best_model_score"].item())
     trainer = KITrainer(experiment_name='RegressionTestMLP',
-                        train_device='gpu',
+                        train_device='cpu',
                         model=model,
                         model_params=model_params,
                         loss_fn=loss_fn,  
                         optim=optim,
                         performance_metrics=pm,
-                        max_epochs=10,
+                        max_epochs=5,
                         early_stopping=early_stopping,
                         learning_rate=1e-02,
                         learning_rate_scheduler=lr,
@@ -255,10 +249,11 @@ def main():
                         gradient_clip_algorithm='norm', # TCN
                         set_seed=42,
                         deterministic=False,
-                        safe_mode=False)
+                        safe_mode=False,
+                        mute_logger=False)
     
     trainer.fit_model(dataloaders=(trainer_loader, val_loader))
-    trainer.evaluate_model(eval_dataloader=eval_loader)
+    trainer.evaluate_model(eval_dataloader=(trainer_loader, val_loader, eval_loader))
     
     #################### State 2: Resume training from ckpt and test ####################
     # best_model_path = '/home/randle/projects/KnowIt/models/Model_2023-11-06 10:52:31/bestmodel-epoch=7-val_loss=0.09 2023-11-06 10:52:31.ckpt'

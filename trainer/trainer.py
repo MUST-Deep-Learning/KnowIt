@@ -102,13 +102,7 @@ The following parameters needs to be provided by the user:
 #   > change imports to from
 #   > refactor some of the code (see the regular blocks of code that unpacks user kwargs)
 #   > (fix) currently, checkpoint dir is being created even if training loops are not completed, resulting in empty folders
-
-# Notes:
-# > for eval log, want corresponding best model's results and epoch
-# > add option to mute logging during tuner
-# > Output folder is experiment specific: Trainer will be given experiment subfolder. Ckpts and logs for that experiment goes in here.
-# > Metadata? What settings did trainer use to create that ckpt that was saved.
-# 	>> Also the model performance
+#   > To check: after training, testing on all three dataloaders gives slight discrepancy between logged train vals
 
 
 import os
@@ -300,35 +294,42 @@ class PLModel(pl.LightningModule):
         return loss    
     
     
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx, dataloader_idx):
         
         metrics = {} # metrics to be logged
+        
+        if dataloader_idx == 0:
+            current_loader = "Train"
+        elif dataloader_idx == 1:
+            current_loader = "Valid"
+        elif dataloader_idx == 2:
+            current_loader = "Eval"
         
         x = batch['x']
         y = batch['y']
         
         y_pred = self.model.forward(x)
         
-         # compute loss; depends on whether user gave kwargs
+        # compute loss; depends on whether user gave kwargs
         if self.loss:
             if isinstance(self.loss, dict):
                 for loss_metric in self.loss.keys():
                     loss_kwargs = self.loss[loss_metric]
                     loss = self.__get_loss_function(loss_metric)(y_pred, y, **loss_kwargs)
-                    metrics['eval_loss'] = loss
+                    metrics[current_loader + '- loss'] = loss
             elif isinstance(self.loss, str): # only a metric (string) is given, no kwargs
                 loss = self.__get_loss_function(self.loss)(y_pred, y)
-                metrics['eval_loss'] = loss
+                metrics[current_loader + '- loss'] = loss
                 
         if self.performance_metrics:
             if isinstance(self.performance_metrics, dict):
                 for p_metric in self.performance_metrics.keys():
                     perf_kwargs = self.performance_metrics[p_metric]
-                    metrics['eval_perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
+                    metrics[current_loader + '- perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
             elif isinstance(self.performance_metrics, str): # only a metric (string) is given, no kwargs
-                metrics['eval_perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
+                metrics[current_loader + '- perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
 
-            self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True, logger=True)
+        self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True, logger=True, add_dataloader_idx=False)
             
         return metrics
         
@@ -365,8 +366,12 @@ class PLModel(pl.LightningModule):
             # no scheduler
             return {"optimizer": optimizer}
            
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        print(checkpoint.keys())
+    # def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    #     print(checkpoint.keys())
+        
+    # def on_validation_end(self) -> None:
+    #     print(checkpoint.keys())
+        
 
 class KITrainer():
     
@@ -417,7 +422,8 @@ class KITrainer():
                  set_seed: Union[int, bool] = False,
                  deterministic: Union[bool, Literal['warn'], None] = None,
                  path_to_checkpoint: Union[str, None] = None,
-                 safe_mode: bool = False):
+                 safe_mode: bool = False,
+                 mute_logger: bool = False):
         
         # create an experiment directory in the user's project folder
         self.experiment_dir = self.__make_experiment_dir(name=experiment_name, safe_mode=safe_mode)
@@ -425,6 +431,9 @@ class KITrainer():
         # internal flags used by class to determine which state the user is instantiating KITrainer
         self.train_flag = train_flag
         self.from_ckpt_flag = from_ckpt_flag
+        
+        # turn off logger during hp tuning
+        self.mute_logger = mute_logger
         
         # save global seed
         self.set_seed = set_seed
@@ -582,8 +591,12 @@ class KITrainer():
         ckpt_path, ckpt_callback = self.__save_model_state()
         
         # training logger - save results in current model's folder
-        #csv_logger = pl_loggers.CSVLogger(save_dir=self.experiment_dir)
-        csv_logger = pl_loggers.CSVLogger(save_dir=ckpt_path)
+        if self.mute_logger:
+            csv_logger = None
+            ckpt_path, ckpt_callback = None, None
+        else:
+            csv_logger = pl_loggers.CSVLogger(save_dir=ckpt_path)
+            ckpt_path, ckpt_callback = self.__save_model_state()
         
         # Early stopping
         try:
@@ -664,17 +677,6 @@ class KITrainer():
         os.path.join(experiment_dir, 'models')
                     
         return experiment_dir
-        
-    def display_results(self, path_to_ckpt):
-        ckpt = torch.load(path_to_ckpt)
-        
-        best_epoch = ckpt['Epoch']
-        best_val_score = ckpt['callbacks']["ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"]['best_model_score'].item()
-        best_model_dir = ckpt['callbacks']["ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"]['best_model_path']
-        
-        print("Best Model Location: ", best_model_dir)
-        print(f"Best Model at Epoch: ", best_epoch)
-        print(f"Best Model's Validation Score: ", best_val_score)
         
         
         
