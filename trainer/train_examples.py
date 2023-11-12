@@ -69,8 +69,8 @@ from trainer import KITrainer
 
 import torch
 
-#from archs.MLP import Model
-from archs.TCN import Model
+from archs.MLP import Model
+#from archs.TCN import Model
 #from archs.CNN import Model
 
 from helpers.logger import get_logger
@@ -85,66 +85,66 @@ def main():
     # ----------------------------------------------------------------------------------------------------------------------
     
     
-    data_option = "penguin_pce_full"
-    datamodule = ClassificationDataset(name=data_option,
-                     in_components=['accX', 'accY', 'accZ'], out_components=['PCE'], 
-                     in_chunk=[-25, 25], out_chunk=[0, 0], 
-                     split_portions=(0.6, 0.2, 0.2), 
-                     seed=333, batch_size=32, limit=10000, 
-                     min_slice=10, scaling_method='z-norm', 
-                     scaling_tag='in_only', split_method='chronological')
+    # data_option = "penguin_pce_full"
+    # datamodule = ClassificationDataset(name=data_option,
+    #                  in_components=['accX', 'accY', 'accZ'], out_components=['PCE'], 
+    #                  in_chunk=[-25, 25], out_chunk=[0, 0], 
+    #                  split_portions=(0.6, 0.2, 0.2), 
+    #                  seed=333, batch_size=32, limit=10000, 
+    #                  min_slice=10, scaling_method='z-norm', 
+    #                  scaling_tag='in_only', split_method='chronological')
     
-    trainer_loader = datamodule.get_dataloader('train')
-    val_loader = datamodule.get_dataloader('valid')
-    eval_loader = datamodule.get_dataloader('eval')
+    # trainer_loader = datamodule.get_dataloader('train')
+    # val_loader = datamodule.get_dataloader('valid')
+    # eval_loader = datamodule.get_dataloader('eval')
     
-    model = Model    
-    model_params = {
-        "input_dim": datamodule.in_shape,
-        "output_dim": datamodule.out_shape,
-        "task_name": 'classification'
-    }
+    # model = Model    
+    # model_params = {
+    #     "input_dim": datamodule.in_shape,
+    #     "output_dim": datamodule.out_shape,
+    #     "task_name": 'classification'
+    # }
     
-    pm = {
-        'f1_score': {
-            'num_classes': 2,
-            'task': 'binary'
-        },
-        'accuracy': {
-            'num_classes': 2,
-            'task': 'binary'
-        }
-    }
+    # pm = {
+    #     'f1_score': {
+    #         'num_classes': 2,
+    #         'task': 'binary'
+    #     },
+    #     'accuracy': {
+    #         'num_classes': 2,
+    #         'task': 'binary'
+    #     }
+    # }
     
-    loss_fn = {
-        'cross_entropy':{
-            'weight': torch.Tensor([0.00972, 1.0]).to('cuda')
-        }
-    }
+    # loss_fn = {
+    #     'cross_entropy':{
+    #         'weight': torch.Tensor([0.00972, 1.0]).to('cuda')
+    #     }
+    # }
     
-    lr_sched = {
-        'ExponentialLR':{
-            'gamma': 0.9
-        }
-    }
+    # lr_sched = {
+    #     'ExponentialLR':{
+    #         'gamma': 0.9
+    #     }
+    # }
     
-    optim ={
-        'Adam':{
-            'weight_decay': 0.5
-        }
-    }
+    # optim ={
+    #     'Adam':{
+    #         'weight_decay': 0.5
+    #     }
+    # }
     
-    early_stopping = {
-        True:
-            {
-                'monitor': 'val_loss',
-                'mode': 'min'
-            }
-    }
+    # early_stopping = {
+    #     True:
+    #         {
+    #             'monitor': 'val_loss',
+    #             'mode': 'min'
+    #         }
+    # }
     
     #################### State 1: Train from scratch and test ####################
     
-    # trainer = KITrainer(experiment_name="ClassificationTestTCN",
+    # trainer = KITrainer(experiment_name="ClassificationTesMLP",
     #                     train_device='gpu',
     #                     loss_fn=loss_fn,
     #                     performance_metrics=pm, 

@@ -103,6 +103,8 @@ The following parameters needs to be provided by the user:
 #   > refactor some of the code (see the regular blocks of code that unpacks user kwargs)
 #   > (fix) currently, checkpoint dir is being created even if training loops are not completed, resulting in empty folders
 #   > To check: after training, testing on all three dataloaders gives slight discrepancy between logged train vals
+#   > (fix) When saving ckpt, inside ckpt['state_dict'], the keys are saved as 'model.model...'. When init a model from archs, 
+#       Pytorch expects the key to be 'model...'.
 
 
 import os
@@ -167,8 +169,8 @@ class PLModel(pl.LightningModule):
         """Instantiates a Pytorch model with the given model parameters
 
         Args:
-            model (class): _description_
-            model_params (dict): _description_
+            model (class): A Pytorch model that provides architecture and forward method.
+            model_params (dict): A dictionary containing the parameters used to init the model.
 
         Returns:
             object: Pytorch model 
