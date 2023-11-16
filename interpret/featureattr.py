@@ -49,9 +49,16 @@ class FeatureAttribution(KIInterpreter):
         
         return x
     
-    def _pred_range_from_datamodule(self):
+    def _pred_range_from_datamodule(self, prediction_point_ids):
         # returns tuple of tensors
-        pass
+        data_loader = self.datamodule.get_dataloader(self.i_data)
+        
+        tensor_list = []
+        for current_id in range(prediction_point_ids[0], prediction_point_ids[1]):
+            x = data_loader.dataset.__getitem__(idx=current_id)['x']
+            tensor_list.append(x)
+            
+        return tensor_list
         
     
     
