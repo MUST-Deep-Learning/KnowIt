@@ -1,26 +1,28 @@
 __author__ = 'randlerabe@gmail.com'
-__description__ = 'Contains the ki_interpreter module.'
+__description__ = 'Contains the Knowit interpreter module.'
+
+"""
+---------------
+KIInterpreter
+---------------
+
+The ``KIInterpreter'' class is the parent (root) class for the interpreter module.
+
+``KIInterpreter'' is provided the following arguments:
+    - model (class)             : the Pytorch model architecture defined in ./archs
+    - model_params (dict)       : the dictionary that contains the models init parameters
+    - path_to_ckpt (str)        : the path to a trained model's checkpoint file.
+    - datamodule (Knowit obj)   : the Knowit datamodule for the experiment
+    
+The function of the ``KIInterpreter'' class is to store the datamodule and initialize the Pytorch model 
+for use by its descendant classes. As such, it is a direct link to Knowit's other modules. It is agnostic 
+to the user's choice of interpretability method.
+ 
+"""
+
+from typing import Type
 
 import torch
-
-# Todo:
-# User provides s_id point (pp) or range s_id (list or tuple of pp begin/endpoints)
-# User choice must fit into their choice of dataloader (train, val, eval)
-# Then, extract tensors from chosen dataloader and pass into captum.
-# 
-# Returns: 
-# We have an in_chunk of size (in_components, time_steps)
-# We have an out_chunk of size (out_components, time_steps) -> for classification, this will be the classes
-# We must return a results matrix for EACH POINT in the out_chunk (or each class if classification)
-#
-# For a single pp:
-#   We choose an s_id inside the dataset underlying the chosen dataloader
-#   Then extract the tensors from the dataloader. Pass to Captum.
-#
-# For a range pps:
-#   Exactly the same as above, but many more attribution matrics since we now have a range.
-#
-# 
 
 class KIInterpreter():
     """
@@ -28,10 +30,10 @@ class KIInterpreter():
     """
     
     def __init__(self,
-                 model,
-                 model_params,
-                 datamodule,
-                 path_to_checkpoint):
+                 model: Type,
+                 model_params: dict,
+                 datamodule: object,
+                 path_to_checkpoint: str):
         
         self.model = self.__load_model_from_ckpt(model=model, model_params=model_params, ckpt_path=path_to_checkpoint)    
         self.datamodule = datamodule
