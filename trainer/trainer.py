@@ -121,11 +121,11 @@ import torchmetrics
 from torch import nn
 from torch.nn import functional as F
 
-import lightning.pytorch as pl
-from lightning.pytorch import loggers as pl_loggers
-from lightning.pytorch.callbacks.early_stopping import EarlyStopping
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch import seed_everything
+import pytorch_lightning as pl
+from pytorch_lightning import loggers as pl_loggers
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning import seed_everything
 
 class PLModel(pl.LightningModule):
     """A Pytorch Lightning model that defines the training, validation, and test steps over a batch. 
