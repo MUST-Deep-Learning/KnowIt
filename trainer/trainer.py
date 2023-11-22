@@ -103,6 +103,8 @@ The following parameters needs to be provided by the user:
 #   > refactor some of the code (see the regular blocks of code that unpacks user kwargs)
 #   > (fix) currently, checkpoint dir is being created even if training loops are not completed, resulting in empty folders
 #   > To check: after training, testing on all three dataloaders gives slight discrepancy between logged train vals
+#   > (fix) When saving ckpt, inside ckpt['state_dict'], the keys are saved as 'model.model...'. When init a model from archs, 
+#       Pytorch expects the key to be 'model...'.
 
 
 import os
@@ -119,11 +121,11 @@ import torchmetrics
 from torch import nn
 from torch.nn import functional as F
 
-import lightning.pytorch as pl
-from lightning.pytorch import loggers as pl_loggers
-from lightning.pytorch.callbacks.early_stopping import EarlyStopping
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch import seed_everything
+import pytorch_lightning as pl
+from pytorch_lightning import loggers as pl_loggers
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning import seed_everything
 
 class PLModel(pl.LightningModule):
     """A Pytorch Lightning model that defines the training, validation, and test steps over a batch. 
@@ -167,8 +169,8 @@ class PLModel(pl.LightningModule):
         """Instantiates a Pytorch model with the given model parameters
 
         Args:
-            model (class): _description_
-            model_params (dict): _description_
+            model (class): A Pytorch model that provides architecture and forward method.
+            model_params (dict): A dictionary containing the parameters used to init the model.
 
         Returns:
             object: Pytorch model 
