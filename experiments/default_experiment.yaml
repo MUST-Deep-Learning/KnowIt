@@ -9,10 +9,18 @@ arch:
 data:
   desc: What dataset option to model with ('dummy_zero', ...)
   value: 'dummy_zero'
-
+seed:
+  desc: The seed for reproducibility.
+  value: 123
+# -----------------------------------------------------------------------------
+# Optional --------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+arch_hps:
+  desc: A dictionary defining any non-default architecture hyperparameters.
+  value: {'dropout': 0.0, 'width': 512}
 
 # -----------------------------------------------------------------------------
-# --------------------------- Import raw dataset -----------------------------
+# --------------------------- Import raw dataset ------------------------------
 # -----------------------------------------------------------------------------
 # Required --------------------------------------------------------------------
 # -----------------------------------------------------------------------------
@@ -55,9 +63,6 @@ out_chunk:
 split_portions:
   desc: The approximate portions of the (train, valid, eval) splits.
   value: [0.6, 0.2, 0.2]
-seed:
-  desc: The seed for reproducibility.
-  value: 123
 batch_size:
   desc: The mini-batch size for training.
   value: 64
@@ -71,7 +76,7 @@ split_method:
   desc: The method of splitting data. See below for details.
     ('random', 'chronological', 'slice-random', 'slice-chronological', 
     'instance-random', 'instance-chronological') default 'chronological'
-  value: slice-random
+  value: random
 limit:
   desc: The number of instances / slices / time steps to limit 
     the data to. default None
@@ -103,7 +108,7 @@ loss_fn:
 optim:
   desc: The choice of optimizer. (SGD, Adam, RAdam)
     Additional argument are provided in dictionary format e.g. #{Adam: {'weight_decay': 0.3}}
-  value: {Adam: {'weight_decay': 0.3}}
+  value: 'Adam'
 max_epochs:
   desc: The maximum number of epochs that the model can train for.
   value: 100
@@ -128,7 +133,16 @@ gradient_clip_val:
   desc: Clips exploding gradients according to the chosen 
     gradient_clip_algorithm. Default 0.0
   value: 0.0
-early_stopping:
-  desc: Specifies early stopping conditions.
-  value: {True: {'monitor': 'val_loss', 'mode': 'min'}}
+#early_stopping:
+#  desc: Specifies early stopping conditions.
+#  value: {True: {'monitor': 'val_loss', 'mode': 'min'}}
+
+# -----------------------------------------------------------------------------
+# ------------------------ Interpretation variables ---------------------------
+# -----------------------------------------------------------------------------
+# Required --------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+interpretation_method:
+  desc: (DeepLiftShap, )
+  value: DeepLiftShap
 

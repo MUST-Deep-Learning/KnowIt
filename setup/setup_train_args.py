@@ -11,7 +11,7 @@ required_data_args = ('data', 'in_components', 'out_components',
 optional_data_args = ('limit', 'min_slice', 'scaling_method',
                       'scaling_tag', 'split_method')
 
-required_trainer_args = ('loss_fn', 'optim', 'max_epochs', 'learning_rate')
+required_trainer_args = ('loss_fn', 'optim', 'max_epochs', 'learning_rate', 'seed')
 optional_trainer_args = ('learning_rate_scheduler', 'gradient_clip_val',
                          'gradient_clip_algorithm',
                          'performance_metrics', 'early_stopping')
@@ -45,6 +45,8 @@ def setup_trainer_args(experiment_dict, device, class_counts):
     for a in optional_trainer_args:
         if a in experiment_dict.keys():
             args[a] = experiment_dict[a]
+
+    args['set_seed'] = args.pop('seed')
 
     if experiment_dict['loss_fn'] == 'weighted_cross_entropy':
         args['loss_fn'] = proc_weighted_cross_entropy(experiment_dict['task'], device, class_counts)

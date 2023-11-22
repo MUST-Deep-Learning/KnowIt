@@ -417,8 +417,8 @@ class Trainer:
                  learning_rate_scheduler: dict = {},
                  performance_metrics: Union[None, dict] = None,
                  early_stopping: Union[bool, dict] = False,
-                 gradient_clip_val: float=0.0,
-                 gradient_clip_algorithm: str='norm',
+                 gradient_clip_val: float = 0.0,
+                 gradient_clip_algorithm: str = 'norm',
                  train_flag: bool = True,
                  from_ckpt_flag: bool = False,
                  set_seed: Union[int, bool] = False,
@@ -680,9 +680,8 @@ class Trainer:
             if safe_mode == False:
                 logger.warning("A folder with the same experiment name already exists. Safe mode is set to False.")
             else:
-                logger.info("A folder with the same experiment name already exists. Safe mode is set to True.")
-                logger.info("Aborting...")
-                exit()
+                logger.error("A folder with the same experiment name already exists. Safe mode is set to True.")
+                exit(101)
         
         experiment_dir = os.path.join(env_user.project_dir, name)
         os.path.join(experiment_dir, 'models')

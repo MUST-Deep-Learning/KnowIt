@@ -1,8 +1,8 @@
 name: knowit_env
 channels:
   - anaconda
-  - pytorch
   - nvidia
+  - pytorch
   - conda-forge
   - defaults
 dependencies:
@@ -19,7 +19,8 @@ dependencies:
   - brotlipy=0.7.0=py38h27cfd23_1003
   - bzip2=1.0.8=h7b6447c_0
   - ca-certificates=2023.08.22=h06a4308_0
-  - certifi=2023.7.22=py38h06a4308_0
+  - captum=0.6.0=0
+  - certifi=2023.11.17=py38h06a4308_0
   - cffi=1.15.1=py38h5eee18b_3
   - cgal-cpp=5.0.3=h764656a_1
   - charset-normalizer=2.0.4=pyhd3eb1b0_0
@@ -115,7 +116,7 @@ dependencies:
   - numpy-base=1.24.3=py38h31eccc5_0
   - openh264=2.1.1=h4ff587b_0
   - openjpeg=2.4.0=h3ad879b_0
-  - openssl=3.0.11=h7f8727e_2
+  - openssl=3.0.12=h7f8727e_0
   - packaging=23.1=py38h06a4308_0
   - pandas=1.4.2=py38h295c915_0
   - pathtools=0.1.2=pyhd3eb1b0_1
