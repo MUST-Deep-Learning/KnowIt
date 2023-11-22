@@ -33,7 +33,10 @@ def yaml_to_dict(config_path):
 
     cfg = dict()
     for key in cfg_yaml.keys():
-        cfg[key] = cfg_yaml[key]['value']
+        if cfg_yaml[key]['value'] == 'None':
+            cfg[key] = None
+        else:
+            cfg[key] = cfg_yaml[key]['value']
 
     return cfg
 

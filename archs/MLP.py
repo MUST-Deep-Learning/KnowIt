@@ -5,8 +5,6 @@ from typing import Union
 import torch.nn as nn
 import numpy as np
 
-model_name = "MLP"
-
 available_tasks = ('regression', 'classification')
 
 # Default hyperparameter values

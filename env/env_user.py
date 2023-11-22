@@ -9,10 +9,11 @@ import os
 project_dir = os.path.expanduser('~/projects/KnowIt/')
 
 # where to find Knowit scripts
-repo_dir = os.path.expanduser('~/Dev/KnowIt')
+repo_dir = os.path.expanduser('~/g_repos/KnowIt')
 
 dataset_dir = os.path.join(repo_dir, 'datasets')
 archs_dir = os.path.join(repo_dir, 'archs')
+exp_dir = os.path.join(repo_dir, 'experiments')
 
 # -----------------------------------------------------------------------------
 
