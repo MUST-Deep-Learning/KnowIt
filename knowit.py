@@ -1,9 +1,6 @@
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the ki_setup module.'
 
-# import torch
-# torch.set_float32_matmul_precision('high')
-
 # external imports
 from os import listdir
 import importlib

@@ -424,7 +424,7 @@ class Trainer:
                  set_seed: Union[int, bool] = False,
                  deterministic: Union[bool, Literal['warn'], None] = None,
                  path_to_checkpoint: Union[str, None] = None,
-                 safe_mode: bool = False,
+                 safe_mode: bool = True,
                  mute_logger: bool = False):
         
         # create an experiment directory in the user's project folder
@@ -442,6 +442,12 @@ class Trainer:
         
         # device to use
         self.train_device = train_device
+        if train_device == 'gpu':
+            # TODO: Check the effect of this later.
+            try:
+                torch.set_float32_matmul_precision('high')
+            except:
+                logger.warning('Tried to utilize Tensor Cores, but failed.')
         self.deterministic = deterministic
         
         # Pytorch model class and parameters
