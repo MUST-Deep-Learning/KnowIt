@@ -3,24 +3,24 @@ __description__ = 'Contains the trainer module.'
 
 """
 ---------------
-KITrainer
+Trainer
 ---------------
 
-The ``KITrainer'' is a wrapper class that, given a user's parameters, trains a model (defined in 
+The ``Trainer'' is a wrapper class that, given a user's parameters, trains a model (defined in 
 the ./archs folder) using Pytorch Lightning's Trainer module.
 
 To use Pytorch Lightning's Trainer, a Pytorch Lightning model needs to be provided. A Pytorch Lightning 
 model is given in the class ``PLModel'' with several required parameters from the user. The model parameter 
 is a Pytorch model class (not an object) and is instantiated within ``PLModel''.
 
-``KITrainer'' will pass the user's parameters appropriately to ``PLModel'' and Pytorch Lightning's Trainer.
+``Trainer'' will pass the user's parameters appropriately to ``PLModel'' and Pytorch Lightning's Trainer.
 
-To instantiate ``KITrainer'', there are three possible states:
+To instantiate ``Trainer'', there are three possible states:
     - State 1: Train a new model from scratch.
     - State 2: Continue training an existing model from checkpoint.
     - State 3: Load a trained model and evaluate it on a eval set.
 
-State 1: Instantiate KITrainer.
+State 1: Instantiate Trainer.
 >>>> Compulsory User Parameters <<<<
  - experiment_name: str.                                The name of the experiment.
  - train_device: str.                                   The choice of training device ('cpu', 'gpu', etc).
@@ -54,7 +54,7 @@ exactly as in Pytorchmetrics torchmetrics.functional. Note that both methods use
 To train the model, the user calls the ".fit_model" method. The method must be provided a tuple consisting of the train data 
 loader and the validation data loader (in this order).
 
-State 2: Instantiate KITrainer using "resume_from_ckpt" method.
+State 2: Instantiate Trainer using "resume_from_ckpt" method.
 >>>> Compulsory User Parameters <<<<
  - experiment_name: str.                                The name of the experiment.
  - path_to_checkpoint: str.                             The path to the pretrained model's checkpoint.
@@ -77,7 +77,7 @@ State 3: Instantiate Trainer using "eval_from_ckpt" method.
 Checkpointing: Once a model has been trained, the best model checkpoint is saved to the user's project output folder under the
 name of the experiment.
 
-Testing: The model can be tested on an eval set using the "evaluate_model" method on an appropriately instantiated KITrainer.
+Testing: The model can be tested on an eval set using the "evaluate_model" method on an appropriately instantiated Trainer.
 
 
 ------------
@@ -375,7 +375,7 @@ class PLModel(pl.LightningModule):
     #     print(checkpoint.keys())
         
 
-class KITrainer():
+class Trainer:
     
     """ A wrapper class that handles user parameters
     
@@ -430,7 +430,7 @@ class KITrainer():
         # create an experiment directory in the user's project folder
         self.experiment_dir = self.__make_experiment_dir(name=experiment_name, safe_mode=safe_mode)
         
-        # internal flags used by class to determine which state the user is instantiating KITrainer
+        # internal flags used by class to determine which state the user is instantiating Trainer
         self.train_flag = train_flag
         self.from_ckpt_flag = from_ckpt_flag
         
@@ -490,7 +490,7 @@ class KITrainer():
         
     @classmethod
     def eval_from_ckpt(cls, experiment_name, path_to_checkpoint):        
-        """A constructor initializing KITrainer in state 3 (model evaluation only).
+        """A constructor initializing Trainer in state 3 (model evaluation only).
 
         Args:
             experiment_name (str): Experiment name
@@ -515,7 +515,7 @@ class KITrainer():
     
     @classmethod
     def resume_from_ckpt(cls, experiment_name, max_epochs, path_to_checkpoint, set_seed=None, safe_mode=False):
-        """A constructor initializing KITrainer in state 2 (resume model training from checkpoint).
+        """A constructor initializing trainer in state 2 (resume model training from checkpoint).
 
         Args:
             experiment_name (str)       : Experiment name

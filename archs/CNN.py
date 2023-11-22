@@ -19,8 +19,6 @@ from helpers.logger import get_logger
 
 logger = get_logger()
 
-model_name = "CNN"
-
 available_tasks = ('regression', 'classification', 'forecasting')
 
 # Default hyperparameter values

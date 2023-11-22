@@ -9,6 +9,12 @@ def dataset_path(option: str):
 
     return os.path.join(env.dataset_dir, option + '.pickle')
 
+def arch_path(option: str):
+    return os.path.join(env.archs_dir, option + '.py')
+
+def exp_path(option: str):
+    return os.path.join(env.exp_dir, option + '.yaml')
+
 # -----------------------------------------------------------------------------
 
 if __name__ == '__main__':

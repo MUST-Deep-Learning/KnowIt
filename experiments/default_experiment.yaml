@@ -1,0 +1,134 @@
+# -----------------------------------------------------------------------------
+# ------------------------ Global variables -----------------------------------
+# -----------------------------------------------------------------------------
+# Required --------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+arch:
+  desc: What architecture to model with ('TCN', 'MLP', 'CNN')
+  value: 'MLP'
+data:
+  desc: What dataset option to model with ('dummy_zero', ...)
+  value: 'dummy_zero'
+
+
+# -----------------------------------------------------------------------------
+# --------------------------- Import raw dataset -----------------------------
+# -----------------------------------------------------------------------------
+# Required --------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+raw_data_path:
+  desc: A string defining the path to a pickle file containing raw data.
+  value: 'local/path/to/pickle.pkl'
+# -----------------------------------------------------------------------------
+# Optional --------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+base_nan_filler:
+  desc: Identifies the method used to fill NaNs, if applicable. (split, None, or
+    https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.interpolate.html)
+    default None
+  value: None
+nan_filled_components:
+  desc: A list of components that were nan-filled, if applicable.
+    default None
+  value: None
+
+# -----------------------------------------------------------------------------
+# ---------------------------- Prepare dataset --------------------------------
+# -----------------------------------------------------------------------------
+# Required --------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+task:
+  desc: What task is to be performed ('regression', 'classification')
+  value: 'regression'
+in_components:
+  desc: These are the components that will be used as input to the model.
+  value: ['x1', 'x2', 'x3', 'x4']
+out_components:
+  desc: These are the components that will be used as output to the model.
+  value: ['y1', 'y2']
+in_chunk:
+  desc: This defines the time steps (of in_components) to be used for prediction.
+  value: [-5, 5]
+out_chunk:
+  desc: This defines the time steps (of out_components) to be predicted.
+  value: [0, 0]
+split_portions:
+  desc: The approximate portions of the (train, valid, eval) splits.
+  value: [0.6, 0.2, 0.2]
+seed:
+  desc: The seed for reproducibility.
+  value: 123
+batch_size:
+  desc: The mini-batch size for training.
+  value: 64
+# -----------------------------------------------------------------------------
+# Optional --------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+shuffle_train:
+  desc: Whether the training set is shuffled after every epoch. default True
+  value: True
+split_method:
+  desc: The method of splitting data. See below for details.
+    ('random', 'chronological', 'slice-random', 'slice-chronological', 
+    'instance-random', 'instance-chronological') default 'chronological'
+  value: slice-random
+limit:
+  desc: The number of instances / slices / time steps to limit 
+    the data to. default None
+  value: None
+scaling_method:
+  desc: What method to use for scaling the data features.
+    ('z-norm', 'zero-one', None) Default 'z-norm'
+  value: z-norm
+scaling_tag:
+  desc: In what mode to scale the data. 
+    (in_only, full, None)
+  value: full
+padding_method:
+  desc: What method to pad model inputs will. default zero
+    https://numpy.org/doc/stable/reference/generated/numpy.pad.html
+  value: zero
+min_slice:
+  desc: The minimum slice size to consider 
+    during data splitting / selection. default None
+  value: None
+# -----------------------------------------------------------------------------
+# ------------------------ Training variables ---------------------------------
+# -----------------------------------------------------------------------------
+# Required --------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+loss_fn:
+  desc: The choice of loss function. (mse_loss, cross_entropy, weighted_cross_entropy)
+  value: 'mse_loss'
+optim:
+  desc: The choice of optimizer. (SGD, Adam, RAdam)
+    Additional argument are provided in dictionary format e.g. #{Adam: {'weight_decay': 0.3}}
+  value: {Adam: {'weight_decay': 0.3}}
+max_epochs:
+  desc: The maximum number of epochs that the model can train for.
+  value: 100
+learning_rate:
+  desc: The learning rate that the chosen optimizer should use.
+  value: 0.001
+# -----------------------------------------------------------------------------
+# Optional --------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+performance_metrics:
+  desc: Specifies any performance metrics on the validation set during training.
+    Note this is not the loss function
+  value: 'mean_squared_error'
+learning_rate_scheduler:
+  desc: What kind of learning rate schedule to use. (ExponentialLR, LinearLR, etc.) 
+     Additional argument are provided in dictionary format.
+  value: {'ExponentialLR': {'gamma': 0.9}}
+gradient_clip_algorithm:
+  desc: Specifies how the gradient_clip_val should be applied. default norm
+  value: norm
+gradient_clip_val:
+  desc: Clips exploding gradients according to the chosen 
+    gradient_clip_algorithm. Default 0.0
+  value: 0.0
+early_stopping:
+  desc: Specifies early stopping conditions.
+  value: {True: {'monitor': 'val_loss', 'mode': 'min'}}
+
