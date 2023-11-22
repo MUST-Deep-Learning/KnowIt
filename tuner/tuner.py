@@ -1,2 +1,2 @@
 __author__ = 'tiantheunissen@gmail.com'
-__description__ = 'Contains the ki_tuner module.'
+__description__ = 'Contains the tuner module.'

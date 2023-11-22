@@ -1,10 +1,3 @@
-from setup.ki_setup import KI_setup
-
-action = 'train'
-device = 'gpu'
-experiment_name = 'default_experiment'
-safe_mode = True
-
-setup_module = KI_setup(action, experiment_name, device, safe_mode)
-
-ping = 0
+from knowit import KnowIt
+KnowIt(action='train', experiment_name='default_experiment', device='gpu', safe_mode=True)
+exit(101)

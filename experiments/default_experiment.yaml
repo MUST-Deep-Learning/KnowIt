@@ -113,12 +113,13 @@ learning_rate:
 # -----------------------------------------------------------------------------
 # Optional --------------------------------------------------------------------
 # -----------------------------------------------------------------------------
-#performance_metrics:
-#  desc: Specifies any performance metrics on the validation set during training.
-#  value: {'f1_score': {'num_classes': 2, 'task': 'binary'}, 'accuracy': {'num_classes': 2, 'task': 'binary'}}
+performance_metrics:
+  desc: Specifies any performance metrics on the validation set during training.
+    Note this is not the loss function
+  value: 'mean_squared_error'
 learning_rate_scheduler:
   desc: What kind of learning rate schedule to use. (ExponentialLR, LinearLR, etc.) 
-     Additional argument are provided in dictionary format e.g. #{'ExponentialLR': {'gamma': 0.9}}
+     Additional argument are provided in dictionary format.
   value: {'ExponentialLR': {'gamma': 0.9}}
 gradient_clip_algorithm:
   desc: Specifies how the gradient_clip_val should be applied. default norm

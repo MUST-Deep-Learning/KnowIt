@@ -1,6 +1,9 @@
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the ki_setup module.'
 
+# import torch
+# torch.set_float32_matmul_precision('high')
+
 # external imports
 from os import listdir
 import importlib
@@ -13,7 +16,7 @@ from helpers.read_configs import yaml_to_dict
 from data.base_dataset import BaseDataset
 from data.classification_dataset import ClassificationDataset
 from data.regression_dataset import RegressionDataset
-from trainer.trainer import KITrainer
+from trainer.trainer import Trainer
 from setup.setup_import_args import setup_import_args
 from setup.setup_train_args import setup_trainer_args, setup_data_args
 
@@ -34,7 +37,7 @@ logger = get_logger()
 #                           'shuffle_train': True, }
 
 
-class KI_setup:
+class KnowIt:
     def __init__(self, action, experiment_name, device='gpu', safe_mode=True):
         """init class from dictionary"""
 
@@ -82,7 +85,7 @@ class KI_setup:
         trainer_args['experiment_name'] = self.experiment_name
         trainer_args['train_device'] = self.device
 
-        trainer = KITrainer(**trainer_args)
+        trainer = Trainer(**trainer_args)
 
         trainer_loader = datamodule.get_dataloader('train')
         val_loader = datamodule.get_dataloader('valid')
