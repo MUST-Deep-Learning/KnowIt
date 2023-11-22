@@ -1,6 +1,8 @@
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the ClassificationDataset class for Knowit.'
 
+import numpy as np
+
 """
 -------------------
 ClassificationDataset
@@ -54,6 +56,7 @@ class ClassificationDataset(PreparedDataset):
             exit(101)
 
         self.class_set = None
+        self.class_counts = {}
         self.__get_classes()
 
     def __get_classes(self):
@@ -70,6 +73,13 @@ class ClassificationDataset(PreparedDataset):
                 vals = s['d'][:, self.y_map][~isnan(s['d'][:, self.y_map]).any(axis=1)]
                 unique_entries = unique(vals, axis=0)
                 unique_entries = [tuple(u) for u in unique_entries]
+
+                for v in unique_entries:
+                    new_count = len(np.argwhere(vals == v))
+                    if v not in self.class_counts:
+                        self.class_counts[v] = new_count
+                    else:
+                        self.class_counts[v] += new_count
 
                 found_class_set.update(set(unique_entries))
         found_class_set = list(found_class_set)

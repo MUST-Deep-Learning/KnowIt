@@ -69,8 +69,6 @@ from torch.nn.utils import weight_norm
 from helpers.logger import get_logger
 logger = get_logger()
 
-model_name = "TCN"
-
 available_tasks = ('regression', 'classification', 'forecasting')
 
 # Default hyperparameter values

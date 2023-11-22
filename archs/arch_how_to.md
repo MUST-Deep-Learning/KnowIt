@@ -1,9 +1,7 @@
 This directory contains the deep learning architectures currently available in Knowit.
-Each script represents a different architecture.
+Each script represents a different architecture, sharing the same name as the script.
 
 To add a new architecture a few details must be provided in the script:
-
-    -   A model_name(str) variable that gives the model name.
 
     -   An available_tasks(tuple) variable that contains strings defining what type of task is currently supported by the model.
         Knowit currently supports (regression, classification).

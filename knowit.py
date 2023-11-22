@@ -9,9 +9,8 @@ from os import listdir
 import importlib
 
 # internal imports
-from env.env_paths import arch_path, dataset_path, exp_path
+from env.env_paths import exp_path
 from helpers.logger import get_logger
-from env.env_user import archs_dir, dataset_dir
 from helpers.read_configs import yaml_to_dict
 from data.base_dataset import BaseDataset
 from data.classification_dataset import ClassificationDataset
@@ -21,21 +20,6 @@ from setup.setup_import_args import setup_import_args
 from setup.setup_train_args import setup_trainer_args, setup_data_args
 
 logger = get_logger()
-
-# available_archs = {}
-# for a in listdir(archs_dir):
-#     if a.endswith('.py'):
-#         available_archs[importlib.import_module('archs.' + a[:-3]).model_name] = arch_path(a[:-3])
-#
-# available_datasets = {}
-# for d in listdir(dataset_dir):
-#     if d.endswith('.pickle'):
-#         available_datasets[d[:-7]] = dataset_path(d[:-7])
-
-# defaults_for_optionals = {'base_nan_filler': None,
-#                           'nan_filled_components': None,
-#                           'shuffle_train': True, }
-
 
 class KnowIt:
     def __init__(self, action, experiment_name, device='gpu', safe_mode=True):
