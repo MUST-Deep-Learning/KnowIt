@@ -69,8 +69,8 @@ from trainer import KITrainer
 
 import torch
 
-#from archs.MLP import Model
-from archs.TCN import Model
+from archs.MLP import Model
+#from archs.TCN import Model
 #from archs.CNN import Model
 
 from helpers.logger import get_logger
@@ -85,66 +85,66 @@ def main():
     # ----------------------------------------------------------------------------------------------------------------------
     
     
-    data_option = "penguin_pce_full"
-    datamodule = ClassificationDataset(name=data_option,
-                     in_components=['accX', 'accY', 'accZ'], out_components=['PCE'], 
-                     in_chunk=[-25, 25], out_chunk=[0, 0], 
-                     split_portions=(0.6, 0.2, 0.2), 
-                     seed=333, batch_size=32, limit=10000, 
-                     min_slice=10, scaling_method='z-norm', 
-                     scaling_tag='in_only', split_method='chronological')
+    # data_option = "penguin_pce_full"
+    # datamodule = ClassificationDataset(name=data_option,
+    #                  in_components=['accX', 'accY', 'accZ'], out_components=['PCE'], 
+    #                  in_chunk=[-25, 25], out_chunk=[0, 0], 
+    #                  split_portions=(0.6, 0.2, 0.2), 
+    #                  seed=333, batch_size=32, limit=10000, 
+    #                  min_slice=10, scaling_method='z-norm', 
+    #                  scaling_tag='in_only', split_method='chronological')
     
-    trainer_loader = datamodule.get_dataloader('train')
-    val_loader = datamodule.get_dataloader('valid')
-    eval_loader = datamodule.get_dataloader('eval')
+    # trainer_loader = datamodule.get_dataloader('train')
+    # val_loader = datamodule.get_dataloader('valid')
+    # eval_loader = datamodule.get_dataloader('eval')
     
-    model = Model    
-    model_params = {
-        "input_dim": datamodule.in_shape,
-        "output_dim": datamodule.out_shape,
-        "task_name": 'classification'
-    }
+    # model = Model    
+    # model_params = {
+    #     "input_dim": datamodule.in_shape,
+    #     "output_dim": datamodule.out_shape,
+    #     "task_name": 'classification'
+    # }
     
-    pm = {
-        'f1_score': {
-            'num_classes': 2,
-            'task': 'binary'
-        },
-        'accuracy': {
-            'num_classes': 2,
-            'task': 'binary'
-        }
-    }
+    # pm = {
+    #     'f1_score': {
+    #         'num_classes': 2,
+    #         'task': 'binary'
+    #     },
+    #     'accuracy': {
+    #         'num_classes': 2,
+    #         'task': 'binary'
+    #     }
+    # }
     
-    loss_fn = {
-        'cross_entropy':{
-            'weight': torch.Tensor([0.00972, 1.0]).to('cuda')
-        }
-    }
+    # loss_fn = {
+    #     'cross_entropy':{
+    #         'weight': torch.Tensor([0.00972, 1.0]).to('cuda')
+    #     }
+    # }
     
-    lr_sched = {
-        'ExponentialLR':{
-            'gamma': 0.9
-        }
-    }
+    # lr_sched = {
+    #     'ExponentialLR':{
+    #         'gamma': 0.9
+    #     }
+    # }
     
-    optim ={
-        'Adam':{
-            'weight_decay': 0.5
-        }
-    }
+    # optim ={
+    #     'Adam':{
+    #         'weight_decay': 0.5
+    #     }
+    # }
     
-    early_stopping = {
-        True:
-            {
-                'monitor': 'val_loss',
-                'mode': 'min'
-            }
-    }
+    # early_stopping = {
+    #     True:
+    #         {
+    #             'monitor': 'val_loss',
+    #             'mode': 'min'
+    #         }
+    # }
     
     #################### State 1: Train from scratch and test ####################
     
-    # trainer = KITrainer(experiment_name="ClassificationTestTCN",
+    # trainer = KITrainer(experiment_name="ClassificationTesMLP",
     #                     train_device='gpu',
     #                     loss_fn=loss_fn,
     #                     performance_metrics=pm, 
@@ -178,71 +178,71 @@ def main():
     # For a regression dataset
     # ----------------------------------------------------------------------------------------------------------------------
     
-    # data_option = 'dummy_zero'
-    # datamodule = RegressionDataset(name=data_option,
-    #                                        in_components=['x1', 'x2', 'x3', 'x4'],
-    #                                        out_components=['y1', 'y2'], in_chunk=[-5, 5], out_chunk=[0, 0],
-    #                                        split_portions=(0.6, 0.2, 0.2), seed=666, batch_size=64, limit=None,
-    #                                        min_slice=10, scaling_method='z-norm', scaling_tag='full',
-    #                                        split_method='slice-random')
+    data_option = 'dummy_zero'
+    datamodule = RegressionDataset(name=data_option,
+                                           in_components=['x1', 'x2', 'x3', 'x4'],
+                                           out_components=['y1', 'y2'], in_chunk=[-5, 5], out_chunk=[0, 0],
+                                           split_portions=(0.6, 0.2, 0.2), seed=666, batch_size=64, limit=None,
+                                           min_slice=10, scaling_method='z-norm', scaling_tag='full',
+                                           split_method='slice-random')
     
-    # trainer_loader = datamodule.get_dataloader('train')
-    # val_loader = datamodule.get_dataloader('valid')
-    # eval_loader = datamodule.get_dataloader('eval')
+    trainer_loader = datamodule.get_dataloader('train')
+    val_loader = datamodule.get_dataloader('valid')
+    eval_loader = datamodule.get_dataloader('eval')
     
-    # model = Model
-    # model_params = {
-    #     "input_dim": datamodule.in_shape,
-    #     "output_dim": datamodule.out_shape,
-    #     "task_name": 'regression'
-    # }
+    model = Model
+    model_params = {
+        "input_dim": datamodule.in_shape,
+        "output_dim": datamodule.out_shape,
+        "task_name": 'regression'
+    }
     
-    # pm = 'mean_squared_error'
+    pm = 'mean_squared_error'
     
-    # loss_fn = 'mse_loss'
+    loss_fn = 'mse_loss'
     
     
-    # lr = {
-    #     'ExponentialLR':{
-    #         'gamma': 0.9
-    #     }
-    # }
+    lr = {
+        'ExponentialLR':{
+            'gamma': 0.9
+        }
+    }
     
-    # optim ={
-    #     'SGD':{
-    #         'momentum': 0.9
-    #     }
-    # }
+    optim ={
+        'SGD':{
+            'momentum': 0.9
+        }
+    }
     
-    # early_stopping = {
-    #     True:
-    #         {
-    #             'monitor': 'val_loss',
-    #             'mode': 'min'
-    #         }
-    # }
+    early_stopping = {
+        True:
+            {
+                'monitor': 'val_loss',
+                'mode': 'min'
+            }
+    }
     
     #################### State 1: Train from scratch and test ####################
-    # trainer = KITrainer(experiment_name='RegressionTestMLP',
-    #                     train_device='cpu',
-    #                     model=model,
-    #                     model_params=model_params,
-    #                     loss_fn=loss_fn,  
-    #                     optim=optim,
-    #                     performance_metrics=pm,
-    #                     max_epochs=5,
-    #                     early_stopping=early_stopping,
-    #                     learning_rate=1e-02,
-    #                     learning_rate_scheduler=lr,
-    #                     gradient_clip_val=0.5, # TCN
-    #                     gradient_clip_algorithm='norm', # TCN
-    #                     set_seed=42,
-    #                     deterministic=False,
-    #                     safe_mode=False,
-    #                     mute_logger=False)
+    trainer = KITrainer(experiment_name='RegressionTestMLP',
+                        train_device='cpu',
+                        model=model,
+                        model_params=model_params,
+                        loss_fn=loss_fn,  
+                        optim=optim,
+                        performance_metrics=pm,
+                        max_epochs=5,
+                        early_stopping=early_stopping,
+                        learning_rate=1e-02,
+                        learning_rate_scheduler=lr,
+                        gradient_clip_val=0.5, # TCN
+                        gradient_clip_algorithm='norm', # TCN
+                        set_seed=42,
+                        deterministic=False,
+                        safe_mode=False,
+                        mute_logger=False)
     
-    # trainer.fit_model(dataloaders=(trainer_loader, val_loader))
-    # trainer.evaluate_model(eval_dataloader=(trainer_loader, val_loader, eval_loader))
+    trainer.fit_model(dataloaders=(trainer_loader, val_loader))
+    trainer.evaluate_model(eval_dataloader=(trainer_loader, val_loader, eval_loader))
     
     #################### State 2: Resume training from ckpt and test ####################
     # best_model_path = '/home/randle/projects/KnowIt/models/Model_2023-11-06 10:52:31/bestmodel-epoch=7-val_loss=0.09 2023-11-06 10:52:31.ckpt'
