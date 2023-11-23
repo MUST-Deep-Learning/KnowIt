@@ -406,7 +406,7 @@ class Trainer:
     """
     
     def __init__(self,
-                 experiment_name: str,
+                 experiment_dir: str,
                  train_device: str,
                  loss_fn: Union[str, dict],
                  optim: Union[str, dict],
@@ -414,6 +414,7 @@ class Trainer:
                  learning_rate: float,
                  model: type,
                  model_params: dict,
+                 model_name: str,
                  learning_rate_scheduler: dict = {},
                  performance_metrics: Union[None, dict] = None,
                  early_stopping: Union[bool, dict] = False,
@@ -424,15 +425,12 @@ class Trainer:
                  set_seed: Union[int, bool] = False,
                  deterministic: Union[bool, Literal['warn'], None] = None,
                  path_to_checkpoint: Union[str, None] = None,
-                 safe_mode: bool = True,
                  mute_logger: bool = False):
-        
-        # create an experiment directory in the user's project folder
-        self.experiment_dir = self.__make_experiment_dir(name=experiment_name, safe_mode=safe_mode)
         
         # internal flags used by class to determine which state the user is instantiating Trainer
         self.train_flag = train_flag
         self.from_ckpt_flag = from_ckpt_flag
+        self.experiment_dir = experiment_dir
         
         # turn off logger during hp tuning
         self.mute_logger = mute_logger
@@ -451,6 +449,7 @@ class Trainer:
         self.deterministic = deterministic
         
         # Pytorch model class and parameters
+        self.model_name = model_name
         self.model = model
         self.model_params = model_params
         
@@ -654,39 +653,16 @@ class Trainer:
         
         """
         
-        model_dir = self.experiment_dir + '/models'
+        model_dir = os.path.join(self.experiment_dir, 'models')
         
         # best models are saved to a folder named as a datetime string
         file_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        ckpt_path = os.path.join(model_dir, 'Model_' + file_name)
+        ckpt_path = os.path.join(model_dir, self.model_name + '_' + file_name)
         
         return ckpt_path, ModelCheckpoint(dirpath=ckpt_path,
                                         monitor='val_loss',
                                         filename='bestmodel-{epoch}-{val_loss:.2f} ' + file_name)
-        
-        
-    def __make_experiment_dir(self, name, safe_mode):
-        """Given a user's name for the experiment, creates a directory in the user's project output directory.
 
-        Args:
-            name (str): The name of the experiment.
-            safe_mode (bool): If the experiment name already exists in the directory and safe_mode = True, abort 
-                                the experiment.
-
-        Returns:
-            str: The path to the experiment's directory.
-        """
-        if name in os.listdir(env_user.project_dir):
-            if safe_mode == False:
-                logger.warning("A folder with the same experiment name already exists. Safe mode is set to False.")
-            else:
-                logger.error("A folder with the same experiment name already exists. Safe mode is set to True.")
-                exit(101)
-        
-        experiment_dir = os.path.join(env_user.project_dir, name)
-        os.path.join(experiment_dir, 'models')
-                    
-        return experiment_dir
         
         
         

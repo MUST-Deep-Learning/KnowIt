@@ -5,10 +5,35 @@ import pickle
 import _pickle as cPickle
 import gzip
 import lzma
+import shutil
 
 from helpers.logger import get_logger
 
 logger = get_logger()
+
+
+def safe_mkdir(new_dir, safe_mode, overwrite=False):
+
+    dir_exists = os.path.exists(new_dir)
+
+    if not dir_exists:
+        try:
+            os.makedirs(new_dir)
+        except:
+            logger.error('Could not create dir %s', new_dir)
+            exit(101)
+    elif dir_exists and not safe_mode and overwrite:
+        logger.warning('Automatically removing dir %s.', new_dir)
+        shutil.rmtree(new_dir)
+        try:
+            os.makedirs(new_dir)
+        except:
+            logger.error('Could not create dir %s', new_dir)
+            exit(101)
+    else:
+        logger.warning('Dir already exists %s. Using as is.', new_dir)
+
+
 
 def safe_dump(data, path, safe_mode):
     if os.path.exists(path) and safe_mode:
@@ -127,6 +152,17 @@ def load_from_path(path):
         exit(101)
 
     return result
+
+
+def safe_copy(destination_dir, origin_path, safe_mode):
+    file_name = origin_path.split('/')[-1]
+    destination_path = os.path.join(destination_dir, file_name)
+    if os.path.exists(destination_path) and safe_mode:
+        logger.error('File already exists: %s.',
+                     destination_path)
+        exit(101)
+    else:
+        shutil.copyfile(origin_path, destination_path)
 
 
 def save_to_csv(data, path_name, data_format):

@@ -111,7 +111,7 @@ optim:
   value: 'Adam'
 max_epochs:
   desc: The maximum number of epochs that the model can train for.
-  value: 100
+  value: 10
 learning_rate:
   desc: The learning rate that the chosen optimizer should use.
   value: 0.001
@@ -145,4 +145,11 @@ gradient_clip_val:
 interpretation_method:
   desc: (DeepLiftShap, )
   value: DeepLiftShap
+# -----------------------------------------------------------------------------
+# Optional --------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+interpretation_set:
+  desc: What dataset to interpret interpret. (train, valid, eval)
+    default train
+  value: eval
 
