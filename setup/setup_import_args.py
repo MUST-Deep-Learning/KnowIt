@@ -17,7 +17,7 @@ def setup_import_args(experiment_dict, safe_mode):
         if a in experiment_dict.keys():
             args[a] = experiment_dict[a]
         else:
-            logger.error('%s not provided in experiment script. Cannot import dataset.', a)
+            logger.error('%s not provided in import arguments. Cannot import dataset.', a)
             exit(101)
     for a in optional_args:
         if a in experiment_dict.keys():

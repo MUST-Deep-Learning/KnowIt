@@ -406,7 +406,7 @@ class Trainer:
     """
     
     def __init__(self,
-                 experiment_dir: str,
+                 out_dir: str,
                  train_device: str,
                  loss_fn: Union[str, dict],
                  optim: Union[str, dict],
@@ -414,7 +414,6 @@ class Trainer:
                  learning_rate: float,
                  model: type,
                  model_params: dict,
-                 model_name: str,
                  learning_rate_scheduler: dict = {},
                  performance_metrics: Union[None, dict] = None,
                  early_stopping: Union[bool, dict] = False,
@@ -430,7 +429,7 @@ class Trainer:
         # internal flags used by class to determine which state the user is instantiating Trainer
         self.train_flag = train_flag
         self.from_ckpt_flag = from_ckpt_flag
-        self.experiment_dir = experiment_dir
+        self.out_dir = out_dir
         
         # turn off logger during hp tuning
         self.mute_logger = mute_logger
@@ -449,7 +448,6 @@ class Trainer:
         self.deterministic = deterministic
         
         # Pytorch model class and parameters
-        self.model_name = model_name
         self.model = model
         self.model_params = model_params
         
@@ -575,7 +573,8 @@ class Trainer:
                             train_dataloaders=train_dataloader,
                             val_dataloaders=val_dataloader,
                             ckpt_path=self.path_to_checkpoint)
-            
+
+
     def evaluate_model(self, eval_dataloader):
         """Evaluates the model's performance on a evaluation set.
 
@@ -590,8 +589,7 @@ class Trainer:
             logger.info("Testing on model loaded from checkpoint.")
             self.trainer.test(model=self.lit_model, dataloaders=eval_dataloader)
             
-        
-        
+
     def __build_PL_trainer(self):
         """Calls Pytorch Lightning's trainer using the user's parameters.
         
@@ -646,22 +644,27 @@ class Trainer:
                              )
         
         return trainer
-        
+
+
     def __save_model_state(self):
         """Saves the best model to the user's project output directory as a checkpoint.
         Files are named as datetime strings.
         
         """
         
-        model_dir = os.path.join(self.experiment_dir, 'models')
+        # model_dir = os.path.join(self.experiment_dir, 'models')
+        #
+        # # best models are saved to a folder named as a datetime string
+        # file_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # ckpt_path = os.path.join(model_dir, self.model_name + '_' + file_name)
         
-        # best models are saved to a folder named as a datetime string
-        file_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        ckpt_path = os.path.join(model_dir, self.model_name + '_' + file_name)
-        
-        return ckpt_path, ModelCheckpoint(dirpath=ckpt_path,
-                                        monitor='val_loss',
-                                        filename='bestmodel-{epoch}-{val_loss:.2f} ' + file_name)
+        # return ckpt_path, ModelCheckpoint(dirpath=ckpt_path,
+        #                                 monitor='val_loss',
+        #                                 filename='bestmodel-{epoch}-{val_loss:.2f} ' + file_name)
+
+        return self.out_dir, ModelCheckpoint(dirpath=self.out_dir,
+                                             monitor='val_loss',
+                                             filename='bestmodel-{epoch}-{val_loss:.2f}')
 
         
         

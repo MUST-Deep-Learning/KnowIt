@@ -30,6 +30,9 @@ def safe_mkdir(new_dir, safe_mode, overwrite=False):
         except:
             logger.error('Could not create dir %s', new_dir)
             exit(101)
+    elif dir_exists and safe_mode and overwrite:
+        logger.warning('Dir already exists but safe_mode AND overwrite is on %s.', new_dir)
+        exit(101)
     else:
         logger.warning('Dir already exists %s. Using as is.', new_dir)
 
@@ -56,14 +59,21 @@ def yaml_to_dict(config_path):
     finally:
         f.close()
 
-    cfg = dict()
-    for key in cfg_yaml.keys():
-        if cfg_yaml[key]['value'] == 'None':
-            cfg[key] = None
-        else:
-            cfg[key] = cfg_yaml[key]['value']
+    # cfg = dict()
+    # for key in cfg_yaml.keys():
+    #     if cfg_yaml[key]['value'] == 'None':
+    #         cfg[key] = None
+    #     else:
+    #         cfg[key] = cfg_yaml[key]['value']
 
-    return cfg
+    return cfg_yaml
+
+
+def dict_to_yaml(my_dict, dir_path, file_name):
+
+    path = os.path.join(dir_path, file_name)
+    with open(path, 'w+') as handle:
+        yaml.dump(my_dict, handle, allow_unicode=True)
 
 
 def dump_at_path(data, path):
