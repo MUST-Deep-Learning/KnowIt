@@ -59,7 +59,7 @@ def learning_curves(id_args):
         for c in curves:
             curves[c] = curves[c][:-1]
 
-        return result, result_epoch
+        return result, result_epoch+1
 
     curves, num_epochs = get_curves(id_args['experiment_name'], id_args['model_name'])
     result, result_epoch = get_result_epoch(curves)
@@ -67,18 +67,21 @@ def learning_curves(id_args):
     loss_curves = [key for key in curves.keys() if 'perf' not in key]
     perf_curves = [key for key in curves.keys() if 'perf' in key]
 
+    epochs = [e+1 for e in range(num_epochs)]
+
     if len(perf_curves) > 0:
         fig, axes = plt.subplots(2, 1, figsize=(10, 6))
     else:
         fig, axes = plt.subplots(1, 1, figsize=(10, 6))
 
     for c in loss_curves:
-        axes[0].plot(curves[c], label=c, marker='.', color=get_color(c))
+        axes[0].plot(epochs, curves[c], label=c, marker='.', color=get_color(c))
     axes[0].axvline(x=result_epoch, linestyle='--', c='white')
     check = 0.5 * (axes[0].get_ylim()[1] - axes[0].get_ylim()[0]) + axes[0].get_ylim()[0]
-    axes[0].text(result_epoch + 0.1, check, 'result', rotation=90, color='white')
-    axes[0].set_xticks([x for x in range(num_epochs)])
-    axes[0].set_xticklabels([x + 1 for x in range(num_epochs)])
+    axes[0].text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
+    # axes[0].set_xticks([x for x in range(num_epochs)])
+    # axes[0].set_xticklabels([x + 1 for x in range(num_epochs)])
+
     axes[0].set_xlabel('Epochs')
     axes[0].set_ylabel('Loss')
     axes[0].set_facecolor(back_color)
@@ -87,12 +90,10 @@ def learning_curves(id_args):
 
     if len(perf_curves) > 0:
         for c in perf_curves:
-            axes[1].plot(curves[c], label=c, marker='.', color=get_color(c))
+            axes[1].plot(epochs, curves[c], label=c, marker='.', color=get_color(c))
         axes[1].axvline(x=result_epoch, linestyle='--', c='white')
         check = 0.5 * (axes[1].get_ylim()[1] - axes[1].get_ylim()[0]) + axes[1].get_ylim()[0]
-        axes[1].text(result_epoch + 0.1, check, 'result', rotation=90, color='white')
-        axes[1].set_xticks([x for x in range(num_epochs)])
-        axes[1].set_xticklabels([x + 1 for x in range(num_epochs)])
+        axes[1].text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
         axes[1].set_xlabel('Epochs')
         axes[1].set_ylabel('Performance metric')
         axes[1].set_facecolor(back_color)
