@@ -6,6 +6,8 @@ import _pickle as cPickle
 import gzip
 import lzma
 import shutil
+import numpy as np
+import csv
 
 from helpers.logger import get_logger
 
@@ -190,18 +192,20 @@ def save_to_csv(data, path_name, data_format):
     logger.info('Values saved as %s', path_name)
 
 
-def load_from_csv(path_name):
+def load_from_csv(path):
     """
     Load humanly readable data from a given path.
     """
-    logger = get_logger()
 
-    logger.info('Loading data from file: %s', path_name)
+    logger.info('Loading data from file: %s', path)
     data_item = []
     try:
-        data_item = np.loadtxt(path_name)
+        with open(path, 'r') as theFile:
+            reader = csv.DictReader(theFile)
+            for line in reader:
+                data_item.append(line)
     except:
-        logger.error('Could not read file %s', path_name)
+        logger.error('Could not read file %s', path)
         exit(101)
-    logger.info('Values loaded from %s', path_name)
+    logger.info('Values loaded from %s', path)
     return data_item

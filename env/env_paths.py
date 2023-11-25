@@ -9,23 +9,28 @@ logger = get_logger()
 
 
 def dataset_path(option: str):
-
     return os.path.join(env.dataset_dir, option + '.pickle')
+
 
 def arch_path(option: str):
     return os.path.join(env.archs_dir, option + '.py')
 
+
 def exp_path(option: str):
     return os.path.join(env.exp_dir, option + '.yaml')
+
 
 def exp_output_dir(exp_name: str):
     return os.path.join(env.project_dir, exp_name)
 
+
 def model_output_dir(exp_name: str, model_name):
     return os.path.join(exp_output_dir(exp_name), model_name)
 
+
 def model_args_path(exp_name: str, model_name: str):
     return os.path.join(model_output_dir(exp_name, model_name), 'model_args.yaml')
+
 
 def model_interpretations_dir(exp_name: str, model_name):
     return os.path.join(model_output_dir(exp_name, model_name), 'interpretations')
@@ -61,6 +66,17 @@ def ckpt_path(experiment_name, custom_model_name):
     return os.path.join(path, ckpt_list[0])
 
 
+def learning_data_path(exp_name: str, model_name: str):
+    path = model_output_dir(exp_name, model_name)
+    path = os.path.join(path, 'lightning_logs')
+    path = os.path.join(path, 'version_0')
+    path = os.path.join(path, 'metrics.csv')
+    return path
+
+def learning_curves_path(exp_name: str, model_name: str):
+    path = model_output_dir(exp_name, model_name)
+    path = os.path.join(path, 'learning_curves.png')
+    return path
 
 
 # -----------------------------------------------------------------------------

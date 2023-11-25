@@ -19,6 +19,7 @@ from trainer.trainer import Trainer
 from setup.setup_import_args import setup_import_args
 from setup.setup_train_args import setup_trainer_args, setup_data_args
 from setup.setup_interpret_args import setup_interpret_args
+from helpers.viz import learning_curves
 
 logger = get_logger()
 logger.setLevel(20)
@@ -57,7 +58,7 @@ class KnowIt:
         new_base_dataset = BaseDataset.from_path(**args['import'])
         # logger.info('New base dataset %s successfully imported.', new_base_dataset.name)
 
-    def train_model(self, args):
+    def train_model(self, args, and_viz=True):
         datamodule, class_counts = KnowIt.get_datamodule(args['data'])
         model, model_params = KnowIt.get_arch_setup(args['arch'],
                                                     datamodule.in_shape,
@@ -84,6 +85,8 @@ class KnowIt:
 
         trainer.fit_model(dataloaders=(trainer_loader, val_loader))
         trainer.evaluate_model(eval_dataloader=(trainer_loader, val_loader, eval_loader))
+        if and_viz:
+            learning_curves(args['id'])
 
     def interpret_model(self, args):
 

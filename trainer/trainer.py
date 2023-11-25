@@ -277,18 +277,18 @@ class PLModel(pl.LightningModule):
                 for loss_metric in self.loss.keys():
                     loss_kwargs = self.loss[loss_metric]
                     loss = self.__get_loss_function(loss_metric)(y_pred, y, **loss_kwargs)
-                    metrics['val_loss'] = loss
+                    metrics['valid_loss'] = loss
             elif isinstance(self.loss, str): # only a metric (string) is given, no kwargs
                 loss = self.__get_loss_function(self.loss)(y_pred, y)
-                metrics['val_loss'] = loss
+                metrics['valid_loss'] = loss
         
         if self.performance_metrics:
             if isinstance(self.performance_metrics, dict):
                 for p_metric in self.performance_metrics.keys():
                     perf_kwargs = self.performance_metrics[p_metric]
-                    metrics['val_perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
+                    metrics['valid_perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
             elif isinstance(self.performance_metrics, str): # only a metric (string) is given, no kwargs
-                metrics['val_perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
+                metrics['valid_perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
         
         # logs every epoch: the loss and performance is accumulated and averaged over the epoch
         self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
@@ -301,11 +301,11 @@ class PLModel(pl.LightningModule):
         metrics = {} # metrics to be logged
         
         if dataloader_idx == 0:
-            current_loader = "Train"
+            current_loader = "result_train_"
         elif dataloader_idx == 1:
-            current_loader = "Valid"
+            current_loader = "result_valid_"
         elif dataloader_idx == 2:
-            current_loader = "Eval"
+            current_loader = "result_eval_"
         
         x = batch['x']
         y = batch['y']
@@ -318,18 +318,18 @@ class PLModel(pl.LightningModule):
                 for loss_metric in self.loss.keys():
                     loss_kwargs = self.loss[loss_metric]
                     loss = self.__get_loss_function(loss_metric)(y_pred, y, **loss_kwargs)
-                    metrics[current_loader + '- loss'] = loss
+                    metrics[current_loader + 'loss'] = loss
             elif isinstance(self.loss, str): # only a metric (string) is given, no kwargs
                 loss = self.__get_loss_function(self.loss)(y_pred, y)
-                metrics[current_loader + '- loss'] = loss
+                metrics[current_loader + 'loss'] = loss
                 
         if self.performance_metrics:
             if isinstance(self.performance_metrics, dict):
                 for p_metric in self.performance_metrics.keys():
                     perf_kwargs = self.performance_metrics[p_metric]
-                    metrics[current_loader + '- perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
+                    metrics[current_loader + 'perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
             elif isinstance(self.performance_metrics, str): # only a metric (string) is given, no kwargs
-                metrics[current_loader + '- perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
+                metrics[current_loader + 'perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
 
         self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True, logger=True, add_dataloader_idx=False)
             
@@ -659,12 +659,12 @@ class Trainer:
         # ckpt_path = os.path.join(model_dir, self.model_name + '_' + file_name)
         
         # return ckpt_path, ModelCheckpoint(dirpath=ckpt_path,
-        #                                 monitor='val_loss',
-        #                                 filename='bestmodel-{epoch}-{val_loss:.2f} ' + file_name)
+        #                                 monitor='valid_loss',
+        #                                 filename='bestmodel-{epoch}-{valid_loss:.2f} ' + file_name)
 
         return self.out_dir, ModelCheckpoint(dirpath=self.out_dir,
-                                             monitor='val_loss',
-                                             filename='bestmodel-{epoch}-{val_loss:.2f}')
+                                             monitor='valid_loss',
+                                             filename='bestmodel-{epoch}-{valid_loss:.2f}')
 
         
         
