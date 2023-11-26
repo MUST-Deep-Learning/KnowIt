@@ -35,6 +35,9 @@ def model_args_path(exp_name: str, model_name: str):
 def model_interpretations_dir(exp_name: str, model_name):
     return os.path.join(model_output_dir(exp_name, model_name), 'interpretations')
 
+def model_predictions_dir(exp_name: str, model_name):
+    return os.path.join(model_output_dir(exp_name, model_name), 'predictions')
+
 
 def ckpt_path(experiment_name, custom_model_name):
     # models_dir = os.path.join(os.path.join(env.project_dir, experiment_name), 'models/')

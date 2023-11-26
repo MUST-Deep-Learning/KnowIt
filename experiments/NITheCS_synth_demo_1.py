@@ -44,10 +44,24 @@ from knowit import KnowIt
 #              'trainer': trainer_args},
 #        safe_mode=False)
 
-# from helpers.viz import learning_curves
-# learning_curves(id_args)
+# ----------------------------------------------------------------------------------------------------------------------
+# EVALUATE MODEL PREDICTIONS
+# ----------------------------------------------------------------------------------------------------------------------
 
-
+# id_args = {'experiment_name': 'NITheCS_synth_demo_1',
+#            'model_name': 'my_first_model'}
+# predict_args = {'prediction_set': 'train'}
+# KnowIt(action='predict',
+#        args={'id': id_args,
+#              'predict': predict_args})
+# predict_args = {'prediction_set': 'valid'}
+# KnowIt(action='predict',
+#        args={'id': id_args,
+#              'predict': predict_args})
+# predict_args = {'prediction_set': 'eval'}
+# KnowIt(action='predict',
+#        args={'id': id_args,
+#              'predict': predict_args})
 
 # ----------------------------------------------------------------------------------------------------------------------
 # INTERPRETING A MODEL
