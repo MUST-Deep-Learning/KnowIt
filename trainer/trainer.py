@@ -277,18 +277,18 @@ class PLModel(pl.LightningModule):
                 for loss_metric in self.loss.keys():
                     loss_kwargs = self.loss[loss_metric]
                     loss = self.__get_loss_function(loss_metric)(y_pred, y, **loss_kwargs)
-                    metrics['val_loss'] = loss
+                    metrics['valid_loss'] = loss
             elif isinstance(self.loss, str): # only a metric (string) is given, no kwargs
                 loss = self.__get_loss_function(self.loss)(y_pred, y)
-                metrics['val_loss'] = loss
+                metrics['valid_loss'] = loss
         
         if self.performance_metrics:
             if isinstance(self.performance_metrics, dict):
                 for p_metric in self.performance_metrics.keys():
                     perf_kwargs = self.performance_metrics[p_metric]
-                    metrics['val_perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
+                    metrics['valid_perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
             elif isinstance(self.performance_metrics, str): # only a metric (string) is given, no kwargs
-                metrics['val_perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
+                metrics['valid_perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
         
         # logs every epoch: the loss and performance is accumulated and averaged over the epoch
         self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
@@ -301,11 +301,11 @@ class PLModel(pl.LightningModule):
         metrics = {} # metrics to be logged
         
         if dataloader_idx == 0:
-            current_loader = "Train"
+            current_loader = "result_train_"
         elif dataloader_idx == 1:
-            current_loader = "Valid"
+            current_loader = "result_valid_"
         elif dataloader_idx == 2:
-            current_loader = "Eval"
+            current_loader = "result_eval_"
         
         x = batch['x']
         y = batch['y']
@@ -318,18 +318,18 @@ class PLModel(pl.LightningModule):
                 for loss_metric in self.loss.keys():
                     loss_kwargs = self.loss[loss_metric]
                     loss = self.__get_loss_function(loss_metric)(y_pred, y, **loss_kwargs)
-                    metrics[current_loader + '- loss'] = loss
+                    metrics[current_loader + 'loss'] = loss
             elif isinstance(self.loss, str): # only a metric (string) is given, no kwargs
                 loss = self.__get_loss_function(self.loss)(y_pred, y)
-                metrics[current_loader + '- loss'] = loss
+                metrics[current_loader + 'loss'] = loss
                 
         if self.performance_metrics:
             if isinstance(self.performance_metrics, dict):
                 for p_metric in self.performance_metrics.keys():
                     perf_kwargs = self.performance_metrics[p_metric]
-                    metrics[current_loader + '- perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
+                    metrics[current_loader + 'perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
             elif isinstance(self.performance_metrics, str): # only a metric (string) is given, no kwargs
-                metrics[current_loader + '- perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
+                metrics[current_loader + 'perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
 
         self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True, logger=True, add_dataloader_idx=False)
             
@@ -406,7 +406,7 @@ class Trainer:
     """
     
     def __init__(self,
-                 experiment_name: str,
+                 out_dir: str,
                  train_device: str,
                  loss_fn: Union[str, dict],
                  optim: Union[str, dict],
@@ -417,22 +417,19 @@ class Trainer:
                  learning_rate_scheduler: dict = {},
                  performance_metrics: Union[None, dict] = None,
                  early_stopping: Union[bool, dict] = False,
-                 gradient_clip_val: float=0.0,
-                 gradient_clip_algorithm: str='norm',
+                 gradient_clip_val: float = 0.0,
+                 gradient_clip_algorithm: str = 'norm',
                  train_flag: bool = True,
                  from_ckpt_flag: bool = False,
                  set_seed: Union[int, bool] = False,
                  deterministic: Union[bool, Literal['warn'], None] = None,
                  path_to_checkpoint: Union[str, None] = None,
-                 safe_mode: bool = False,
                  mute_logger: bool = False):
-        
-        # create an experiment directory in the user's project folder
-        self.experiment_dir = self.__make_experiment_dir(name=experiment_name, safe_mode=safe_mode)
         
         # internal flags used by class to determine which state the user is instantiating Trainer
         self.train_flag = train_flag
         self.from_ckpt_flag = from_ckpt_flag
+        self.out_dir = out_dir
         
         # turn off logger during hp tuning
         self.mute_logger = mute_logger
@@ -442,6 +439,12 @@ class Trainer:
         
         # device to use
         self.train_device = train_device
+        if train_device == 'gpu':
+            # TODO: Check the effect of this later.
+            try:
+                torch.set_float32_matmul_precision('high')
+            except:
+                logger.warning('Tried to utilize Tensor Cores, but failed.')
         self.deterministic = deterministic
         
         # Pytorch model class and parameters
@@ -570,7 +573,8 @@ class Trainer:
                             train_dataloaders=train_dataloader,
                             val_dataloaders=val_dataloader,
                             ckpt_path=self.path_to_checkpoint)
-            
+
+
     def evaluate_model(self, eval_dataloader):
         """Evaluates the model's performance on a evaluation set.
 
@@ -585,8 +589,7 @@ class Trainer:
             logger.info("Testing on model loaded from checkpoint.")
             self.trainer.test(model=self.lit_model, dataloaders=eval_dataloader)
             
-        
-        
+
     def __build_PL_trainer(self):
         """Calls Pytorch Lightning's trainer using the user's parameters.
         
@@ -641,47 +644,28 @@ class Trainer:
                              )
         
         return trainer
-        
+
+
     def __save_model_state(self):
         """Saves the best model to the user's project output directory as a checkpoint.
         Files are named as datetime strings.
         
         """
         
-        model_dir = self.experiment_dir + '/models'
+        # model_dir = os.path.join(self.experiment_dir, 'models')
+        #
+        # # best models are saved to a folder named as a datetime string
+        # file_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # ckpt_path = os.path.join(model_dir, self.model_name + '_' + file_name)
         
-        # best models are saved to a folder named as a datetime string
-        file_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        ckpt_path = os.path.join(model_dir, 'Model_' + file_name)
-        
-        return ckpt_path, ModelCheckpoint(dirpath=ckpt_path,
-                                        monitor='val_loss',
-                                        filename='bestmodel-{epoch}-{val_loss:.2f} ' + file_name)
-        
-        
-    def __make_experiment_dir(self, name, safe_mode):
-        """Given a user's name for the experiment, creates a directory in the user's project output directory.
+        # return ckpt_path, ModelCheckpoint(dirpath=ckpt_path,
+        #                                 monitor='valid_loss',
+        #                                 filename='bestmodel-{epoch}-{valid_loss:.2f} ' + file_name)
 
-        Args:
-            name (str): The name of the experiment.
-            safe_mode (bool): If the experiment name already exists in the directory and safe_mode = True, abort 
-                                the experiment.
+        return self.out_dir, ModelCheckpoint(dirpath=self.out_dir,
+                                             monitor='valid_loss',
+                                             filename='bestmodel-{epoch}-{valid_loss:.2f}')
 
-        Returns:
-            str: The path to the experiment's directory.
-        """
-        if name in os.listdir(env_user.project_dir):
-            if safe_mode == False:
-                logger.warning("A folder with the same experiment name already exists. Safe mode is set to False.")
-            else:
-                logger.info("A folder with the same experiment name already exists. Safe mode is set to True.")
-                logger.info("Aborting...")
-                exit()
-        
-        experiment_dir = os.path.join(env_user.project_dir, name)
-        os.path.join(experiment_dir, 'models')
-                    
-        return experiment_dir
         
         
         

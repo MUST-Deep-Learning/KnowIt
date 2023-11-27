@@ -37,11 +37,11 @@ class RegressionDataset(PreparedDataset):
     def __init__(self, **args):
         super().__init__(**args)
 
-    def get_dataloader(self, set_tag):
+    def get_dataloader(self, set_tag, analysis: bool = False):
         dataset = CustomRegressionDataset(**self.extract_dataset(set_tag))
 
         drop_last = False
-        if set_tag == 'train':
+        if set_tag == 'train' and not analysis:
             drop_last = True
 
         dataloader = DataLoader(dataset, batch_size=self.batch_size,
