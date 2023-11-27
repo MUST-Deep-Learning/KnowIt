@@ -424,6 +424,7 @@ class Trainer:
                  set_seed: Union[int, bool] = False,
                  deterministic: Union[bool, Literal['warn'], None] = None,
                  path_to_checkpoint: Union[str, None] = None,
+                 return_final: bool = False,
                  mute_logger: bool = False):
         
         # internal flags used by class to determine which state the user is instantiating Trainer
@@ -461,6 +462,9 @@ class Trainer:
         self.performance_metrics = performance_metrics 
         self.gradient_clip_val = gradient_clip_val
         self.gradient_clip_algorithm = gradient_clip_algorithm
+        
+        # misc
+        self.return_final = return_final
         
         # user is training from scratch
         if train_flag == True and from_ckpt_flag == False:
@@ -582,9 +586,15 @@ class Trainer:
             eval_dataloader (Pytorch dataloader)    : The evaluation dataloader. 
         """
         
+        # the path to the best model ckpt or the last model ckpt
+        if self.return_final:
+            set_ckpt_path = self.out_dir + '/last.ckpt'
+        else:
+            set_ckpt_path = 'best'
+        
         if self.train_flag:
             logger.info("Testing model on the current training run's best checkpoint.")
-            self.trainer.test(ckpt_path='best', dataloaders=eval_dataloader)
+            self.trainer.test(ckpt_path=set_ckpt_path, dataloaders=eval_dataloader)
         else:
             logger.info("Testing on model loaded from checkpoint.")
             self.trainer.test(model=self.lit_model, dataloaders=eval_dataloader)
@@ -662,9 +672,19 @@ class Trainer:
         #                                 monitor='valid_loss',
         #                                 filename='bestmodel-{epoch}-{valid_loss:.2f} ' + file_name)
 
+        # determine if last model or best model needs to be returned
+        if self.return_final:
+            set_top_k = 0
+            set_save_last = True
+        else:
+            set_top_k = 1
+            set_save_last = False
+        
         return self.out_dir, ModelCheckpoint(dirpath=self.out_dir,
                                              monitor='valid_loss',
-                                             filename='bestmodel-{epoch}-{valid_loss:.2f}')
+                                             filename='bestmodel-{epoch}-{valid_loss:.2f}',
+                                             save_top_k=set_top_k,
+                                             save_last=set_save_last)
 
         
         
