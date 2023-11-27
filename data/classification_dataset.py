@@ -95,11 +95,11 @@ class ClassificationDataset(PreparedDataset):
 
         self.out_shape = (1, len(self.class_set))
 
-    def get_dataloader(self, set_tag: str):
+    def get_dataloader(self, set_tag: str, analysis: bool = False):
         dataset = CustomClassificationDataset(self.class_set, **self.extract_dataset(set_tag))
 
         drop_last = False
-        if set_tag == 'train':
+        if set_tag == 'train' and not analysis:
             drop_last = True
 
         dataloader = DataLoader(dataset, batch_size=self.batch_size,

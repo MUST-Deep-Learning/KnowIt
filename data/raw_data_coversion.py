@@ -88,6 +88,7 @@ class RawDataConverter:
         self.__check_df()
         self.__split_by_instance()
         self.__compile_data()
+        self.__summarize_data()
 
     def get_new_data(self):
         """ Return the converted data structure. """
@@ -98,6 +99,23 @@ class RawDataConverter:
         new_data['nan_filled_components'] = self.nan_filled_components
         new_data['the_data'] = self.the_data
         return new_data
+
+    def __summarize_data(self):
+
+        logger.info('- - - - - - - - - - NEW DATASET COMPILED - - - - - - - - - ')
+        logger.info(' NAME: %s', self.meta['name'])
+        logger.info(' COMPONENTS: %s', str(self.meta['components']))
+        # logger.info(' INSTANCES: %s', str(self.instances))
+
+        summary = [[len(s['t']) for s in self.the_data[i]] for i in self.instances]
+        num_slices = sum([len(i) for i in summary])
+        num_pp = sum([sum([t for t in i]) for i in summary])
+
+        logger.info(' TOTAL INSTANCES: %s', str(len(summary)))
+        logger.info(' TOTAL SLICES: %s', str(num_slices))
+        logger.info(' TOTAL PREDICTION POINTS: %s', str(num_pp))
+
+        logger.info('- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
 
     def __compile_data(self):
         """ For each instance and slice, drop duplicates, split on time delta,

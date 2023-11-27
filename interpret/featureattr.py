@@ -22,7 +22,7 @@ the necessary information from Knowit's datamodule and returning it in the corre
 
 from typing import Type
 
-from interpret.ki_interpreter import KIInterpreter
+from interpret.interpreter import KIInterpreter
 
 import torch
 

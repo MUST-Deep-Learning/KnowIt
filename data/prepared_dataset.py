@@ -279,6 +279,18 @@ class PreparedDataset(BaseDataset):
             delattr(self, 'the_data')
             logger.info('the_data structure is removed from memory.')
 
+    def get_ist_values(self, set_tag: str):
+
+        the_data = self.get_the_data()
+
+        ist_values = []
+        for p in self.selection[set_tag]:
+            i = self.instances[p[0]]
+            s = p[1]
+            t = the_data[i][s]['t'][p[2]]
+            ist_values.append((i, s, t))
+        return ist_values
+
     def extract_dataset(self, set_tag: str):
 
         """Extracts the relevant samples for one of the data splits, scale them, and package them. """

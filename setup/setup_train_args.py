@@ -7,14 +7,14 @@ logger = get_logger()
 
 required_data_args = ('data', 'in_components', 'out_components',
                       'in_chunk', 'out_chunk', 'split_portions',
-                      'seed', 'batch_size')
+                      'batch_size')
 optional_data_args = ('limit', 'min_slice', 'scaling_method',
-                      'scaling_tag', 'split_method')
+                      'scaling_tag', 'split_method', 'seed')
 
 required_trainer_args = ('loss_fn', 'optim', 'max_epochs', 'learning_rate')
 optional_trainer_args = ('learning_rate_scheduler', 'gradient_clip_val',
                          'gradient_clip_algorithm',
-                         'performance_metrics', 'early_stopping')
+                         'performance_metrics', 'early_stopping', 'seed')
 
 
 def setup_data_args(experiment_dict):
@@ -24,7 +24,7 @@ def setup_data_args(experiment_dict):
         if a in experiment_dict.keys():
             args[a] = experiment_dict[a]
         else:
-            logger.error('%s not provided in experiment script. Cannot prepare dataset.', a)
+            logger.error('%s not provided in data arguments. Cannot prepare dataset.', a)
             exit(101)
     for a in optional_data_args:
         if a in experiment_dict.keys():
@@ -40,7 +40,7 @@ def setup_trainer_args(experiment_dict, device, class_counts):
         if a in experiment_dict.keys():
             args[a] = experiment_dict[a]
         else:
-            logger.error('%s not provided in experiment script. Cannot create trainer.', a)
+            logger.error('%s not provided in trainer arguments. Cannot create trainer.', a)
             exit(101)
     for a in optional_trainer_args:
         if a in experiment_dict.keys():

@@ -78,7 +78,7 @@ class BaseDataset:
     def __init__(self, name: str, mem_light=True):
         """ Instantiate a BaseDataset object given the name of an existing dataset option. """
 
-        logger.info('Initializing BaseClass for %s', name)
+        # logger.info('Initializing BaseClass for %s', name)
 
         self.name = name
         self.__populate_from_option(name)
