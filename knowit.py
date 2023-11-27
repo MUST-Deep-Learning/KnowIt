@@ -26,7 +26,7 @@ logger = get_logger()
 logger.setLevel(20)
 
 class KnowIt:
-    def __init__(self, action, args, safe_mode=True, device='gpu'):
+    def __init__(self, action, args, safe_mode=True, device='gpu', and_viz=True):
 
         self.safe_mode = safe_mode
         self.device = device
@@ -44,14 +44,14 @@ class KnowIt:
             logger.error('Data analyzer not implemented yet.')
             exit(101)
         elif action == 'train':
-            self.train_model(args)
+            self.train_model(args, and_viz)
         elif action == 'tune':
             logger.error('Hyperparameter tuner not implemented yet.')
             exit(101)
         elif action == 'interpret':
-            self.interpret_model(args)
+            self.interpret_model(args, and_viz)
         elif action == 'predict':
-            self.evaluate_model_predictions(args)
+            self.evaluate_model_predictions(args, and_viz)
         else:
             logger.error('Action %s invalid, or not implemented yet.', action)
             exit(101)
@@ -61,7 +61,7 @@ class KnowIt:
         new_base_dataset = BaseDataset.from_path(**args['import'])
         # logger.info('New base dataset %s successfully imported.', new_base_dataset.name)
 
-    def train_model(self, args, and_viz=True):
+    def train_model(self, args, and_viz):
         datamodule, class_counts = KnowIt.get_datamodule(args['data'])
         model, model_params = KnowIt.get_arch_setup(args['arch'],
                                                     datamodule.in_shape,
@@ -93,7 +93,7 @@ class KnowIt:
             learning_curves(args['id'])
 
 
-    def interpret_model(self, args):
+    def interpret_model(self, args, and_viz):
 
         interpretation_args = setup_interpret_args(args['interpret_args'])
         model_args = yaml_to_dict(model_args_path(args['id']['experiment_name'],
@@ -129,7 +129,7 @@ class KnowIt:
         dump_at_path(interpretation_args, save_path)
 
 
-    def evaluate_model_predictions(self, args, and_viz=True):
+    def evaluate_model_predictions(self, args, and_viz):
 
         model_args = yaml_to_dict(model_args_path(args['id']['experiment_name'],
                                                   args['id']['model_name']))
