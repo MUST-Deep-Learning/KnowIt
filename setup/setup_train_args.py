@@ -14,7 +14,7 @@ optional_data_args = ('limit', 'min_slice', 'scaling_method',
 required_trainer_args = ('loss_fn', 'optim', 'max_epochs', 'learning_rate')
 optional_trainer_args = ('learning_rate_scheduler', 'gradient_clip_val',
                          'gradient_clip_algorithm',
-                         'performance_metrics', 'early_stopping', 'seed')
+                         'performance_metrics', 'early_stopping', 'seed', 'return_final')
 
 
 def setup_data_args(experiment_dict):
