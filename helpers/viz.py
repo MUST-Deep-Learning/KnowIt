@@ -186,34 +186,37 @@ def learning_curves(id_args):
 
     if len(perf_curves) > 0:
         fig, axes = plt.subplots(2, 1, figsize=generic_figsize)
+        ax = axes[0]
     else:
         fig, axes = plt.subplots(1, 1, figsize=generic_figsize)
+        ax = axes
 
     for c in loss_curves:
-        axes[0].plot(epochs, curves[c], label=c, marker='.', color=get_color(c))
-    axes[0].axvline(x=result_epoch, linestyle='--', c='white')
-    check = 0.5 * (axes[0].get_ylim()[1] - axes[0].get_ylim()[0]) + axes[0].get_ylim()[0]
-    axes[0].text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
+        ax.plot(epochs, curves[c], label=c, marker='.', color=get_color(c))
+    ax.axvline(x=result_epoch, linestyle='--', c='white')
+    check = 0.5 * (ax.get_ylim()[1] - ax.get_ylim()[0]) + ax.get_ylim()[0]
+    ax.text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
     # axes[0].set_xticks([x for x in range(num_epochs)])
     # axes[0].set_xticklabels([x + 1 for x in range(num_epochs)])
 
-    axes[0].set_xlabel('Epochs')
-    axes[0].set_ylabel('Loss')
-    axes[0].set_facecolor(back_color)
-    axes[0].grid(color=grid_color, alpha=0.5)
-    axes[0].legend()
+    ax.set_xlabel('Epochs')
+    ax.set_ylabel('Loss')
+    ax.set_facecolor(back_color)
+    ax.grid(color=grid_color, alpha=0.5)
+    ax.legend()
 
     if len(perf_curves) > 0:
+        ax = axes[1]
         for c in perf_curves:
-            axes[1].plot(epochs, curves[c], label=c, marker='.', color=get_color(c))
-        axes[1].axvline(x=result_epoch, linestyle='--', c='white')
-        check = 0.5 * (axes[1].get_ylim()[1] - axes[1].get_ylim()[0]) + axes[1].get_ylim()[0]
-        axes[1].text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
-        axes[1].set_xlabel('Epochs')
-        axes[1].set_ylabel('Performance metric')
-        axes[1].set_facecolor(back_color)
-        axes[1].grid(color=grid_color, alpha=0.5)
-        axes[1].legend()
+            ax.plot(epochs, curves[c], label=c, marker='.', color=get_color(c))
+        ax.axvline(x=result_epoch, linestyle='--', c='white')
+        check = 0.5 * (ax.get_ylim()[1] - ax.get_ylim()[0]) + ax.get_ylim()[0]
+        ax.text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
+        ax.set_xlabel('Epochs')
+        ax.set_ylabel('Performance metric')
+        ax.set_facecolor(back_color)
+        ax.grid(color=grid_color, alpha=0.5)
+        ax.legend()
 
 
     plt.suptitle(str(result), wrap=True)
