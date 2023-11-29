@@ -72,7 +72,15 @@ class ClassificationDataset(PreparedDataset):
 
                 vals = s['d'][:, self.y_map][~isnan(s['d'][:, self.y_map]).any(axis=1)]
                 unique_entries = unique(vals, axis=0)
-                unique_entries = [tuple(u) for u in unique_entries]
+                # unique_entries = [tuple(u) for u in unique_entries]
+
+                unique_entries_list = []
+                for u in unique_entries:
+                    if len(u) > 1:
+                        unique_entries_list.append(tuple(u))
+                    else:
+                        unique_entries_list.append(u.item())
+                unique_entries = unique_entries_list
 
                 for v in unique_entries:
                     new_count = len(np.argwhere(vals == v))
@@ -93,7 +101,8 @@ class ClassificationDataset(PreparedDataset):
                     str(len(self.class_set)))
         logger.info(self.class_set)
 
-        self.out_shape = (1, len(self.class_set))
+        # self.out_shape = (1, len(self.class_set))
+        self.out_shape = [1, len(self.class_set)]
 
     def get_dataloader(self, set_tag: str, analysis: bool = False):
         dataset = CustomClassificationDataset(self.class_set, **self.extract_dataset(set_tag))
@@ -126,8 +135,12 @@ class CustomClassificationDataset(Dataset):
             # assuming one output component
             # self.y[y.squeeze() == k] = v
 
-            got_class = (y == k).all(axis=1)
-            # self.y[got_class] = v
+
+            # got_class = (y == k).all(axis=1)
+            # # self.y[got_class] = v
+            # self.y[got_class.squeeze()] = v
+
+            got_class = (y.squeeze(axis=1) == k).all(axis=1)
             self.y[got_class.squeeze()] = v
 
     def __len__(self):
