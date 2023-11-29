@@ -236,6 +236,12 @@ class KnowIt:
         if interpret_args['interpretation_method'] == 'DeepLiftShap':
             from interpret.DLS_Captum import DLS
             return DLS
+        elif interpret_args['interpretation_method'] == 'DeepLift':
+            from interpret.DL_Captum import DeepL
+            return DeepL
+        elif interpret_args['interpretation_method'] == 'IntegratedGradients':
+            from interpret.IntegratedGrad_Captum import IntegratedGrad
+            return IntegratedGrad
         else:
             logger.error('Unknown interpreter %s.',
                          interpret_args['interpretation method'])
