@@ -83,7 +83,7 @@ class DeepL(FeatureAttribution):
         
         return baselines
         
-    def interpret(self, pred_point_id: Union[int, tuple], num_baselines: int):
+    def interpret(self, pred_point_id: Union[int, tuple], num_baselines: int = 1000):
         
         # Input_tensor below will have shape: (number_of_pred_points, in_chunk, in_components)
         
