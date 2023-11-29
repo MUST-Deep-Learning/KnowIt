@@ -93,6 +93,8 @@ class IntegratedGrad(FeatureAttribution):
         # generate baselines from the same distribution as the user's chosen dataset
         # baselines will have shape: (number_of_baselines, in_chunk, in_components)
         baselines = self.generate_baseline_from_data(num_baselines=num_baselines, pred_point_id=pred_point_id)
+        
+        avg_baseline = torch.mean(baselines, 0, keepdim=True)
 
         # obtain attribution matrices using Captum
         if hasattr(self.datamodule, 'class_set'):
@@ -117,7 +119,7 @@ class IntegratedGrad(FeatureAttribution):
             if is_classification:
                 for key in self.datamodule.class_set.keys():
                     target = self.datamodule.class_set[key]
-                    attributions, delta = self.dl.attribute(inputs=cur_input_tensor, baselines=baselines, target=target, return_convergence_delta=True)
+                    attributions, delta = self.dl.attribute(inputs=cur_input_tensor, baselines=avg_baseline, target=target, return_convergence_delta=True)
                     attributions = torch.squeeze(attributions, 0)
                 
                     results[target] = {
@@ -128,7 +130,7 @@ class IntegratedGrad(FeatureAttribution):
                 for out_chunk in range(out_shape[0]):
                     for out_component in range(out_shape[1]):
                         target = (out_chunk, out_component)
-                        attributions, delta = self.dl.attribute(inputs=cur_input_tensor, baselines=baselines, target=target, return_convergence_delta=True)
+                        attributions, delta = self.dl.attribute(inputs=cur_input_tensor, baselines=avg_baseline, target=target, return_convergence_delta=True)
                         attributions = torch.squeeze(attributions, 0)
                 
                         results[target] = {
