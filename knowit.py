@@ -76,6 +76,17 @@ class KnowIt:
         trainer_args['train_device'] = self.device
         trainer_args['out_dir'] = model_output_dir(args['id']['experiment_name'],
                                                    args['id']['model_name'])
+
+        data_dynamics = {'in_shape': datamodule.in_shape,
+                         'out_shape': datamodule.out_shape,
+                         'train_size': datamodule.train_set_size,
+                         'valid_size': datamodule.valid_set_size,
+                         'eval_size': datamodule.eval_set_size}
+        if args['data']['task'] == 'classification':
+            data_dynamics['class_set'] = datamodule.class_set
+            data_dynamics['class_count'] = datamodule.class_counts
+        args['data_dynamics'] = data_dynamics
+
         dict_to_yaml(args,
                      model_output_dir(args['id']['experiment_name'],
                                       args['id']['model_name']),
