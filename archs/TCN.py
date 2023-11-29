@@ -101,8 +101,8 @@ class Model(nn.Module):
     """
 
     def __init__(self,
-                 input_dim: tuple,
-                 output_dim: tuple,
+                 input_dim: list,
+                 output_dim: list,
                  task_name: str,
                  depth: int = HP_defaults_dict['depth'],
                  num_filters: int = HP_defaults_dict['num_filters'],
