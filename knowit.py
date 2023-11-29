@@ -19,7 +19,7 @@ from data.regression_dataset import RegressionDataset
 from trainer.trainer import Trainer
 from setup.setup_import_args import setup_import_args
 from setup.setup_train_args import setup_trainer_args, setup_data_args
-from setup.setup_interpret_args import setup_interpret_args
+from setup.setup_interpret_args import setup_interpret_args, get_interpretation_inx
 from helpers.viz import learning_curves, set_predictions
 
 logger = get_logger()
@@ -103,7 +103,6 @@ class KnowIt:
         if and_viz:
             learning_curves(args['id'])
 
-
     def interpret_model(self, args, and_viz):
 
         interpretation_args = setup_interpret_args(args['interpret_args'])
@@ -122,7 +121,7 @@ class KnowIt:
                                         datamodule=datamodule,
                                         i_data=interpretation_args['interpretation_set'])
 
-        i_inx = KnowIt.get_interpretation_inx(interpretation_args, datamodule)
+        i_inx = get_interpretation_inx(interpretation_args, model_args)
         attributions = interpreter.interpret(pred_point_id=i_inx)
         interpretation_args['i_inx'] = i_inx
 
@@ -139,6 +138,8 @@ class KnowIt:
         save_path = os.path.join(save_dir, save_name)
         dump_at_path(interpretation_args, save_path)
 
+        if and_viz:
+            set_predictions(args['id'], args['interpret_args'])
 
     def evaluate_model_predictions(self, args, and_viz):
 
@@ -185,7 +186,6 @@ class KnowIt:
 
         if and_viz:
             set_predictions(args['id'], args['predict']['prediction_set'])
-
 
     @staticmethod
     def get_datamodule(experiment_dict):
@@ -246,49 +246,3 @@ class KnowIt:
             logger.error('Unknown interpreter %s.',
                          interpret_args['interpretation method'])
             exit(101)
-
-    @staticmethod
-    def get_interpretation_inx(interpretation_args, datamodule):
-
-        inx = 0
-
-        if interpretation_args['interpretation_set'] == 'train':
-            set_size = datamodule.train_set_size
-        elif interpretation_args['interpretation_set'] == 'valid':
-            set_size = datamodule.valid_set_size
-        elif interpretation_args['interpretation_set'] == 'eval':
-            set_size = datamodule.eval_set_size
-        else:
-            logger.error('Unknown interpretation_set %s', interpretation_args['interpretation_set'])
-            exit(101)
-
-        size = interpretation_args['size']
-        if set_size < size:
-            logger.error('Size of desired interpretation %s larger than desired set %s.',
-                         size,
-                         interpretation_args['interpretation_set'])
-            exit(101)
-
-        if interpretation_args['selection'] == 'random':
-            import numpy as np
-            start = np.random.randint(0, set_size - size)
-            inx = (start, start + size)
-        elif interpretation_args['selection'] == 'all':
-            inx = (0, set_size)
-        elif interpretation_args['selection'] == 'success':
-            # TODO: Select chunk where the model did the best.
-            logger.warning('Success selection not implemented yet. Reverting to random.')
-            import numpy as np
-            start = np.random.randint(0, set_size - size)
-            inx = (start, start + size)
-        elif interpretation_args['selection'] == 'failure':
-            # TODO: Select chunk where the model did the best.
-            logger.warning('Failure selection not implemented yet. Reverting to random.')
-            import numpy as np
-            start = np.random.randint(0, set_size - size)
-            inx = (start, start + size)
-        else:
-            logger.error('Invalid interpretation selection %s.', interpretation_args['selection'])
-            exit(101)
-
-        return inx

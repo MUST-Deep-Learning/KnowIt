@@ -1,7 +1,8 @@
 import os
 
 from env.env_paths import (learning_data_path, learning_curves_path,
-                           ckpt_path, model_args_path, model_predictions_dir, model_output_dir)
+                           ckpt_path, model_args_path, model_predictions_dir,
+                           model_output_dir, model_interpretations_dir)
 from helpers.read_configs import load_from_csv, yaml_to_dict, load_from_path
 from collections import defaultdict
 import matplotlib
@@ -10,6 +11,7 @@ import numpy as np
 from datetime import timedelta, datetime
 import pytz
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from helpers.logger import get_logger
 
@@ -25,6 +27,68 @@ generic_dpi = 200
 generic_cmap = 'plasma'
 c_cycle = [train_color, valid_color, eval_color, 'darkorange', 'mediumblue']
 matplotlib.rcParams['axes.prop_cycle'] = matplotlib.cycler(color=c_cycle)
+
+
+def feature_attribution(id_args, interpret_args):
+
+    interpretation_dir = model_interpretations_dir(id_args['experiment_name'], id_args['model_name'])
+    predictions_dir = model_predictions_dir(id_args['experiment_name'], id_args['model_name'])
+
+    model_args = yaml_to_dict(model_args_path(id_args['experiment_name'],
+                                              id_args['model_name']))
+
+    file_name = '_' + interpret_args['interpretation_set'] + '-' + 'ist_inx_dict' + '.pickle'
+    ist_values, _ = load_from_path(os.path.join(predictions_dir, file_name))
+
+    file_name = ''
+    for a in interpret_args:
+        file_name += str(interpret_args[a]) + '-'
+    for f in os.listdir(interpretation_dir):
+        if file_name in f:
+            file_name = f
+            break
+    file_path = os.path.join(interpretation_dir, file_name)
+    feat_att_dict = load_from_path(file_path)
+
+    in_components = model_args['data']['in_components']
+    out_components = model_args['data']['out_components']
+    feat_att = feat_att_dict['results']
+    relevant_ist = {}
+    for x in range(feat_att_dict['i_inx'][0], feat_att_dict['i_inx'][1]):
+        relevant_ist[x] = ist_values[x]
+    plot_feat_att(feat_att, relevant_ist, in_components, out_components)
+
+
+def plot_feat_att(feat_att, relevant_ist, in_components, out_components):
+
+    in_comp = in_components
+    in_comp.reverse()
+
+    for pp in feat_att:
+
+        output_logits = list(feat_att[pp].keys())
+        fig, axes = plt.subplots(len(output_logits), 1)
+        plot_num = 0
+        for logit in output_logits:
+            fa = feat_att[pp][logit]['attributions'].detach().numpy()
+            fa = fa.transpose()
+            im = axes[plot_num].imshow(fa, aspect='auto', cmap=generic_cmap)
+            # axes[plot_num].set_title(out_components[plot_num])
+            axes[plot_num].set_title('Output logit: ' + str(logit))
+            axes[plot_num].set_yticks([t for t in range(len(in_components))])
+            axes[plot_num].set_yticklabels(in_comp)
+            divider = make_axes_locatable(axes[plot_num])
+            cax = divider.append_axes('right', size='5%', pad=0.05)
+            fig.colorbar(im, cax=cax, orientation='vertical')
+            plot_num += 1
+
+        plt.suptitle('Output components: ' + str(out_components))
+
+        plt.show()
+        plt.close()
+
+
+    exit(101)
 
 
 def set_predictions(id_args, data_tag):
