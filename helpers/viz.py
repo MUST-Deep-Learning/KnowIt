@@ -148,6 +148,7 @@ def regression_set_prediction(i, predictions, targets, data_tag, out_components,
 
     save_path = os.path.join(predictions_dir, data_tag + '-prediction-' + str(i) + '.png')
     plt.savefig(save_path, dpi=generic_dpi)
+    plt.close()
 
 
 def classification_set_prediction(i, predictions, targets, data_tag,
@@ -197,6 +198,7 @@ def classification_set_prediction(i, predictions, targets, data_tag,
     plt.tight_layout()
     save_path = os.path.join(predictions_dir, data_tag + '-prediction-' + str(i) + '.png')
     plt.savefig(save_path, dpi=generic_dpi)
+    plt.close()
 
 def learning_curves(id_args):
 
