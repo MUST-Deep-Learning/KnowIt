@@ -255,8 +255,10 @@ class PreparedDataset(BaseDataset):
                             if e in self.out_components])
         self.x_map = array([i for i, e in enumerate(self.components)
                             if e in self.in_components])
-        self.in_shape = (self.in_chunk[1] - self.in_chunk[0] + 1, len(self.in_components))
-        self.out_shape = (self.out_chunk[1] - self.out_chunk[0] + 1, len(self.out_components))
+        # self.in_shape = (self.in_chunk[1] - self.in_chunk[0] + 1, len(self.in_components))
+        # self.out_shape = (self.out_chunk[1] - self.out_chunk[0] + 1, len(self.out_components))
+        self.in_shape = [self.in_chunk[1] - self.in_chunk[0] + 1, len(self.in_components)]
+        self.out_shape = [self.out_chunk[1] - self.out_chunk[0] + 1, len(self.out_components)]
 
         logger.info('Preparing data splits (selection).')
         self.selection = DataSplitter(self.get_the_data(), self.split_method,
