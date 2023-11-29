@@ -30,8 +30,8 @@ class Model(nn.Module):
     """
 
     def __init__(self, 
-                 input_dim: tuple,
-                 output_dim: tuple,
+                 input_dim: list,
+                 output_dim: list,
                  task_name: str, 
                  depth: int = HP_defaults_dict['depth'], 
                  width: int = HP_defaults_dict['width'], 
@@ -44,9 +44,9 @@ class Model(nn.Module):
         super(Model, self).__init__()
         
         # Input data type check
-        if not isinstance(input_dim, tuple):
+        if not isinstance(input_dim, list):
             raise TypeError("input_dim must be of type int")
-        if not isinstance(output_dim, tuple):
+        if not isinstance(output_dim, list):
             raise TypeError("output_dim must be of type int")
         if not isinstance(task_name, str):
             raise TypeError("task_name must be of type str")
