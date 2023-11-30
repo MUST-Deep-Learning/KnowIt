@@ -3,7 +3,7 @@ import os
 from env.env_paths import (learning_data_path, learning_curves_path,
                            ckpt_path, model_args_path, model_predictions_dir,
                            model_output_dir, model_interpretations_dir)
-from helpers.read_configs import load_from_csv, yaml_to_dict, load_from_path
+from helpers.read_configs import load_from_csv, yaml_to_dict, load_from_path, safe_mkdir
 from collections import defaultdict
 import matplotlib
 import matplotlib.pyplot as plt
@@ -13,6 +13,7 @@ import pytz
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.dates as mdates
+import glob
 
 from helpers.logger import get_logger
 
@@ -47,7 +48,7 @@ def feature_attribution(id_args, interpret_args):
     for a in interpret_args:
         file_name += str(interpret_args[a]) + '-'
     for f in os.listdir(interpretation_dir):
-        if file_name in f:
+        if file_name in f and '.pickle' in f:
             file_name = f
             break
     file_path = os.path.join(interpretation_dir, file_name)
@@ -58,11 +59,131 @@ def feature_attribution(id_args, interpret_args):
     for x in range(feat_att_dict['i_inx'][0], feat_att_dict['i_inx'][1]):
         relevant_ist[x] = ist_values[x]
 
+    # wanted to incorporate input and output features to vizuals, but difficult and not enough time.
+    # feature_values = fetch_feature_values(predictions_dir,
+    #                                       interpret_args['interpretation_set'],
+    #                                       relevant_ist, model_args)
+
+    folder_name = file_name.split('.pickle')[0]
+    save_dir = os.path.join(interpretation_dir, folder_name)
+    safe_mkdir(save_dir, True, False)
 
     if model_args['data']['task'] == 'regression':
-        plot_feat_att_regression(feat_att, relevant_ist, model_args, interpretation_dir, interpret_args)
+        plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
+        plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
     elif model_args['data']['task'] == 'classification':
-        plot_feat_att_classification(feat_att, relevant_ist, model_args, interpretation_dir, interpret_args)
+        plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
+        plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, interpret_args)
+
+
+def plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args):
+
+    full_fa = defaultdict(list)
+
+    for pp in feat_att:
+        output_logits = list(feat_att[pp].keys())
+        for logit in output_logits:
+            full_fa[logit].append(feat_att[pp][logit]['attributions'].detach().numpy())
+    full_fa = dict(full_fa)
+
+    logits = list(full_fa.keys())
+
+    mean_over_pp = {}
+    mean_over_time = {}
+    mean_over_components = {}
+
+    for logit in logits:
+        full_fa[logit] = np.abs(full_fa[logit])
+        full_fa[logit] = np.stack(full_fa[logit], axis=0)
+        mean_over_pp[logit] = np.mean(full_fa[logit], axis=0)
+        mean_over_time[logit] = np.mean(full_fa[logit], axis=1)
+        mean_over_components[logit] = np.mean(full_fa[logit], axis=2)
+
+    in_chunk = np.arange(model_args['data']['in_chunk'][0], model_args['data']['in_chunk'][1]+1)
+    in_components = model_args['data']['in_components']
+
+    for logit in logits:
+        fig, axes = plt.subplots(1, 3, figsize=large_figsize)
+
+        ax = axes[0]
+        im = ax.imshow(mean_over_pp[logit], cmap=generic_cmap, aspect='auto')
+        ax.set_ylabel('(Input) Time')
+        ax.set_yticks([x for x in range(len(in_chunk))])
+        ax.set_yticklabels(in_chunk)
+        ax.set_xlabel('Components')
+        ax.set_xticks([x for x in range(len(in_components))])
+        ax.set_xticklabels(in_components)
+        # ax.set_title('Mean over prediction points')
+
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.05)
+        fig.colorbar(im, cax=cax, orientation='vertical')
+
+        ax = axes[1]
+        im = ax.imshow(mean_over_time[logit], cmap=generic_cmap, aspect='auto')
+        ax.set_ylabel('Prediction point')
+        ax.set_yticks([])
+        ax.set_xlabel('(Input) Components')
+        ax.set_xticks([x for x in range(len(in_components))])
+        ax.set_xticklabels(in_components)
+        # ax.set_title('Mean over (input) time')
+
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.05)
+        fig.colorbar(im, cax=cax, orientation='vertical')
+
+        ax = axes[2]
+        im = ax.imshow(mean_over_components[logit], cmap=generic_cmap, aspect='auto')
+        ax.set_ylabel('Prediction point')
+        ax.set_yticks([])
+        ax.set_xlabel('(Input) Time')
+        ax.set_xticks([x for x in range(len(in_chunk))])
+        ax.set_xticklabels(in_chunk)
+        # ax.set_title('Mean over (input) components')
+
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.05)
+        fig.colorbar(im, cax=cax, orientation='vertical')
+
+        plt.suptitle('Mean absolute attribution plots for logit ' + str(logit))
+
+        # plt.tight_layout()
+        # plt.show()
+
+        save_path = os.path.join(save_dir, 'mean_abs_attribution_logit_' + str(logit) + '.png')
+        plt.savefig(save_path, dpi=generic_dpi)
+        plt.close()
+
+
+
+    exit(101)
+
+
+
+def fetch_feature_values(predictions_dir, data_tag, ist_values, model_args):
+
+
+
+
+    batches = []
+    for b in os.listdir(predictions_dir):
+        if b.startswith(data_tag + '-' + 'batch'):
+            batches.append(b)
+
+    output_values = {}
+    for b in batches:
+        batch = load_from_path(os.path.join(predictions_dir, b))
+        s_inx = batch[0]
+        batch_pred = batch[1]
+        batch_target = batch[2]
+        for p in range(len(s_inx)):
+            pp = s_inx[p].item()
+            if pp in ist_values.keys():
+                y_hat = batch_pred[p]
+                y = batch_target[p]
+                output_values[pp] = (y_hat, y)
+
+    return output_values
 
 
 def plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, interpret_args):
@@ -77,6 +198,7 @@ def plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, i
 
     prefix = interpret_args['interpretation_method'] + '-' + interpret_args['interpretation_set']
 
+    image_paths = []
     for pp in feat_att:
 
         output_logits = list(feat_att[pp].keys())
@@ -125,7 +247,11 @@ def plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, i
         plt.savefig(save_path, dpi=quick_dpi)
         plt.close()
 
+        image_paths.append(save_path)
+
         plt.close()
+
+    create_gif(save_dir, image_paths)
 
 
 def plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args):
@@ -138,6 +264,8 @@ def plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, inter
     in_time = np.arange(in_chunk[0], in_chunk[1]+1)
 
     prefix = interpret_args['interpretation_method'] + '-' + interpret_args['interpretation_set']
+
+    image_paths = []
 
     for pp in feat_att:
 
@@ -185,9 +313,55 @@ def plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, inter
 
         save_path = os.path.join(save_dir, prefix + '-' + str(instance) + '-' + str(time_point) + '.png')
         plt.savefig(save_path, dpi=quick_dpi)
-        plt.close()
+        image_paths.append(save_path)
+
+        # plt.show()
 
         plt.close()
+
+    create_gif(save_dir, image_paths)
+
+
+def create_gif(save_dir, image_paths):
+
+    def update(i):
+        im.set_array(img_arr[i])
+        return im,
+
+    from PIL import Image
+    import matplotlib.animation as animation
+
+    img_arr = []
+    for f in image_paths:
+        image = Image.open(f)
+        img_arr.append(image)
+
+    fig, ax = plt.subplots()
+    ax.set_xticks([])
+    ax.set_xticklabels([])
+    ax.set_yticks([])
+    ax.set_yticklabels([])
+    im = ax.imshow(img_arr[0], animated=True)
+    plt.tight_layout()
+    # for i in img_arr:
+    #     im = ax.imshow(i, animated=True)
+
+    animation_fig = animation.FuncAnimation(fig, update,
+                                            frames=len(img_arr),
+                                            interval=200,
+                                            blit=True,
+                                            repeat_delay=10,
+                                            repeat=True,)
+
+    # plt.show()
+
+    save_path = os.path.join(save_dir, "animate.gif")
+
+    animation_fig.save(save_path, writer="pillow")
+
+    # plt.save(save_path, animation_fig)
+
+    plt.close()
 
 
 def set_predictions(id_args, data_tag):
@@ -199,6 +373,94 @@ def set_predictions(id_args, data_tag):
 
     file_name = '_' + data_tag + '-' + 'ist_inx_dict' + '.pickle'
     ist_values, _ = load_from_path(os.path.join(predictions_dir, file_name))
+
+    # batches = []
+    # for b in os.listdir(predictions_dir):
+    #     if b.startswith(data_tag + '-' + 'batch'):
+    #         batches.append(b)
+    #
+    # predictions = defaultdict(list)
+    # targets = defaultdict(list)
+    # for b in batches:
+    #     batch = load_from_path(os.path.join(predictions_dir, b))
+    #     s_inx = batch[0]
+    #     batch_pred = batch[1]
+    #     batch_target = batch[2]
+    #     for p in range(len(s_inx)):
+    #         pp = s_inx[p].item()
+    #         i = ist_values[pp][0]
+    #         t = ist_values[pp][2]
+    #         y_hat = batch_pred[p]
+    #         y = batch_target[p]
+    #         predictions[i].append([t, y_hat.numpy()])
+    #         targets[i].append([t, y.numpy()])
+    # predictions = dict(predictions)
+    # targets = dict(targets)
+    #
+    # instances = targets.keys()
+    # for i in instances:
+    #     i_predictions = predictions[i]
+    #     i_targets = targets[i]
+    #     t = [x[0] for x in i_predictions]
+    #     order = sorted(range(len(t)), key=t.__getitem__)
+    #     t = np.array([t[x] for x in order])
+    #     y = np.array([i_targets[x][1] for x in order])
+    #     y_hat = np.array([i_predictions[x][1] for x in order])
+    #
+    #     deltas = np.diff(t)
+    #     delta = deltas.min()
+    #     if (deltas != delta).any():
+    #         # insert NaNs in gaps
+    #         a_nice_nan = np.empty_like(y[0])
+    #         a_nice_nan[:] = np.nan
+    #         here = np.argwhere(deltas != delta)
+    #         gaps = []
+    #         for h in range(len(here)):
+    #             to_insert_nan = here[h].item()
+    #             gap = np.arange(start=t[to_insert_nan] + delta,
+    #                             stop=t[to_insert_nan + 1],
+    #                             step=delta).astype(datetime)
+    #             gap = np.array([pytz.utc.localize(g) for g in gap])
+    #             gaps.append(gap)
+    #         for g in range(len(gaps)-1, 0, -1):
+    #             to_insert_nan = here[g].item() + 1
+    #             t = np.insert(t, to_insert_nan, gaps[g])
+    #             nan_stack = np.stack([a_nice_nan for x in range(len(gaps[g]))], axis=0)
+    #             y = np.insert(y, to_insert_nan, nan_stack, axis=0)
+    #             y_hat = np.insert(y_hat, to_insert_nan, nan_stack, axis=0)
+    #         deltas = np.diff(t)
+    #         if delta != deltas.min():
+    #             logger.error('Something went very wrong with growing gaps in prediction vizuals.')
+    #             exit(101)
+    #
+    #     predictions[i] = [t, y_hat]
+    #     targets[i] = [t, y]
+
+    instances, predictions, targets = fetch_predictions(predictions_dir, data_tag, ist_values)
+
+    out_components = model_args['data']['out_components']
+    out_chunk = model_args['data']['out_chunk']
+    task = model_args['data']['task']
+
+    out_range = out_chunk[1] - out_chunk[0]
+    if out_range > 0 and task == 'classification':
+        logger.error('Cannot predict multiple output time steps if classification.')
+        exit(101)
+
+    for i in instances:
+
+        if model_args['data']['task'] == 'regression':
+            regression_set_prediction(i, predictions, targets, data_tag,
+                                      out_components, predictions_dir)
+        elif model_args['data']['task'] == 'classification':
+            classification_set_prediction(i, predictions, targets, data_tag,
+                                          out_components, predictions_dir, model_args)
+        else:
+            logger.error('Unknown task type %s.', model_args['data']['task'])
+            exit(101)
+
+
+def fetch_predictions(predictions_dir, data_tag, ist_values):
 
     batches = []
     for b in os.listdir(predictions_dir):
@@ -248,7 +510,7 @@ def set_predictions(id_args, data_tag):
                                 step=delta).astype(datetime)
                 gap = np.array([pytz.utc.localize(g) for g in gap])
                 gaps.append(gap)
-            for g in range(len(gaps)-1, 0, -1):
+            for g in range(len(gaps) - 1, 0, -1):
                 to_insert_nan = here[g].item() + 1
                 t = np.insert(t, to_insert_nan, gaps[g])
                 nan_stack = np.stack([a_nice_nan for x in range(len(gaps[g]))], axis=0)
@@ -262,26 +524,7 @@ def set_predictions(id_args, data_tag):
         predictions[i] = [t, y_hat]
         targets[i] = [t, y]
 
-    out_components = model_args['data']['out_components']
-    out_chunk = model_args['data']['out_chunk']
-    task = model_args['data']['task']
-
-    out_range = out_chunk[1] - out_chunk[0]
-    if out_range > 0 and task == 'classification':
-        logger.error('Cannot predict multiple output time steps if classification.')
-        exit(101)
-
-    for i in instances:
-
-        if model_args['data']['task'] == 'regression':
-            regression_set_prediction(i, predictions, targets, data_tag,
-                                      out_components, predictions_dir)
-        elif model_args['data']['task'] == 'classification':
-            classification_set_prediction(i, predictions, targets, data_tag,
-                                          out_components, predictions_dir, model_args)
-        else:
-            logger.error('Unknown task type %s.', model_args['data']['task'])
-            exit(101)
+    return instances, predictions, targets
 
 
 def regression_set_prediction(i, predictions, targets, data_tag, out_components, predictions_dir):
