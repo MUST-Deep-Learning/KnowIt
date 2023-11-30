@@ -20,7 +20,7 @@ from trainer.trainer import Trainer
 from setup.setup_import_args import setup_import_args
 from setup.setup_train_args import setup_trainer_args, setup_data_args
 from setup.setup_interpret_args import setup_interpret_args, get_interpretation_inx
-from helpers.viz import learning_curves, set_predictions
+from helpers.viz import learning_curves, set_predictions, feature_attribution
 
 logger = get_logger()
 logger.setLevel(20)
@@ -139,7 +139,7 @@ class KnowIt:
         dump_at_path(interpretation_args, save_path)
 
         if and_viz:
-            set_predictions(args['id'], args['interpret_args'])
+            feature_attribution(args['id'], args['interpret_args'])
 
     def evaluate_model_predictions(self, args, and_viz):
 

@@ -24,6 +24,7 @@ back_color = 'black'
 grid_color = 'dimgray'
 generic_figsize = (10, 6)
 generic_dpi = 200
+quick_dpi = 100
 generic_cmap = 'plasma'
 c_cycle = [train_color, valid_color, eval_color, 'darkorange', 'mediumblue']
 matplotlib.rcParams['axes.prop_cycle'] = matplotlib.cycler(color=c_cycle)
@@ -50,45 +51,143 @@ def feature_attribution(id_args, interpret_args):
     file_path = os.path.join(interpretation_dir, file_name)
     feat_att_dict = load_from_path(file_path)
 
-    in_components = model_args['data']['in_components']
-    out_components = model_args['data']['out_components']
     feat_att = feat_att_dict['results']
     relevant_ist = {}
     for x in range(feat_att_dict['i_inx'][0], feat_att_dict['i_inx'][1]):
         relevant_ist[x] = ist_values[x]
-    plot_feat_att(feat_att, relevant_ist, in_components, out_components)
 
 
-def plot_feat_att(feat_att, relevant_ist, in_components, out_components):
+    if model_args['data']['task'] == 'regression':
+        plot_feat_att_regression(feat_att, relevant_ist, model_args, interpretation_dir, interpret_args)
+    elif model_args['data']['task'] == 'classification':
+        plot_feat_att_classification(feat_att, relevant_ist, model_args, interpretation_dir, interpret_args)
 
-    in_comp = in_components
-    in_comp.reverse()
+
+def plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, interpret_args):
+
+    in_components = model_args['data']['in_components']
+    out_components = list(model_args['data_dynamics']['class_set'].keys())
+
+    in_chunk = model_args['data']['in_chunk']
+    out_chunk = model_args['data']['out_chunk']
+
+    in_time = np.arange(in_chunk[0], in_chunk[1]+1)
+
+    prefix = interpret_args['interpretation_method'] + '-' + interpret_args['interpretation_set']
 
     for pp in feat_att:
 
         output_logits = list(feat_att[pp].keys())
-        fig, axes = plt.subplots(len(output_logits), 1)
+        prediction_point = relevant_ist[pp]
+        instance = prediction_point[0]
+        time_point = prediction_point[2]
+
+
+        fig, axes = plt.subplots(len(output_logits), 1, figsize=generic_figsize)
         plot_num = 0
         for logit in output_logits:
+
+            if len(output_logits) > 1:
+                ax = axes[plot_num]
+            else:
+                ax = axes
+
             fa = feat_att[pp][logit]['attributions'].detach().numpy()
             fa = fa.transpose()
-            im = axes[plot_num].imshow(fa, aspect='auto', cmap=generic_cmap)
+            im = ax.imshow(fa, aspect='auto', cmap=generic_cmap)
             # axes[plot_num].set_title(out_components[plot_num])
-            axes[plot_num].set_title('Output logit: ' + str(logit))
-            axes[plot_num].set_yticks([t for t in range(len(in_components))])
-            axes[plot_num].set_yticklabels(in_comp)
-            divider = make_axes_locatable(axes[plot_num])
+            # ax.set_title('Output logit: ' + str(logit) + ' / output component: ' + str(out_components[logit[1]]))
+            ax.set_title('Predicting ' + str(out_components[logit]) + ' at time position ' + str(out_chunk[logit]))
+            ax.set_yticks([t for t in range(len(in_components))])
+            ax.set_yticklabels(in_components)
+
+            ax.set_xticks([t for t in range(len(in_time))])
+            ax.set_xticklabels(in_time)
+
+            divider = make_axes_locatable(ax)
             cax = divider.append_axes('right', size='5%', pad=0.05)
             fig.colorbar(im, cax=cax, orientation='vertical')
+
+            # center = np.floor(fa.shape[1]/2)
+            # ax.axvline(center, linestyle='--', color='black')
+            # check = 0.1 * (ax.get_ylim()[1] - ax.get_ylim()[0]) + ax.get_ylim()[0]
+            # ax.text(center + 0.1, check, str(prediction_point[2]), rotation=90, color='black')
+
             plot_num += 1
 
-        plt.suptitle('Output components: ' + str(out_components))
+        plt.suptitle('Prediction point: [' + str(time_point) + '] \n Instance: [' + str(instance) + ']')
 
-        plt.show()
+        # plt.show()
+
+        save_path = os.path.join(save_dir, prefix + '-' + str(instance) + '-' + str(time_point) + '.png')
+        plt.savefig(save_path, dpi=quick_dpi)
+        plt.close()
+
         plt.close()
 
 
-    exit(101)
+def plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args):
+
+    in_components = model_args['data']['in_components']
+    out_components = model_args['data']['out_components']
+    in_chunk = model_args['data']['in_chunk']
+    out_chunk = model_args['data']['out_chunk']
+
+    in_time = np.arange(in_chunk[0], in_chunk[1]+1)
+
+    prefix = interpret_args['interpretation_method'] + '-' + interpret_args['interpretation_set']
+
+    for pp in feat_att:
+
+        output_logits = list(feat_att[pp].keys())
+        prediction_point = relevant_ist[pp]
+        instance = prediction_point[0]
+        time_point = prediction_point[2]
+
+
+        fig, axes = plt.subplots(len(output_logits), 1, figsize=generic_figsize)
+        plot_num = 0
+        for logit in output_logits:
+
+            if len(output_logits) > 1:
+                ax = axes[plot_num]
+            else:
+                ax = axes
+
+            fa = feat_att[pp][logit]['attributions'].detach().numpy()
+            fa = fa.transpose()
+            im = ax.imshow(fa, aspect='auto', cmap=generic_cmap)
+            # axes[plot_num].set_title(out_components[plot_num])
+            # ax.set_title('Output logit: ' + str(logit) + ' / output component: ' + str(out_components[logit[1]]))
+            ax.set_title('Predicting ' + str(out_components[logit[1]]) + ' at time position ' + str(out_chunk[logit[1]]))
+            ax.set_yticks([t for t in range(len(in_components))])
+            ax.set_yticklabels(in_components)
+
+            ax.set_xticks([t for t in range(len(in_time))])
+            ax.set_xticklabels(in_time)
+
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes('right', size='5%', pad=0.05)
+            fig.colorbar(im, cax=cax, orientation='vertical')
+
+            # center = np.floor(fa.shape[1]/2)
+            # ax.axvline(center, linestyle='--', color='black')
+            # check = 0.1 * (ax.get_ylim()[1] - ax.get_ylim()[0]) + ax.get_ylim()[0]
+            # ax.text(center + 0.1, check, str(prediction_point[2]), rotation=90, color='black')
+
+            plot_num += 1
+
+        plt.suptitle('Prediction point: [' + str(time_point) + '] \n Instance: [' + str(instance) + ']')
+
+        # plt.show()
+
+        save_path = os.path.join(save_dir, prefix + '-' + str(instance) + '-' + str(time_point) + '.png')
+        plt.savefig(save_path, dpi=quick_dpi)
+        plt.close()
+
+        plt.close()
+
+
 
 
 def set_predictions(id_args, data_tag):
