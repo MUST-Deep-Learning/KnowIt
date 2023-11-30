@@ -156,7 +156,6 @@ def plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, 
 
 
 
-    exit(101)
 
 
 
@@ -262,6 +261,7 @@ def plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, inter
     out_chunk = model_args['data']['out_chunk']
 
     in_time = np.arange(in_chunk[0], in_chunk[1]+1)
+    out_time = np.arange(out_chunk[0], out_chunk[1] + 1)
 
     prefix = interpret_args['interpretation_method'] + '-' + interpret_args['interpretation_set']
 
@@ -289,7 +289,7 @@ def plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, inter
             im = ax.imshow(fa, aspect='auto', cmap=generic_cmap)
             # axes[plot_num].set_title(out_components[plot_num])
             # ax.set_title('Output logit: ' + str(logit) + ' / output component: ' + str(out_components[logit[1]]))
-            ax.set_title('Predicting ' + str(out_components[logit[1]]) + ' at time position ' + str(out_chunk[logit[1]]))
+            ax.set_title('Predicting ' + str(out_components[logit[1]]) + ' at time position ' + str(out_time[logit[0]]))
             ax.set_yticks([t for t in range(len(in_components))])
             ax.set_yticklabels(in_components)
 
