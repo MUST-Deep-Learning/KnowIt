@@ -12,6 +12,7 @@ from datetime import timedelta, datetime
 import pytz
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib.dates as mdates
 
 from helpers.logger import get_logger
 
@@ -23,6 +24,7 @@ eval_color = 'crimson'
 back_color = 'black'
 grid_color = 'dimgray'
 generic_figsize = (10, 6)
+large_figsize = (20, 11.25)
 generic_dpi = 200
 quick_dpi = 100
 generic_cmap = 'plasma'
@@ -188,8 +190,6 @@ def plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, inter
         plt.close()
 
 
-
-
 def set_predictions(id_args, data_tag):
 
     model_args = yaml_to_dict(model_args_path(id_args['experiment_name'],
@@ -286,7 +286,7 @@ def set_predictions(id_args, data_tag):
 
 def regression_set_prediction(i, predictions, targets, data_tag, out_components, predictions_dir):
 
-    fig, ax = plt.subplots(1, 1, figsize=generic_figsize)
+    fig, ax = plt.subplots(1, 1, figsize=large_figsize)
     x = predictions[i][0]
     y_hat = predictions[i][1]
     y = targets[i][1]
@@ -323,7 +323,7 @@ def classification_set_prediction(i, predictions, targets, data_tag,
         new_arr[~d0] = np.nanargmax(arr[~d0], axis=1)
         return new_arr
 
-    fig, axes = plt.subplots(1, 2, figsize=generic_figsize)
+    fig, axes = plt.subplots(2, 1, figsize=large_figsize)
     x = predictions[i][0]
     y_hat = special_nanargmax(predictions[i][1], axis=1)
     y = special_nanargmax(targets[i][1], axis=1)
@@ -334,19 +334,49 @@ def classification_set_prediction(i, predictions, targets, data_tag,
     nan_mask = np.isnan(y)
     correct[nan_mask] = np.nan
     accuracy = np.count_nonzero(correct[~nan_mask]) / float(len(correct[~nan_mask]))
+
+    conf_over_time_mat = np.zeros(shape=(len(class_set) * len(class_set), len(x)))
+    conf_over_time_keys = [] # (predicted, target)
+    row = 0
+    for c_predicted in range(len(class_set)):
+        for c_target in range(len(class_set)):
+            t_hits = y == c_target
+            p_hits = y_hat == c_predicted
+            new_row = np.logical_and(t_hits, p_hits)
+            new_row = 1 * new_row
+            conf_over_time_mat[row, :] = new_row
+            row += 1
+            conf_over_time_keys.append((class_labels[c_predicted], class_labels[c_target]))
+
+
+    conf_over_time_mat[:, np.isnan(y)] = np.nan
+
+    x_lims = (x.min(), x.max())
+    x_lims = mdates.date2num(x_lims)
+    y_lims = [0, len(conf_over_time_keys)]
+
     ax = axes[0]
-    ax.plot(x, y, label='Target class')
-    ax.plot(x, y_hat, label='Predicted class')
-    ax.set_xlim(x.min(), x.max())
-    ax.set_title(data_tag + ' Instance: ' + str(i) + ': accuracy ' + str(accuracy))
+    # ax.set_anchor('W')
+    # ax.plot(x, y, label='Target class')
+    # ax.plot(x, y_hat, label='Predicted class')
+    # ax.imshow(conf_over_time_mat, cmap=generic_cmap, aspect='auto', interpolation='None')
+
+    ax.imshow(conf_over_time_mat, cmap=generic_cmap, aspect='auto',
+              interpolation='None', extent=[x_lims[0], x_lims[1],  y_lims[0], y_lims[1]])
+    ax.xaxis_date()
+
+    # ax.imshow(conf_over_time_mat, cmap=generic_cmap, aspect='auto')
+    # ax.set_xlim(x.min(), x.max())
+    ax.set_title('(' + data_tag + ') (instance): ' + str(i) + ' (accuracy) ' + str(accuracy))
     ax.set_xlabel('Time')
-    ax.set_ylabel('Class')
+    ax.set_ylabel('Class confusion (predicted, target)')
     ax.set_facecolor(back_color)
-    ax.set_yticks([c for c in range(len(class_labels))])
-    ax.set_yticklabels(class_labels)
-    ax.grid(color=grid_color, alpha=0.5)
-    ax.legend()
+    ax.set_yticks([c+0.5 for c in range(len(conf_over_time_keys))])
+    ax.set_yticklabels(conf_over_time_keys)
+    # ax.grid(color=grid_color, alpha=0.5)
+    # ax.legend()
     ax = axes[1]
+    # ax.set_anchor('NE')
     num_classes = len(class_set)
     conf_mat = np.zeros(shape=(num_classes, num_classes))
     for c_predicted in range(num_classes):
@@ -357,11 +387,15 @@ def classification_set_prediction(i, predictions, targets, data_tag,
             conf_mat[c_target, c_predicted] = val
 
     ConfusionMatrixDisplay(confusion_matrix=conf_mat,
-                           display_labels=[c for c in class_set.keys()]).plot(ax=ax, cmap=generic_cmap)
+                           display_labels=[c for c in class_set.keys()]).plot(ax=ax, cmap=generic_cmap, im_kw={'aspect': 'auto'})
     plt.tight_layout()
     save_path = os.path.join(predictions_dir, data_tag + '-prediction-' + str(i) + '.png')
     plt.savefig(save_path, dpi=generic_dpi)
+
+    # plt.show()
+
     plt.close()
+
 
 def learning_curves(id_args):
 
