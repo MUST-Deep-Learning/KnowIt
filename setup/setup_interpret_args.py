@@ -13,7 +13,8 @@ from helpers.logger import get_logger
 logger = get_logger()
 
 required_args = ('interpretation_method',)
-optional_args = ('interpretation_set', 'selection', 'size')
+optional_args = ('interpretation_set', 'selection', 'size',
+                 'multiply_by_inputs')
 
 
 def setup_interpret_args(experiment_dict):
@@ -36,6 +37,8 @@ def setup_interpret_args(experiment_dict):
         args['selection'] = 'random'
     if 'size' not in args:
         args['size'] = 1
+    if 'multiply_by_inputs' not in args:
+        args['multiply_by_inputs'] = True
     return args
 
 
