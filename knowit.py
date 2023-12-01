@@ -119,7 +119,8 @@ class KnowIt:
                                         model_params=model_params,
                                         path_to_ckpt=path_to_ckpt,
                                         datamodule=datamodule,
-                                        i_data=interpretation_args['interpretation_set'])
+                                        i_data=interpretation_args['interpretation_set'],
+                                        multiply_by_inputs=interpretation_args['multiply_by_inputs'])
 
         i_inx = get_interpretation_inx(interpretation_args, model_args)
         attributions = interpreter.interpret(pred_point_id=i_inx)
