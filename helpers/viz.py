@@ -602,10 +602,11 @@ def classification_set_prediction(i, predictions, targets, data_tag,
     # ax.set_anchor('W')
     # ax.plot(x, y, label='Target class')
     # ax.plot(x, y_hat, label='Predicted class')
+
     # ax.imshow(conf_over_time_mat, cmap=generic_cmap, aspect='auto', interpolation='None')
 
     ax.imshow(conf_over_time_mat, cmap=generic_cmap, aspect='auto',
-              interpolation='None', extent=[x_lims[0], x_lims[1],  y_lims[0], y_lims[1]])
+              interpolation='None', extent=[x_lims[0], x_lims[1],  y_lims[0], y_lims[1]], origin='bottom')
     ax.xaxis_date()
 
     # ax.imshow(conf_over_time_mat, cmap=generic_cmap, aspect='auto')
