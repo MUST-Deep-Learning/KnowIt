@@ -42,7 +42,8 @@ class DLS(FeatureAttribution):
                  model: type,
                  model_params: dict,
                  datamodule: object,
-                 path_to_ckpt: str):
+                 path_to_ckpt: str,
+                 multiply_by_inputs: bool = True):
         super().__init__(model=model,
                         model_params=model_params,
                         datamodule=datamodule,
@@ -50,7 +51,7 @@ class DLS(FeatureAttribution):
                         i_data=i_data
                         )
         
-        self.dls = DeepLiftShap(self.model)
+        self.dls = DeepLiftShap(self.model, multiply_by_inputs=multiply_by_inputs)
         
     def generate_baseline_from_data(self, num_baselines, pred_point_id):
         
