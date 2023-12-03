@@ -425,7 +425,8 @@ class Trainer:
                  deterministic: Union[bool, Literal['warn'], None] = None,
                  path_to_checkpoint: Union[str, None] = None,
                  return_final: bool = False,
-                 mute_logger: bool = False):
+                 mute_logger: bool = False,
+                 model_selection_mode: str = 'min'):
         
         # internal flags used by class to determine which state the user is instantiating Trainer
         self.train_flag = train_flag
@@ -465,6 +466,7 @@ class Trainer:
         
         # misc
         self.return_final = return_final
+        self.model_selection_mode = model_selection_mode
         
         # user is training from scratch
         if train_flag == True and from_ckpt_flag == False:
@@ -679,12 +681,19 @@ class Trainer:
         else:
             set_top_k = 1
             set_save_last = False
+
+        to_monitor = 'valid_loss'
+        if self.performance_metrics:
+            met = list(self.performance_metrics.keys())
+            met = met[0]
+            to_monitor = 'valid_perf_' + met
         
         return self.out_dir, ModelCheckpoint(dirpath=self.out_dir,
-                                             monitor='valid_loss',
-                                             filename='bestmodel-{epoch}-{valid_loss:.2f}',
+                                             monitor=to_monitor,
+                                             filename='bestmodel-{epoch}-{' + to_monitor + ':.2f}',
                                              save_top_k=set_top_k,
-                                             save_last=set_save_last)
+                                             save_last=set_save_last,
+                                             mode=self.model_selection_mode)
 
         
         
