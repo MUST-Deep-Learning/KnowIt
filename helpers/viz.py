@@ -26,6 +26,8 @@ back_color = 'black'
 grid_color = 'dimgray'
 generic_figsize = (10, 6)
 large_figsize = (20, 11.25)
+WIDE_figsize = (40, 11.25)
+TALL_figsize = (20, 24)
 generic_dpi = 200
 quick_dpi = 100
 generic_cmap = 'plasma'
@@ -70,12 +72,14 @@ def feature_attribution(id_args, interpret_args):
 
     if model_args['data']['task'] == 'regression':
 
+        plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
+        plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
+
         # plot_MD_sanity_check_1(feat_att, relevant_ist, model_args, save_dir, interpret_args)
         # plot_MD_sanity_check_2(feat_att, fetch_feature_values(predictions_dir,
         #                                                       interpret_args['interpretation_set'], relevant_ist, model_args))
 
-        plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
-        plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
+
     elif model_args['data']['task'] == 'classification':
         plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
         plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, interpret_args)
@@ -125,7 +129,8 @@ def plot_MD_sanity_check_2(feat_att, output_vals):
         plt.legend()
         plt.xlabel('Prediction point time')
         plt.ylabel('Feature attribution')
-        plt.title('y(t) = x1 + 2*x2(t-2) + 0.5*x3(x-4)')
+        # plt.title('y(t) = x1 + 2*x2^2(t-2) + 0.5*x3(x-4) + 1')
+        plt.title('The function goes here.')
         plt.show()
         plt.close()
 
@@ -163,7 +168,8 @@ def plot_MD_sanity_check_1(feat_att, relevant_ist, model_args, save_dir, interpr
         plt.legend(ncol=2)
         plt.xlabel('Prediction point time')
         plt.ylabel('Feature attribution')
-        plt.title('y(t) = x1 + 2*x2(t-2) + 0.5*x3(x-4)')
+        # plt.title('y(t) = x1 + 2*x2^2(t-2) + 0.5*x3(x-4) + 1')
+        plt.title('The function goes here.')
         plt.show()
         plt.close()
 
@@ -206,7 +212,7 @@ def plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, 
         ax.set_yticklabels(in_chunk)
         ax.set_xlabel('Components')
         ax.set_xticks([x for x in range(len(in_components))])
-        ax.set_xticklabels(in_components)
+        ax.set_xticklabels(in_components, rotation=90)
         # ax.set_title('Mean over prediction points')
 
         divider = make_axes_locatable(ax)
@@ -219,7 +225,7 @@ def plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, 
         ax.set_yticks([])
         ax.set_xlabel('(Input) Components')
         ax.set_xticks([x for x in range(len(in_components))])
-        ax.set_xticklabels(in_components)
+        ax.set_xticklabels(in_components, rotation=90)
         # ax.set_title('Mean over (input) time')
 
         divider = make_axes_locatable(ax)
@@ -232,7 +238,7 @@ def plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, 
         ax.set_yticks([])
         ax.set_xlabel('(Input) Time')
         ax.set_xticks([x for x in range(len(in_chunk))])
-        ax.set_xticklabels(in_chunk)
+        ax.set_xticklabels(in_chunk, rotation=90)
         # ax.set_title('Mean over (input) components')
 
         divider = make_axes_locatable(ax)
@@ -241,7 +247,7 @@ def plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, 
 
         plt.suptitle('Mean absolute attribution plots for logit ' + str(logit))
 
-        # plt.tight_layout()
+        plt.tight_layout()
         # plt.show()
 
         save_path = os.path.join(save_dir, 'mean_abs_attribution_logit_' + str(logit) + '.png')
@@ -398,6 +404,7 @@ def plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, inter
             plot_num += 1
 
         plt.suptitle('Prediction point: [' + str(time_point) + '] \n Instance: [' + str(instance) + ']')
+        plt.tight_layout()
 
         # plt.show()
 
@@ -641,10 +648,30 @@ def regression_set_prediction(i, predictions, targets, data_tag, out_components,
     ax.set_facecolor(back_color)
     ax.grid(color=grid_color, alpha=0.5)
     plt.legend()
-
     save_path = os.path.join(predictions_dir, data_tag + '-prediction-' + str(i) + '.png')
     plt.savefig(save_path, dpi=generic_dpi)
+    # plt.show()
     plt.close()
+
+    for c in range(y_components):
+        fig, ax = plt.subplots(1, 1, figsize=large_figsize)
+        for t in range(y_time):
+            map = ax.plot(x, y[:, t, c],
+                          label='Target ' + out_components[c] + ' step ' + str(t))
+            mae = np.mean(np.abs(y[:, t, c] - y_hat[:, t, c]))
+            ax.plot(x, y_hat[:, t, c],
+                    label='Predicted ' + out_components[c] + ' step ' + str(t) + ' (mae=' + str(mae) + ')',
+                    linestyle='--', color=map[-1].get_color())
+        ax.set_title(data_tag + ' Instance: ' + str(i))
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Feature value')
+        ax.set_facecolor(back_color)
+        ax.grid(color=grid_color, alpha=0.5)
+        plt.legend()
+        save_path = os.path.join(predictions_dir, data_tag + '-prediction-' + str(i) + '-' + str(out_components[c]) + '.png')
+        plt.savefig(save_path, dpi=generic_dpi)
+        # plt.show()
+        plt.close()
 
 
 def classification_set_prediction(i, predictions, targets, data_tag,
