@@ -684,9 +684,14 @@ class Trainer:
 
         to_monitor = 'valid_loss'
         if self.performance_metrics:
-            met = list(self.performance_metrics.keys())
-            met = met[0]
-            to_monitor = 'valid_perf_' + met
+            try:
+                met = list(self.performance_metrics.keys())
+                met = met[0]
+                to_monitor = 'valid_perf_' + met
+            except:
+                to_monitor = 'valid_perf_' + self.performance_metrics
+
+
         
         return self.out_dir, ModelCheckpoint(dirpath=self.out_dir,
                                              monitor=to_monitor,
