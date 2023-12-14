@@ -51,11 +51,14 @@ class FeatureAttribution(KIInterpreter):
     # Todo: for the moment, i_mode is a single point. Needs to handle range
         self.i_data = i_data
     
-    def _pred_points_from_datamodule(self, prediction_point_ids):
+    def _pred_points_from_datamodule(self, prediction_point_ids, custom_i_data=None):
         
         # Method handles the case where a range of points is chosen by the user.
-        
-        data_loader = self.datamodule.get_dataloader(self.i_data)
+
+        if not custom_i_data:
+            data_loader = self.datamodule.get_dataloader(self.i_data)
+        else:
+            data_loader = self.datamodule.get_dataloader(custom_i_data)
         
         if isinstance(prediction_point_ids, tuple):
             ids = [x for x in range(prediction_point_ids[0], prediction_point_ids[1])]
