@@ -57,6 +57,42 @@ class DLS(FeatureAttribution):
         
         logger.info("Generating baselines.")
         
+        # # if self.i_data == 'train':
+        # #     num_samples = self.datamodule.train_set_size
+        # # elif self.i_data == 'valid':
+        # #     num_samples = self.datamodule.valid_set_size
+        # # else:
+        # #     num_samples = self.datamodule.eval_set_size
+        #
+        #
+        # # pred_point_id is either int or tuple
+        # # baselines can't be the same as points from pred_point_id?
+        # if isinstance(pred_point_id, tuple):
+        #     invalid_ids = [id for id in range(pred_point_id[0], pred_point_id[1])]
+        # else:
+        #     invalid_ids = [pred_point_id]
+        #
+        # if num_baselines > num_samples - len(invalid_ids):
+        #     logger.warning('Not enough prediction points for %s baselines. Using %s.', str(num_baselines),
+        #                    str(num_samples - len(invalid_ids)))
+        #     num_baselines = num_samples - len(invalid_ids)
+        #
+        # baselines = []
+        # while len(baselines) < num_baselines:
+        #     id = np.random.randint(0, num_samples)
+        #     if id in invalid_ids:
+        #         continue
+        #     baselines.append(id)
+        #     invalid_ids.append(id)
+
+        num_samples = self.datamodule.train_set_size
+        if num_samples < num_baselines:
+            logger.warning('Not enough prediction points for %s baselines. Using %s.',
+                           str(num_samples), str(num_baselines))
+            num_baselines = num_samples
+
+        baselines = np.random.choice(np.arange(num_samples), size=num_baselines, replace=False)
+        baselines = [b for b in baselines]
         if self.i_data == 'train':
             num_samples = self.datamodule.train_set_size
         elif self.i_data == 'valid':
@@ -88,6 +124,8 @@ class DLS(FeatureAttribution):
             
         
         baselines = self._pred_points_from_datamodule(baselines)
+        
+        baselines = self._pred_points_from_datamodule(baselines, custom_i_data='train')
         
         return baselines
         
