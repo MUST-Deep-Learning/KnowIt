@@ -71,13 +71,20 @@ class DLS(FeatureAttribution):
         else:
             invalid_ids = [pred_point_id]
         
-        baselines = []    
-        while len(baselines) < num_baselines:
-            id = np.random.randint(0, num_samples)
-            if id in invalid_ids:
-                continue
-            baselines.append(id)
-            invalid_ids.append(id)
+        baselines = []
+        sample_distr = [x for x in range(num_samples) if x not in invalid_ids]
+        len_sample_distr = len(sample_distr)
+        while len(baselines) < num_baselines or len(baselines) == num_samples:
+            id = np.random.randint(0, len_sample_distr)
+            baselines.append(id)     
+        
+        # baselines = []
+        # while len(baselines) < num_baselines:
+        #     id = np.random.randint(0, num_samples)
+        #     if id in invalid_ids:
+        #         continue
+        #     baselines.append(id)
+        #     invalid_ids.append(id)
             
         
         baselines = self._pred_points_from_datamodule(baselines)
