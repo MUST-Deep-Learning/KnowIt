@@ -57,7 +57,11 @@ class DeepL(FeatureAttribution):
                         i_data=i_data
                         )
         
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to(self.device)
+        
         self.dl = DeepLift(self.model, multiply_by_inputs=multiply_by_inputs)
+        
         
     def generate_baseline_from_data(self, 
                                     num_baselines: int) -> torch.tensor:
@@ -88,6 +92,7 @@ class DeepL(FeatureAttribution):
         avg_baseline = torch.mean(baselines, 0, keepdim=True)
         
         return avg_baseline
+    
         
     def interpret(self, 
                   pred_point_id: Union[int, tuple], 
@@ -127,13 +132,16 @@ class DeepL(FeatureAttribution):
         
         # extract explicands using ids
         input_tensor = super()._fetch_points_from_datamodule(pred_point_id)
-        input_tensor.requires_grad = True # required by Captum
         
         if not isinstance(pred_point_id, tuple):
             input_tensor = torch.unsqueeze(input_tensor, 0) # Captum requires batch dimension = number of explicands
         
+        input_tensor = input_tensor.to(self.device)
+        input_tensor.requires_grad = True # required by Captum
+        
         # generate a baseline (baseline is computed as an average over a distribution)
         baselines = self.generate_baseline_from_data(num_baselines=num_baselines)
+        baselines = baselines.to(self.device)
 
         # determine model output type
         if hasattr(self.datamodule, 'class_set'):

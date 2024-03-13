@@ -26,7 +26,6 @@ return a dict of attribution matrices using Captum. The attribution matrices is 
 """
 
 from typing import TYPE_CHECKING, Dict, Union, Tuple
-
 if TYPE_CHECKING:
     import archs
 
@@ -57,7 +56,11 @@ class DLS(FeatureAttribution):
                         i_data=i_data
                         )
         
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to(self.device)
+        
         self.dls = DeepLiftShap(self.model, multiply_by_inputs=multiply_by_inputs)
+        
         
     def generate_baseline_from_data(self, 
                                     num_baselines: int) -> torch.tensor:
@@ -86,6 +89,7 @@ class DLS(FeatureAttribution):
         baselines = self._fetch_points_from_datamodule(baselines, is_baseline=True)
         
         return baselines
+    
         
     def interpret(self, 
                   pred_point_id: Union[int, tuple], 
@@ -125,14 +129,17 @@ class DLS(FeatureAttribution):
         
         # extract explicands using ids
         input_tensor = super()._fetch_points_from_datamodule(pred_point_id)
-        input_tensor.requires_grad = True # required by Captum
         
         if not isinstance(pred_point_id, tuple):
             input_tensor = torch.unsqueeze(input_tensor, 0) # Captum requires batch dimension = number of explicands
+            
+        input_tensor = input_tensor.to(self.device)
+        input_tensor.requires_grad = True # required by Captum
         
         # generate baseline distribution from user's choice of dataset
         baselines = self.generate_baseline_from_data(num_baselines=num_baselines)
-
+        baselines = baselines.to(self.device)
+        
         # determine model output type
         if hasattr(self.datamodule, 'class_set'):
             logger.info("Preparing attribution matrices for classification task.")
@@ -171,23 +178,6 @@ class DLS(FeatureAttribution):
                         "attributions": attributions,
                         "delta": delta
                     }
-                
-        
+                    
         return results
                     
-            
-            
-            
-            
-            
-        
-
-
-
-
-
-
-
-
-
-

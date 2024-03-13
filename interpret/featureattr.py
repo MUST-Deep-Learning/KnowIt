@@ -69,9 +69,9 @@ class FeatureAttribution(KIInterpreter):
         """
 
         if is_baseline:
-            data_loader = self.datamodule.get_dataloader(self.i_data)
-        else:
             data_loader = self.datamodule.get_dataloader("train") # only sample baselines from training set
+        else:
+            data_loader = self.datamodule.get_dataloader(self.i_data) 
         
         if isinstance(point_ids, tuple):
             ids = [x for x in range(point_ids[0], point_ids[1])]

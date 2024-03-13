@@ -105,6 +105,10 @@ The following parameters needs to be provided by the user:
 #   > To check: after training, testing on all three dataloaders gives slight discrepancy between logged train vals
 #   > (fix) When saving ckpt, inside ckpt['state_dict'], the keys are saved as 'model.model...'. When init a model from archs, 
 #       Pytorch expects the key to be 'model...'.
+#   > using Optional from typing for optional args
+#   > in torch/nn/modules/module.py, there is a method called register_parameters. If I open 
+#       the "param" variable in debugger, it says that cuda is False and CPU is True. Is it a bug
+#       or is it being set to CPU in Tian's script? Check.
 
 
 import os
@@ -126,6 +130,8 @@ from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import seed_everything
+
+from archs.MLP import Model as my_MLP
 
 class PLModel(pl.LightningModule):
     """A Pytorch Lightning model that defines the training, validation, and test steps over a batch. 
@@ -162,8 +168,8 @@ class PLModel(pl.LightningModule):
         
         self.model = self._build_model(model, model_params)
         
-        #self.save_hyperparameters(ignore=["model"], logger=False)
         self.save_hyperparameters()
+        #torch.save(self.model.state_dict(), "/home/randle/projects/KnowIt/state.pt")
         
     def _build_model(self, model, model_params):
         """Instantiates a Pytorch model with the given model parameters
@@ -175,7 +181,10 @@ class PLModel(pl.LightningModule):
         Returns:
             object: Pytorch model 
         """
+        
         return model(**model_params)
+        
+        # return model(**model_params)
         
     def __get_loss_function(self, loss):
         """A helper method to retrieve the user's choice of loss function.
@@ -369,11 +378,11 @@ class PLModel(pl.LightningModule):
             return {"optimizer": optimizer}
            
     # def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-    #     print(checkpoint.keys())
+    #     del checkpoint['state_dict']
+    #     checkpoint['state_dict'] = self.model.state_dict()
         
-    # def on_validation_end(self) -> None:
-    #     print(checkpoint.keys())
-        
+    # def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    #     return super().on_load_checkpoint(checkpoint)
 
 class Trainer:
     
@@ -450,8 +459,8 @@ class Trainer:
         self.deterministic = deterministic
         
         # Pytorch model class and parameters
-        self.model = model
-        self.model_params = model_params
+        #self.model = model
+        #self.model_params = model_params
         
         # model hyperparameters
         self.loss_fn = loss_fn
@@ -477,8 +486,8 @@ class Trainer:
             # build a PL model from arguments (untrained)
             self.lit_model = PLModel(loss=self.loss_fn,
                                  optimizer=self.optim, 
-                                 model=self.model,
-                                 model_params=self.model_params, 
+                                 model=model,
+                                 model_params=model_params, 
                                  learning_rate=self.learning_rate,
                                  learning_rate_scheduler=self.learning_rate_scheduler,
                                  performance_metrics=self.performance_metrics)
@@ -608,15 +617,15 @@ class Trainer:
         """
         
         # save best model state
-        ckpt_path, ckpt_callback = self.__save_model_state()
+        #ckpt_path, ckpt_callback = self.__save_model_state()
         
         # training logger - save results in current model's folder
         if self.mute_logger:
             csv_logger = None
             ckpt_path, ckpt_callback = None, None
         else:
-            csv_logger = pl_loggers.CSVLogger(save_dir=ckpt_path)
             ckpt_path, ckpt_callback = self.__save_model_state()
+            csv_logger = pl_loggers.CSVLogger(save_dir=ckpt_path)
         
         # Early stopping
         try:

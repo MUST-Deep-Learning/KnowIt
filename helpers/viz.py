@@ -14,6 +14,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.dates as mdates
 import glob
+import torch
 
 from helpers.logger import get_logger
 
@@ -177,16 +178,18 @@ def plot_MD_sanity_check_1(feat_att, relevant_ist, model_args, save_dir, interpr
 
 
 def plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args):
-
+    
     full_fa = defaultdict(list)
-
-    for pp in feat_att:
-        output_logits = list(feat_att[pp].keys())
-        for logit in output_logits:
-            full_fa[logit].append(feat_att[pp][logit]['attributions'].detach().numpy())
+    
+    logits = list(feat_att.keys())
+    
+    if len(feat_att[logits[0]]['attributions'].shape) < 3:
+        logger.info("Skipping mean feature attribution plots since prediction point is of size 1.")
+        return
+    
+    for logit in logits:
+        full_fa[logit].append(feat_att[logit]['attributions'].cpu().detach().numpy())
     full_fa = dict(full_fa)
-
-    logits = list(full_fa.keys())
 
     mean_over_pp = {}
     mean_over_time = {}
@@ -194,7 +197,8 @@ def plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, 
 
     for logit in logits:
         full_fa[logit] = np.abs(full_fa[logit])
-        full_fa[logit] = np.stack(full_fa[logit], axis=0)
+        # full_fa[logit] = np.stack(full_fa[logit], axis=0)
+        full_fa[logit] = np.squeeze(full_fa[logit], axis=0)
         mean_over_pp[logit] = np.mean(full_fa[logit], axis=0)
         mean_over_time[logit] = np.mean(full_fa[logit], axis=1)
         mean_over_components[logit] = np.mean(full_fa[logit], axis=2)
@@ -294,9 +298,12 @@ def plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, i
     prefix = interpret_args['interpretation_method'] + '-' + interpret_args['interpretation_set']
 
     image_paths = []
-    for pp in feat_att:
+    
+    output_logits = list(feat_att.keys())
+    all_pred_points = list(relevant_ist.keys())
+    
+    for i, pp in enumerate(all_pred_points):
 
-        output_logits = list(feat_att[pp].keys())
         prediction_point = relevant_ist[pp]
         instance = prediction_point[0]
         time_point = prediction_point[2]
@@ -311,7 +318,12 @@ def plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, i
             else:
                 ax = axes
 
-            fa = feat_att[pp][logit]['attributions'].detach().numpy()
+            if len(feat_att[logit]['attributions'].shape) == 3:
+                fa = torch.index_select(feat_att[logit]['attributions'].cpu(), 0, torch.tensor([i]))
+                fa = torch.squeeze(fa, 0)
+            else:
+                fa = feat_att[logit]['attributions'].cpu()
+            fa = fa.detach().numpy()
             fa = fa.transpose()
             im = ax.imshow(fa, aspect='auto', cmap=generic_cmap)
             # axes[plot_num].set_title(out_components[plot_num])
@@ -363,9 +375,11 @@ def plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, inter
 
     image_paths = []
 
-    for pp in feat_att:
+    output_logits = list(feat_att.keys())
+    all_pred_points = list(relevant_ist.keys())
+    
+    for i, pp in enumerate(all_pred_points):
 
-        output_logits = list(feat_att[pp].keys())
         prediction_point = relevant_ist[pp]
         instance = prediction_point[0]
         time_point = prediction_point[2]
@@ -379,8 +393,13 @@ def plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, inter
                 ax = axes[plot_num]
             else:
                 ax = axes
-
-            fa = feat_att[pp][logit]['attributions'].detach().numpy()
+                
+            if len(feat_att[logit]['attributions'].shape) == 3:
+                fa = torch.index_select(feat_att[logit]['attributions'].cpu(), 0, torch.tensor([i]))
+                fa = torch.squeeze(fa, 0)
+            else:
+                fa = feat_att[logit]['attributions'].cpu()
+            fa = fa.detach().numpy()
             fa = fa.transpose()
             im = ax.imshow(fa, aspect='auto', cmap=generic_cmap)
             # axes[plot_num].set_title(out_components[plot_num])

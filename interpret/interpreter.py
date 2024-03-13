@@ -81,7 +81,7 @@ class KIInterpreter():
         # The below method is implemented in PL's own example, see:
         # https://lightning.ai/docs/pytorch/stable/deploy/production_intermediate.html
         for key in list(model_weights):
-            model_weights[key.replace("model.model.", "model.")] = model_weights.pop(key)
+            model_weights[key.replace("model.", "", 1)] = model_weights.pop(key)
 
         # load model weights and set to eval mode
         model.load_state_dict(model_weights)
