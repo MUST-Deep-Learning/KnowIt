@@ -40,6 +40,7 @@ State 1: Instantiate Trainer.
  - gradient_clip_val: float: Default: 0.0.              Clips exploding gradients according to the chosen 
     gradient_clip_algorithm.
  - gradient_clip_algorithm: str. Default: 'norm'.       Specifies how the gradient_clip_val should be applied.
+ - train_precision: str: Default: '32-true'             Sets the precision to be 
  - set_seed: int or bool. Default: False.               A global seed applied by Pytorch Lightning for reproducibility.
  - deterministic: bool, str, or None. Default: None.    Pytorch Lightning attempts to further reduce randomness 
                                                             during training. This may incur a performance hit.
@@ -100,16 +101,16 @@ The following parameters needs to be provided by the user:
 #   todo:
 #   > matmul_precision: I think pl is sensitive towards this?
 #   > change imports to from
-#   > refactor some of the code (see the regular blocks of code that unpacks user kwargs)
-#   > (fix) currently, checkpoint dir is being created even if training loops are not completed, resulting in empty folders
 #   > To check: after training, testing on all three dataloaders gives slight discrepancy between logged train vals
-#   > using Optional from typing for optional args
 #   > in torch/nn/modules/module.py, there is a method called register_parameters. If I open 
 #       the "param" variable in debugger, it says that cuda is False and CPU is True. Is it a bug
 #       or is it being set to CPU in Tian's script? Check.
+#   > added new parameter: 'train_precision'. Needs to be updated in Knowit
 
 
-from typing import Any, Dict, Union, Literal
+
+
+from typing import Union, Literal, Optional
 
 from trainer.model_config import PLModel
 
@@ -118,9 +119,8 @@ from helpers.logger import get_logger
 logger = get_logger()
 
 import torch
-from torch.nn import functional as F
 
-import pytorch_lightning as pl
+from pytorch_lightning import Trainer as PLTrainer
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -129,7 +129,7 @@ from pytorch_lightning import seed_everything
 
 class Trainer:
     
-    """ A wrapper class that handles user parameters
+    """ A wrapper class that handles user parameters and directs the instructions to Pytorch Lightning.
     
     Args (compulsary)
     - experiment_name: str.                                The name of the experiment.
@@ -167,15 +167,16 @@ class Trainer:
                  model: type,
                  model_params: dict,
                  learning_rate_scheduler: dict = {},
-                 performance_metrics: Union[None, dict] = None,
+                 performance_metrics: Optional[dict] = None,
                  early_stopping: Union[bool, dict] = False,
                  gradient_clip_val: float = 0.0,
                  gradient_clip_algorithm: str = 'norm',
+                 train_precision: str = '32-true',
                  train_flag: bool = True,
                  from_ckpt_flag: bool = False,
                  set_seed: Union[int, bool] = False,
                  deterministic: Union[bool, Literal['warn'], None] = None,
-                 path_to_checkpoint: Union[str, None] = None,
+                 path_to_checkpoint: Optional[str] = None,
                  return_final: bool = False,
                  mute_logger: bool = False,
                  model_selection_mode: str = 'min'):
@@ -199,11 +200,9 @@ class Trainer:
                 torch.set_float32_matmul_precision('high')
             except:
                 logger.warning('Tried to utilize Tensor Cores, but failed.')
+        #torch.backends.cuda.matmul.allow_tf32 = True
         self.deterministic = deterministic
-        
-        # Pytorch model class and parameters
-        #self.model = model
-        #self.model_params = model_params
+        self.precision = train_precision
         
         # model hyperparameters
         self.loss_fn = loss_fn
@@ -220,7 +219,7 @@ class Trainer:
         self.return_final = return_final
         self.model_selection_mode = model_selection_mode
         
-        # user is training from scratch
+        # State 1: user is training from scratch
         if train_flag == True and from_ckpt_flag == False:
             
             # construct trainer
@@ -235,7 +234,7 @@ class Trainer:
                                  learning_rate_scheduler=self.learning_rate_scheduler,
                                  performance_metrics=self.performance_metrics)
         
-        # user is continuing model training from saved checkpoint
+        # State 2: user is continuing model training from saved checkpoint
         elif train_flag == True and from_ckpt_flag == True:
             
             self.path_to_checkpoint = path_to_checkpoint
@@ -244,10 +243,10 @@ class Trainer:
             self.lit_model = PLModel.load_from_checkpoint(checkpoint_path=path_to_checkpoint)
             self.trainer = self._build_PL_trainer()
             
-        # user is evaluating model from saved checkpoint
+        # State 3: user is evaluating model from saved checkpoint
         elif train_flag == False and from_ckpt_flag == True:
             self.lit_model = PLModel.load_from_checkpoint(checkpoint_path=path_to_checkpoint)
-            self.trainer = pl.Trainer()
+            self.trainer = PLTrainer()
         
     @classmethod
     def eval_from_ckpt(cls, experiment_name, path_to_checkpoint):        
@@ -276,7 +275,7 @@ class Trainer:
     
     @classmethod
     def resume_from_ckpt(cls, experiment_name, max_epochs, path_to_checkpoint, set_seed=None, safe_mode=False):
-        """A constructor initializing trainer in state 2 (resume model training from checkpoint).
+        """A constructor initializing Trainer in state 2 (resume model training from checkpoint).
 
         Args:
             experiment_name (str)       : Experiment name
@@ -386,20 +385,20 @@ class Trainer:
         
         # Pytorch Lightning trainer object
         if self.train_flag == True and self.from_ckpt_flag == False:
-            trainer = pl.Trainer(max_epochs=self.max_epochs,
+            trainer = PLTrainer(max_epochs=self.max_epochs,
                              accelerator=self.train_device, 
                              logger=csv_logger,
                              devices='auto', # what other options here?
                              callbacks=callbacks,
                              detect_anomaly=True,
-                             #default_root_dir=self.experiment_dir,
+                             precision=self.precision,
                              default_root_dir=ckpt_path,
                              deterministic=self.deterministic,
                              gradient_clip_val=self.gradient_clip_val,
                              gradient_clip_algorithm=self.gradient_clip_algorithm
                              )
         elif self.train_flag == True and self.from_ckpt_flag == True:
-            trainer = pl.Trainer(max_epochs=self.max_epochs,
+            trainer = PLTrainer(max_epochs=self.max_epochs,
                              #default_root_dir=self.experiment_dir,
                              default_root_dir=ckpt_path,
                              callbacks=callbacks,

@@ -112,7 +112,7 @@ class DLS(FeatureAttribution):
             results: Dict                           For a regression model with output shape (out_chunk, out_components), 
                                                     returns a dictionary as follows:
                                                         * Dict Key: a tuple (a, b) with a in range(out_chunk) and 
-                                                                    b in range(out_features)
+                                                                    b in range(out_components)
                                                         * Dict Element: a torch tensor with shape:
                                                                             > (number_of_prediction_points, in_chunk, in_components)
                                                                             if prediction_point_id is a tuple
@@ -120,7 +120,7 @@ class DLS(FeatureAttribution):
                                                                             
                                                     For a classification model with output shape (classes,) returns a dictionary 
                                                     as follows:
-                                                        * Dict Key: a class value from classes
+                                                        * Dict Key: an class value from classes
                                                         * Dict Element: a torch tensor with shape:
                                                                             > (number_of_prediction_points, in_chunk, in_components)
                                                                             if prediction_point_id is a tuple

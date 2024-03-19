@@ -57,7 +57,7 @@ class KnowIt:
             exit(101)
 
     def import_dataset(self, args):
-        args['safe_mode'] = self.safe_mode
+        args['import']['safe_mode'] = self.safe_mode
         new_base_dataset = BaseDataset.from_path(**args['import'])
         # logger.info('New base dataset %s successfully imported.', new_base_dataset.name)
 

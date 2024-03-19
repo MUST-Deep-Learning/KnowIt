@@ -1,5 +1,8 @@
-from typing import Callable, Union, Optional
+__author__ = 'randlerabe@gmail.com'
+__description__ = 'Helper functions used in KnowIt\'s trainer module.'
 
+from typing import Callable, Union, Optional, Any, Type
+    
 from torch.nn import functional as F
 from torch import optim
 from torch.optim import lr_scheduler
@@ -7,7 +10,9 @@ from torchmetrics import functional as mF
     
     
 def get_loss_function(loss: str) -> Callable[[Union[int, float], Union[int, float], Optional[dict]], Union[int, float]]:
-    """A helper method to retrieve the user's choice of loss function.
+    
+    """
+    A helper method to retrieve the user's choice of loss function.
 
     Args:
         loss (str): The loss function as specified in torch.nn.functional.
@@ -19,8 +24,11 @@ def get_loss_function(loss: str) -> Callable[[Union[int, float], Union[int, floa
     
     return getattr(F, loss)
 
-def get_optim(optimizer: str) -> Callable[[Union[int, float], Optional[dict]], Union[int, float]]:
-    """A helper method to retrieve the user's choice of optimizer.
+
+def get_optim(optimizer: str) -> Type[Any]:
+    
+    """
+    A helper method to retrieve the user's choice of optimizer.
 
     Args:
         optimizer (str): The loss function as specified in torch.optim.
@@ -32,8 +40,11 @@ def get_optim(optimizer: str) -> Callable[[Union[int, float], Optional[dict]], U
     
     return getattr(optim, optimizer)
 
-def get_lr_scheduler(scheduler: str):
-    """A helper method to retrieve the user's choice of learning rate scheduler.
+
+def get_lr_scheduler(scheduler: str) -> Type[Any]:
+    
+    """
+    A helper method to retrieve the user's choice of learning rate scheduler.
 
     Args:
         scheduler (str): The loss function as specified in torch.nn.functional.
@@ -45,8 +56,11 @@ def get_lr_scheduler(scheduler: str):
     
     return getattr(lr_scheduler, scheduler)
 
+
 def get_performance_metric(metric: str) -> Callable[[Union[int, float], Union[int, float], Optional[dict]], Union[int, float]]:
-    """A helper method to retrieve the user's choice of performance metric.
+    
+    """
+    A helper method to retrieve the user's choice of performance metric.
 
     Args:
         metric (str): The metric function as specified in torchmetrics.functional.

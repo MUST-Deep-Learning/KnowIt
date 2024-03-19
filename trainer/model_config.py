@@ -1,6 +1,10 @@
-from typing import Any, Dict, Union, Literal
+__author__ = 'randlerabe@gmail.com'
+__description__ = 'Constructs a Pytorch Lightning model class.'
+
+from typing import Union, Type, Tuple, Optional
 
 import pytorch_lightning as pl
+from torch import tensor
 
 from helpers.logger import get_logger
 from helpers.fetch_torch_mods import (get_loss_function,
@@ -12,6 +16,7 @@ logger = get_logger()
 
 
 class PLModel(pl.LightningModule):
+    
     """A Pytorch Lightning model that defines the training, validation, and test steps over a batch. 
     The optimizer configuration is also set inside this class. This is required for Pytorch Lightning's 
     Trainer.
@@ -28,14 +33,15 @@ class PLModel(pl.LightningModule):
         model_params (dict)             :   The parameters needed to instantiate the above Pytorch model.
         
     """
+    
     def __init__(self, 
                  loss: Union[str, dict],
                  learning_rate: float, 
                  optimizer: Union[str, dict],
                  learning_rate_scheduler: dict,
-                 performance_metrics: Union[None, dict],
+                 performance_metrics: Optional[dict],
                  model: type,
-                 model_params: dict):
+                 model_params: dict) -> None:
         super().__init__()
         
         self.loss = loss
@@ -49,32 +55,42 @@ class PLModel(pl.LightningModule):
         self.save_hyperparameters()
         
         
-    def _build_model(self, model, model_params):
+    def _build_model(self, model: Type, model_params: dict) -> Type:
+        
         """Instantiates a Pytorch model with the given model parameters
 
         Args:
-            model (class): A Pytorch model that provides architecture and forward method.
-            model_params (dict): A dictionary containing the parameters used to init the model.
+            model (class)           : A Pytorch model that provides architecture and forward method.
+            model_params (dict)     : A dictionary containing the parameters used to init the model.
 
         Returns:
-            object: Pytorch model 
+            (type)                  : Pytorch model 
         """
         
         return model(**model_params)
         
     
-    def _compute_loss(self, log_metrics, y, y_pred, loss_label):
-        """_summary_
+    def _compute_loss(self, 
+                      log_metrics: dict, 
+                      y: Union[int, float, tensor], 
+                      y_pred: Union[int, float, tensor], 
+                      loss_label: str) -> Tuple[Union[int, float, tensor], dict]:
+        
+        """
+        Given a target y and the model's prediction y_pred, computes the loss between y_pred and y.
 
         Args:
-            metrics (_type_): _description_
-            y (_type_): _description_
-            y_pred (_type_): _description_
-            loss_label (_type_): _description_
+            log_metrics (dict)                  : The dictionary that logs the metrics.
+            y (Union[int, float, tensor])       : The target from a set of training pairs.
+            y_pred (Union[int, float, tensor])  : The model's prediction.
+            loss_label (str)                    : Name to be used for labeling purposes.
 
         Returns:
-            _type_: _description_
+            (Tuple)                             : The computed loss between y and y_pred and the 
+                                                    dictionary that logs the loss.
+
         """
+        
         if isinstance(self.loss, dict):
             for loss_metric in self.loss.keys():
                 loss_kwargs = self.loss[loss_metric]
@@ -86,18 +102,27 @@ class PLModel(pl.LightningModule):
             
         return loss, log_metrics
     
-    def _compute_performance(self, log_metrics, y, y_pred, perf_label):
-        """_summary_
+    
+    def _compute_performance(self, 
+                             log_metrics: dict, 
+                             y: Union[int, float, tensor], 
+                             y_pred: Union[int, float, tensor], 
+                             perf_label: str):
+        
+        """
+          Given a target y and the model's prediction y_pred, computes the performance score between y_pred and y.
 
         Args:
-            metrics (_type_): _description_
-            y (_type_): _description_
-            y_pred (_type_): _description_
-            loss_label (_type_): _description_
+            log_metrics (dict)                  : The dictionary that logs the metrics.
+            y (Union[int, float, tensor])       : The target from a set of training pairs.
+            y_pred (Union[int, float, tensor])  : The model's prediction.
+            perf_label (str)                    : Name to be used for labeling purposes.
 
         Returns:
-            _type_: _description_
+            (Tuple)                             : The computed score between y and y_pred and the dictionary 
+                                                  that logs the performance score.
         """
+        
         if isinstance(self.performance_metrics, dict):
             for p_metric in self.performance_metrics.keys():
                 perf_kwargs = self.performance_metrics[p_metric]
@@ -127,6 +152,7 @@ class PLModel(pl.LightningModule):
         self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
         
         return loss
+    
     
     def validation_step(self, batch, batch_idx):
         
@@ -172,23 +198,23 @@ class PLModel(pl.LightningModule):
         self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True, logger=True, add_dataloader_idx=False)
             
         return metrics
+    
         
     def configure_optimizers(self):
+        
         # get user's optimizer
         if self.optimizer:
-            if isinstance(self.optimizer, dict):
-                # optimizer has kwargs
+            if isinstance(self.optimizer, dict): # optimizer has kwargs
                 for optim in self.optimizer.keys():
                     opt_kwargs = self.optimizer[optim]
                     optimizer = get_optim(optim)(self.model.parameters(), lr=self.lr, **opt_kwargs)
-            elif isinstance(self.optimizer, str):
-                # optimizer has no kwargs
+            elif isinstance(self.optimizer, str): # optimizer has no kwargs
+                print(self.model.parameters().__doc__)
                 optimizer = get_optim(self.optimizer)(self.model.parameters(), lr=self.lr)
         
         # get user's learning rate scheduler
         if self.lr_scheduler:
-            if isinstance(self.lr_scheduler, dict):
-                # lr schedular has kwargs
+            if isinstance(self.lr_scheduler, dict): # lr schedular has kwargs
                 lr_dict = {}
                 for sched in self.lr_scheduler.keys():
                         sched_kwargs = self.lr_scheduler[sched]
@@ -198,8 +224,7 @@ class PLModel(pl.LightningModule):
                         scheduler = get_lr_scheduler(sched)(optimizer, **sched_kwargs)                    
                         lr_dict['scheduler'] = scheduler
                 return {"optimizer": optimizer, "lr_scheduler": lr_dict}
-            elif isinstance(self.lr_scheduler, str):
-                # lr scheduler has no kwargs
+            elif isinstance(self.lr_scheduler, str): # lr scheduler has no kwargs
                 scheduler = get_lr_scheduler(self.lr_scheduler)(optimizer)
                 return {"optimizer": optimizer, "lr_scheduler": scheduler}
         else:

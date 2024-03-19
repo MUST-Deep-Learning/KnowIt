@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 __author__ = 'randlerabe@gmail.com'
 __description__ = 'Contains the Knowit interpreter module.'
 
@@ -22,10 +20,7 @@ to the user's choice of interpretability method.
  
 """
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    import archs
+from typing import Any
 
 import torch
 
@@ -36,9 +31,9 @@ logger = get_logger()
 class KIInterpreter():
     
     def __init__(self,
-                 model: archs.UserModel.Model,
+                 model: Any,
                  model_params: dict,
-                 datamodule: object,
+                 datamodule: type,
                  path_to_checkpoint: str) -> None:
         
         self.model = self._load_model_from_ckpt(model=model, 
@@ -47,9 +42,9 @@ class KIInterpreter():
         self.datamodule = datamodule
         
     def _load_model_from_ckpt(self, 
-                              model: archs.UserModel.Model, 
+                              model: Any, 
                               model_params: dict, 
-                              ckpt_path: str) -> archs.UserModel.Model:
+                              ckpt_path: str) -> Any:
         
         """
         Initializes a Pytorch model from its state dictionary.
