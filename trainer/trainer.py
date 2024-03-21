@@ -99,35 +99,29 @@ The following parameters needs to be provided by the user:
 """
 
 #   todo:
-#   > matmul_precision: I think pl is sensitive towards this?
-#   > change imports to from
 #   > To check: after training, testing on all three dataloaders gives slight discrepancy between logged train vals
 #   > in torch/nn/modules/module.py, there is a method called register_parameters. If I open 
 #       the "param" variable in debugger, it says that cuda is False and CPU is True. Is it a bug
 #       or is it being set to CPU in Tian's script? Check.
-#   > added new parameter: 'train_precision'. Needs to be updated in Knowit
+#   > added new parameter: 'train_precision', 'num_devices'. Needs to be updated in Knowit
 
 
 
 
-from typing import Union, Literal, Optional
+from typing import Optional
 
 from trainer.model_config import PLModel
+from trainer.base_trainer import BaseTrainer
 
 from helpers.logger import get_logger
 
 logger = get_logger()
 
-import torch
-
 from pytorch_lightning import Trainer as PLTrainer
-from pytorch_lightning import loggers as pl_loggers
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning import seed_everything
 
 
-class Trainer:
+class KITrainer(BaseTrainer):
     
     """ A wrapper class that handles user parameters and directs the instructions to Pytorch Lightning.
     
@@ -158,95 +152,24 @@ class Trainer:
     """
     
     def __init__(self,
-                 out_dir: str,
-                 train_device: str,
-                 loss_fn: Union[str, dict],
-                 optim: Union[str, dict],
-                 max_epochs: int,
-                 learning_rate: float,
                  model: type,
                  model_params: dict,
-                 learning_rate_scheduler: dict = {},
-                 performance_metrics: Optional[dict] = None,
-                 early_stopping: Union[bool, dict] = False,
-                 gradient_clip_val: float = 0.0,
-                 gradient_clip_algorithm: str = 'norm',
-                 train_precision: str = '32-true',
                  train_flag: bool = True,
                  from_ckpt_flag: bool = False,
-                 set_seed: Union[int, bool] = False,
-                 deterministic: Union[bool, Literal['warn'], None] = None,
                  path_to_checkpoint: Optional[str] = None,
-                 return_final: bool = False,
-                 mute_logger: bool = False,
-                 model_selection_mode: str = 'min'):
-        
+                 *args,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+
         # internal flags used by class to determine which state the user is instantiating Trainer
         self.train_flag = train_flag
         self.from_ckpt_flag = from_ckpt_flag
-        self.out_dir = out_dir
         
-        # turn off logger during hp tuning
-        self.mute_logger = mute_logger
         
-        # save global seed
-        self.set_seed = set_seed
-        
-        # device to use
-        self.train_device = train_device
-        if train_device == 'gpu':
-            # TODO: Check the effect of this later.
-            try:
-                torch.set_float32_matmul_precision('high')
-            except:
-                logger.warning('Tried to utilize Tensor Cores, but failed.')
-        #torch.backends.cuda.matmul.allow_tf32 = True
-        self.deterministic = deterministic
-        self.precision = train_precision
-        
-        # model hyperparameters
-        self.loss_fn = loss_fn
-        self.optim = optim
-        self.max_epochs = max_epochs
-        self.early_stopping = early_stopping
-        self.learning_rate = learning_rate
-        self.learning_rate_scheduler = learning_rate_scheduler 
-        self.performance_metrics = performance_metrics 
-        self.gradient_clip_val = gradient_clip_val
-        self.gradient_clip_algorithm = gradient_clip_algorithm
-        
-        # misc
-        self.return_final = return_final
-        self.model_selection_mode = model_selection_mode
-        
-        # State 1: user is training from scratch
-        if train_flag == True and from_ckpt_flag == False:
-            
-            # construct trainer
-            self.trainer = self._build_PL_trainer()
-            
-            # build a PL model from arguments (untrained)
-            self.lit_model = PLModel(loss=self.loss_fn,
-                                 optimizer=self.optim, 
-                                 model=model,
-                                 model_params=model_params, 
-                                 learning_rate=self.learning_rate,
-                                 learning_rate_scheduler=self.learning_rate_scheduler,
-                                 performance_metrics=self.performance_metrics)
-        
-        # State 2: user is continuing model training from saved checkpoint
-        elif train_flag == True and from_ckpt_flag == True:
-            
-            self.path_to_checkpoint = path_to_checkpoint
-            
-            # construct trainer
-            self.lit_model = PLModel.load_from_checkpoint(checkpoint_path=path_to_checkpoint)
-            self.trainer = self._build_PL_trainer()
-            
-        # State 3: user is evaluating model from saved checkpoint
-        elif train_flag == False and from_ckpt_flag == True:
-            self.lit_model = PLModel.load_from_checkpoint(checkpoint_path=path_to_checkpoint)
-            self.trainer = PLTrainer()
+        self.state = self._determine_state(train_flag=train_flag,
+                                           from_ckpt_flag=from_ckpt_flag)
+        self._setup(model=model, model_params=model_params, to_ckpt=path_to_checkpoint)
+       
         
     @classmethod
     def eval_from_ckpt(cls, experiment_name, path_to_checkpoint):        
@@ -268,8 +191,7 @@ class Trainer:
             model_params=None,
             train_flag=False,
             from_ckpt_flag=True,
-            path_to_checkpoint=path_to_checkpoint
-        )
+            path_to_checkpoint=path_to_checkpoint)
         
         return kitrainer
     
@@ -302,8 +224,7 @@ class Trainer:
             from_ckpt_flag=True,
             path_to_checkpoint=path_to_checkpoint,
             set_seed=set_seed,
-            safe_mode=safe_mode
-        )
+            safe_mode=safe_mode)
         
         return kitrainer
         
@@ -332,8 +253,11 @@ class Trainer:
                             ckpt_path=self.path_to_checkpoint)
 
 
-    def evaluate_model(self, eval_dataloader):
+    def evaluate_model(self, dataloaders):
         """Evaluates the model's performance on a evaluation set.
+        
+        NOTE If the concatenated strings for metrics become long, Pytorch Lightning will print 
+        the evaluation results on two seperate lines in the terminal.
 
         Args:
             eval_dataloader (Pytorch dataloader)    : The evaluation dataloader. 
@@ -347,66 +271,10 @@ class Trainer:
         
         if self.train_flag:
             logger.info("Testing model on the current training run's best checkpoint.")
-            self.trainer.test(ckpt_path=set_ckpt_path, dataloaders=eval_dataloader)
+            self.trainer.test(ckpt_path=set_ckpt_path, dataloaders=dataloaders)
         else:
             logger.info("Testing on model loaded from checkpoint.")
-            self.trainer.test(model=self.lit_model, dataloaders=eval_dataloader)
-            
-
-    def _build_PL_trainer(self):
-        """Calls Pytorch Lightning's trainer using the user's parameters.
-        
-        """
-        
-        # save best model state
-        #ckpt_path, ckpt_callback = self.__save_model_state()
-        
-        # training logger - save results in current model's folder
-        if self.mute_logger:
-            csv_logger = None
-            ckpt_path, ckpt_callback = None, None
-        else:
-            ckpt_path, ckpt_callback = self._save_model_state()
-            csv_logger = pl_loggers.CSVLogger(save_dir=ckpt_path)
-        
-        # Early stopping
-        try:
-            early_stopping = EarlyStopping(**self.early_stopping[True])
-            logger.info('Early stopping is enabled.')
-        except:
-            logger.info('Early stopping is not enabled. If Early Stopping should be enabled, it must be passed as a dict with kwargs.')
-            early_stopping = None
-        
-        callbacks = [c for c in [ckpt_callback, early_stopping] if c != None]
-        
-        # set seed
-        if self.set_seed:
-            seed_everything(self.set_seed, workers=True)            
-        
-        # Pytorch Lightning trainer object
-        if self.train_flag == True and self.from_ckpt_flag == False:
-            trainer = PLTrainer(max_epochs=self.max_epochs,
-                             accelerator=self.train_device, 
-                             logger=csv_logger,
-                             devices='auto', # what other options here?
-                             callbacks=callbacks,
-                             detect_anomaly=True,
-                             precision=self.precision,
-                             default_root_dir=ckpt_path,
-                             deterministic=self.deterministic,
-                             gradient_clip_val=self.gradient_clip_val,
-                             gradient_clip_algorithm=self.gradient_clip_algorithm
-                             )
-        elif self.train_flag == True and self.from_ckpt_flag == True:
-            trainer = PLTrainer(max_epochs=self.max_epochs,
-                             #default_root_dir=self.experiment_dir,
-                             default_root_dir=ckpt_path,
-                             callbacks=callbacks,
-                             detect_anomaly=True,
-                             logger=csv_logger
-                             )
-        
-        return trainer
+            self.trainer.test(model=self.lit_model, dataloaders=dataloaders)
 
 
     def _save_model_state(self):
@@ -414,16 +282,6 @@ class Trainer:
         Files are named as datetime strings.
         
         """
-        
-        # model_dir = os.path.join(self.experiment_dir, 'models')
-        #
-        # # best models are saved to a folder named as a datetime string
-        # file_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        # ckpt_path = os.path.join(model_dir, self.model_name + '_' + file_name)
-        
-        # return ckpt_path, ModelCheckpoint(dirpath=ckpt_path,
-        #                                 monitor='valid_loss',
-        #                                 filename='bestmodel-{epoch}-{valid_loss:.2f} ' + file_name)
 
         # determine if last model or best model needs to be returned
         if self.return_final:
@@ -451,12 +309,56 @@ class Trainer:
                                              save_last=set_save_last,
                                              mode=self.model_selection_mode)
 
+    
+    def _determine_state(self, train_flag, from_ckpt_flag):
         
+        # State 1: user is training from scratch 
+        if train_flag == True and from_ckpt_flag == False:
+            logger.info(f"{self.__class__.__name__} is set to State 1: Training from Scratch.")
+            return 1
+        # State 2: user is continuing model training from saved checkpoint
+        elif train_flag == True and from_ckpt_flag == True:
+            logger.info(f"{self.__class__.__name__} is set to State 2: Continue Training From Checkpoint.")
+            return 2
+        # State 3: user is evaluating model from saved checkpoint
+        elif train_flag == False and from_ckpt_flag == True:
+            logger.info(f"{self.__class__.__name__} is set to State 3: Model Evaluation Only")
+            return 3
+        else:
+            logger.error(f"{self.__class__.__name__} could not determine state.")
+            exit(101)
+            
+            
+    def _setup(self, model, model_params, to_ckpt):
         
+         # State 1: user is training from scratch
+        if self.state == 1:
+            
+            # construct trainer
+            self.trainer = self._build_PL_trainer(state=self.state,
+                                                  save_state=self._save_model_state)
+            
+            # build a PL model from arguments (untrained)
+            self.lit_model = PLModel(loss=self.loss_fn,
+                                 optimizer=self.optim, 
+                                 model=model,
+                                 model_params=model_params, 
+                                 learning_rate=self.learning_rate,
+                                 learning_rate_scheduler=self.learning_rate_scheduler,
+                                 performance_metrics=self.performance_metrics)
         
-        
-        
-        
+        # State 2: user is continuing model training from saved checkpoint
+        elif self.state == 2:
+            
+            # construct trainer
+            self.lit_model = PLModel.load_from_checkpoint(checkpoint_path=to_ckpt)
+            self.trainer = self._build_PL_trainer()
+            
+        # State 3: user is evaluating model from saved checkpoint
+        elif self.state == 3:
+            self.lit_model = PLModel.load_from_checkpoint(checkpoint_path=to_ckpt)
+            self.trainer = PLTrainer()
+            
         
         
     
