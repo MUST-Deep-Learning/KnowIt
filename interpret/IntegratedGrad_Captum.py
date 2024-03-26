@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __author__ = 'randlerabe@gmail.com'
 __description__ = 'Contains the class for IntegratedGrad. Uses the Captum library'
 
@@ -6,21 +8,27 @@ __description__ = 'Contains the class for IntegratedGrad. Uses the Captum librar
 IntegratedGrad
 ---------------
 
-The ``IntegratedGrad'' class implements the integrated gradients feature attribution method using the Captum library. It inherits from the 
-parent class``FeatureAttribution''.
+The ``IntegratedGrad'' class implements the integrated gradients feature attribution 
+method using the Captum library. It inherits from the parent class``FeatureAttribution''.
 
 ``IntegratedGrad'' is provided the following arguments:
     - model (class)             : the Pytorch model architecture defined in ./archs
     - model_params (dict)       : the dictionary that contains the models init parameters
     - path_to_ckpt (str)        : the path to a trained model's checkpoint file.
     - datamodule (Knowit obj)   : the Knowit datamodule for the experiment.
-    - i_data (str)              : the user's choice of dataset to perform feature attribution. Choices: 'train', 'valid', 'eval'
+    - i_data (str)              : the user's choice of dataset to perform feature attribution. 
+                                    Choices: 'train', 'valid', 'eval'
     
-The ``IntegratedGrad'' class will take a user's choice of prediction point ids, generate a baselines, and return a dict of attribution 
-matrices using Captum. The attribution matrices is specific to the task - regression or classification. 
+The ``IntegratedGrad'' class will take a user's choice of prediction point ids, generate an 
+average baseline, and return a dict of attribution matrices using Captum. The attribution matrices 
+is specific to the task type (regression or classification). 
  
 """
 
+from typing import TYPE_CHECKING, Dict, Union, Tuple
+
+if TYPE_CHECKING:
+    import archs
 
 from interpret.featureattr import FeatureAttribution
 
@@ -28,8 +36,6 @@ import torch
 import numpy as np
 
 from captum.attr import IntegratedGradients
-
-from typing import Any, Dict, Union, Literal
 
 from helpers.logger import get_logger
 
@@ -43,7 +49,7 @@ class IntegratedGrad(FeatureAttribution):
                  model_params: dict,
                  datamodule: object,
                  path_to_ckpt: str,
-                 multiply_by_inputs: bool = True):
+                 multiply_by_inputs: bool = True) -> None:
         super().__init__(model=model,
                         model_params=model_params,
                         datamodule=datamodule,
@@ -51,37 +57,28 @@ class IntegratedGrad(FeatureAttribution):
                         i_data=i_data
                         )
         
-        self.dl = IntegratedGradients(self.model, multiply_by_inputs=multiply_by_inputs)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to(self.device)
         
-    def generate_baseline_from_data(self, num_baselines, pred_point_id):
+        self.ig = IntegratedGradients(self.model, multiply_by_inputs=multiply_by_inputs)
+        
+        
+    def generate_baseline_from_data(self, 
+                                    num_baselines: int) -> torch.tensor:
+        
+        """
+        Returns an average baseline. The average is computed over a random sample of size num_baselines from 
+        the training data.
+        
+        Args:
+            num_baselines: int                      The total number of baselines to sample.
+
+        Returns:
+            torch.tensor                            A torch tensor of shape (1, in_chunk, in_components)
+        """
         
         logger.info("Generating baselines.")
         
-        # if self.i_data == 'train':
-        #     num_samples = self.datamodule.train_set_size
-        # elif self.i_data == 'valid':
-        #     num_samples = self.datamodule.valid_set_size
-        # else:
-        #     num_samples = self.datamodule.eval_set_size
-        #
-        # # pred_point_id is either int or tuple
-        # # baselines can't be the same as points from pred_point_id?
-        # if isinstance(pred_point_id, tuple):
-        #     invalid_ids = [id for id in range(pred_point_id[0], pred_point_id[1])]
-        # else:
-        #     invalid_ids = [pred_point_id]
-        #
-        # baselines = []
-        # while len(baselines) < num_baselines:
-        #     id = np.random.randint(0, num_samples)
-        #     if id in invalid_ids:
-        #         continue
-        #     baselines.append(id)
-        #     invalid_ids.append(id)
-        #
-        #
-        # baselines = self._pred_points_from_datamodule(baselines)
-
         num_samples = self.datamodule.train_set_size
         if num_samples < num_baselines:
             logger.warning('Not enough prediction points for %s baselines. Using %s.',
@@ -90,70 +87,103 @@ class IntegratedGrad(FeatureAttribution):
 
         baselines = np.random.choice(np.arange(num_samples), size=num_baselines, replace=False)
         baselines = [b for b in baselines]
-
-        baselines = self._pred_points_from_datamodule(baselines, custom_i_data='train')
         
-        return baselines
-        
-    def interpret(self, pred_point_id: Union[int, tuple], num_baselines: int = 1000):
-        
-        # Input_tensor below will have shape: (number_of_pred_points, in_chunk, in_components)
-        
-        input_tensor = super()._pred_points_from_datamodule(pred_point_id)
-        input_tensor.requires_grad = True
-        
-        # generate baselines from the same distribution as the user's chosen dataset
-        # baselines will have shape: (number_of_baselines, in_chunk, in_components)
-        baselines = self.generate_baseline_from_data(num_baselines=num_baselines, pred_point_id=pred_point_id)
-        
+        baselines = self._fetch_points_from_datamodule(baselines, is_baseline=True)
         avg_baseline = torch.mean(baselines, 0, keepdim=True)
+        
+        return avg_baseline
+        
+        
+    def interpret(self, 
+                  pred_point_id: Union[int, tuple], 
+                  num_baselines: int = 1000) -> Dict[Union[int, Tuple], Dict[str, torch.tensor]]:
+        
+        """
+        Generates attribution matrices for a single prediction point or a range of prediction points 
+        (also referred to as explicands).
+        
+        Note: The output stores the information from a tensor of size
+        (out_chunk, out_components, number_of_prediction_points, in_chunk, in_components) 
+        in a dictionary data structure. Especially for time series data, this can grow rapidly.
+        
+        Args:
+            pred_point_id: Union[int, tuple]        The prediction point or range of prediction points that will 
+                                                    be used to generate attribution matrices.
+            num_baselines: int                      Specifies the size of the baseline distribution.
 
-        # obtain attribution matrices using Captum
+        Returns:
+            results: Dict                           For a regression model with output shape (out_chunk, out_components), 
+                                                    returns a dictionary as follows:
+                                                        * Dict Key: a tuple (a, b) with a in range(out_chunk) and 
+                                                                    b in range(out_components)
+                                                        * Dict Element: a torch tensor with shape:
+                                                                            > (number_of_prediction_points, in_chunk, in_components)
+                                                                            if prediction_point_id is a tuple
+                                                                            > (in_chunk, in_components) if prediction_point_id is int.
+                                                                            
+                                                    For a classification model with output shape (classes,) returns a dictionary 
+                                                    as follows:
+                                                        * Dict Key: a class value from classes
+                                                        * Dict Element: a torch tensor with shape:
+                                                                            > (number_of_prediction_points, in_chunk, in_components)
+                                                                            if prediction_point_id is a tuple
+                                                                            > (in_chunk, in_components) if prediction_point_id is int. 
+        """
+        
+        # extract explicands using ids
+        input_tensor = super()._fetch_points_from_datamodule(pred_point_id)
+        
+        if not isinstance(pred_point_id, tuple):
+            input_tensor = torch.unsqueeze(input_tensor, 0) # Captum requires batch dimension = number of explicands
+            
+        input_tensor = input_tensor.to(self.device)
+        input_tensor.requires_grad = True # required by Captum
+        
+        # generate a baseline (baseline is computed as an average over a distribution)
+        baselines = self.generate_baseline_from_data(num_baselines=num_baselines)
+        baselines = baselines.to(self.device)
+
+        # determine model output type
         if hasattr(self.datamodule, 'class_set'):
             logger.info("Preparing attribution matrices for classification task.")
             is_classification = True
         else:
             logger.info("Preparing attribution matrices for regression task.")
             is_classification = False
-            out_shape = self.datamodule.out_shape
+            out_shape = self.datamodule.out_shape            
+
+        # compute attribution matrices for each output component and each input explicand
+        results = {}
+        if is_classification:
+            for key in self.datamodule.class_set.keys():
+                target = self.datamodule.class_set[key]
+                attributions, delta = self.ig.attribute(inputs=input_tensor, 
+                                                        baselines=baselines, 
+                                                        target=target, 
+                                                        return_convergence_delta=True)
+                attributions = torch.squeeze(attributions, 0)
             
-        if isinstance(pred_point_id, tuple):
-            counter = pred_point_id[0]
+                results[target] = {
+                    "attributions": attributions,
+                    "delta": delta
+                }
         else:
-            counter = pred_point_id
-                
-        attrib = {}
-        for example in range(input_tensor.shape[0]):
-            cur_input_tensor = input_tensor[example]
-            cur_input_tensor = torch.unsqueeze(cur_input_tensor, 0) # Captum requires extra dimension
-                
-            results = {}
-            if is_classification:
-                for key in self.datamodule.class_set.keys():
-                    target = self.datamodule.class_set[key]
-                    attributions, delta = self.dl.attribute(inputs=cur_input_tensor, baselines=avg_baseline, target=target, return_convergence_delta=True)
+            for out_chunk in range(out_shape[0]):
+                for out_component in range(out_shape[1]):
+                    target = (out_chunk, out_component)
+                    attributions, delta = self.ig.attribute(inputs=input_tensor, 
+                                                            baselines=baselines, 
+                                                            target=target, 
+                                                            return_convergence_delta=True)
                     attributions = torch.squeeze(attributions, 0)
-                
+            
                     results[target] = {
                         "attributions": attributions,
                         "delta": delta
                     }
-            else:
-                for out_chunk in range(out_shape[0]):
-                    for out_component in range(out_shape[1]):
-                        target = (out_chunk, out_component)
-                        attributions, delta = self.dl.attribute(inputs=cur_input_tensor, baselines=avg_baseline, target=target, return_convergence_delta=True)
-                        attributions = torch.squeeze(attributions, 0)
                 
-                        results[target] = {
-                            "attributions": attributions,
-                            "delta": delta
-                        }
-                
-            attrib[counter] = results
-            counter += 1
-                
-        return attrib
+        
+        return results
                     
             
             

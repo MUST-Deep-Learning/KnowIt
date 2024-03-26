@@ -40,6 +40,7 @@ State 1: Instantiate Trainer.
  - gradient_clip_val: float: Default: 0.0.              Clips exploding gradients according to the chosen 
     gradient_clip_algorithm.
  - gradient_clip_algorithm: str. Default: 'norm'.       Specifies how the gradient_clip_val should be applied.
+ - train_precision: str: Default: '32-true'             Sets the precision to be 
  - set_seed: int or bool. Default: False.               A global seed applied by Pytorch Lightning for reproducibility.
  - deterministic: bool, str, or None. Default: None.    Pytorch Lightning attempts to further reduce randomness 
                                                             during training. This may incur a performance hit.
@@ -98,286 +99,31 @@ The following parameters needs to be provided by the user:
 """
 
 #   todo:
-#   > matmul_precision: I think pl is sensitive towards this?
-#   > change imports to from
-#   > refactor some of the code (see the regular blocks of code that unpacks user kwargs)
-#   > (fix) currently, checkpoint dir is being created even if training loops are not completed, resulting in empty folders
 #   > To check: after training, testing on all three dataloaders gives slight discrepancy between logged train vals
-#   > (fix) When saving ckpt, inside ckpt['state_dict'], the keys are saved as 'model.model...'. When init a model from archs, 
-#       Pytorch expects the key to be 'model...'.
+#   > in torch/nn/modules/module.py, there is a method called register_parameters. If I open 
+#       the "param" variable in debugger, it says that cuda is False and CPU is True. Is it a bug
+#       or is it being set to CPU in Tian's script? Check.
+#   > added new parameter: 'train_precision', 'num_devices'. Needs to be updated in Knowit
 
 
-import os
-from typing import Any, Dict, Union, Literal
-from datetime import datetime
 
-from env import env_user
+
+from typing import Optional
+
+from trainer.model_config import PLModel
+from trainer.base_trainer import BaseTrainer
+
 from helpers.logger import get_logger
 
 logger = get_logger()
 
-import torch
-import torchmetrics
-from torch import nn
-from torch.nn import functional as F
-
-import pytorch_lightning as pl
-from pytorch_lightning import loggers as pl_loggers
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning import Trainer as PLTrainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning import seed_everything
 
-class PLModel(pl.LightningModule):
-    """A Pytorch Lightning model that defines the training, validation, and test steps over a batch. 
-    The optimizer configuration is also set inside this class. This is required for Pytorch Lightning's 
-    Trainer.
 
-    Args:
-        loss (str, dict)                :   Loss function as given in torch.nn.functional
-        learning_rate (float)           :   Learning rate
-        optimizer (str, dict)           :   The optimizer to be used for training as given in torch.optim. Additional kwargs can 
-                                            be provided as a dict.
-        learning_rate_scheduler (dict)  :   The choice of learning rate scheduler as given in torch.optim.lr_scheduler. Additional 
-                                            kwargs can be provided as a dict.
-        performance_metric (dict)       :   The choice of performance metrics as given in torchmetrics.functional.
-        model (class)                   :   A Pytorch model architecture defined in ./archs. Note that this is a class, not an object.
-        model_params (dict)             :   The parameters needed to instantiate the above Pytorch model.
-        
-    """
-    def __init__(self, 
-                 loss: Union[str, dict],
-                 learning_rate: float, 
-                 optimizer: Union[str, dict],
-                 learning_rate_scheduler: dict,
-                 performance_metrics: Union[None, dict],
-                 model: type,
-                 model_params: dict):
-        super().__init__()
-        
-        self.loss = loss
-        self.lr = learning_rate
-        self.lr_scheduler = learning_rate_scheduler
-        self.optimizer = optimizer
-        self.performance_metrics = performance_metrics
-        
-        self.model = self._build_model(model, model_params)
-        
-        #self.save_hyperparameters(ignore=["model"], logger=False)
-        self.save_hyperparameters()
-        
-    def _build_model(self, model, model_params):
-        """Instantiates a Pytorch model with the given model parameters
-
-        Args:
-            model (class): A Pytorch model that provides architecture and forward method.
-            model_params (dict): A dictionary containing the parameters used to init the model.
-
-        Returns:
-            object: Pytorch model 
-        """
-        return model(**model_params)
-        
-    def __get_loss_function(self, loss):
-        """A helper method to retrieve the user's choice of loss function.
-
-        Args:
-            loss (str): The loss function as specified in torch.nn.functional.
-
-        Returns:
-            object: Pytorch loss function.
-            
-        """
-        
-        return getattr(F, loss)
+class KITrainer(BaseTrainer):
     
-    def __get_optim(self, optimizer):
-        """A helper method to retrieve the user's choice of optimizer.
-
-        Args:
-            optimizer (str): The loss function as specified in torch.optim.
-
-        Returns:
-            object: Pytorch optimizer function.
-            
-        """
-        
-        return getattr(torch.optim, optimizer)
-    
-    def __get_lr_scheduler(self, scheduler):
-        """A helper method to retrieve the user's choice of learning rate scheduler.
-
-        Args:
-            scheduler (str): The loss function as specified in torch.nn.functional.
-
-        Returns:
-            object: Pytorch learning scheduler.
-            
-        """
-        
-        return getattr(torch.optim.lr_scheduler, scheduler)
-    
-    def __get_performance_metric(self, metric):
-        """A helper method to retrieve the user's choice of performance metric.
-
-        Args:
-            metric (str): The metric function as specified in torchmetrics.functional.
-
-        Returns:
-            object: Torchmetrics function.
-            
-        """
-        
-        return getattr(torchmetrics.functional, metric)
-        
-    def training_step(self, batch, batch_idx):
-        
-        metrics = {} # metrics to be logged
-        
-        x = batch['x']
-        y = batch['y']
-        
-        y_pred = self.model.forward(x)
-        
-        # compute loss; depends on whether user gave kwargs
-        if self.loss:
-            if isinstance(self.loss, dict):
-                for loss_metric in self.loss.keys():
-                    loss_kwargs = self.loss[loss_metric]
-                    loss = self.__get_loss_function(loss_metric)(y_pred, y, **loss_kwargs)
-                    metrics['train_loss'] = loss
-            elif isinstance(self.loss, str): # only a metric (string) is given, no kwargs
-                loss = self.__get_loss_function(self.loss)(y_pred, y)
-                metrics['train_loss'] = loss
-        
-        if self.performance_metrics:
-            if isinstance(self.performance_metrics, dict):
-                for p_metric in self.performance_metrics.keys():
-                    perf_kwargs = self.performance_metrics[p_metric]
-                    metrics['train_perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
-            elif isinstance(self.performance_metrics, str): # only a metric (string) is given, no kwargs
-                metrics['train_perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
-        
-        # logs every epoch: the loss and performance is accumulated and averaged over the epoch
-        self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
-        
-        return loss
-    
-    def validation_step(self, batch, batch_idx):
-        
-        metrics = {} # metrics to be logged
-        
-        x = batch['x']
-        y = batch['y']
-        
-        y_pred = self.model.forward(x)
-        
-        # compute loss; depends on whether user gave kwargs
-        if self.loss:
-            if isinstance(self.loss, dict):
-                for loss_metric in self.loss.keys():
-                    loss_kwargs = self.loss[loss_metric]
-                    loss = self.__get_loss_function(loss_metric)(y_pred, y, **loss_kwargs)
-                    metrics['valid_loss'] = loss
-            elif isinstance(self.loss, str): # only a metric (string) is given, no kwargs
-                loss = self.__get_loss_function(self.loss)(y_pred, y)
-                metrics['valid_loss'] = loss
-        
-        if self.performance_metrics:
-            if isinstance(self.performance_metrics, dict):
-                for p_metric in self.performance_metrics.keys():
-                    perf_kwargs = self.performance_metrics[p_metric]
-                    metrics['valid_perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
-            elif isinstance(self.performance_metrics, str): # only a metric (string) is given, no kwargs
-                metrics['valid_perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
-        
-        # logs every epoch: the loss and performance is accumulated and averaged over the epoch
-        self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True)
-        
-        return loss    
-    
-    
-    def test_step(self, batch, batch_idx, dataloader_idx):
-        
-        metrics = {} # metrics to be logged
-        
-        if dataloader_idx == 0:
-            current_loader = "result_train_"
-        elif dataloader_idx == 1:
-            current_loader = "result_valid_"
-        elif dataloader_idx == 2:
-            current_loader = "result_eval_"
-        
-        x = batch['x']
-        y = batch['y']
-        
-        y_pred = self.model.forward(x)
-        
-        # compute loss; depends on whether user gave kwargs
-        if self.loss:
-            if isinstance(self.loss, dict):
-                for loss_metric in self.loss.keys():
-                    loss_kwargs = self.loss[loss_metric]
-                    loss = self.__get_loss_function(loss_metric)(y_pred, y, **loss_kwargs)
-                    metrics[current_loader + 'loss'] = loss
-            elif isinstance(self.loss, str): # only a metric (string) is given, no kwargs
-                loss = self.__get_loss_function(self.loss)(y_pred, y)
-                metrics[current_loader + 'loss'] = loss
-                
-        if self.performance_metrics:
-            if isinstance(self.performance_metrics, dict):
-                for p_metric in self.performance_metrics.keys():
-                    perf_kwargs = self.performance_metrics[p_metric]
-                    metrics[current_loader + 'perf_' + p_metric] = self.__get_performance_metric(p_metric)(y_pred, y, **perf_kwargs)
-            elif isinstance(self.performance_metrics, str): # only a metric (string) is given, no kwargs
-                metrics[current_loader + 'perf_' + self.performance_metrics] = self.__get_performance_metric(self.performance_metrics)(y_pred, y)
-
-        self.log_dict(metrics, on_epoch=True, on_step=False, prog_bar=True, logger=True, add_dataloader_idx=False)
-            
-        return metrics
-        
-    def configure_optimizers(self):
-        # get user's optimizer
-        if self.optimizer:
-            if isinstance(self.optimizer, dict):
-                # optimizer has kwargs
-                for optim in self.optimizer.keys():
-                    opt_kwargs = self.optimizer[optim]
-                    optimizer = self.__get_optim(optim)(self.model.parameters(), lr=self.lr, **opt_kwargs)
-            elif isinstance(self.optimizer, str):
-                # optimizer has no kwargs
-                optimizer = self.__get_optim(self.optimizer)(self.model.parameters(), lr=self.lr)
-        
-        # get user's learning rate scheduler
-        if self.lr_scheduler:
-            if isinstance(self.lr_scheduler, dict):
-                # lr schedular has kwargs
-                lr_dict = {}
-                for sched in self.lr_scheduler.keys():
-                        sched_kwargs = self.lr_scheduler[sched]
-                        if 'monitor' in sched_kwargs:
-                            monitor = sched_kwargs.pop('monitor')
-                            lr_dict['monitor'] = monitor
-                        scheduler = self.__get_lr_scheduler(sched)(optimizer, **sched_kwargs)                    
-                        lr_dict['scheduler'] = scheduler
-                return {"optimizer": optimizer, "lr_scheduler": lr_dict}
-            elif isinstance(self.lr_scheduler, str):
-                # lr scheduler has no kwargs
-                scheduler = self.__get_lr_scheduler(self.lr_scheduler)(optimizer)
-                return {"optimizer": optimizer, "lr_scheduler": scheduler}
-        else:
-            # no scheduler
-            return {"optimizer": optimizer}
-           
-    # def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-    #     print(checkpoint.keys())
-        
-    # def on_validation_end(self) -> None:
-    #     print(checkpoint.keys())
-        
-
-class Trainer:
-    
-    """ A wrapper class that handles user parameters
+    """ A wrapper class that handles user parameters and directs the instructions to Pytorch Lightning.
     
     Args (compulsary)
     - experiment_name: str.                                The name of the experiment.
@@ -406,96 +152,24 @@ class Trainer:
     """
     
     def __init__(self,
-                 out_dir: str,
-                 train_device: str,
-                 loss_fn: Union[str, dict],
-                 optim: Union[str, dict],
-                 max_epochs: int,
-                 learning_rate: float,
                  model: type,
                  model_params: dict,
-                 learning_rate_scheduler: dict = {},
-                 performance_metrics: Union[None, dict] = None,
-                 early_stopping: Union[bool, dict] = False,
-                 gradient_clip_val: float = 0.0,
-                 gradient_clip_algorithm: str = 'norm',
                  train_flag: bool = True,
                  from_ckpt_flag: bool = False,
-                 set_seed: Union[int, bool] = False,
-                 deterministic: Union[bool, Literal['warn'], None] = None,
-                 path_to_checkpoint: Union[str, None] = None,
-                 return_final: bool = False,
-                 mute_logger: bool = False,
-                 model_selection_mode: str = 'min'):
-        
+                 path_to_checkpoint: Optional[str] = None,
+                 *args,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+
         # internal flags used by class to determine which state the user is instantiating Trainer
         self.train_flag = train_flag
         self.from_ckpt_flag = from_ckpt_flag
-        self.out_dir = out_dir
         
-        # turn off logger during hp tuning
-        self.mute_logger = mute_logger
         
-        # save global seed
-        self.set_seed = set_seed
-        
-        # device to use
-        self.train_device = train_device
-        if train_device == 'gpu':
-            # TODO: Check the effect of this later.
-            try:
-                torch.set_float32_matmul_precision('high')
-            except:
-                logger.warning('Tried to utilize Tensor Cores, but failed.')
-        self.deterministic = deterministic
-        
-        # Pytorch model class and parameters
-        self.model = model
-        self.model_params = model_params
-        
-        # model hyperparameters
-        self.loss_fn = loss_fn
-        self.optim = optim
-        self.max_epochs = max_epochs
-        self.early_stopping = early_stopping
-        self.learning_rate = learning_rate
-        self.learning_rate_scheduler = learning_rate_scheduler 
-        self.performance_metrics = performance_metrics 
-        self.gradient_clip_val = gradient_clip_val
-        self.gradient_clip_algorithm = gradient_clip_algorithm
-        
-        # misc
-        self.return_final = return_final
-        self.model_selection_mode = model_selection_mode
-        
-        # user is training from scratch
-        if train_flag == True and from_ckpt_flag == False:
-            
-            # construct trainer
-            self.trainer = self.__build_PL_trainer()
-            
-            # build a PL model from arguments (untrained)
-            self.lit_model = PLModel(loss=self.loss_fn,
-                                 optimizer=self.optim, 
-                                 model=self.model,
-                                 model_params=self.model_params, 
-                                 learning_rate=self.learning_rate,
-                                 learning_rate_scheduler=self.learning_rate_scheduler,
-                                 performance_metrics=self.performance_metrics)
-        
-        # user is continuing model training from saved checkpoint
-        elif train_flag == True and from_ckpt_flag == True:
-            
-            self.path_to_checkpoint = path_to_checkpoint
-            
-            # construct trainer
-            self.lit_model = PLModel.load_from_checkpoint(checkpoint_path=path_to_checkpoint)
-            self.trainer = self.__build_PL_trainer()
-            
-        # user is evaluating model from saved checkpoint
-        elif train_flag == False and from_ckpt_flag == True:
-            self.lit_model = PLModel.load_from_checkpoint(checkpoint_path=path_to_checkpoint)
-            self.trainer = pl.Trainer()
+        self.state = self._determine_state(train_flag=train_flag,
+                                           from_ckpt_flag=from_ckpt_flag)
+        self._setup(model=model, model_params=model_params, to_ckpt=path_to_checkpoint)
+       
         
     @classmethod
     def eval_from_ckpt(cls, experiment_name, path_to_checkpoint):        
@@ -517,14 +191,13 @@ class Trainer:
             model_params=None,
             train_flag=False,
             from_ckpt_flag=True,
-            path_to_checkpoint=path_to_checkpoint
-        )
+            path_to_checkpoint=path_to_checkpoint)
         
         return kitrainer
     
     @classmethod
     def resume_from_ckpt(cls, experiment_name, max_epochs, path_to_checkpoint, set_seed=None, safe_mode=False):
-        """A constructor initializing trainer in state 2 (resume model training from checkpoint).
+        """A constructor initializing Trainer in state 2 (resume model training from checkpoint).
 
         Args:
             experiment_name (str)       : Experiment name
@@ -551,14 +224,13 @@ class Trainer:
             from_ckpt_flag=True,
             path_to_checkpoint=path_to_checkpoint,
             set_seed=set_seed,
-            safe_mode=safe_mode
-        )
+            safe_mode=safe_mode)
         
         return kitrainer
         
         
     def fit_model(self, dataloaders):
-        """User Pytorch Lightning to fit the model to the train data
+        """Uses Pytorch Lightning to fit the model to the train data
 
         Args:
             dataloaders (tuple): The train dataloader and validation dataloader. The ordering of the tuple is (train, val).
@@ -581,8 +253,11 @@ class Trainer:
                             ckpt_path=self.path_to_checkpoint)
 
 
-    def evaluate_model(self, eval_dataloader):
+    def evaluate_model(self, dataloaders):
         """Evaluates the model's performance on a evaluation set.
+        
+        NOTE If the concatenated strings for metrics become long, Pytorch Lightning will print 
+        the evaluation results on two seperate lines in the terminal.
 
         Args:
             eval_dataloader (Pytorch dataloader)    : The evaluation dataloader. 
@@ -596,83 +271,17 @@ class Trainer:
         
         if self.train_flag:
             logger.info("Testing model on the current training run's best checkpoint.")
-            self.trainer.test(ckpt_path=set_ckpt_path, dataloaders=eval_dataloader)
+            self.trainer.test(ckpt_path=set_ckpt_path, dataloaders=dataloaders)
         else:
             logger.info("Testing on model loaded from checkpoint.")
-            self.trainer.test(model=self.lit_model, dataloaders=eval_dataloader)
-            
-
-    def __build_PL_trainer(self):
-        """Calls Pytorch Lightning's trainer using the user's parameters.
-        
-        """
-        
-        # save best model state
-        ckpt_path, ckpt_callback = self.__save_model_state()
-        
-        # training logger - save results in current model's folder
-        if self.mute_logger:
-            csv_logger = None
-            ckpt_path, ckpt_callback = None, None
-        else:
-            csv_logger = pl_loggers.CSVLogger(save_dir=ckpt_path)
-            ckpt_path, ckpt_callback = self.__save_model_state()
-        
-        # Early stopping
-        try:
-            early_stopping = EarlyStopping(**self.early_stopping[True])
-            logger.info('Early stopping is enabled.')
-        except:
-            logger.info('Early stopping is not enabled. If Early Stopping should be enabled, it must be passed as a dict with kwargs.')
-            early_stopping = None
-        
-        callbacks = [c for c in [ckpt_callback, early_stopping] if c != None]
-        
-        # set seed
-        if self.set_seed:
-            seed_everything(self.set_seed, workers=True)            
-        
-        # Pytorch Lightning trainer object
-        if self.train_flag == True and self.from_ckpt_flag == False:
-            trainer = pl.Trainer(max_epochs=self.max_epochs,
-                             accelerator=self.train_device, 
-                             logger=csv_logger,
-                             devices='auto', # what other options here?
-                             callbacks=callbacks,
-                             detect_anomaly=True,
-                             #default_root_dir=self.experiment_dir,
-                             default_root_dir=ckpt_path,
-                             deterministic=self.deterministic,
-                             gradient_clip_val=self.gradient_clip_val,
-                             gradient_clip_algorithm=self.gradient_clip_algorithm
-                             )
-        elif self.train_flag == True and self.from_ckpt_flag == True:
-            trainer = pl.Trainer(max_epochs=self.max_epochs,
-                             #default_root_dir=self.experiment_dir,
-                             default_root_dir=ckpt_path,
-                             callbacks=callbacks,
-                             detect_anomaly=True,
-                             logger=csv_logger
-                             )
-        
-        return trainer
+            self.trainer.test(model=self.lit_model, dataloaders=dataloaders)
 
 
-    def __save_model_state(self):
+    def _save_model_state(self):
         """Saves the best model to the user's project output directory as a checkpoint.
         Files are named as datetime strings.
         
         """
-        
-        # model_dir = os.path.join(self.experiment_dir, 'models')
-        #
-        # # best models are saved to a folder named as a datetime string
-        # file_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        # ckpt_path = os.path.join(model_dir, self.model_name + '_' + file_name)
-        
-        # return ckpt_path, ModelCheckpoint(dirpath=ckpt_path,
-        #                                 monitor='valid_loss',
-        #                                 filename='bestmodel-{epoch}-{valid_loss:.2f} ' + file_name)
 
         # determine if last model or best model needs to be returned
         if self.return_final:
@@ -700,12 +309,56 @@ class Trainer:
                                              save_last=set_save_last,
                                              mode=self.model_selection_mode)
 
+    
+    def _determine_state(self, train_flag, from_ckpt_flag):
         
+        # State 1: user is training from scratch 
+        if train_flag == True and from_ckpt_flag == False:
+            logger.info(f"{self.__class__.__name__} is set to State 1: Training from Scratch.")
+            return 1
+        # State 2: user is continuing model training from saved checkpoint
+        elif train_flag == True and from_ckpt_flag == True:
+            logger.info(f"{self.__class__.__name__} is set to State 2: Continue Training From Checkpoint.")
+            return 2
+        # State 3: user is evaluating model from saved checkpoint
+        elif train_flag == False and from_ckpt_flag == True:
+            logger.info(f"{self.__class__.__name__} is set to State 3: Model Evaluation Only")
+            return 3
+        else:
+            logger.error(f"{self.__class__.__name__} could not determine state.")
+            exit(101)
+            
+            
+    def _setup(self, model, model_params, to_ckpt):
         
+         # State 1: user is training from scratch
+        if self.state == 1:
+            
+            # construct trainer
+            self.trainer = self._build_PL_trainer(state=self.state,
+                                                  save_state=self._save_model_state)
+            
+            # build a PL model from arguments (untrained)
+            self.lit_model = PLModel(loss=self.loss_fn,
+                                 optimizer=self.optim, 
+                                 model=model,
+                                 model_params=model_params, 
+                                 learning_rate=self.learning_rate,
+                                 learning_rate_scheduler=self.learning_rate_scheduler,
+                                 performance_metrics=self.performance_metrics)
         
-        
-        
-        
+        # State 2: user is continuing model training from saved checkpoint
+        elif self.state == 2:
+            
+            # construct trainer
+            self.lit_model = PLModel.load_from_checkpoint(checkpoint_path=to_ckpt)
+            self.trainer = self._build_PL_trainer()
+            
+        # State 3: user is evaluating model from saved checkpoint
+        elif self.state == 3:
+            self.lit_model = PLModel.load_from_checkpoint(checkpoint_path=to_ckpt)
+            self.trainer = PLTrainer()
+            
         
         
     
