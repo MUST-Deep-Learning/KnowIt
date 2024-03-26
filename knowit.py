@@ -16,7 +16,7 @@ from helpers.read_configs import (yaml_to_dict, safe_mkdir, safe_copy, dict_to_y
 from data.base_dataset import BaseDataset
 from data.classification_dataset import ClassificationDataset
 from data.regression_dataset import RegressionDataset
-from trainer.trainer import Trainer
+from trainer.trainer import KITrainer
 from setup.setup_import_args import setup_import_args
 from setup.setup_train_args import setup_trainer_args, setup_data_args
 from setup.setup_interpret_args import setup_interpret_args, get_interpretation_inx
@@ -57,7 +57,7 @@ class KnowIt:
             exit(101)
 
     def import_dataset(self, args):
-        args['safe_mode'] = self.safe_mode
+        args['import']['safe_mode'] = self.safe_mode
         new_base_dataset = BaseDataset.from_path(**args['import'])
         # logger.info('New base dataset %s successfully imported.', new_base_dataset.name)
 
@@ -92,13 +92,13 @@ class KnowIt:
                                       args['id']['model_name']),
                      'model_args.yaml')
 
-        trainer = Trainer(**trainer_args)
+        trainer = KITrainer(**trainer_args)
         trainer_loader = datamodule.get_dataloader('train')
         val_loader = datamodule.get_dataloader('valid')
         eval_loader = datamodule.get_dataloader('eval')
 
         trainer.fit_model(dataloaders=(trainer_loader, val_loader))
-        trainer.evaluate_model(eval_dataloader=(trainer_loader, val_loader, eval_loader))
+        trainer.evaluate_model(dataloaders=(trainer_loader, val_loader, eval_loader))
 
         if and_viz:
             learning_curves(args['id'])
