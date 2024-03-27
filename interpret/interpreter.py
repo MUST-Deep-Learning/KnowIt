@@ -1,5 +1,5 @@
-__author__ = 'randlerabe@gmail.com'
-__description__ = 'Contains the Knowit interpreter module.'
+__author__ = "randlerabe@gmail.com"
+__description__ = "Contains the Knowit interpreter module."
 
 import torch
 
@@ -26,64 +26,61 @@ to the user's choice of interpretability method.
 
 logger = get_logger()
 
-class KIInterpreter():
-    
-    def __init__(self,
-                 model: type,
-                 model_params: dict,
-                 datamodule: type,
-                 path_to_checkpoint: str) -> None:
-        
-        self.model = self._load_model_from_ckpt(model=model, 
-                                                model_params=model_params, 
-                                                ckpt_path=path_to_checkpoint)    
+
+class KIInterpreter:
+    def __init__(
+        self,
+        model: type,
+        model_params: dict,
+        datamodule: type,
+        path_to_checkpoint: str,
+    ) -> None:
+        self.model = self._load_model_from_ckpt(
+            model=model,
+            model_params=model_params,
+            ckpt_path=path_to_checkpoint,
+        )
         self.datamodule = datamodule
-        
-    def _load_model_from_ckpt(self, 
-                              model: type, 
-                              model_params: dict, 
-                              ckpt_path: str) -> type:
-        
+
+    def _load_model_from_ckpt(
+        self, model: type, model_params: dict, ckpt_path: str
+    ) -> type:
         """
         Initializes a Pytorch model from its state dictionary.
-        
+
         Args:
-        model: type                         A Pytorch class that specifies the model architecture. Note, 
+        model: type                         A Pytorch class that specifies the model architecture. Note,
                                             this is not a class instance.
-        model_params: dict                  Any hyperparameters required to initialize the model (such 
-                                            as input dimension, layer width, etc) and the type of task 
+        model_params: dict                  Any hyperparameters required to initialize the model (such
+                                            as input dimension, layer width, etc) and the type of task
                                             (regression or classification).
-        ckpt_path: str                      The path to the checkpoint file (path should include the 
-                                            checkpoint file name). 
+        ckpt_path: str                      The path to the checkpoint file (path should include the
+                                            checkpoint file name).
 
         Returns:
             Pytorch model                   A Pytorch model initialized with the weights from a checkpoint
                                             file.
         """
-        
+
         logger.info("Initializing Pytorch model using checkpoint file.")
-        
+
         # init Pytorch model with user params
         model = model(**model_params)
-        
+
         # obtain model weights from ckpt
         ckpt = torch.load(f=ckpt_path)
-        model_weights = ckpt['state_dict']
-        
+        model_weights = ckpt["state_dict"]
+
         # For each key, PL saves it as "model.model." instead of "model." as expected by Pytorch.
         # The below method is implemented in PL's own example, see:
         # https://lightning.ai/docs/pytorch/stable/deploy/production_intermediate.html
         for key in list(model_weights):
-            model_weights[key.replace("model.", "", 1)] = model_weights.pop(key)
+            model_weights[key.replace("model.", "", 1)] = model_weights.pop(
+                key
+            )
 
         # load model weights and set to eval mode
         model.load_state_dict(model_weights)
         model.eval()
-        
+
         return model
-    
-        
-        
-        
-        
-        
