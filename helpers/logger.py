@@ -21,6 +21,7 @@ process that has already called |setup_logging|.
 __description__ = 'Provide multiprocessing-safe logging'
 __author__ = 'dgerbrandh@gmail.com'
 
+# external imports
 import atexit
 import logging
 import logging.handlers
