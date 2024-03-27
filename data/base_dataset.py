@@ -69,7 +69,6 @@ from env.env_paths import dataset_path
 from helpers.read_configs import load_from_path
 from helpers.logger import get_logger
 from helpers.read_configs import safe_dump
-
 logger = get_logger()
 
 

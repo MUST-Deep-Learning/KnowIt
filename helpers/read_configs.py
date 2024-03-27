@@ -1,3 +1,8 @@
+__author__ = 'tiantheunissen@gmail.com'
+__description__ = ('Contains functions for loading, dumping, converting, or creating directories '
+                   'or files from local filesystem.')
+
+# external imports
 import os
 import yaml
 import bz2
@@ -9,6 +14,7 @@ import shutil
 import numpy as np
 import csv
 
+# internal imports
 from helpers.logger import get_logger
 
 logger = get_logger()
