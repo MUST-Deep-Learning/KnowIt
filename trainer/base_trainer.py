@@ -38,7 +38,7 @@ class BaseTrainer:
     - gradient_clip_val: float: Default: 0.0.              Clips exploding gradients according to the chosen 
                                                             gradient_clip_algorithm.
     - gradient_clip_algorithm: str. Default: 'norm'.       Specifies how the gradient_clip_val should be applied.
-    - set_seed: int or bool. Default: False.               A global seed applied by Pytorch Lightning for reproducibility.
+    - seed: int or bool. Default: False.               A global seed applied by Pytorch Lightning for reproducibility.
     - deterministic: bool, str, or None. Default: None.    Pytorch Lightning attempts to further reduce randomness 
                                                             during training. This may incur a performance hit.
     - safe_mode: bool. Default: False.                     If set to True, aborts the model training if the experiment name already 
@@ -58,7 +58,7 @@ class BaseTrainer:
                  gradient_clip_val: float = 0.0,
                  gradient_clip_algorithm: str = 'norm',
                  train_precision: str = '32-true',
-                 set_seed: Union[int, bool] = False,
+                 seed: Union[int, bool] = False,
                  deterministic: Union[bool, Literal['warn'], None] = None,
                  num_devices: Union[str, int] = 'auto',
                  return_final: bool = False,
@@ -72,7 +72,7 @@ class BaseTrainer:
         self.mute_logger = mute_logger
         
         # save global seed
-        self.set_seed = set_seed
+        self.seed = seed
         
         # device(s) to use
         self.train_device = train_device
@@ -127,8 +127,8 @@ class BaseTrainer:
         callbacks = [c for c in [ckpt_callback, early_stopping] if c != None]
         
         # set seed
-        if self.set_seed:
-            seed_everything(self.set_seed, workers=True)            
+        if self.seed:
+            seed_everything(self.seed, workers=True)
         
         # Pytorch Lightning trainer object
         #if train_flag == True and from_ckpt_flag == False:

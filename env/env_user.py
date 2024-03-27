@@ -1,6 +1,7 @@
 __author__ = 'tiantheunissen@gmail.com'
-__description__ = 'User-specific environment settings.'
+__description__ = 'Contains user-specific environment settings.'
 
+# external imports
 import os
 
 # set by user

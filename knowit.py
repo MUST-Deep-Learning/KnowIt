@@ -1,26 +1,31 @@
 __author__ = 'tiantheunissen@gmail.com'
-__description__ = 'Contains the ki_setup module.'
+__description__ = 'Contains the main KnowIt module.'
 
 # external imports
 import importlib
 import os
 
-import env.env_user
 # internal imports
-from env.env_paths import (exp_path, ckpt_path, exp_output_dir,
-                           model_output_dir, model_args_path, model_interpretations_dir,
+from env.env_paths import (ckpt_path, exp_output_dir,
+                           model_output_dir, model_args_path,
+                           model_interpretations_dir,
                            model_predictions_dir)
 from helpers.logger import get_logger
-from helpers.read_configs import (yaml_to_dict, safe_mkdir, safe_copy, dict_to_yaml,
-                                  dump_at_path, load_from_path)
+from helpers.read_configs import (yaml_to_dict,
+                                  safe_mkdir,
+                                  dict_to_yaml,
+                                  dump_at_path)
 from data.base_dataset import BaseDataset
 from data.classification_dataset import ClassificationDataset
 from data.regression_dataset import RegressionDataset
 from trainer.trainer import KITrainer
-from setup.setup_import_args import setup_import_args
-from setup.setup_train_args import setup_trainer_args, setup_data_args
-from setup.setup_interpret_args import setup_interpret_args, get_interpretation_inx
+from setup.setup_action_args import setup_relevant_args
+from setup.select_interpretation_points import get_interpretation_inx
+from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
 from helpers.viz import learning_curves, set_predictions, feature_attribution
+from interpret.DLS_Captum import DLS
+from interpret.DL_Captum import DeepL
+from interpret.IntegratedGrad_Captum import IntegratedGrad
 
 logger = get_logger()
 logger.setLevel(20)
@@ -57,16 +62,14 @@ class KnowIt:
             exit(101)
 
     def import_dataset(self, args):
-        args['import']['safe_mode'] = self.safe_mode
-        new_base_dataset = BaseDataset.from_path(**args['import'])
-        # logger.info('New base dataset %s successfully imported.', new_base_dataset.name)
+        import_args = setup_relevant_args(args['import'], 'import', self.safe_mode)
+        new_base_dataset = BaseDataset.from_path(**import_args)
 
     def train_model(self, args, and_viz):
         datamodule, class_counts = KnowIt.get_datamodule(args['data'])
         model, model_params = KnowIt.get_arch_setup(args['arch'],
                                                     datamodule.in_shape,
                                                     datamodule.out_shape)
-        # args['trainer']['task'] = args['data']['task']
         trainer_args = KnowIt.get_trainer_setup(args['trainer'],
                                                 self.device,
                                                 class_counts)
@@ -105,7 +108,7 @@ class KnowIt:
 
     def interpret_model(self, args, and_viz):
 
-        interpretation_args = setup_interpret_args(args['interpret_args'])
+        interpretation_args = setup_relevant_args(args['interpret_args'], 'interpret', self.safe_mode)
         model_args = yaml_to_dict(model_args_path(args['id']['experiment_name'],
                                                    args['id']['model_name']))
         datamodule, class_counts = KnowIt.get_datamodule(model_args['data'])
@@ -191,7 +194,7 @@ class KnowIt:
     @staticmethod
     def get_datamodule(experiment_dict):
 
-        data_args = setup_data_args(experiment_dict)
+        data_args = setup_relevant_args(experiment_dict, 'data')
         if 'seed' not in data_args:
             data_args['seed'] = 123
 
@@ -220,14 +223,11 @@ class KnowIt:
 
     @staticmethod
     def get_trainer_setup(experiment_dict, device, class_counts):
-        trainer_args = setup_trainer_args(experiment_dict,
-                                          device,
-                                          class_counts)
-
-        if 'seed' not in trainer_args:
-            trainer_args['set_seed'] = 123
-        else:
-            trainer_args['set_seed'] = trainer_args.pop('seed')
+        trainer_args = setup_relevant_args(experiment_dict, 'trainer')
+        if trainer_args['loss_fn'] == 'weighted_cross_entropy':
+            trainer_args['loss_fn'] = proc_weighted_cross_entropy(trainer_args['task'],
+                                                                  device,
+                                                                  class_counts)
 
         return trainer_args
 
@@ -235,13 +235,10 @@ class KnowIt:
     def get_interpret_setup(interpret_args):
 
         if interpret_args['interpretation_method'] == 'DeepLiftShap':
-            from interpret.DLS_Captum import DLS
             return DLS
         elif interpret_args['interpretation_method'] == 'DeepLift':
-            from interpret.DL_Captum import DeepL
             return DeepL
         elif interpret_args['interpretation_method'] == 'IntegratedGradients':
-            from interpret.IntegratedGrad_Captum import IntegratedGrad
             return IntegratedGrad
         else:
             logger.error('Unknown interpreter %s.',
