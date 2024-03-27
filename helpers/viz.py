@@ -1,19 +1,18 @@
 import os
 
 from env.env_paths import (learning_data_path, learning_curves_path,
-                           ckpt_path, model_args_path, model_predictions_dir,
-                           model_output_dir, model_interpretations_dir)
+                           model_args_path, model_predictions_dir,
+                           model_interpretations_dir)
 from helpers.read_configs import load_from_csv, yaml_to_dict, load_from_path, safe_mkdir
 from collections import defaultdict
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from datetime import timedelta, datetime
+from datetime import datetime
 import pytz
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import ConfusionMatrixDisplay
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.dates as mdates
-import glob
 import torch
 
 from helpers.logger import get_logger
@@ -72,109 +71,12 @@ def feature_attribution(id_args, interpret_args):
     safe_mkdir(save_dir, True, False)
 
     if model_args['data']['task'] == 'regression':
-
         plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
         plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
-
-        # plot_MD_sanity_check_1(feat_att, relevant_ist, model_args, save_dir, interpret_args)
-        # plot_MD_sanity_check_2(feat_att, fetch_feature_values(predictions_dir,
-        #                                                       interpret_args['interpretation_set'], relevant_ist, model_args))
-
 
     elif model_args['data']['task'] == 'classification':
         plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
         plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, interpret_args)
-
-
-def plot_MD_sanity_check_2(feat_att, output_vals):
-
-    order = np.array(list(feat_att.keys()))
-    order = np.sort(order)
-
-    new_ov = {}
-    for o in order:
-        new_ov[o] = output_vals[o]
-    output_vals = new_ov
-
-
-    full_fa = defaultdict(list)
-    deltas = defaultdict(list)
-
-    for pp in feat_att:
-        output_logits = list(feat_att[pp].keys())
-        for logit in output_logits:
-            full_fa[logit].append(feat_att[pp][logit]['attributions'].detach().numpy())
-            deltas[logit].append(feat_att[pp][logit]['delta'].detach().numpy())
-    full_fa = dict(full_fa)
-    deltas = dict(deltas)
-
-    logits = list(full_fa.keys())
-
-
-    y = [output_vals[t][0].item() for t in output_vals]
-    y_hat = [output_vals[t][1].item() for t in output_vals]
-
-    for logit in logits:
-        full_fa[logit] = np.array(full_fa[logit])
-        deltas[logit] = np.array(deltas[logit])
-        sum_of_fa = np.sum(full_fa[logit], axis=1)
-        sum_of_fa = np.sum(sum_of_fa, axis=1)
-        mean_of_deltas = np.mean(deltas[logit], axis=1)
-
-        plt.plot(sum_of_fa, label='sum of attributions')
-        plt.plot(y, label='true y')
-        plt.plot(y_hat, label='predicted y')
-        plt.plot(mean_of_deltas, label='mean of deltas (across 1000 baselines)')
-        plt.plot(sum_of_fa - mean_of_deltas, label='sum of attributions - mean of deltas')
-
-        plt.legend()
-        plt.xlabel('Prediction point time')
-        plt.ylabel('Feature attribution')
-        # plt.title('y(t) = x1 + 2*x2^2(t-2) + 0.5*x3(x-4) + 1')
-        plt.title('The function goes here.')
-        plt.show()
-        plt.close()
-
-    exit(101)
-
-
-def plot_MD_sanity_check_1(feat_att, relevant_ist, model_args, save_dir, interpret_args):
-
-    full_fa = defaultdict(list)
-
-    for pp in feat_att:
-        output_logits = list(feat_att[pp].keys())
-        for logit in output_logits:
-            full_fa[logit].append(feat_att[pp][logit]['attributions'].detach().numpy())
-    full_fa = dict(full_fa)
-
-    logits = list(full_fa.keys())
-
-    # (x1, t=0), (x2, t=-2), (x3=-4)
-    relevant_x_spec = [[0, 5], [1, 3], [2, 1]]
-
-    relevant_x = []
-    for x in range(0, 4):
-        for t in range(0, 11):
-            relevant_x.append([x, t])
-
-    for logit in logits:
-        full_fa[logit] = np.array(full_fa[logit])
-        for x in relevant_x:
-            relevant_fa = full_fa[logit][:, x[1], x[0]]
-            if x in relevant_x_spec:
-                plt.plot(relevant_fa, label='x' + str(x[0] + 1) + ', t=' + str(x[1] - 5), marker='*')
-            else:
-                plt.plot(relevant_fa, label='x' + str(x[0]+1) + ', t=' + str(x[1]-5))
-        plt.legend(ncol=2)
-        plt.xlabel('Prediction point time')
-        plt.ylabel('Feature attribution')
-        # plt.title('y(t) = x1 + 2*x2^2(t-2) + 0.5*x3(x-4) + 1')
-        plt.title('The function goes here.')
-        plt.show()
-        plt.close()
-
-    # exit(101)
 
 
 def plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args):
