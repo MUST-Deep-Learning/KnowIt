@@ -1,45 +1,15 @@
 __author__ = 'tiantheunissen@gmail.com'
-__description__ = 'Extracts arguments, necessary for interpreting a model, from the experiment dictionary.'
+__description__ = 'Contains functions to select the appropriate prediction points for interpretation.'
 
-from env.env_paths import (learning_data_path, learning_curves_path,
-                           ckpt_path, model_args_path, model_predictions_dir, model_output_dir)
-from helpers.read_configs import load_from_csv, yaml_to_dict, load_from_path
+# external imports
 import numpy as np
-from collections import defaultdict
-from datetime import timedelta, datetime
-import pytz
 import os
+
+# internal imports
+from env.env_paths import model_predictions_dir
+from helpers.read_configs import load_from_path
 from helpers.logger import get_logger
 logger = get_logger()
-
-required_args = ('interpretation_method',)
-optional_args = ('interpretation_set', 'selection', 'size',
-                 'multiply_by_inputs')
-
-
-def setup_interpret_args(experiment_dict):
-
-    """ Extracts the relevant arguments for interpreting a model. """
-
-    args = {}
-    for a in required_args:
-        if a in experiment_dict.keys():
-            args[a] = experiment_dict[a]
-        else:
-            logger.error('%s not provided in interpret arguments. Cannot interpret a model.', a)
-            exit(101)
-    for a in optional_args:
-        if a in experiment_dict.keys():
-            args[a] = experiment_dict[a]
-    if 'interpretation_set' not in args:
-        args['interpretation_set'] = 'eval'
-    if 'selection' not in args:
-        args['selection'] = 'random'
-    if 'size' not in args:
-        args['size'] = 1
-    if 'multiply_by_inputs' not in args:
-        args['multiply_by_inputs'] = True
-    return args
 
 
 def get_interpretation_inx(interpretation_args, model_args):
@@ -64,7 +34,6 @@ def get_interpretation_inx(interpretation_args, model_args):
         exit(101)
 
     if interpretation_args['selection'] == 'random':
-        import numpy as np
         start = np.random.randint(0, set_size - size)
         inx = (start, start + size)
     elif interpretation_args['selection'] == 'all':
@@ -87,12 +56,6 @@ def select_chunk(interpretation_args, model_args, selection):
     mae = get_mae_performance(interpretation_args, model_args, selection)
     chunk_perf = np.convolve(mae, np.ones(chunk) / chunk, mode='valid')
 
-    # import matplotlib.pyplot as plt
-    # plt.plot(mae, label='mae')
-    # plt.plot(chunk_perf, label='mean')
-    # plt.show()
-    # plt.close()
-
     if selection == 'success':
         select_chunk_inx = np.argmin(chunk_perf)
     else:
@@ -101,7 +64,6 @@ def select_chunk(interpretation_args, model_args, selection):
     select_chunk = (select_chunk_inx, select_chunk_inx + chunk)
 
     return select_chunk
-
 
 
 def get_mae_performance(interpretation_args, model_args, selection):
@@ -146,5 +108,5 @@ def get_mae_performance(interpretation_args, model_args, selection):
 
     performance = np.array(performance)
 
-
     return performance
+

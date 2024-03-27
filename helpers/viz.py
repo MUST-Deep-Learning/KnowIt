@@ -1,9 +1,9 @@
-import os
+__author__ = 'tiantheunissen@gmail.com'
+__description__ = 'Contains various functions to visualize KnowIt data structures.'
 
-from env.env_paths import (learning_data_path, learning_curves_path,
-                           model_args_path, model_predictions_dir,
-                           model_interpretations_dir)
-from helpers.read_configs import load_from_csv, yaml_to_dict, load_from_path, safe_mkdir
+# external imports
+import os
+import torch
 from collections import defaultdict
 import matplotlib
 import matplotlib.pyplot as plt
@@ -13,8 +13,14 @@ import pytz
 from sklearn.metrics import ConfusionMatrixDisplay
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.dates as mdates
-import torch
+from PIL import Image
+import matplotlib.animation as animation
 
+# imports imports
+from env.env_paths import (learning_data_path, learning_curves_path,
+                           model_args_path, model_predictions_dir,
+                           model_interpretations_dir)
+from helpers.read_configs import load_from_csv, yaml_to_dict, load_from_path, safe_mkdir
 from helpers.logger import get_logger
 
 logger = get_logger()
@@ -345,9 +351,6 @@ def create_gif(save_dir, image_paths):
     def update(i):
         im.set_array(img_arr[i])
         return im,
-
-    from PIL import Image
-    import matplotlib.animation as animation
 
     img_arr = []
     for f in image_paths:

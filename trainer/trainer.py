@@ -50,7 +50,7 @@ State 1: Instantiate Trainer.
     gradient_clip_algorithm.
  - gradient_clip_algorithm: str. Default: 'norm'.       Specifies how the gradient_clip_val should be applied.
  - train_precision: str: Default: '32-true'             Sets the precision to be 
- - set_seed: int or bool. Default: False.               A global seed applied by Pytorch Lightning for reproducibility.
+ - seed: int or bool. Default: False.               A global seed applied by Pytorch Lightning for reproducibility.
  - deterministic: bool, str, or None. Default: None.    Pytorch Lightning attempts to further reduce randomness 
                                                             during training. This may incur a performance hit.
  - safe_mode: bool. Default: False.                     If set to True, aborts the model training if the experiment name already 
@@ -76,7 +76,7 @@ State 2: Instantiate Trainer using "resume_from_ckpt" method.
  - model_params: dict.                                  A dictionary with values needed to init the above Pytorch model.
  
 >>>> Optional User Parameters <<<<
- - set_seed: int. Default: None.                        The global seed set by Pytorch Lightning. The seed should be the same as used to train the 
+ - seed: int. Default: None.                        The global seed set by Pytorch Lightning. The seed should be the same as used to train the 
                                                             checkpoint model.
 
 State 3: Instantiate Trainer using "eval_from_ckpt" method.
@@ -139,8 +139,8 @@ class KITrainer(BaseTrainer):
     - gradient_clip_val: float: Default: 0.0.              Clips exploding gradients according to the chosen
                                                             gradient_clip_algorithm.
     - gradient_clip_algorithm: str. Default: 'norm'.       Specifies how the gradient_clip_val should be applied.
-    - set_seed: int or bool. Default: False.               A global seed applied by Pytorch Lightning for reproducibility.
-    - deterministic: bool, str, or None. Default: None.    Pytorch Lightning attempts to further reduce randomness
+    - seed: int or bool. Default: False.               A global seed applied by Pytorch Lightning for reproducibility.
+    - deterministic: bool, str, or None. Default: None.    Pytorch Lightning attempts to further reduce randomness 
                                                             during training. This may incur a performance hit.
     - safe_mode: bool. Default: False.                     If set to True, aborts the model training if the experiment name already
                                                             exists in the user's project output folder.
@@ -201,7 +201,7 @@ class KITrainer(BaseTrainer):
         experiment_name,
         max_epochs,
         path_to_checkpoint,
-        set_seed=None,
+        seed=None,
         safe_mode=False,
     ):
         """A constructor initializing Trainer in state 2 (resume model training from checkpoint).
@@ -213,8 +213,8 @@ class KITrainer(BaseTrainer):
             max_epochs (int)            : The number of further epochs to train the model. If the pretrained model
                                             was trained for x epochs and the user wants to train for a further y epochs,
                                             then this should be set to max_epochs = x+y.
-            set_seed (None or int)      : The seed value that was used for the pretrained model.
-            safe_mode (bool)            : If set to True, aborts the model training if the experiment name already
+            seed (None or int)      : The seed value that was used for the pretrained model.
+            safe_mode (bool)            : If set to True, aborts the model training if the experiment name already 
                                             exists in the user's project output folder.
 
         """
@@ -230,7 +230,7 @@ class KITrainer(BaseTrainer):
             train_flag=True,
             from_ckpt_flag=True,
             path_to_checkpoint=path_to_checkpoint,
-            set_seed=set_seed,
+            seed=seed,
             safe_mode=safe_mode,
         )
 
