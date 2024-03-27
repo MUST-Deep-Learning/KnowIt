@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 __author__ = 'randlerabe@gmail.com'
 __description__ = 'Contains the class for DeepLiftShap. Uses the Captum library'
 
@@ -25,9 +23,7 @@ return a dict of attribution matrices using Captum. The attribution matrices is 
  
 """
 
-from typing import TYPE_CHECKING, Dict, Union, Tuple
-if TYPE_CHECKING:
-    import archs
+from typing import Dict, Union, Tuple
 
 from interpret.featureattr import FeatureAttribution
 
@@ -43,7 +39,7 @@ logger = get_logger()
 class DLS(FeatureAttribution):
     
     def __init__(self,
-                 model: archs.UserModel.Model,
+                 model: type,
                  model_params: dict,
                  datamodule: object,
                  path_to_ckpt: str,
@@ -53,8 +49,7 @@ class DLS(FeatureAttribution):
                         model_params=model_params,
                         datamodule=datamodule,
                         path_to_ckpt=path_to_ckpt,
-                        i_data=i_data
-                        )
+                        i_data=i_data)
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)

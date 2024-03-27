@@ -1,6 +1,10 @@
 __author__ = 'randlerabe@gmail.com'
 __description__ = 'Contains the Knowit interpreter module.'
 
+import torch
+
+from helpers.logger import get_logger
+
 """
 ---------------
 KIInterpreter
@@ -20,18 +24,12 @@ to the user's choice of interpretability method.
  
 """
 
-from typing import Any
-
-import torch
-
-from helpers.logger import get_logger
-
 logger = get_logger()
 
 class KIInterpreter():
     
     def __init__(self,
-                 model: Any,
+                 model: type,
                  model_params: dict,
                  datamodule: type,
                  path_to_checkpoint: str) -> None:
@@ -42,15 +40,15 @@ class KIInterpreter():
         self.datamodule = datamodule
         
     def _load_model_from_ckpt(self, 
-                              model: Any, 
+                              model: type, 
                               model_params: dict, 
-                              ckpt_path: str) -> Any:
+                              ckpt_path: str) -> type:
         
         """
         Initializes a Pytorch model from its state dictionary.
         
         Args:
-        model: Class                        A class that specifies the model architecture. Note, 
+        model: type                         A Pytorch class that specifies the model architecture. Note, 
                                             this is not a class instance.
         model_params: dict                  Any hyperparameters required to initialize the model (such 
                                             as input dimension, layer width, etc) and the type of task 

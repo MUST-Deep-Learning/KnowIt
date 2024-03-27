@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 __author__ = 'randlerabe@gmail.com'
 __description__ = 'Contains the class for performing feature attribution.'
 
@@ -24,11 +22,11 @@ it in the correct form.
  
 """
 
-from typing import Type, Union
+from typing import Union
 
 from interpret.interpreter import KIInterpreter
 
-import torch
+from torch import tensor
 
 from helpers.logger import get_logger
 
@@ -37,7 +35,7 @@ logger = get_logger()
 class FeatureAttribution(KIInterpreter):
     
     def __init__(self, 
-                 model: Type, 
+                 model: type, 
                  model_params: dict, 
                  path_to_ckpt: str, 
                  datamodule: object,
@@ -53,7 +51,7 @@ class FeatureAttribution(KIInterpreter):
     
     def _fetch_points_from_datamodule(self, 
                                       point_ids: Union[int, tuple], 
-                                      is_baseline: bool=False) -> torch.tensor:
+                                      is_baseline: bool=False) -> tensor:
         
         """
         Using a singe id or a range of ids, extracts the corresponding data points from a Pytorch dataloader.

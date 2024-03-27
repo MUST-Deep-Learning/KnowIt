@@ -1,7 +1,16 @@
-from __future__ import annotations
-
 __author__ = 'randlerabe@gmail.com'
 __description__ = 'Contains the class for IntegratedGrad. Uses the Captum library'
+
+from typing import Dict, Union, Tuple
+
+from interpret.featureattr import FeatureAttribution
+
+import torch
+import numpy as np
+
+from captum.attr import IntegratedGradients
+
+from helpers.logger import get_logger
 
 """
 ---------------
@@ -24,20 +33,6 @@ average baseline, and return a dict of attribution matrices using Captum. The at
 is specific to the task type (regression or classification). 
  
 """
-
-from typing import TYPE_CHECKING, Dict, Union, Tuple
-
-if TYPE_CHECKING:
-    import archs
-
-from interpret.featureattr import FeatureAttribution
-
-import torch
-import numpy as np
-
-from captum.attr import IntegratedGradients
-
-from helpers.logger import get_logger
 
 logger = get_logger()
 
