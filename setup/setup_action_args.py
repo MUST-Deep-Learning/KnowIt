@@ -47,7 +47,8 @@ arg_dict = {'import':  {'required': ('path',),
                              'default': {'interpretation_set': 'eval',
                                          'selection': 'random',
                                          'size': 1,
-                                         'multiply_by_inputs': True}},
+                                         'multiply_by_inputs': True,
+                                         'seed': 123}},
             'predict':      {'required': ('prediction_set',),
                              'optional': ()}
             }
