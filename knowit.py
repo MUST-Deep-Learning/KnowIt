@@ -118,12 +118,15 @@ class KnowIt:
 
         interpreter_class = KnowIt.get_interpret_setup(interpretation_args)
         path_to_ckpt = ckpt_path(args['id']['experiment_name'], args['id']['model_name'])
+        seed = interpretation_args['seed']
         interpreter = interpreter_class(model=model,
                                         model_params=model_params,
                                         path_to_ckpt=path_to_ckpt,
                                         datamodule=datamodule,
+                                        device=self.device,
                                         i_data=interpretation_args['interpretation_set'],
-                                        multiply_by_inputs=interpretation_args['multiply_by_inputs'])
+                                        multiply_by_inputs=interpretation_args['multiply_by_inputs'],
+                                        seed=seed)
 
         i_inx = get_interpretation_inx(interpretation_args, model_args)
         attributions = interpreter.interpret(pred_point_id=i_inx)
