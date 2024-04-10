@@ -1,6 +1,6 @@
 """-----KIInterpreter-----.
 
-The ``KIInterpreter'' class contains the parent (root) class that is to be
+The ``KIInterpreter'' class is the parent (root) class that is to be
 inherited by all other model interpretability modules.
 
 The function of the ``KIInterpreter'' class is to store the datamodule and

@@ -3,12 +3,8 @@ __description__ = "Contains the trainer module."
 
 from typing import Optional
 
-from pytorch_lightning import Trainer as PLTrainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-
 from helpers.logger import get_logger
-from trainer.base_trainer import BaseTrainer
-from trainer.model_config import PLModel
+from trainer.trainer_states import TrainNew, ContinueTraining, EvaluateOnly
 
 """
 ---------------
@@ -117,7 +113,7 @@ The following parameters needs to be provided by the user:
 logger = get_logger()
 
 
-class KITrainer(BaseTrainer):
+class KITrainer:
     """A wrapper class that handles user parameters and directs the instructions to Pytorch Lightning.
 
     Args (compulsary)
@@ -146,235 +142,27 @@ class KITrainer(BaseTrainer):
                                                             exists in the user's project output folder.
     """
 
+    _state = None
+    
     def __init__(
         self,
-        model: type,
-        model_params: dict,
-        train_flag: bool = True,
-        from_ckpt_flag: bool = False,
-        path_to_checkpoint: Optional[str] = None,
-        *args,
+        state,
+        ckpt_file=None,
         **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-
-        # internal flags used by class to determine which state the user is instantiating Trainer
-        self.train_flag = train_flag
-        self.from_ckpt_flag = from_ckpt_flag
-
-        self.state = self._determine_state(
-            train_flag=train_flag, from_ckpt_flag=from_ckpt_flag
-        )
-        self._setup(
-            model=model, model_params=model_params, to_ckpt=path_to_checkpoint
-        )
-
-    @classmethod
-    def eval_from_ckpt(cls, experiment_name, path_to_checkpoint):
-        """A constructor initializing Trainer in state 3 (model evaluation only).
-
-        Args:
-        ----
-            experiment_name (str): Experiment name
-            path_to_checkpoint (str): The path to the checkpoint file.
-
-        """
-        kitrainer = cls(
-            experiment_name=experiment_name,
-            train_device=None,
-            loss_fn=None,
-            optim=True,
-            max_epochs=None,
-            learning_rate=None,
-            model=None,
-            model_params=None,
-            train_flag=False,
-            from_ckpt_flag=True,
-            path_to_checkpoint=path_to_checkpoint,
-        )
-
-        return kitrainer
-
-    @classmethod
-    def resume_from_ckpt(
-        cls,
-        experiment_name,
-        max_epochs,
-        path_to_checkpoint,
-        seed=None,
-        safe_mode=False,
-    ):
-        """A constructor initializing Trainer in state 2 (resume model training from checkpoint).
-
-        Args:
-        ----
-            experiment_name (str)       : Experiment name
-            path_to_checkpoint (str)    : The path to the checkpoint file.
-            max_epochs (int)            : The number of further epochs to train the model. If the pretrained model
-                                            was trained for x epochs and the user wants to train for a further y epochs,
-                                            then this should be set to max_epochs = x+y.
-            seed (None or int)      : The seed value that was used for the pretrained model.
-            safe_mode (bool)            : If set to True, aborts the model training if the experiment name already 
-                                            exists in the user's project output folder.
-
-        """
-        kitrainer = cls(
-            experiment_name=experiment_name,
-            train_device=None,
-            loss_fn=None,
-            optim=True,
-            max_epochs=max_epochs,
-            learning_rate=None,
-            model=None,
-            model_params=None,
-            train_flag=True,
-            from_ckpt_flag=True,
-            path_to_checkpoint=path_to_checkpoint,
-            seed=seed,
-            safe_mode=safe_mode,
-        )
-
-        return kitrainer
-
-    def fit_model(self, dataloaders):
-        """Uses Pytorch Lightning to fit the model to the train data
-
-        Args:
-        ----
-            dataloaders (tuple): The train dataloader and validation dataloader. The ordering of the tuple is (train, val).
-
-        """
-        train_dataloader = dataloaders[0]
-        val_dataloader = dataloaders[1]
-
-        # fit trainer object to data
-        if self.train_flag and not self.from_ckpt_flag:
-            self.trainer.fit(
-                model=self.lit_model,
-                train_dataloaders=train_dataloader,
-                val_dataloaders=val_dataloader,
-            )
-        elif self.train_flag and self.from_ckpt_flag:
-            logger.info("Resuming model training from checkpoint.")
-            self.trainer.fit(
-                model=self.lit_model,
-                train_dataloaders=train_dataloader,
-                val_dataloaders=val_dataloader,
-                ckpt_path=self.path_to_checkpoint,
-            )
-
-    def evaluate_model(self, dataloaders):
-        """Evaluates the model's performance on a evaluation set.
-
-        NOTE If the concatenated strings for metrics become long, Pytorch Lightning will print
-        the evaluation results on two seperate lines in the terminal.
-
-        Args:
-        ----
-            eval_dataloader (Pytorch dataloader)    : The evaluation dataloader.
-
-        """
-        # the path to the best model ckpt or the last model ckpt
-        if self.return_final:
-            set_ckpt_path = self.out_dir + "/last.ckpt"
+    ) -> None:
+        self._set_state(state=state, base_trainer_kwargs=kwargs, ckpt_file=ckpt_file)
+        
+    def _set_state(self, state, base_trainer_kwargs, ckpt_file) -> None:
+        if ckpt_file:
+            self._state = state(**base_trainer_kwargs, ckpt_file=ckpt_file)
+            self._state.context = self
         else:
-            set_ckpt_path = "best"
+            self._state = state(**base_trainer_kwargs)
+            self._state.context = self
 
-        if self.train_flag:
-            logger.info(
-                "Testing model on the current training run's best checkpoint."
-            )
-            self.trainer.test(ckpt_path=set_ckpt_path, dataloaders=dataloaders)
-        else:
-            logger.info("Testing on model loaded from checkpoint.")
-            self.trainer.test(model=self.lit_model, dataloaders=dataloaders)
-
-    def _save_model_state(self):
-        """Saves the best model to the user's project output directory as a checkpoint.
-        Files are named as datetime strings.
-
-        """
-        # determine if last model or best model needs to be returned
-        if self.return_final:
-            set_top_k = 0
-            set_save_last = True
-        else:
-            set_top_k = 1
-            set_save_last = False
-
-        to_monitor = "valid_loss"
-        if self.performance_metrics:
-            try:
-                met = list(self.performance_metrics.keys())
-                met = met[0]
-                to_monitor = "valid_perf_" + met
-            except:
-                to_monitor = "valid_perf_" + self.performance_metrics
-
-        return self.out_dir, ModelCheckpoint(
-            dirpath=self.out_dir,
-            monitor=to_monitor,
-            filename="bestmodel-{epoch}-{" + to_monitor + ":.2f}",
-            save_top_k=set_top_k,
-            save_last=set_save_last,
-            mode=self.model_selection_mode,
-        )
-
-    def _determine_state(self, train_flag, from_ckpt_flag):
-        # State 1: user is training from scratch
-        if train_flag and not from_ckpt_flag:
-            logger.info(
-                f"{self.__class__.__name__} is set to State 1: Training from Scratch."
-            )
-            return 1
-        # State 2: user is continuing model training from saved checkpoint
-        elif train_flag and from_ckpt_flag:
-            logger.info(
-                f"{self.__class__.__name__} is set to State 2: Continue Training From Checkpoint."
-            )
-            return 2
-        # State 3: user is evaluating model from saved checkpoint
-        elif not train_flag and from_ckpt_flag:
-            logger.info(
-                f"{self.__class__.__name__} is set to State 3: Model Evaluation Only"
-            )
-            return 3
-        else:
-            logger.error(
-                f"{self.__class__.__name__} could not determine state."
-            )
-            exit(101)
-
-    def _setup(self, model, model_params, to_ckpt):
-        # State 1: user is training from scratch
-        if self.state == 1:
-            # construct trainer
-            self.trainer = self._build_PL_trainer(
-                state=self.state, save_state=self._save_model_state
-            )
-
-            # build a PL model from arguments (untrained)
-            self.lit_model = PLModel(
-                loss=self.loss_fn,
-                optimizer=self.optim,
-                model=model,
-                model_params=model_params,
-                learning_rate=self.learning_rate,
-                learning_rate_scheduler=self.learning_rate_scheduler,
-                performance_metrics=self.performance_metrics,
-            )
-
-        # State 2: user is continuing model training from saved checkpoint
-        elif self.state == 2:
-            # construct trainer
-            self.lit_model = PLModel.load_from_checkpoint(
-                checkpoint_path=to_ckpt
-            )
-            self.trainer = self._build_PL_trainer()
-
-        # State 3: user is evaluating model from saved checkpoint
-        elif self.state == 3:
-            self.lit_model = PLModel.load_from_checkpoint(
-                checkpoint_path=to_ckpt
-            )
-            self.trainer = PLTrainer()
+    def fit_and_eval(self, dataloaders):
+        self._state.fit_model(dataloaders=dataloaders)
+        self._state.evaluate_model(dataloaders=dataloaders)
+        
+    def eval(self, dataloaders):
+        self._state.evaluate_model(dataloaders=dataloaders)

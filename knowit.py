@@ -19,6 +19,7 @@ from data.base_dataset import BaseDataset
 from data.classification_dataset import ClassificationDataset
 from data.regression_dataset import RegressionDataset
 from trainer.trainer import KITrainer
+from trainer.trainer_states import TrainNew, ContinueTraining, EvaluateOnly
 from setup.setup_action_args import setup_relevant_args
 from setup.select_interpretation_points import get_interpretation_inx
 from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
@@ -76,10 +77,8 @@ class KnowIt:
 
         trainer_args['model'] = model
         trainer_args['model_params'] = model_params
-        trainer_args['train_device'] = self.device
-        trainer_args['out_dir'] = model_output_dir(args['id']['experiment_name'],
-                                                   args['id']['model_name'])
-
+        trainer_args['device'] = self.device
+        
         data_dynamics = {'in_shape': datamodule.in_shape,
                          'out_shape': datamodule.out_shape,
                          'train_size': datamodule.train_set_size,
@@ -90,18 +89,36 @@ class KnowIt:
             data_dynamics['class_count'] = datamodule.class_counts
         args['data_dynamics'] = data_dynamics
 
-        dict_to_yaml(args,
-                     model_output_dir(args['id']['experiment_name'],
-                                      args['id']['model_name']),
-                     'model_args.yaml')
-
-        trainer = KITrainer(**trainer_args)
         trainer_loader = datamodule.get_dataloader('train')
         val_loader = datamodule.get_dataloader('valid')
         eval_loader = datamodule.get_dataloader('eval')
-
-        trainer.fit_model(dataloaders=(trainer_loader, val_loader))
-        trainer.evaluate_model(dataloaders=(trainer_loader, val_loader, eval_loader))
+        
+        state = trainer_args.pop('state')
+        
+        if state == 'new':
+            trainer_args['out_dir'] = model_output_dir(args['id']['experiment_name'],
+                                                   args['id']['model_name'])
+            dict_to_yaml(args,
+                     model_output_dir(args['id']['experiment_name'],
+                                      args['id']['model_name']),
+                     'model_args.yaml')
+            
+            trainer = KITrainer(state=TrainNew, **trainer_args)
+            trainer.fit_and_eval(dataloaders=(trainer_loader, val_loader, eval_loader))    
+        elif 'continue' in state:
+            save_dir = model_output_dir(args['id']['experiment_name'],
+                                                   args['id']['model_name'])
+            safe_mkdir(save_dir, self.safe_mode, overwrite=False)
+            dict_to_yaml(args,
+                     save_dir,
+                     'model_args.yaml')
+            
+            trainer_args['out_dir'] = save_dir
+            trainer = KITrainer(state=ContinueTraining, **trainer_args, ckpt_file=state['continue'])
+            trainer.fit_and_eval(dataloaders=(trainer_loader, val_loader, eval_loader))
+        elif 'eval' in state:
+            trainer = KITrainer(state=EvaluateOnly, ckpt_file=state['eval'])
+            trainer.fit_and_eval(dataloaders=(trainer_loader, val_loader, eval_loader))
 
         if and_viz:
             learning_curves(args['id'])
