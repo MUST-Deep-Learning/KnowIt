@@ -4,6 +4,8 @@ __description__ = 'Contains the main KnowIt module.'
 # external imports
 import importlib
 import os
+import copy
+import torch
 
 # internal imports
 from env.env_paths import (ckpt_path, exp_output_dir,
@@ -31,11 +33,14 @@ from interpret.IntegratedGrad_Captum import IntegratedGrad
 logger = get_logger()
 logger.setLevel(20)
 
+
 class KnowIt:
     def __init__(self, action, args, safe_mode=True, device='gpu', and_viz=True):
 
         self.safe_mode = safe_mode
         self.device = device
+
+        relevant_args = setup_relevant_args(args)
 
         if 'id' in args:
             if 'experiment_name' in args['id']:
@@ -45,26 +50,26 @@ class KnowIt:
                                             args['id']['model_name']), safe_mode, overwrite=action == 'train')
 
         if action == 'import':
-            self.import_dataset(args)
+            self.import_dataset(relevant_args)
         elif action == 'analyze':
             logger.error('Data analyzer not implemented yet.')
             exit(101)
         elif action == 'train':
-            self.train_model(args, and_viz)
+            self.train_model(relevant_args, and_viz)
         elif action == 'tune':
             logger.error('Hyperparameter tuner not implemented yet.')
             exit(101)
         elif action == 'interpret':
-            self.interpret_model(args, and_viz)
+            self.interpret_model(relevant_args, and_viz)
         elif action == 'predict':
-            self.evaluate_model_predictions(args, and_viz)
+            self.evaluate_model_predictions(relevant_args, and_viz)
         else:
             logger.error('Action %s invalid, or not implemented yet.', action)
             exit(101)
 
     def import_dataset(self, args):
-        import_args = setup_relevant_args(args['import'], 'import', self.safe_mode)
-        new_base_dataset = BaseDataset.from_path(**import_args)
+        args['importer']['safe_mode'] = self.safe_mode
+        new_base_dataset = BaseDataset.from_path(**args['importer'])
 
     def train_model(self, args, and_viz):
         datamodule, class_counts = KnowIt.get_datamodule(args['data'])
@@ -73,12 +78,11 @@ class KnowIt:
                                                     datamodule.out_shape)
         trainer_args = KnowIt.get_trainer_setup(args['trainer'],
                                                 self.device,
-                                                class_counts)
+                                                class_counts,
+                                                model,
+                                                model_params,
+                                                args['id'])
 
-        trainer_args['model'] = model
-        trainer_args['model_params'] = model_params
-        trainer_args['device'] = self.device
-        
         data_dynamics = {'in_shape': datamodule.in_shape,
                          'out_shape': datamodule.out_shape,
                          'train_size': datamodule.train_set_size,
@@ -88,7 +92,7 @@ class KnowIt:
             data_dynamics['class_set'] = datamodule.class_set
             data_dynamics['class_count'] = datamodule.class_counts
         args['data_dynamics'] = data_dynamics
-        
+
         if 'optional_pl_kwargs' in trainer_args:
             optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
         else:
@@ -97,23 +101,18 @@ class KnowIt:
         trainer_loader = datamodule.get_dataloader('train')
         val_loader = datamodule.get_dataloader('valid')
         eval_loader = datamodule.get_dataloader('eval')
-        
+
         state = trainer_args.pop('state')
-        
+
         if state == 'new':
-            trainer_args['out_dir'] = model_output_dir(args['id']['experiment_name'],
-                                                   args['id']['model_name'])
             dict_to_yaml(args,
                      model_output_dir(args['id']['experiment_name'],
                                       args['id']['model_name']),
                      'model_args.yaml')
-            
+
             trainer = KITrainer(state=TrainNew, base_trainer_kwargs=trainer_args, optional_pl_kwargs=optional_pl_kwargs)
             trainer.fit_and_eval(dataloaders=(trainer_loader, val_loader, eval_loader))
-            
-            # do not plot training curves if logging is turned off
-            if trainer_args['mute_logger']:
-                return
+
         elif 'continue' in state:
             save_dir = model_output_dir(args['id']['experiment_name'],
                                                    args['id']['model_name'])
@@ -121,33 +120,30 @@ class KnowIt:
             dict_to_yaml(args,
                      save_dir,
                      'model_args.yaml')
-            
+
             trainer_args['out_dir'] = save_dir
             trainer = KITrainer(state=ContinueTraining, base_trainer_kwargs=trainer_args, optional_pl_kwargs=optional_pl_kwargs, ckpt_file=state['continue'])
             trainer.fit_and_eval(dataloaders=(trainer_loader, val_loader, eval_loader))
-            
-            # do not plot training curves if logging is off
-            if trainer_args['mute_logger']:
-                return
+
         elif 'eval' in state:
             # TODO: this currently overwrites the model directory. Is there a way to disregard prevent this?
             save_dir = model_output_dir(args['id']['experiment_name'],
                                                    args['id']['model_name'])
             safe_mkdir(save_dir, safe_mode=True, overwrite=False)
-            
+
             trainer_args['out_dir'] = save_dir
             trainer = KITrainer(state=EvaluateOnly, base_trainer_kwargs=trainer_args, optional_pl_kwargs=optional_pl_kwargs, ckpt_file=state['eval'])
             trainer.fit_and_eval(dataloaders=(trainer_loader, val_loader, eval_loader))
-            
+
             # do not plot training curves
             return
 
-        if and_viz:
+        if and_viz and not trainer_args['mute_logger']:
             learning_curves(args['id'])
 
     def interpret_model(self, args, and_viz):
 
-        interpretation_args = setup_relevant_args(args['interpret_args'], 'interpret', self.safe_mode)
+        interpret_args = copy.deepcopy(args['interpret'])
         model_args = yaml_to_dict(model_args_path(args['id']['experiment_name'],
                                                    args['id']['model_name']))
         datamodule, class_counts = KnowIt.get_datamodule(model_args['data'])
@@ -155,37 +151,36 @@ class KnowIt:
                                                     datamodule.in_shape,
                                                     datamodule.out_shape)
 
-        interpreter_class = KnowIt.get_interpret_setup(interpretation_args)
+        interpreter_class = KnowIt.get_interpret_setup(args['interpret'])
         path_to_ckpt = ckpt_path(args['id']['experiment_name'], args['id']['model_name'])
-        seed = interpretation_args['seed']
         interpreter = interpreter_class(model=model,
                                         model_params=model_params,
                                         path_to_ckpt=path_to_ckpt,
                                         datamodule=datamodule,
                                         device=self.device,
-                                        i_data=interpretation_args['interpretation_set'],
-                                        multiply_by_inputs=interpretation_args['multiply_by_inputs'],
-                                        seed=seed)
+                                        i_data=args['interpret']['interpretation_set'],
+                                        multiply_by_inputs=args['interpret']['multiply_by_inputs'],
+                                        seed=args['interpret']['seed'])
 
-        i_inx = get_interpretation_inx(interpretation_args, model_args)
+        i_inx = get_interpretation_inx(args['interpret'], model_args)
         attributions = interpreter.interpret(pred_point_id=i_inx)
-        interpretation_args['i_inx'] = i_inx
+        interpret_args['i_inx'] = i_inx
 
         save_name = ''
-        for a in interpretation_args:
-            save_name += str(interpretation_args[a]) + '-'
+        for a in interpret_args:
+            save_name += str(interpret_args[a]) + '-'
         save_name = save_name[:-1] + '.pickle'
 
-        interpretation_args['results'] = attributions
+        interpret_args['results'] = attributions
 
         save_dir = model_interpretations_dir(args['id']['experiment_name'],
                                                    args['id']['model_name'])
         safe_mkdir(save_dir, self.safe_mode, overwrite=False)
         save_path = os.path.join(save_dir, save_name)
-        dump_at_path(interpretation_args, save_path)
+        dump_at_path(interpret_args, save_path)
 
         if and_viz:
-            feature_attribution(args['id'], args['interpret_args'])
+            feature_attribution(args['id'], args['interpret'])
 
     def evaluate_model_predictions(self, args, and_viz):
 
@@ -197,7 +192,6 @@ class KnowIt:
                                                     datamodule.out_shape)
         path_to_ckpt = ckpt_path(args['id']['experiment_name'], args['id']['model_name'])
 
-        import torch
         pt_model = model(**model_params)
         ckpt = torch.load(f=path_to_ckpt)
         state_dict = ckpt['state_dict']
@@ -234,44 +228,47 @@ class KnowIt:
             set_predictions(args['id'], args['predict']['prediction_set'])
 
     @staticmethod
-    def get_datamodule(experiment_dict):
-
-        data_args = setup_relevant_args(experiment_dict, 'data')
-        if 'seed' not in data_args:
-            data_args['seed'] = 123
-
-        if experiment_dict['task'] == 'regression':
+    def get_datamodule(data_args):
+        if data_args['task'] == 'regression':
             datamodule = RegressionDataset(**data_args)
             class_counts = None
-        elif experiment_dict['task'] == 'classification':
+        elif data_args['task'] == 'classification':
             datamodule = ClassificationDataset(**data_args)
             class_counts = datamodule.class_counts
         else:
-            logger.error('Unknown task type %s.', experiment_dict['task'])
+            logger.error('Unknown task type %s.', data_args['task'])
             exit(101)
 
         return datamodule, class_counts
 
     @staticmethod
-    def get_arch_setup(experiment_dict, in_shape, out_shape):
-        model = importlib.import_module('archs.' + experiment_dict['arch']).Model
+    def get_arch_setup(arch_args, in_shape, out_shape):
+
+        model = importlib.import_module('archs.' + arch_args['name']).Model
         model_params = {"input_dim": in_shape,
                         "output_dim": out_shape,
-                        "task_name": experiment_dict['task']}
-        if 'arch_hps' in experiment_dict:
-            for hp in experiment_dict['arch_hps']:
-                model_params[hp] = experiment_dict['arch_hps'][hp]
+                        "task_name": arch_args['task']}
+        if 'arch_hps' in arch_args:
+            for hp in arch_args['arch_hps']:
+                model_params[hp] = arch_args['arch_hps'][hp]
         return model, model_params
 
     @staticmethod
-    def get_trainer_setup(experiment_dict, device, class_counts):
-        trainer_args = setup_relevant_args(experiment_dict, 'trainer')
-        if trainer_args['loss_fn'] == 'weighted_cross_entropy':
-            trainer_args['loss_fn'] = proc_weighted_cross_entropy(trainer_args['task'],
+    def get_trainer_setup(trainer_args, device, class_counts, model, model_params, id_args):
+
+        ret_trainer_args = copy.deepcopy(trainer_args)
+        if ret_trainer_args['loss_fn'] == 'weighted_cross_entropy':
+            ret_trainer_args['loss_fn'] = proc_weighted_cross_entropy(ret_trainer_args['task'],
                                                                   device,
                                                                   class_counts)
 
-        return trainer_args
+        ret_trainer_args['model'] = model
+        ret_trainer_args['model_params'] = model_params
+        ret_trainer_args['device'] = device
+        ret_trainer_args['out_dir'] = model_output_dir(id_args['experiment_name'],
+                                                   id_args['model_name'])
+
+        return ret_trainer_args
 
     @staticmethod
     def get_interpret_setup(interpret_args):
