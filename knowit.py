@@ -88,6 +88,11 @@ class KnowIt:
             data_dynamics['class_set'] = datamodule.class_set
             data_dynamics['class_count'] = datamodule.class_counts
         args['data_dynamics'] = data_dynamics
+        
+        if 'optional_pl_kwargs' in trainer_args:
+            optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
+        else:
+            optional_pl_kwargs = {}
 
         trainer_loader = datamodule.get_dataloader('train')
         val_loader = datamodule.get_dataloader('valid')
@@ -103,8 +108,12 @@ class KnowIt:
                                       args['id']['model_name']),
                      'model_args.yaml')
             
-            trainer = KITrainer(state=TrainNew, **trainer_args)
-            trainer.fit_and_eval(dataloaders=(trainer_loader, val_loader, eval_loader))    
+            trainer = KITrainer(state=TrainNew, base_trainer_kwargs=trainer_args, optional_pl_kwargs=optional_pl_kwargs)
+            trainer.fit_and_eval(dataloaders=(trainer_loader, val_loader, eval_loader))
+            
+            # do not plot training curves if logging is turned off
+            if trainer_args['mute_logger']:
+                return
         elif 'continue' in state:
             save_dir = model_output_dir(args['id']['experiment_name'],
                                                    args['id']['model_name'])
@@ -114,11 +123,24 @@ class KnowIt:
                      'model_args.yaml')
             
             trainer_args['out_dir'] = save_dir
-            trainer = KITrainer(state=ContinueTraining, **trainer_args, ckpt_file=state['continue'])
+            trainer = KITrainer(state=ContinueTraining, base_trainer_kwargs=trainer_args, optional_pl_kwargs=optional_pl_kwargs, ckpt_file=state['continue'])
             trainer.fit_and_eval(dataloaders=(trainer_loader, val_loader, eval_loader))
+            
+            # do not plot training curves if logging is off
+            if trainer_args['mute_logger']:
+                return
         elif 'eval' in state:
-            trainer = KITrainer(state=EvaluateOnly, ckpt_file=state['eval'])
+            # TODO: this currently overwrites the model directory. Is there a way to disregard prevent this?
+            save_dir = model_output_dir(args['id']['experiment_name'],
+                                                   args['id']['model_name'])
+            safe_mkdir(save_dir, safe_mode=True, overwrite=False)
+            
+            trainer_args['out_dir'] = save_dir
+            trainer = KITrainer(state=EvaluateOnly, base_trainer_kwargs=trainer_args, optional_pl_kwargs=optional_pl_kwargs, ckpt_file=state['eval'])
             trainer.fit_and_eval(dataloaders=(trainer_loader, val_loader, eval_loader))
+            
+            # do not plot training curves
+            return
 
         if and_viz:
             learning_curves(args['id'])

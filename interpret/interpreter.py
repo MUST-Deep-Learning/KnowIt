@@ -1,4 +1,7 @@
-"""-----KIInterpreter-----.
+"""
+-------------
+KIInterpreter
+-------------
 
 The ``KIInterpreter'' class is the parent (root) class that is to be
 inherited by all other model interpretability modules.
@@ -8,7 +11,7 @@ initialize the Pytorch model for use by its descendant classes. As such, it is
 a direct link to Knowit's other modules. It is agnostic to the user's choice of
 interpretability method.
 
-"""
+"""# noqa: INP001, D205, D212, D400, D415
 
 __author__ = "randlerabe@gmail.com"
 __description__ = "Contains the Knowit interpreter class."
@@ -50,6 +53,7 @@ class KIInterpreter:
         device: str,
         path_to_checkpoint: str,
     ) -> None:
+
         self.model = self._load_model_from_ckpt(
             model=model,
             model_params=model_params,

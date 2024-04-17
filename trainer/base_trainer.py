@@ -1,79 +1,183 @@
-"""-----BaseTrainer-----.
-
-The ``BaseTrainer'' class is the parent (root) class that is to be
-inherited by KITrainer.
-
-The function of the ``BaseTrainer'' class is to store the user's parameters and
-appropriately prepares Pytorch Lightning's trainer module based on the user's
-needs.
-
-To complete!!!
-
 """
+-----------
+BaseTrainer
+-----------
+
+The "BaseTrainer" is an abstract class that functions as the interface bet-
+ween the context class ``KITrainer'' and any of the concrete trainer state
+objects.
+
+The "BaseTrainer" class stores the user's parameters and defines a set of
+abstract methods to be used by the trainer state objects.
+"""  # noqa: INP001, D205, D212, D400, D415
 
 from __future__ import annotations  # required for Python versions <3.9
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from trainer.trainer import KITrainer
 
 __author__ = "randlerabe@gmail.com"
-__description__ = (
-    "Contains the base class that prepares the Pytorch Lightning trainer."
-)
+__description__ = "Contains the abstract BaseTrainer class."
+
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pytorch_lightning.callbacks import ModelCheckpoint
+
+    from trainer.trainer import KITrainer
 
 from abc import ABC, abstractmethod
 
-from typing import Callable, Literal, Tuple
-
 import torch
-from pytorch_lightning import Trainer as PLTrainer
-from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning import seed_everything
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from helpers.logger import get_logger
-from trainer.model_config import PLModel
 
 logger = get_logger()
 
-
 class BaseTrainer(ABC):
+    """Abstract class to interface between the context class "KITrainer" and a
+    concrete state object.
 
+    "BaseTrainer" will initialize necessary and optional kwargs to be used by
+    any of the KnowIt Trainer states. It also defines abstract methods that are
+    to be defined in each state object.
+
+    Args:
+    ----
+        ABC (abc.ABC):          Used to define abstract class.
+
+    """  # noqa: D205
 
     def __init__(
         self,
         model: type,
-        model_params: dict,
+        model_params: dict[str, Any],
         out_dir: str,
         device: str,
-        loss_fn: str | dict,
-        optim: str | dict,
+        loss_fn: str | dict[str, Any],
+        optim: str | dict[str, Any],
         max_epochs: int,
         learning_rate: float,
-        lr_scheduler: dict | None = None,
-        performance_metrics: dict | None = None,
-        clip_gradients: dict | None = None,
+        lr_scheduler: None | dict[str, Any] = None,
+        performance_metrics: None | str | dict[str, Any] = None,
+        early_stopping_args: None | dict[str, Any] = None,
+        ckpt_mode: str = "min",
         *,
         return_final: bool = False,
         mute_logger: bool = False,
-        seed: int | bool = False,
-        early_stopping_args: None | dict = None,
-        deterministic: bool | Literal["warn"] | None = None,
-        ckpt_mode: str = "min",
+        seed: None | int = 123,
     ) -> None:
-        # set output directory
+        """BaseTrainer constructor.
+
+        Args:
+        ----
+            model (type):           The Pytorch model architecture define by
+                                    the user in Knowits ./archs subdirectory.
+
+            model_params (dict):    The parameters required to initialize
+                                    model.
+
+            out_dir (str):          The directory to save the model's check-
+                                    point file.
+
+            device (str):           The device on which training is to be per-
+                                    formed (cpu or gpu).
+
+            loss_fn (str | dict):   The loss function to be used during train-
+                                    ing. The string must match Pytorch's
+                                    functional library. See:
+                                    https://pytorch.org/docs/stable/nn.functional.html#loss-functions
+
+            optim (str | dict):     The optimizer to be used during training.
+                                    The string must match Pytorch's optimizer
+                                    library. See:
+                                    https://pytorch.org/docs/stable/nn.functional.html#loss-functions
+
+            max_epochs (int):       The number of training iterations, where a
+                                    single iteration is over the entire train-
+                                    ing set.
+
+            learning_rate (float):  The learning rate to be used during
+                                    parameter updates. It controls the size of
+                                    the updates.
+
+            lr_scheduler (dict | None):
+                                    The learning rate scheduler to be used
+                                    during training. If not None, a dictionary
+                                    must be given of the form
+                                        {scheduler: scheduler_kwargs},
+                                    where
+                                        scheduler:      A string that specifies
+                                                        the Pytorch scheduler
+                                                        to be used. Must match
+                                                        names found here:
+                                                        https://pytorch.org/docs/stable/optim.html#module-torch.optim.lr_scheduler
+
+                                        scheduler_
+                                        kwargs:         A dictionary of kwargs
+                                                        required for
+                                                        'scheduler'.
+                                    Default: None
+
+            performance_metrics (str | dict | None):
+                                    Performance metrics to be logged during
+                                    training. If type=dict, then the dictionary
+                                    must be given of the form
+                                        {metric: metric_kwargs},
+                                    where
+                                        metric:         A string that specifies
+                                                        the TORCHMETRICS metric
+                                                        to be used. Must match
+                                                        the functional inter-
+                                                        face names found here:
+                                                        https://lightning.ai/docs/torchmetrics/stable/
+
+                                        metric_
+                                        kwargs:         A dictionary of kwargs
+                                                        required for 'metric'.
+                                    Default: None.
+
+            early_stopping_args (None | dict):
+                                    Sets the Pytorch Lightning's EarlyStopping
+                                    callback. If not None, a dictionary must be
+                                    given with keywords corresponding to an
+                                    argument in EarlyStopping and the corres-
+                                    ponding value. See:
+                                    https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.callbacks.EarlyStopping.html#lightning.pytorch.callbacks.EarlyStopping
+                                    Default: None
+
+            ckpt_mode (str):        Sets the condition for when a model check-
+                                    point should be saved or overwritten during
+                                    training.
+                                    Default: 'min'.
+
+            return_final (bool):    If True, checkpoint file is saved at the
+                                    end of the last epoch. If False, checkpoint
+                                    file is saved based on ckpt_mode.
+                                    Default: False.
+
+            mute_logger (bool):     If True, the trainer will not log any
+                                    metrics or save any checkpoints during
+                                    training.
+                                    Default: False.
+
+            seed (None | int):      If int, sets the random seed value for
+                                    reproducibility. If None, a new random seed
+                                    is used for each training run.
+                                    Default: 123.
+
+        """
         self.out_dir = out_dir
-
-        # turn off logger during hp tuning
         self.mute_logger = mute_logger
-
-        # save global seed
         self.seed = seed
+        self.early_stopping_args = early_stopping_args
+        self.return_final = return_final
+        self.ckpt_mode = ckpt_mode
 
-        # model kwargs
-        self.pl_model_kwargs = {
+        # seed everything
+        if seed:
+            seed_everything(seed, workers=True)
+
+        # model setup kwargs
+        self.pl_model_kwargs: dict[str, Any] = {
             "model": model,
             "model_params": model_params,
             "loss": loss_fn,
@@ -83,21 +187,11 @@ class BaseTrainer(ABC):
             "learning_rate_scheduler": lr_scheduler,
         }
 
-        self.early_stopping_args = early_stopping_args
-        self.trainer_kwargs = {
+        # PL trainer setup kwargs
+        self.trainer_kwargs: dict[str, Any] = {
             "max_epochs": max_epochs,
-            "deterministic": deterministic,
             "detect_anomaly": True,
         }
-
-        if clip_gradients:
-            self.trainer_kwargs["gradient_clip_val"] = clip_gradients["value"]
-            self.trainer_kwargs["gradient_clip_algorithm"] = clip_gradients[
-                "algorithm"
-            ]
-        else:
-            self.trainer_kwargs["gradient_clip_val"] = None
-            self.trainer_kwargs["gradient_clip_algorithm"] = "norm"
 
         # device(s) to use
         self.trainer_kwargs["accelerator"] = device
@@ -111,42 +205,52 @@ class BaseTrainer(ABC):
                     """,
                 )
 
-        # misc
-        self.return_final = return_final
-        self.ckpt_mode = ckpt_mode
-
     @property
-    def context(self) -> KITrainer:
+    def context(self) -> KITrainer:  # noqa: D102
         return self._context
 
     @context.setter
     def context(self, context: KITrainer) -> None:
         self._context = context
-        
+
     @abstractmethod
-    def fit_model(self, dataloaders):
-        pass
-    
+    def fit_model(self, dataloaders: tuple[type, type, type]) -> None:
+        """Fit model to the training data and monitor metrics on val set.
+
+        Args:
+        ----
+            dataloaders (tuple):    The train dataloader and validation
+                                    dataloader. The ordering of the tuple
+                                    must be given is (train, val).
+
+        """
+
     @abstractmethod
-    def evaluate_model(self, dataloaders):
-        pass
-    
+    def evaluate_model(self, dataloaders: tuple[type, type, type]) -> None:
+        """Evaluate the trained model's performance on a tuple of data sets.
+
+        NOTE: If the concatenated strings for metrics become long, Pytorch
+        Lightning will print the evaluation results on two seperate lines in
+        the terminal.
+
+        Args:
+        ----
+            dataloaders (tuple):        A tuple consisting of three Pytorch
+                                        dataloaders (train, val, eval).
+
+        """
+
     @abstractmethod
-    def prepare_pl_model(self, to_ckpt):
+    def _prepare_pl_model(self) -> None:
         pass
-    
+
     @abstractmethod
     def _prepare_pl_trainer(
         self,
-    ) -> type:
-        """Calls Pytorch Lightning's trainer using the user's parameters."""
-
+        optional_pl_kwargs: dict[str, Any],
+    ) -> None:
         pass
-    
-    @abstractmethod
-    def _save_model_state(self):
-        """Saves the best model to the user's project output directory as a checkpoint.
-        Files are named as datetime strings.
 
-        """
+    @abstractmethod
+    def _save_model_state(self) -> ModelCheckpoint | None:
         pass
