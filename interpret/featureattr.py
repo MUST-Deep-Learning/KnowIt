@@ -1,4 +1,7 @@
-"""-----FeatureAttribution-----.
+"""
+------------------
+FeatureAttribution
+------------------
 
 The ``FeatureAttribution'' class is a child class which inherits from
 ``KIInterpreter''.
@@ -8,7 +11,7 @@ of feature attribution method (a descendant class) by extracting the necessary
 information from Knowit's datamodule and returning it in the expected form for
 Captum.
 
-"""
+"""# noqa: INP001, D205, D212, D400, D415
 
 from __future__ import annotations  # required for Python versions <3.9
 
@@ -55,6 +58,7 @@ class FeatureAttribution(KIInterpreter):
         i_data: str,
         device: str,
     ) -> None:
+
         super().__init__(
             model=model,
             model_params=model_params,

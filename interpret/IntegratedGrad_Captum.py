@@ -1,4 +1,7 @@
-"""-----Integrated Gradients-----.
+"""
+--------------------
+Integrated Gradients
+--------------------
 
 Integrated Gradients is a feature attribution method.
 
@@ -14,7 +17,7 @@ and
 
 https://captum.ai/api/integrated_gradients.html
 
-"""
+"""# noqa: INP001, D205, D212, D400, D415
 
 from __future__ import annotations
 
@@ -74,6 +77,7 @@ class IntegratedGrad(FeatureAttribution):
         *,
         multiply_by_inputs: bool = True,
     ) -> None:
+
         super().__init__(
             model=model,
             model_params=model_params,
