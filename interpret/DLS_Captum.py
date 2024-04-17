@@ -1,4 +1,7 @@
-"""-----DeepLiftShap-----.
+"""
+------------
+DeepLiftShap
+------------
 
 DeepLiftShap is a feature attribution method.
 
@@ -14,7 +17,7 @@ and
 
 https://captum.ai/api/deep_lift_shap.html
 
-"""
+"""# noqa: INP001, D205, D212, D400, D415
 
 from __future__ import annotations
 
@@ -73,6 +76,7 @@ class DLS(FeatureAttribution):
         *,
         multiply_by_inputs: bool = True,
     ) -> None:
+
         super().__init__(
             model=model,
             model_params=model_params,

@@ -19,6 +19,7 @@ from data.base_dataset import BaseDataset
 from data.classification_dataset import ClassificationDataset
 from data.regression_dataset import RegressionDataset
 from trainer.trainer import KITrainer
+from trainer.trainer_states import TrainNew, ContinueTraining, EvaluateOnly
 from setup.setup_action_args import setup_relevant_args
 from setup.select_interpretation_points import get_interpretation_inx
 from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
@@ -76,10 +77,8 @@ class KnowIt:
 
         trainer_args['model'] = model
         trainer_args['model_params'] = model_params
-        trainer_args['train_device'] = self.device
-        trainer_args['out_dir'] = model_output_dir(args['id']['experiment_name'],
-                                                   args['id']['model_name'])
-
+        trainer_args['device'] = self.device
+        
         data_dynamics = {'in_shape': datamodule.in_shape,
                          'out_shape': datamodule.out_shape,
                          'train_size': datamodule.train_set_size,
@@ -89,19 +88,59 @@ class KnowIt:
             data_dynamics['class_set'] = datamodule.class_set
             data_dynamics['class_count'] = datamodule.class_counts
         args['data_dynamics'] = data_dynamics
+        
+        if 'optional_pl_kwargs' in trainer_args:
+            optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
+        else:
+            optional_pl_kwargs = {}
 
-        dict_to_yaml(args,
-                     model_output_dir(args['id']['experiment_name'],
-                                      args['id']['model_name']),
-                     'model_args.yaml')
-
-        trainer = KITrainer(**trainer_args)
         trainer_loader = datamodule.get_dataloader('train')
         val_loader = datamodule.get_dataloader('valid')
         eval_loader = datamodule.get_dataloader('eval')
-
-        trainer.fit_model(dataloaders=(trainer_loader, val_loader))
-        trainer.evaluate_model(dataloaders=(trainer_loader, val_loader, eval_loader))
+        
+        state = trainer_args.pop('state')
+        
+        if state == 'new':
+            trainer_args['out_dir'] = model_output_dir(args['id']['experiment_name'],
+                                                   args['id']['model_name'])
+            dict_to_yaml(args,
+                     model_output_dir(args['id']['experiment_name'],
+                                      args['id']['model_name']),
+                     'model_args.yaml')
+            
+            trainer = KITrainer(state=TrainNew, base_trainer_kwargs=trainer_args, optional_pl_kwargs=optional_pl_kwargs)
+            trainer.fit_and_eval(dataloaders=(trainer_loader, val_loader, eval_loader))
+            
+            # do not plot training curves if logging is turned off
+            if trainer_args['mute_logger']:
+                return
+        elif 'continue' in state:
+            save_dir = model_output_dir(args['id']['experiment_name'],
+                                                   args['id']['model_name'])
+            safe_mkdir(save_dir, self.safe_mode, overwrite=False)
+            dict_to_yaml(args,
+                     save_dir,
+                     'model_args.yaml')
+            
+            trainer_args['out_dir'] = save_dir
+            trainer = KITrainer(state=ContinueTraining, base_trainer_kwargs=trainer_args, optional_pl_kwargs=optional_pl_kwargs, ckpt_file=state['continue'])
+            trainer.fit_and_eval(dataloaders=(trainer_loader, val_loader, eval_loader))
+            
+            # do not plot training curves if logging is off
+            if trainer_args['mute_logger']:
+                return
+        elif 'eval' in state:
+            # TODO: this currently overwrites the model directory. Is there a way to disregard prevent this?
+            save_dir = model_output_dir(args['id']['experiment_name'],
+                                                   args['id']['model_name'])
+            safe_mkdir(save_dir, safe_mode=True, overwrite=False)
+            
+            trainer_args['out_dir'] = save_dir
+            trainer = KITrainer(state=EvaluateOnly, base_trainer_kwargs=trainer_args, optional_pl_kwargs=optional_pl_kwargs, ckpt_file=state['eval'])
+            trainer.fit_and_eval(dataloaders=(trainer_loader, val_loader, eval_loader))
+            
+            # do not plot training curves
+            return
 
         if and_viz:
             learning_curves(args['id'])
