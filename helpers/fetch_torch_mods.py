@@ -14,10 +14,7 @@ from torchmetrics import functional as mf
 
 def get_loss_function(
     loss: str,
-) -> Callable[
-    [int | float, int | float, None | dict[str, Any]],
-    int | float,
-]:
+) -> Callable[..., int | float]:
     """Return user's choice of loss function.
 
     A helper method to retrieve the user's choice of loss function. The loss
@@ -41,10 +38,7 @@ def get_loss_function(
 
 def get_performance_metric(
     metric: str,
-) -> Callable[
-    [int | float, int | float, None | dict[str, Any]],
-    int | float,
-]:
+) -> Callable[..., int | float]:
     """Return user's choice of performance metrics.
 
     A helper method to retrieve the user's choice of performance metrics. The
