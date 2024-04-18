@@ -33,7 +33,10 @@ as follows:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer as PLTrainer
 from pytorch_lightning import loggers as pl_loggers
@@ -81,7 +84,10 @@ class TrainNew(BaseTrainer):
 
         self._prepare_pl_trainer(optional_pl_kwargs=optional_pl_kwargs)
 
-    def fit_model(self, dataloaders: tuple[type, type, type]) -> None:
+    def fit_model(
+        self,
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+    ) -> None:
         """Fit model to the training data and monitor metrics on val set.
 
         Args:
@@ -100,7 +106,10 @@ class TrainNew(BaseTrainer):
             val_dataloaders=val_dataloader,
         )
 
-    def evaluate_model(self, dataloaders: tuple[type, type, type]) -> None:
+    def evaluate_model(
+        self,
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+    ) -> None:
         """Evaluate the trained model's performance on a tuple of data sets.
 
         NOTE: If the concatenated strings for metrics become long, Pytorch
@@ -233,7 +242,10 @@ class ContinueTraining(BaseTrainer):
 
         self._prepare_pl_trainer(optional_pl_kwargs=optional_pl_kwargs)
 
-    def fit_model(self, dataloaders: tuple[type, type, type]) -> None:
+    def fit_model(
+        self,
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+    ) -> None:
         """Fit model to the training data and monitor metrics on val set.
 
         Args:
@@ -254,7 +266,10 @@ class ContinueTraining(BaseTrainer):
             ckpt_path=self.ckpt_file,
         )
 
-    def evaluate_model(self, dataloaders: tuple[type, type, type]) -> None:
+    def evaluate_model(
+        self,
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+    ) -> None:
         """Evaluate the trained model's performance on a tuple of data sets.
 
         NOTE: If the concatenated strings for metrics become long, Pytorch
@@ -278,7 +293,7 @@ class ContinueTraining(BaseTrainer):
         self.trainer.test(ckpt_path=set_ckpt_path, dataloaders=dataloaders)
 
     def _prepare_pl_model(self) -> None:
-        self.pl_model = PLModel.load_from_checkpoint( # type: ignore  # noqa: PGH003
+        self.pl_model = PLModel.load_from_checkpoint(  # type: ignore  # noqa: PGH003
             checkpoint_path=self.ckpt_file,
         )
 
@@ -312,8 +327,9 @@ class ContinueTraining(BaseTrainer):
         else:
             early_stopping = None
 
-        callbacks = [c for c in [ckpt_callback, early_stopping] if c is not\
-            None]
+        callbacks = [
+            c for c in [ckpt_callback, early_stopping] if c is not None
+        ]
         self.trainer_kwargs["callbacks"] = callbacks
 
         self.trainer = PLTrainer(
@@ -377,7 +393,10 @@ class EvaluateOnly(BaseTrainer):
 
         self._prepare_pl_trainer(optional_pl_kwargs={})
 
-    def fit_model(self, dataloaders: tuple[type, type, type]) -> None:
+    def fit_model(
+        self,
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+    ) -> None:
         """Fit model to the training data and monitor metrics on val set.
 
         Args:
@@ -388,7 +407,10 @@ class EvaluateOnly(BaseTrainer):
 
         """
 
-    def evaluate_model(self, dataloaders: tuple[type, type, type]) -> None:
+    def evaluate_model(
+        self,
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+    ) -> None:
         """Evaluate the trained model's performance on a tuple of data sets.
 
         NOTE: If the concatenated strings for metrics become long, Pytorch
@@ -405,7 +427,7 @@ class EvaluateOnly(BaseTrainer):
         self.trainer.test(model=self.pl_model, dataloaders=dataloaders)
 
     def _prepare_pl_model(self) -> None:
-        self.pl_model = PLModel.load_from_checkpoint( # type: ignore  # noqa: PGH003
+        self.pl_model = PLModel.load_from_checkpoint(  # type: ignore  # noqa: PGH003
             **self.pl_model_kwargs,
             checkpoint_path=self.ckpt_file,
         )
@@ -414,7 +436,7 @@ class EvaluateOnly(BaseTrainer):
         self,
         optional_pl_kwargs: dict[str, Any],
     ) -> None:
-        self.trainer = PLTrainer(**optional_pl_kwargs) # optional_pl_kwargs={}
+        self.trainer = PLTrainer(**optional_pl_kwargs)  # optional_pl_kwargs={}
 
     def _save_model_state(self) -> None:
         pass

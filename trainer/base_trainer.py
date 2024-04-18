@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pytorch_lightning.callbacks import ModelCheckpoint
+    from torch.utils.data.dataloader import DataLoader
 
     from trainer.trainer import KITrainer
 
@@ -31,6 +32,7 @@ from pytorch_lightning import seed_everything
 from helpers.logger import get_logger
 
 logger = get_logger()
+
 
 class BaseTrainer(ABC):
     """Abstract class to interface between the context class "KITrainer" and a
@@ -69,7 +71,7 @@ class BaseTrainer(ABC):
 
         Args:
         ----
-            model (type):           The Pytorch model architecture define by
+            model (type):           The Pytorch model architecture defined by
                                     the user in Knowits ./archs subdirectory.
 
             model_params (dict):    The parameters required to initialize
@@ -214,7 +216,10 @@ class BaseTrainer(ABC):
         self._context = context
 
     @abstractmethod
-    def fit_model(self, dataloaders: tuple[type, type, type]) -> None:
+    def fit_model(
+        self,
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+    ) -> None:
         """Fit model to the training data and monitor metrics on val set.
 
         Args:
@@ -226,7 +231,10 @@ class BaseTrainer(ABC):
         """
 
     @abstractmethod
-    def evaluate_model(self, dataloaders: tuple[type, type, type]) -> None:
+    def evaluate_model(
+        self,
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+    ) -> None:
         """Evaluate the trained model's performance on a tuple of data sets.
 
         NOTE: If the concatenated strings for metrics become long, Pytorch

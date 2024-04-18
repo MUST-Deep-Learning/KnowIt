@@ -11,18 +11,10 @@ The user is able to use the KnowIt Trainer in different ways, depending on the
 training task. As such, the trainer submodule is built according to a `State'
 pattern.
 
---- REMOVE ---
-https://sourcemaking.com/design_patterns/state
-https://refactoring.guru/design-patterns/state
-https://refactoring.guru/design-patterns/state/python/example
-----------------------------------------------------------
-
 Thus, there are three parts to the submodule: the context class (KITrainer)
 that Knowit directly interacts with, an abstract class (BaseTrainer) that
 interfaces the context class with a concrete trainer state, and a set of
 trainer state classes.
-
-TODO: the above type comments can maybe go in the modules __ini__ files?
 
 The three possible concrete states are:
     - STATE 1 (NEW): Train a new model from scratch.
@@ -38,7 +30,10 @@ from __future__ import annotations
 __author__ = "randlerabe@gmail.com"
 __description__ = "Contains the KITrainer context class."
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from torch.utils.data.dataloader import DataLoader
 
 from helpers.logger import get_logger
 
@@ -76,7 +71,6 @@ class KITrainer:
         optional_pl_kwargs: dict[str, Any],
         ckpt_file: None | str = None,
     ) -> None:
-
         self._set_state(
             state=state,
             base_trainer_kwargs=base_trainer_kwargs,
@@ -105,14 +99,16 @@ class KITrainer:
 
         self._state.context = self
 
-
-    def fit_and_eval(self, dataloaders: tuple[type, type, type]) -> None:
+    def fit_and_eval(
+        self,
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+    ) -> None:
         """Fit model to training data and evaluate on eval data.
 
         Args:
         ----
-            dataloaders (type): The Pytorch dataloaders that has been set up
-                                in KnowIt's datamodule.
+            dataloaders (tuple):    The Pytorch dataloaders that has been set
+                                    up in KnowIt's datamodule.
 
         """
         if self._state is None:
@@ -122,13 +118,16 @@ class KITrainer:
         self._state.fit_model(dataloaders=dataloaders)
         self._state.evaluate_model(dataloaders=dataloaders)
 
-    def eval(self, dataloaders: tuple[type, type, type]) -> None:
+    def eval(
+        self,
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+    ) -> None:
         """Evaluate a trained model from checkpoint on a user's data.
 
         Args:
         ----
-            dataloaders (type): The Pytorch dataloaders that has been set up
-                                in KnowIt's datamodule.
+            dataloaders (tuple):    The Pytorch dataloaders that has been set
+                                    up in KnowIt's datamodule.
 
         """
         if self._state is None:
