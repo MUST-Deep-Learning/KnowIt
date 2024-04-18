@@ -4,7 +4,10 @@ __author__ = "randlerabe@gmail.com"
 __description__ = "Helper functions used in KnowIt's trainer module."
 
 
-from typing import Any, Callable, Iterator
+from typing import TYPE_CHECKING, Any, Callable, Iterator
+
+if TYPE_CHECKING:
+    from torch import Tensor
 
 from torch import optim
 from torch.nn import functional as f
@@ -12,9 +15,7 @@ from torch.optim import lr_scheduler
 from torchmetrics import functional as mf
 
 
-def get_loss_function(
-    loss: str,
-) -> Callable[..., int | float]:
+def get_loss_function(loss: str) -> Callable[..., float | Tensor]:
     """Return user's choice of loss function.
 
     A helper method to retrieve the user's choice of loss function. The loss
@@ -36,9 +37,7 @@ def get_loss_function(
     return getattr(f, loss)
 
 
-def get_performance_metric(
-    metric: str,
-) -> Callable[..., int | float]:
+def get_performance_metric(metric: str) -> Callable[..., float | Tensor]:
     """Return user's choice of performance metrics.
 
     A helper method to retrieve the user's choice of performance metrics. The
