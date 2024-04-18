@@ -3,24 +3,33 @@
 KITrainer
 ---------------
 
-The "KITrainer"''" is a context class that that interacts with the overall
+The "KITrainer" is a context class that that interacts with the overall
 Knowit architecture script (which, in turn, interacts with all of KnowIt's sub-
 modules).
 
 The user is able to use the KnowIt Trainer in different ways, depending on the
 training task. As such, the trainer submodule is built according to a `State'
-pattern from OOP.
+pattern.
 
+--- REMOVE ---
 https://sourcemaking.com/design_patterns/state
 https://refactoring.guru/design-patterns/state
 https://refactoring.guru/design-patterns/state/python/example
+----------------------------------------------------------
 
-The three possible states are:
+Thus, there are three parts to the submodule: the context class (KITrainer)
+that Knowit directly interacts with, an abstract class (BaseTrainer) that
+interfaces the context class with a concrete trainer state, and a set of
+trainer state classes.
+
+TODO: the above type comments can maybe go in the modules __ini__ files?
+
+The three possible concrete states are:
     - STATE 1 (NEW): Train a new model from scratch.
     - STATE 2 (CONTINUE): Continue training an existing model from checkpoint.
     - STATE 3 (EVAL): Load a trained model and evaluate it on a dataset.
 
-KnowIt's Trainer is built using Pytorch Lightning. See here:
+KnowIt's Trainer submodule is built using Pytorch Lightning. See here:
 https://lightning.ai/pytorch-lightning
 """  # noqa: INP001, D205, D212, D400, D415
 
@@ -107,7 +116,8 @@ class KITrainer:
 
         """
         if self._state is None:
-            raise ValueError("Trainer state cannot be None.")
+            emsg = "Trainer state cannot be set to None."
+            raise TypeError(emsg)
 
         self._state.fit_model(dataloaders=dataloaders)
         self._state.evaluate_model(dataloaders=dataloaders)
@@ -122,6 +132,7 @@ class KITrainer:
 
         """
         if self._state is None:
-            raise ValueError("Trainer state cannot be None")
+            emsg = "Trainer state cannot be set to None."
+            raise TypeError(emsg)
 
         self._state.evaluate_model(dataloaders=dataloaders)
