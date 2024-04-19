@@ -5,6 +5,7 @@ __description__ = "Helper functions used in KnowIt's trainer module."
 
 
 from typing import TYPE_CHECKING, Any, Callable, Iterator
+from functools import partial
 
 if TYPE_CHECKING:
     from torch import Tensor
@@ -99,3 +100,64 @@ def get_lr_scheduler(
 
     """
     return getattr(lr_scheduler, scheduler)
+
+
+def prepare_function(user_args: str | dict[str, Any]) -> (
+        dict[str, Callable[..., float | Tensor]]
+    ):
+        """Set up and return a user's choice of function.
+
+        Unpacks user_args and fetches the correct functions with any kwargs.
+        This is only performed once during the training run.
+
+        Returns
+        -------
+            functions (dict):   A prepared function suitable for a task in the
+                                trainer submodule.
+
+        """
+        function: dict[str, Callable[..., float|Tensor]] = {}
+        if isinstance(user_args, dict):
+            for _metric in user_args:
+                kwargs = user_args[_metric]
+                try:
+                    loss_f = partial(
+                        get_loss_function(_metric),
+                        **kwargs,
+                    )
+                    function[_metric] = loss_f
+                except:
+                    loss_f = partial(
+                        get_performance_metric(_metric),
+                        **kwargs,
+                    )
+                    function[_metric] = loss_f
+        else:
+            try:
+                loss_f = get_loss_function(user_args)
+                function[user_args] = loss_f
+            except:
+                loss_f = get_performance_metric(user_args)
+                function[user_args] = loss_f
+
+        return function
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
