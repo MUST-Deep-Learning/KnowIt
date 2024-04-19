@@ -23,10 +23,9 @@ import pytorch_lightning as pl
 from torch import Tensor
 
 from helpers.fetch_torch_mods import (
-    get_loss_function,
     get_lr_scheduler,
     get_optim,
-    get_performance_metric,
+    prepare_function,
 )
 from helpers.logger import get_logger
 
@@ -52,7 +51,7 @@ class PLModel(pl.LightningModule):
         loss: str | dict[str, Any],
         learning_rate: float,
         optimizer: str | dict[str, Any],
-        learning_rate_scheduler: dict[str, Any],
+        learning_rate_scheduler: str | dict[str, Any],
         performance_metrics: None | str | dict[str, Any],
         model: type,
         model_params: dict[str, Any],
@@ -107,137 +106,16 @@ class PLModel(pl.LightningModule):
 
         self.save_hyperparameters()
 
-    def _build_model(self, model: type, model_params: dict[str, Any]) -> type:
-        """Instantiate a Pytorch model with the given model parameters.
-
-        Args:
-        ----
-            model (type):               An unitialized Pytorch model class
-                                        defined in ~./archs.
-
-            model_params (dict):        The parameters needed to instantiate
-                                        the above Pytorch model class.
-
-        Returns:
-        -------
-            (type):                     An Pytorch model object.
-
-        """
-        return model(**model_params)
-
-    def _compute_loss(
-        self,
-        y: float | Tensor,
-        y_pred: float | Tensor,
-        loss_label: str,
-    ) -> tuple[float | Tensor, dict[str, float | Tensor]]:
-        """Return the loss and the updated the metrics log.
-
-        Args:
-        ----
-            y (float | Tensor):         The target value from a set of training
-                                        pairs.
-
-            y_pred (float | Tensor):    The model's prediction.
-
-            loss_label (str):           Name to be used for labeling purposes.
-
-        Returns:
-        -------
-            (tuple):                    The computed loss between y and y_pred
-                                        and the dictionary that logs the loss.
-
-        """
-        log_metrics = {}
-
-        def _prepare_loss_function() -> (
-            dict[
-                str,
-                Callable[..., float | Tensor]
-                | tuple[Callable[..., float | Tensor], dict[str, Any]],
-            ]
-        ):
-            loss_functions = {}
-            if isinstance(self.loss, dict):
-                for loss_metric in self.loss:
-                    loss_kwargs = self.loss[loss_metric]
-                    loss = get_loss_function(loss_metric)
-                    loss_functions = {loss_metric: (loss, loss_kwargs)}
-            else:
-                loss = get_loss_function(self.loss)
-                loss_functions = {self.loss: loss}
-
-            return loss_functions   #TODO: Fix the error from Pylance here
-
-        if not hasattr(self, "loss_functions"):
-            self.loss_functions = _prepare_loss_function()
-
-        for _function in self.loss_functions:
-            if type(self.loss_functions[_function]) is tuple:
-                function = self.loss_functions[_function][0]
-                f_kwargs = self.loss_functions[_function][1]
-                loss = function(y_pred, y, **f_kwargs)
-            else:
-                function = self.loss_functions[_function](y_pred, y)
-                log_metrics[loss_label] = loss
-
-        return loss, log_metrics  # type: ignore[return-value]
-
-    def _compute_performance(
-        self,
-        y: float | Tensor,
-        y_pred: float | Tensor,
-        perf_label: str,
-    ) -> dict[str, float | Tensor]:
-        """Return the performance scores(s) and the updated the metrics log.
-
-        Args:
-        ----
-            log_metrics (dict):         The dictionary that logs the metrics.
-
-            y (float | tensor):         The target value from a set of training
-                                        pairs.
-
-            y_pred (float | tensor):    The model's prediction.
-
-            perf_label (str):           Name to be used for labeling purposes.
-
-        Returns:
-        -------
-            (tuple):                    The computed score between y and
-                                        y_pred and the dictionary that logs
-                                        the performance score.
-
-        """
-        log_metrics = {}
-
-        if isinstance(self.performance_metrics, dict):
-            for p_metric in self.performance_metrics:
-                perf_kwargs = self.performance_metrics[p_metric]
-                log_metrics[perf_label + p_metric] = get_performance_metric(
-                    p_metric,
-                )(y_pred, y, **perf_kwargs)
-        elif self.performance_metrics is not None:
-            log_metrics[perf_label + self.performance_metrics] = (
-                get_performance_metric(self.performance_metrics)(y_pred, y)
-            )
-
-        return log_metrics  # type: ignore[return-value]
-
-    def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201
-        """Return the batch loss.
+    def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
+        """Compute loss and optional metrics, log metrics, and return the loss.
 
         Overrides the method in pl.LightningModule.
         """
         x = batch["x"]
         y = batch["y"]
 
-        y_pred = self.model.forward(x)  # type: ignore[return-value]
-        if type(y_pred) not in (float, Tensor):
-            t = type(y_pred)
-            emsg = f"The model's forward method gives return type {t}.\
-                Expecting float or torch.Tensor."
-            raise TypeError(emsg)
+        forward = getattr(self.model, "forward")  # noqa: B009
+        y_pred = forward(x)
 
         # compute loss; depends on whether user gave kwargs
         loss, loss_log_metrics = self._compute_loss(
@@ -271,20 +149,16 @@ class PLModel(pl.LightningModule):
 
         return loss
 
-    def validation_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201
-        """Return the batch loss.
+    def validation_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
+        """Compute loss and optional metrics, log metrics, and return the loss.
 
         Overrides the method in pl.LightningModule.
         """
         x = batch["x"]
         y = batch["y"]
 
-        y_pred = self.model.forward(x)  # type: ignore[return-value]
-        if type(y_pred) not in (float, Tensor):
-            t = type(y_pred)
-            emsg = f"The model's forward method gives return type {t}.\
-                Expecting float or torch.Tensor."
-            raise TypeError(emsg)
+        forward = getattr(self.model, "forward")  # noqa: B009
+        y_pred = forward(x)
 
         # compute loss; depends on whether user gave kwargs
         loss, loss_log_metrics = self._compute_loss(
@@ -292,6 +166,7 @@ class PLModel(pl.LightningModule):
             y_pred=y_pred,
             loss_label="valid_loss",
         )
+
         # compute performance; depends on whether user gave kwargs
         if self.performance_metrics is None:
             perf_log_metrics = {}
@@ -320,10 +195,10 @@ class PLModel(pl.LightningModule):
     def test_step(  # type: ignore[return-value]  # noqa: ANN201
         self,
         batch: dict[str, Any],
-        batch_idx: int,
+        batch_idx: int,  # noqa: ARG002
         dataloader_idx: int,
     ):
-        """Return the batch loss.
+        """Compute loss and optional metrics, log metrics and return the log.
 
         Overrides the method in pl.LightningModule.
         """
@@ -337,12 +212,8 @@ class PLModel(pl.LightningModule):
         x = batch["x"]
         y = batch["y"]
 
-        y_pred = self.model.forward(x)  # type: ignore[return-value]
-        if type(y_pred) not in (float, Tensor):
-            t = type(y_pred)
-            emsg = f"The model's forward method gives return type {t}.\
-                Expecting float or torch.Tensor."
-            raise TypeError(emsg)
+        forward = getattr(self.model, "forward")  # noqa: B009
+        y_pred = forward(x)
 
         # compute loss; depends on whether user gave kwargs
         _, loss_log_metrics = self._compute_loss(
@@ -350,6 +221,7 @@ class PLModel(pl.LightningModule):
             y_pred=y_pred,
             loss_label=current_loader + "loss",
         )
+
         # compute performance; depends on whether user gave kwargs
         if self.performance_metrics is None:
             perf_log_metrics = {}
@@ -377,40 +249,157 @@ class PLModel(pl.LightningModule):
 
         return log_metrics
 
-    def configure_optimizers(self):
-        # get user's optimizer
+    def configure_optimizers(self) -> dict[str, Any]:
+        """Return configured optimizer and optional learning rate scheduler.
+
+        Overrides the method in pl.LightningModule.
+        """
         if self.optimizer:
-            if isinstance(self.optimizer, dict):  # optimizer has kwargs
-                for optim in self.optimizer.keys():
+            if isinstance(self.optimizer, dict):
+                for optim in self.optimizer:
                     opt_kwargs = self.optimizer[optim]
                     optimizer = get_optim(optim)(
-                        self.model.parameters(), lr=self.lr, **opt_kwargs
+                        params=self.model.parameters(),
+                        lr=self.lr,
+                        **opt_kwargs,
                     )
-            elif isinstance(self.optimizer, str):  # optimizer has no kwargs
-                print(self.model.parameters().__doc__)
+            else:
                 optimizer = get_optim(self.optimizer)(
-                    self.model.parameters(), lr=self.lr
+                    params=self.model.parameters(),
+                    lr=self.lr,
                 )
 
-        # get user's learning rate scheduler
         if self.lr_scheduler:
-            if isinstance(self.lr_scheduler, dict):  # lr schedular has kwargs
+            if isinstance(self.lr_scheduler, dict):
                 lr_dict = {}
-                for sched in self.lr_scheduler.keys():
+                for sched in self.lr_scheduler:
                     sched_kwargs = self.lr_scheduler[sched]
                     if "monitor" in sched_kwargs:
                         monitor = sched_kwargs.pop("monitor")
                         lr_dict["monitor"] = monitor
                     scheduler = get_lr_scheduler(sched)(
-                        optimizer, **sched_kwargs
+                        optimizer=optimizer,
+                        **sched_kwargs,
                     )
                     lr_dict["scheduler"] = scheduler
                 return {"optimizer": optimizer, "lr_scheduler": lr_dict}
-            elif isinstance(
-                self.lr_scheduler, str
-            ):  # lr scheduler has no kwargs
-                scheduler = get_lr_scheduler(self.lr_scheduler)(optimizer)
-                return {"optimizer": optimizer, "lr_scheduler": scheduler}
-        else:
-            # no scheduler
-            return {"optimizer": optimizer}
+            scheduler = get_lr_scheduler(self.lr_scheduler)(
+                optimizer=optimizer
+            )
+            return {"optimizer": optimizer, "lr_scheduler": scheduler}
+        return {"optimizer": optimizer}
+
+
+    def _build_model(self, model: type, model_params: dict[str, Any]) -> type:
+        """Instantiate a Pytorch model with the given model parameters.
+
+        Args:
+        ----
+            model (type):               An unitialized Pytorch model class
+                                        defined in ~./archs.
+
+            model_params (dict):        The parameters needed to instantiate
+                                        the above Pytorch model class.
+
+        Returns:
+        -------
+            (type):                     An Pytorch model object.
+
+        """
+        return model(**model_params)
+
+
+    def _compute_loss(
+        self,
+        y: float | Tensor,
+        y_pred: float | Tensor,
+        loss_label: str,
+    ) -> tuple[float | Tensor, dict[str, float | Tensor]]:
+        """Return the loss and the updated the metrics log.
+
+        Args:
+        ----
+            y (float | Tensor):         The target value from a set of training
+                                        pairs.
+
+            y_pred (float | Tensor):    The model's prediction.
+
+            loss_label (str):           Name to be used for labeling purposes.
+
+        Returns:
+        -------
+            (tuple):                    The computed loss between y and y_pred
+                                        and the dictionary that logs the loss.
+
+        """
+        log_metrics: dict[str, float | Tensor] = {}
+        loss = None
+
+        # set up loss function once
+        if not hasattr(self, "loss_functions"):
+            self.loss_functions: dict[
+                str,
+                Callable[..., float | Tensor],
+            ] = prepare_function(user_args=self.loss)
+
+        for _function in self.loss_functions:
+            function = self.loss_functions[_function]
+            loss = function(input=y_pred, target=y)
+            log_metrics[loss_label] = loss
+
+        if loss is None:
+            logger.error(
+                "Something went wrong when trying to compute the loss.",
+            )
+            e_msg = "The variable 'loss' cannot be None."
+            raise TypeError(e_msg)
+
+        return loss, log_metrics
+
+
+    def _compute_performance(
+        self,
+        y: float | Tensor,
+        y_pred: float | Tensor,
+        perf_label: str,
+    ) -> dict[str, float | Tensor]:
+        """Return the performance scores(s) and the updated the metrics log.
+
+        Args:
+        ----
+            y (float | tensor):         The target value from a set of training
+                                        pairs.
+
+            y_pred (float | tensor):    The model's prediction.
+
+            perf_label (str):           Name to be used for labeling purposes.
+
+        Returns:
+        -------
+            (tuple):                    The computed score between y and
+                                        y_pred and the dictionary that logs
+                                        the performance score.
+
+        """
+        log_metrics: dict[str, float | Tensor] = {}
+        if self.performance_metrics is None:
+            logger.error(
+                "Something went wrong when trying to compute the performance\
+ metric(s).",
+            )
+            e_msg = "Performance metrics cannot be of NoneType here."
+            raise TypeError(e_msg)
+
+        # set up performance functions once
+        if not hasattr(self, "perf_functions"):
+            self.perf_functions: dict[
+                str,
+                Callable[..., float | Tensor],
+            ] = prepare_function(user_args=self.performance_metrics)
+
+        for _function in self.perf_functions:
+            function = self.perf_functions[_function]
+            val = function(preds=y_pred, target=y)
+            log_metrics[perf_label + _function] = val
+
+        return log_metrics
