@@ -3,24 +3,25 @@
 KITrainer
 ---------------
 
-The "KITrainer"''" is a context class that that interacts with the overall
+The "KITrainer" is a context class that that interacts with the overall
 Knowit architecture script (which, in turn, interacts with all of KnowIt's sub-
 modules).
 
 The user is able to use the KnowIt Trainer in different ways, depending on the
 training task. As such, the trainer submodule is built according to a `State'
-pattern from OOP.
+pattern.
 
-https://sourcemaking.com/design_patterns/state
-https://refactoring.guru/design-patterns/state
-https://refactoring.guru/design-patterns/state/python/example
+Thus, there are three parts to the submodule: the context class (KITrainer)
+that Knowit directly interacts with, an abstract class (BaseTrainer) that
+interfaces the context class with a concrete trainer state, and a set of
+trainer state classes.
 
-The three possible states are:
+The three possible concrete states are:
     - STATE 1 (NEW): Train a new model from scratch.
     - STATE 2 (CONTINUE): Continue training an existing model from checkpoint.
     - STATE 3 (EVAL): Load a trained model and evaluate it on a dataset.
 
-KnowIt's Trainer is built using Pytorch Lightning. See here:
+KnowIt's Trainer submodule is built using Pytorch Lightning. See here:
 https://lightning.ai/pytorch-lightning
 """  # noqa: INP001, D205, D212, D400, D415
 
@@ -29,7 +30,10 @@ from __future__ import annotations
 __author__ = "randlerabe@gmail.com"
 __description__ = "Contains the KITrainer context class."
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from torch.utils.data.dataloader import DataLoader
 
 from helpers.logger import get_logger
 
@@ -67,7 +71,6 @@ class KITrainer:
         optional_pl_kwargs: dict[str, Any],
         ckpt_file: None | str = None,
     ) -> None:
-
         self._set_state(
             state=state,
             base_trainer_kwargs=base_trainer_kwargs,
@@ -96,32 +99,39 @@ class KITrainer:
 
         self._state.context = self
 
-
-    def fit_and_eval(self, dataloaders: tuple[type, type, type]) -> None:
+    def fit_and_eval(
+        self,
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+    ) -> None:
         """Fit model to training data and evaluate on eval data.
 
         Args:
         ----
-            dataloaders (type): The Pytorch dataloaders that has been set up
-                                in KnowIt's datamodule.
+            dataloaders (tuple):    The Pytorch dataloaders that has been set
+                                    up in KnowIt's datamodule.
 
         """
         if self._state is None:
-            raise ValueError("Trainer state cannot be None.")
+            emsg = "Trainer state cannot be set to None."
+            raise TypeError(emsg)
 
         self._state.fit_model(dataloaders=dataloaders)
         self._state.evaluate_model(dataloaders=dataloaders)
 
-    def eval(self, dataloaders: tuple[type, type, type]) -> None:
+    def eval(
+        self,
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+    ) -> None:
         """Evaluate a trained model from checkpoint on a user's data.
 
         Args:
         ----
-            dataloaders (type): The Pytorch dataloaders that has been set up
-                                in KnowIt's datamodule.
+            dataloaders (tuple):    The Pytorch dataloaders that has been set
+                                    up in KnowIt's datamodule.
 
         """
         if self._state is None:
-            raise ValueError("Trainer state cannot be None")
+            emsg = "Trainer state cannot be set to None."
+            raise TypeError(emsg)
 
         self._state.evaluate_model(dataloaders=dataloaders)
