@@ -12,7 +12,7 @@ repo_dir = os.path.expanduser('~/g_repos/KnowIt')
 # directories containing defaults
 default_dataset_dir = os.path.join(repo_dir, 'default_datasets')
 default_archs_dir = os.path.join(repo_dir, 'default_archs')
-temp_exp_dir = os.path.join(repo_dir, 'experiments')
+temp_exp_dir = os.path.join(repo_dir, 'temp_experiments')
 
 # -----------------------------------------------------------------------------
 
