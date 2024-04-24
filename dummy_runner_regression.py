@@ -50,9 +50,15 @@ KI = KnowIt(custom_exp_dir='/home/tian/postdoc_work/KnowIt_debugging/my_dummy_ex
 # CHECK AVAILABLE DATASETS & ARCHITECTURES
 # ----------------------------------------------------------------------------------------------------------------------
 
+# check the state of global arguments for current instance of KnowIt
 print(KI.global_args())
+# check the available datasets for current instance of KnowIt
 print(KI.available_datasets())
+# check the available architectures for current instance of KnowIt
 print(KI.available_archs())
+# check the metadata of a particular dataset for current instance of KnowIt
+print(KI.summarize_dataset('synth_1'))
+
 exit(101)
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -82,7 +88,7 @@ trainer_args = {'loss_fn': 'mse_loss',
 KI.train_model(model_name=model_name, args={'data': data_args, 'arch': arch_args, 'trainer': trainer_args})
 
 
-KI.train_model_further(model_name=model_name, max_epochs=6)
+# KI.train_model_further(model_name=model_name, max_epochs=6)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # GENERATE MODEL PREDICTIONS

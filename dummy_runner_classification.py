@@ -1,6 +1,6 @@
 from knowit import KnowIt
 
-KI = KnowIt(custom_exp_path='/home/tian/postdoc_work/KnowIt_debugging/my_dummy_exp_classification')
+KI = KnowIt(custom_exp_dir='/home/tian/postdoc_work/KnowIt_debugging/my_dummy_exp_classification')
 
 # ----------------------------------------------------------------------------------------------------------------------
 # TRAINING A MODEL

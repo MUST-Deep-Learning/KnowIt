@@ -1,6 +1,6 @@
 __author__ = 'tiantheunissen@gmail.com'
-__description__ = ('Contains functions for loading, dumping, converting, or creating directories '
-                   'or files from local filesystem.')
+__description__ = ('Contains functions for loading, dumping, converting, '
+                   'or creating directories an files from local filesystem.')
 
 # external imports
 import os
@@ -20,7 +20,7 @@ from helpers.logger import get_logger
 logger = get_logger()
 
 
-def safe_mkdir(new_dir: str, safe_mode: bool = True, overwrite: bool = False):
+def proc_dir(new_dir: str, safe_mode: bool = True, overwrite: bool = False):
 
     """
     Ensures that a specified directory exists.
@@ -175,17 +175,6 @@ def load_from_path(path):
         exit(101)
 
     return result
-
-
-def safe_copy(destination_dir, origin_path, safe_mode):
-    file_name = origin_path.split('/')[-1]
-    destination_path = os.path.join(destination_dir, file_name)
-    if os.path.exists(destination_path) and safe_mode:
-        logger.error('File already exists: %s.',
-                     destination_path)
-        exit(101)
-    else:
-        shutil.copyfile(origin_path, destination_path)
 
 
 def save_to_csv(data, path_name, data_format):

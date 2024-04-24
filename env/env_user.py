@@ -4,10 +4,10 @@ __description__ = 'Contains user-specific environment settings.'
 # external imports
 import os
 
-# set by user
+# where to find KnowIt scripts
 
-# where to find Knowit scripts
-repo_dir = os.path.expanduser('~/g_repos/KnowIt')
+# repo_dir = os.path.expanduser('~/g_repos/KnowIt')
+repo_dir = os.path.dirname(os.path.realpath(__file__)).split('/env')[0]
 
 # directories containing defaults
 default_dataset_dir = os.path.join(repo_dir, 'default_datasets')

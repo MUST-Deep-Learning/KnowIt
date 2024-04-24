@@ -10,16 +10,15 @@ import tempfile
 import sys
 
 # internal imports
+from env.env_user import temp_exp_dir
 from env.env_paths import (ckpt_path, model_output_dir, model_args_path,
                            model_interpretations_dir,
-                           model_predictions_dir, temp_exp_dir, default_dataset_dir,
+                           model_predictions_dir, default_dataset_dir,
                            custom_dataset_dir, default_archs_dir, custom_arch_dir,
-                           custom_dataset_path, dataset_path, arch_path, custom_arch_path)
+                           custom_dataset_path, dataset_path, arch_path,
+                           custom_arch_path, root_exp_dir)
 from helpers.logger import get_logger
-from helpers.read_configs import (yaml_to_dict,
-                                  safe_mkdir,
-                                  dict_to_yaml,
-                                  dump_at_path)
+from helpers.file_dir_procs import (yaml_to_dict, dict_to_yaml, dump_at_path)
 from data.base_dataset import BaseDataset
 from data.classification_dataset import ClassificationDataset
 from data.regression_dataset import RegressionDataset
@@ -62,13 +61,31 @@ class KnowIt:
         self.global_and_viz = global_and_viz
 
         if custom_exp_dir:
-            self.exp_output_dir = custom_exp_dir
-            safe_mkdir(self.exp_output_dir, safe_mode, overwrite)
+            self.exp_output_dir = root_exp_dir(custom_exp_dir, safe_mode, overwrite)
             logger.info('Custom experiment dir: %s', self.exp_output_dir)
         else:
             self.temp_exp_dir_obj = tempfile.TemporaryDirectory(dir=temp_exp_dir)
             self.exp_output_dir = self.temp_exp_dir_obj.name
             logger.info('Temporary experiment dir: %s', self.exp_output_dir)
+
+    def summarize_dataset(self, name: str):
+
+        dataset_dict = self.available_datasets()
+        if name in dataset_dict['custom']:
+            data_path = custom_dataset_path(name, self.exp_output_dir)
+        elif name in dataset_dict['defaults']:
+            data_path = dataset_path(name)
+        else:
+            logger.error('Unknown dataset name %s. Aborting.', name)
+            exit(101)
+
+        datamodule = BaseDataset(data_path)
+        summary = {'dataset_name': datamodule.name,
+                   'components': datamodule.components,
+                   'instances': datamodule.instances,
+                   'time_delta': datamodule.time_delta}
+
+        return summary
 
     def global_args(self, device=None, safe_mode=None, and_viz=None, overwrite=None):
 
@@ -87,7 +104,6 @@ class KnowIt:
                 'global_and_viz': self.global_and_viz,
                 'global_overwrite': self.global_overwrite,
                 'global_safe_mode': self.global_safe_mode}
-
 
     def import_arch(self, custom_arch_path, safe_mode=None, overwrite=None):
         """ Imports the architecture. """

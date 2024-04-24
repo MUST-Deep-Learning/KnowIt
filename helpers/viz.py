@@ -19,8 +19,8 @@ import matplotlib.animation as animation
 # imports imports
 from env.env_paths import (learning_data_path, learning_curves_path,
                            model_args_path, model_predictions_dir,
-                           model_interpretations_dir)
-from helpers.read_configs import load_from_csv, yaml_to_dict, load_from_path, safe_mkdir
+                           model_interpretations_dir, model_interpretations_output_dir)
+from helpers.file_dir_procs import load_from_csv, yaml_to_dict, load_from_path
 from helpers.logger import get_logger
 
 logger = get_logger()
@@ -71,8 +71,7 @@ def feature_attribution(exp_output_dir, model_name, interpret_args):
     #                                       relevant_ist, model_args)
 
     folder_name = file_name.split('.pickle')[0]
-    save_dir = os.path.join(interpretation_dir, folder_name)
-    safe_mkdir(save_dir, True, False)
+    save_dir = model_interpretations_output_dir(exp_output_dir, model_name, folder_name)
 
     if model_args['data']['task'] == 'regression':
         plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)

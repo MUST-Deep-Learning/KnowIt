@@ -5,12 +5,21 @@ __description__ = 'Contains functions that dynamically return KnowIt environment
 import os
 
 # internal imports
-from env.env_user import (default_dataset_dir, default_archs_dir,
-                          temp_exp_dir)
-from helpers.read_configs import safe_mkdir
+from env.env_user import (default_dataset_dir, default_archs_dir)
+from helpers.file_dir_procs import proc_dir
 from helpers.logger import get_logger
 
 logger = get_logger()
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+#   EXPERIMENTS
+# ----------------------------------------------------------------------------------------------------------------------
+
+def root_exp_dir(exp_output_dir: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the root experiment output directory. """
+    proc_dir(exp_output_dir, safe_mode, overwrite)
+    return exp_output_dir
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -26,7 +35,7 @@ def dataset_path(name: str):
 def custom_dataset_dir(exp_output_dir: str, safe_mode: bool = True, overwrite: bool = False):
     """ Returns the dataset directory from the given experiment path.
         Note that the directory is created if it does not exist. """
-    safe_mkdir(os.path.join(exp_output_dir, 'custom_datasets'), safe_mode=safe_mode, overwrite=overwrite)
+    proc_dir(os.path.join(exp_output_dir, 'custom_datasets'), safe_mode=safe_mode, overwrite=overwrite)
     return os.path.join(exp_output_dir, 'custom_datasets')
 
 
@@ -47,7 +56,7 @@ def arch_path(name: str):
 def custom_arch_dir(exp_output_dir: str, safe_mode: bool = True, overwrite: bool = False):
     """ Returns the architecture directory from the given experiment path.
         Note that the directory is created if it does not exist. """
-    safe_mkdir(os.path.join(exp_output_dir, 'custom_archs'), safe_mode=safe_mode, overwrite=overwrite)
+    proc_dir(os.path.join(exp_output_dir, 'custom_archs'), safe_mode=safe_mode, overwrite=overwrite)
     return os.path.join(exp_output_dir, 'custom_archs')
 
 
@@ -63,13 +72,13 @@ def custom_arch_path(name: str, exp_output_dir: str, safe_mode: bool = True, ove
 def custom_model_dir(exp_output_dir: str, safe_mode: bool = True, overwrite: bool = False):
     """ Returns the model directory from the given experiment path.
         Note that the directory is created if it does not exist. """
-    safe_mkdir(os.path.join(exp_output_dir, 'models'), safe_mode=safe_mode, overwrite=overwrite)
+    proc_dir(os.path.join(exp_output_dir, 'models'), safe_mode=safe_mode, overwrite=overwrite)
     return os.path.join(exp_output_dir, 'models')
 
 
 def model_output_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
     """ Returns the model output directory for the given model name from the given experiment path."""
-    safe_mkdir(os.path.join(custom_model_dir(exp_output_dir, safe_mode=True, overwrite=False), name),
+    proc_dir(os.path.join(custom_model_dir(exp_output_dir, safe_mode=True, overwrite=False), name),
                safe_mode=safe_mode, overwrite=overwrite)
     return os.path.join(custom_model_dir(exp_output_dir, safe_mode=True, overwrite=False), name)
 
@@ -81,14 +90,24 @@ def model_args_path(exp_output_dir: str, name: str, safe_mode: bool = True, over
 
 def model_interpretations_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
     """ Returns the interpretations directory for the given model name from the given experiment path."""
-    safe_mkdir(os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'interpretations'),
+    proc_dir(os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'interpretations'),
                safe_mode=safe_mode, overwrite=overwrite)
     return os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'interpretations')
 
 
+def model_interpretations_output_dir(exp_output_dir: str, model_name: str, interpretation_name: str,
+                                     safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the interpretation output directory for the given model and interpretation name
+        from the given experiment path."""
+    proc_dir(os.path.join(model_interpretations_dir(exp_output_dir, model_name, safe_mode=True, overwrite=False),
+                            interpretation_name), safe_mode=safe_mode, overwrite=overwrite)
+    return os.path.join(model_interpretations_dir(exp_output_dir, model_name, safe_mode=True, overwrite=False),
+                        interpretation_name)
+
+
 def model_predictions_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
     """ Returns the predictions directory for the given model name from the given experiment path."""
-    safe_mkdir(os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'predictions'),
+    proc_dir(os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'predictions'),
                safe_mode=safe_mode, overwrite=overwrite)
     return os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'predictions')
 
