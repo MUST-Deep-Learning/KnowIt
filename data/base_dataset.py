@@ -65,7 +65,7 @@ from datetime import timedelta
 
 # internal imports
 from data.raw_data_coversion import RawDataConverter
-from env.env_paths import dataset_path
+from env.env_paths import custom_dataset_path
 from helpers.read_configs import load_from_path
 from helpers.logger import get_logger
 from helpers.read_configs import safe_dump
@@ -74,13 +74,13 @@ logger = get_logger()
 
 class BaseDataset:
 
-    def __init__(self, name: str, mem_light=True):
+    def __init__(self, data_path: str, mem_light=True):
         """ Instantiate a BaseDataset object given the name of an existing dataset option. """
 
         # logger.info('Initializing BaseClass for %s', name)
 
-        self.name = name
-        self.__populate_from_option(name)
+        self.data_path = data_path
+        self.__populate_from_option()
 
         if mem_light:
             logger.info('the_data structure not kept in memory.')
@@ -89,39 +89,39 @@ class BaseDataset:
         else:
             logger.info('the_data structure is kept in memory.')
 
-
     def get_the_data(self):
         """ Return the_data structure from memory if available,
         otherwise load from disk and return. """
         if hasattr(self, 'the_data'):
             return self.the_data
         else:
-            return load_from_path(dataset_path(self.name))['the_data']
+            return load_from_path(self.data_path)['the_data']
 
     @classmethod
-    def from_path(cls, path: str, safe_mode: bool = True,
-                  base_nan_filler: str = None,
-                  nan_filled_components: list = None):
+    def from_path(cls, path: str, safe_mode: bool,
+                  base_nan_filler: str,
+                  nan_filled_components: list, exp_output_dir: str):
         """ Instantiate a BaseDataset object by first creating the dataset option
         from a given path to a file containing a dataframe with raw data. """
         return cls.from_df(load_from_path(path), safe_mode, base_nan_filler,
-                           nan_filled_components)
+                           nan_filled_components, exp_output_dir)
 
     @classmethod
-    def from_df(cls, df: DataFrame, safe_mode: bool = True,
-                base_nan_filler: str = None,
-                nan_filled_components: list = None):
+    def from_df(cls, df: DataFrame, safe_mode: bool,
+                base_nan_filler: str,
+                nan_filled_components: list, exp_output_dir: str):
         """ Instantiate a BaseDataset object by first creating the dataset option
         from a given dataframe with raw data. """
         args = RawDataConverter(df, cls.__required_base_meta(),
                                 base_nan_filler, nan_filled_components).get_new_data()
-        safe_dump(args, dataset_path(args['name']), safe_mode)
-        return cls(args['name'])
+        data_path = custom_dataset_path(args['name'], exp_output_dir, safe_mode)
+        safe_dump(args, data_path, safe_mode)
+        return cls(data_path)
 
-    def __populate_from_option(self, name: str):
+    def __populate_from_option(self):
         """ Populate the current object with variables from disk
-        corresponding to given dataset option (name). """
-        args = load_from_path(dataset_path(name))
+        found at data_path. """
+        args = load_from_path(self.data_path)
         for key, value in args.items():
             setattr(self, key, value)
 

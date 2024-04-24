@@ -12,7 +12,7 @@ from helpers.logger import get_logger
 logger = get_logger()
 
 
-def get_interpretation_inx(interpretation_args, model_args):
+def get_interpretation_inx(interpretation_args, model_args, predictions_dir):
 
     inx = 0
 
@@ -39,9 +39,9 @@ def get_interpretation_inx(interpretation_args, model_args):
     elif interpretation_args['selection'] == 'all':
         inx = (0, set_size)
     elif interpretation_args['selection'] == 'success':
-        inx = select_chunk(interpretation_args, model_args, selection='success')
+        inx = select_chunk(interpretation_args, model_args, selection='success', predictions_dir=predictions_dir)
     elif interpretation_args['selection'] == 'failure':
-        inx = select_chunk(interpretation_args, model_args, selection='failure')
+        inx = select_chunk(interpretation_args, model_args, selection='failure', predictions_dir=predictions_dir)
     else:
         logger.error('Invalid interpretation selection %s.', interpretation_args['selection'])
         exit(101)
@@ -49,11 +49,11 @@ def get_interpretation_inx(interpretation_args, model_args):
     return inx
 
 
-def select_chunk(interpretation_args, model_args, selection):
+def select_chunk(interpretation_args, model_args, selection, predictions_dir):
 
     chunk = interpretation_args['size']
 
-    mae = get_mae_performance(interpretation_args, model_args, selection)
+    mae = get_mae_performance(interpretation_args, model_args, selection, predictions_dir)
     chunk_perf = np.convolve(mae, np.ones(chunk) / chunk, mode='valid')
 
     if selection == 'success':
@@ -66,10 +66,8 @@ def select_chunk(interpretation_args, model_args, selection):
     return select_chunk
 
 
-def get_mae_performance(interpretation_args, model_args, selection):
+def get_mae_performance(interpretation_args, model_args, selection, predictions_dir):
     # TODO: This function has overlap with viz.set_predictions. Need to refactor later.
-
-    predictions_dir = model_predictions_dir(model_args['id']['experiment_name'], model_args['id']['model_name'])
 
     if not os.path.exists(predictions_dir):
         logger.error('Please generate prediction values if you want to interpret %s', selection)

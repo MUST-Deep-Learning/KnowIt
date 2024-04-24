@@ -6,11 +6,8 @@ __description__ = 'Checks, filters, and adjusts user arguments for various actio
 Action arguments
 ------------------
 
-The user interacts with KnowIt by sending a combination of action key words, arguments, or paths to external files.
-This script contains a function ``setup_relevant_args`` that 
-
-
-
+The user interacts with KnowIt by sending arguments or paths to external files.
+This script contains a function ``setup_relevant_args`` that checks arguments.
 
 """
 
@@ -22,12 +19,11 @@ This script contains a function ``setup_relevant_args`` that
 from helpers.logger import get_logger
 logger = get_logger()
 
-arg_dict = {'importer':  {'required': ('path',),
-                          'optional': ('base_nan_filler',
-                                       'nan_filled_components')},
-            'id':       {'required': ('experiment_name',
-                                      'model_name'),
-                         'optional': ()},
+arg_dict = {'data_import_args':  {'required': ('path',),
+                                  'optional': ('base_nan_filler',
+                                               'nan_filled_components'),
+                                  'default': {'base_nan_filler': None,
+                                              'nan_filled_components': None}},
             'analyzer':      {'required': (),
                               'optional': ()},
             'arch':      {'required': ('task', 'name'),
@@ -50,7 +46,8 @@ arg_dict = {'importer':  {'required': ('path',),
             'trainer':      {'required': ('loss_fn',
                                           'optim',
                                           'max_epochs',
-                                          'learning_rate'),
+                                          'learning_rate',
+                                          'task'),
                              'optional': ('lr_scheduler',
                                           'performance_metrics',
                                           'early_stopping_args',
@@ -58,14 +55,13 @@ arg_dict = {'importer':  {'required': ('path',),
                                           'return_final',
                                           'model_selection_mode',
                                           'mute_logger',
-                                          'optional_pl_kwargs',
-                                          'state'),
+                                          'optional_pl_kwargs'),
                              'default': {'seed': 123,
-                                         'state': 'new',
-                                         'mute_logger': False}},
+                                         'mute_logger': False,
+                                         'optional_pl_kwargs': {}}},
             'tuner':         {'required': (),
                               'optional': ()},
-            'interpret':    {'required': ('interpretation_method',),
+            'interpreter':    {'required': ('interpretation_method',),
                              'optional': ('interpretation_set',
                                           'selection',
                                           'size',
@@ -76,11 +72,17 @@ arg_dict = {'importer':  {'required': ('path',),
                                          'multiply_by_inputs': True,
                                          'seed': 123}},
             'predictor':      {'required': ('prediction_set',),
-                             'optional': ()}
+                               'optional': ()}
             }
 
 
-def setup_relevant_args(experiment_dict):
+def setup_relevant_args(experiment_dict, required_types=None):
+
+    if required_types:
+        missing_keys = set(required_types) - set(list(experiment_dict.keys()))
+        if len(missing_keys) > 0:
+            logger.error('Missing arg types: %s', str(missing_keys))
+            exit(101)
 
     valid_arg_types = list(arg_dict)
     ret_args = {}

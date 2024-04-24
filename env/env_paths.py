@@ -5,47 +5,98 @@ __description__ = 'Contains functions that dynamically return KnowIt environment
 import os
 
 # internal imports
-from env.env_user import (dataset_dir, archs_dir,
-                          exp_dir, project_dir)
+from env.env_user import (default_dataset_dir, default_archs_dir,
+                          temp_exp_dir)
+from helpers.read_configs import safe_mkdir
 from helpers.logger import get_logger
 
 logger = get_logger()
 
 
-def dataset_path(option: str):
-    return os.path.join(dataset_dir, option + '.pickle')
+# ----------------------------------------------------------------------------------------------------------------------
+#   DATASETS
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-def arch_path(option: str):
-    return os.path.join(archs_dir, option + '.py')
+def dataset_path(name: str):
+    """ Returns the dataset path for the given dataset name from the default datasets directory."""
+    return os.path.join(default_dataset_dir, name + '.pickle')
 
 
-def exp_path(option: str):
-    return os.path.join(exp_dir, option + '.yaml')
+def custom_dataset_dir(exp_output_dir: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the dataset directory from the given experiment path.
+        Note that the directory is created if it does not exist. """
+    safe_mkdir(os.path.join(exp_output_dir, 'custom_datasets'), safe_mode=safe_mode, overwrite=overwrite)
+    return os.path.join(exp_output_dir, 'custom_datasets')
 
 
-def exp_output_dir(exp_name: str):
-    return os.path.join(project_dir, exp_name)
+def custom_dataset_path(name: str, exp_output_dir: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the dataset path for the given dataset name from the given experiment path."""
+    return os.path.join(custom_dataset_dir(exp_output_dir, safe_mode, overwrite), name + '.pickle')
+
+# ----------------------------------------------------------------------------------------------------------------------
+#   ARCHITECTURES
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-def model_output_dir(exp_name: str, model_name):
-    return os.path.join(exp_output_dir(exp_name), model_name)
+def arch_path(name: str):
+    """ Returns the architecture path for the given architecture name from the default architectures directory."""
+    return os.path.join(default_archs_dir, name + '.py')
 
 
-def model_args_path(exp_name: str, model_name: str):
-    return os.path.join(model_output_dir(exp_name, model_name), 'model_args.yaml')
+def custom_arch_dir(exp_output_dir: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the architecture directory from the given experiment path.
+        Note that the directory is created if it does not exist. """
+    safe_mkdir(os.path.join(exp_output_dir, 'custom_archs'), safe_mode=safe_mode, overwrite=overwrite)
+    return os.path.join(exp_output_dir, 'custom_archs')
 
 
-def model_interpretations_dir(exp_name: str, model_name):
-    return os.path.join(model_output_dir(exp_name, model_name), 'interpretations')
+def custom_arch_path(name: str, exp_output_dir: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the architecture path for the given architecture name from the given experiment path."""
+    return os.path.join(custom_arch_dir(exp_output_dir, safe_mode, overwrite), name + '.py')
+
+# ----------------------------------------------------------------------------------------------------------------------
+#   MODELS
+# ----------------------------------------------------------------------------------------------------------------------
 
 
-def model_predictions_dir(exp_name: str, model_name):
-    return os.path.join(model_output_dir(exp_name, model_name), 'predictions')
+def custom_model_dir(exp_output_dir: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the model directory from the given experiment path.
+        Note that the directory is created if it does not exist. """
+    safe_mkdir(os.path.join(exp_output_dir, 'models'), safe_mode=safe_mode, overwrite=overwrite)
+    return os.path.join(exp_output_dir, 'models')
 
 
-def ckpt_path(experiment_name, custom_model_name):
-    path = model_output_dir(experiment_name, custom_model_name)
+def model_output_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the model output directory for the given model name from the given experiment path."""
+    safe_mkdir(os.path.join(custom_model_dir(exp_output_dir, safe_mode=True, overwrite=False), name),
+               safe_mode=safe_mode, overwrite=overwrite)
+    return os.path.join(custom_model_dir(exp_output_dir, safe_mode=True, overwrite=False), name)
+
+
+def model_args_path(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the model args path for the given model name from the given experiment path."""
+    return os.path.join(model_output_dir(exp_output_dir, name, safe_mode, overwrite), 'model_args.yaml')
+
+
+def model_interpretations_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the interpretations directory for the given model name from the given experiment path."""
+    safe_mkdir(os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'interpretations'),
+               safe_mode=safe_mode, overwrite=overwrite)
+    return os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'interpretations')
+
+
+def model_predictions_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the predictions directory for the given model name from the given experiment path."""
+    safe_mkdir(os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'predictions'),
+               safe_mode=safe_mode, overwrite=overwrite)
+    return os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'predictions')
+
+
+def ckpt_path(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the ckpt path for the given model name from the given experiment path.
+        Note that if multiple are found, the first one is returned."""
+    path = model_output_dir(exp_output_dir, name, safe_mode, overwrite)
     ckpt_list = []
     for c in os.listdir(path):
         if c.endswith('.ckpt'):
@@ -59,23 +110,30 @@ def ckpt_path(experiment_name, custom_model_name):
     return os.path.join(path, ckpt_list[0])
 
 
-def learning_data_path(exp_name: str, model_name: str):
-    path = model_output_dir(exp_name, model_name)
+# ----------------------------------------------------------------------------------------------------------------------
+#   LEARNING CURVES
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+def learning_data_path(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the learning data path for the given model name from the given experiment path."""
+    path = model_output_dir(exp_output_dir, name, safe_mode, overwrite)
     path = os.path.join(path, 'lightning_logs')
     path = os.path.join(path, 'version_0')
     path = os.path.join(path, 'metrics.csv')
     return path
 
 
-def learning_curves_path(exp_name: str, model_name: str):
-    path = model_output_dir(exp_name, model_name)
+def learning_curves_path(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the learning curves path for the given model name from the given experiment path."""
+    path = model_output_dir(exp_output_dir, name, safe_mode, overwrite)
     path = os.path.join(path, 'learning_curves.png')
     return path
 
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     pass
 
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------

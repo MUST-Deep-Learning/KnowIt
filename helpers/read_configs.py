@@ -20,30 +20,37 @@ from helpers.logger import get_logger
 logger = get_logger()
 
 
-def safe_mkdir(new_dir, safe_mode, overwrite=False):
+def safe_mkdir(new_dir: str, safe_mode: bool = True, overwrite: bool = False):
+
+    """
+    Ensures that a specified directory exists.
+        - safe_mode means 'Should I be prevented from overwriting any existing directory?'
+        - overwrite means 'Do I want to overwrite any existing directory?'
+
+    """
 
     dir_exists = os.path.exists(new_dir)
-
     if not dir_exists:
         try:
             os.makedirs(new_dir)
         except:
-            logger.error('Could not create dir %s', new_dir)
+            logger.error('Could not create new directory: %s', new_dir)
             exit(101)
-    elif dir_exists and not safe_mode and overwrite:
-        logger.warning('Automatically removing dir %s.', new_dir)
+    elif not overwrite:
+        # logger.warning('Directory already exists: %s. Using as is.', new_dir)
+        pass
+    elif safe_mode:
+        logger.error('Directory will be overwritten but safe_mode=True: %s.', new_dir)
+        exit(101)
+    else:
+        # TODO: Consider prompting user
+        logger.warning('Recreating directory: %s.', new_dir)
         shutil.rmtree(new_dir)
         try:
             os.makedirs(new_dir)
         except:
-            logger.error('Could not create dir %s', new_dir)
+            logger.error('Could not recreate directory: %s', new_dir)
             exit(101)
-    elif dir_exists and safe_mode and overwrite:
-        logger.warning('Dir already exists but safe_mode AND overwrite is on %s.', new_dir)
-        exit(101)
-    else:
-        logger.warning('Dir already exists %s. Using as is.', new_dir)
-
 
 
 def safe_dump(data, path, safe_mode):
@@ -77,9 +84,7 @@ def yaml_to_dict(config_path):
     return cfg_yaml
 
 
-def dict_to_yaml(my_dict, dir_path, file_name):
-
-    path = os.path.join(dir_path, file_name)
+def dict_to_yaml(my_dict, path):
     with open(path, 'w+') as handle:
         yaml.dump(my_dict, handle, allow_unicode=True)
 

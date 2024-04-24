@@ -6,15 +6,13 @@ import os
 
 # set by user
 
-# where to store outputs
-project_dir = os.path.expanduser('~/projects/KnowIt/')
-
 # where to find Knowit scripts
 repo_dir = os.path.expanduser('~/g_repos/KnowIt')
 
-dataset_dir = os.path.join(repo_dir, 'datasets')
-archs_dir = os.path.join(repo_dir, 'archs')
-exp_dir = os.path.join(repo_dir, 'experiments')
+# directories containing defaults
+default_dataset_dir = os.path.join(repo_dir, 'default_datasets')
+default_archs_dir = os.path.join(repo_dir, 'default_archs')
+temp_exp_dir = os.path.join(repo_dir, 'experiments')
 
 # -----------------------------------------------------------------------------
 
