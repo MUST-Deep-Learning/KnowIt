@@ -31,18 +31,22 @@ def proc_dir(new_dir: str, safe_mode: bool = True, overwrite: bool = False):
 
     dir_exists = os.path.exists(new_dir)
     if not dir_exists:
+        # create new dir
         try:
             os.makedirs(new_dir)
         except:
             logger.error('Could not create new directory: %s', new_dir)
             exit(101)
     elif not overwrite:
+        # do nothing, use existing directory
         # logger.warning('Directory already exists: %s. Using as is.', new_dir)
         pass
     elif safe_mode:
+        # error; the dir exists and wants to be overwritten but safe_mode
         logger.error('Directory will be overwritten but safe_mode=True: %s.', new_dir)
         exit(101)
     else:
+        # overwrite; dir exists, safe_mode is off, and overwrite is on.
         # TODO: Consider prompting user
         logger.warning('Recreating directory: %s.', new_dir)
         shutil.rmtree(new_dir)
@@ -60,6 +64,15 @@ def safe_dump(data, path, safe_mode):
         exit(101)
     else:
         dump_at_path(data, path)
+
+
+def safe_copy(path, new_path, safe_mode):
+    if os.path.exists(new_path) and safe_mode:
+        logger.error('File already exists: %s.',
+                     path)
+        exit(101)
+    else:
+        shutil.copyfile(path, new_path)
 
 
 def yaml_to_dict(config_path):
@@ -82,11 +95,6 @@ def yaml_to_dict(config_path):
     #         cfg[key] = cfg_yaml[key]['value']
 
     return cfg_yaml
-
-
-def dict_to_yaml(my_dict, path):
-    with open(path, 'w+') as handle:
-        yaml.dump(my_dict, handle, allow_unicode=True)
 
 
 def dump_at_path(data, path):
@@ -121,6 +129,10 @@ def dump_at_path(data, path):
         elif file_ext == '.xz':
             with lzma.open(path, 'wb') as f:
                 pickle.dump(data, f)
+        elif file_ext in ('.yaml', '.yml'):
+            # assumes data is a dict?
+            with open(path, 'w+') as handle:
+                yaml.dump(data, handle, allow_unicode=True)
         else:
             logger.warning('Unknown file extension, %s, '
                            'storing as uncompressed pickle.', file_ext)
@@ -149,7 +161,7 @@ def load_from_path(path):
         logger.error('Could not determine file extension from path %s. '
                      'Aborting', path)
         exit(101)
-    logger.info('Loading file %s.', path)
+    # logger.info('Loading file %s.', path)
     try:
         if file_ext == '.pbz2':
             result = bz2.BZ2File(path, 'rb')

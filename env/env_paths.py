@@ -1,6 +1,12 @@
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains functions that dynamically return KnowIt environment paths.'
 
+# DIR = PATH TO A DIRECTORY
+# PATH = PATH TO A FILE
+
+# NOTE: PATHs don't use the safe_mode and overwrite arguments.
+# The relevant code should use safe_dump and safe_copy for that.
+
 # external imports
 import os
 
@@ -39,9 +45,9 @@ def custom_dataset_dir(exp_output_dir: str, safe_mode: bool = True, overwrite: b
     return os.path.join(exp_output_dir, 'custom_datasets')
 
 
-def custom_dataset_path(name: str, exp_output_dir: str, safe_mode: bool = True, overwrite: bool = False):
+def custom_dataset_path(name: str, exp_output_dir: str):
     """ Returns the dataset path for the given dataset name from the given experiment path."""
-    return os.path.join(custom_dataset_dir(exp_output_dir, safe_mode, overwrite), name + '.pickle')
+    return os.path.join(custom_dataset_dir(exp_output_dir), name + '.pickle')
 
 # ----------------------------------------------------------------------------------------------------------------------
 #   ARCHITECTURES
@@ -60,9 +66,9 @@ def custom_arch_dir(exp_output_dir: str, safe_mode: bool = True, overwrite: bool
     return os.path.join(exp_output_dir, 'custom_archs')
 
 
-def custom_arch_path(name: str, exp_output_dir: str, safe_mode: bool = True, overwrite: bool = False):
+def custom_arch_path(name: str, exp_output_dir: str):
     """ Returns the architecture path for the given architecture name from the given experiment path."""
-    return os.path.join(custom_arch_dir(exp_output_dir, safe_mode, overwrite), name + '.py')
+    return os.path.join(custom_arch_dir(exp_output_dir), name + '.py')
 
 # ----------------------------------------------------------------------------------------------------------------------
 #   MODELS
@@ -83,9 +89,9 @@ def model_output_dir(exp_output_dir: str, name: str, safe_mode: bool = True, ove
     return os.path.join(custom_model_dir(exp_output_dir, safe_mode=True, overwrite=False), name)
 
 
-def model_args_path(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+def model_args_path(exp_output_dir: str, name: str):
     """ Returns the model args path for the given model name from the given experiment path."""
-    return os.path.join(model_output_dir(exp_output_dir, name, safe_mode, overwrite), 'model_args.yaml')
+    return os.path.join(model_output_dir(exp_output_dir, name), 'model_args.yaml')
 
 
 def model_interpretations_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
@@ -112,10 +118,10 @@ def model_predictions_dir(exp_output_dir: str, name: str, safe_mode: bool = True
     return os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'predictions')
 
 
-def ckpt_path(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+def ckpt_path(exp_output_dir: str, name: str):
     """ Returns the ckpt path for the given model name from the given experiment path.
         Note that if multiple are found, the first one is returned."""
-    path = model_output_dir(exp_output_dir, name, safe_mode, overwrite)
+    path = model_output_dir(exp_output_dir, name)
     ckpt_list = []
     for c in os.listdir(path):
         if c.endswith('.ckpt'):
@@ -134,18 +140,18 @@ def ckpt_path(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite:
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def learning_data_path(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+def learning_data_path(exp_output_dir: str, name: str):
     """ Returns the learning data path for the given model name from the given experiment path."""
-    path = model_output_dir(exp_output_dir, name, safe_mode, overwrite)
+    path = model_output_dir(exp_output_dir, name)
     path = os.path.join(path, 'lightning_logs')
     path = os.path.join(path, 'version_0')
     path = os.path.join(path, 'metrics.csv')
     return path
 
 
-def learning_curves_path(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+def learning_curves_path(exp_output_dir: str, name: str):
     """ Returns the learning curves path for the given model name from the given experiment path."""
-    path = model_output_dir(exp_output_dir, name, safe_mode, overwrite)
+    path = model_output_dir(exp_output_dir, name)
     path = os.path.join(path, 'learning_curves.png')
     return path
 

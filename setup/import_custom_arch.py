@@ -1,16 +1,17 @@
+
 from helpers.logger import get_logger
 import importlib
 import sys
 import inspect
 import torch.nn as nn
-import shutil
 
 
 from env.env_paths import custom_arch_path
+from helpers.file_dir_procs import safe_copy
 logger = get_logger()
 
 
-def import_custom_arch(path: str, exp_output_dir: str, safe_mode: bool, overwrite: bool):
+def import_custom_arch(path: str, exp_output_dir: str, safe_mode: bool):
 
     if not path.endswith(".py"):
         logger.error("Import custom arch must end with '.py'")
@@ -18,8 +19,8 @@ def import_custom_arch(path: str, exp_output_dir: str, safe_mode: bool, overwrit
     arch_name = path.rstrip(".py").split("/")[-1]
 
     if complies(path):
-        new_path = custom_arch_path(arch_name, exp_output_dir, safe_mode, overwrite)
-        shutil.copyfile(path, new_path)
+        new_path = custom_arch_path(arch_name, exp_output_dir)
+        safe_copy(path, new_path, safe_mode)
 
     logger.info("Imported custom arch %s", arch_name)
     return

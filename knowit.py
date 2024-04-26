@@ -18,12 +18,12 @@ from env.env_paths import (ckpt_path, model_output_dir, model_args_path,
                            custom_dataset_path, dataset_path, arch_path,
                            custom_arch_path, root_exp_dir)
 from helpers.logger import get_logger
-from helpers.file_dir_procs import (yaml_to_dict, dict_to_yaml, dump_at_path)
+from helpers.file_dir_procs import (yaml_to_dict, safe_dump)
 from data.base_dataset import BaseDataset
 from data.classification_dataset import ClassificationDataset
 from data.regression_dataset import RegressionDataset
 from trainer.trainer import KITrainer
-from trainer.trainer_states import TrainNew, ContinueTraining
+from trainer.trainer_states import TrainNew
 from setup.setup_action_args import setup_relevant_args
 from setup.select_interpretation_points import get_interpretation_inx
 from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
@@ -40,8 +40,7 @@ logger.setLevel(20)
 class KnowIt:
     def __init__(self, custom_exp_dir: str = None, global_safe_mode: bool = True,
                  global_device: str = 'gpu', global_and_viz: bool = True,
-                 global_overwrite: bool = False, safe_mode: bool = True,
-                 overwrite: bool = False):
+                 safe_mode: bool = True, overwrite: bool = False):
 
         """ KnowIt is the main KnowIt class.
             It keeps track of the current experiment directory
@@ -53,8 +52,6 @@ class KnowIt:
         self.temp_exp_dir_obj = None
         # the global (default) safe mode value [whether to protect existing files]
         self.global_safe_mode = global_safe_mode
-        # the global (default) overwrite value [whether to overwrite existing files]
-        self.global_overwrite = global_overwrite
         # the global (default) device value [what device to perform operations on]
         self.global_device = global_device
         # the global (default) and_viz value [whether to also visualize results]
@@ -76,7 +73,7 @@ class KnowIt:
         elif name in dataset_dict['defaults']:
             data_path = dataset_path(name)
         else:
-            logger.error('Unknown dataset name %s. Aborting.', name)
+            logger.error('Dataset name %s not found. Aborting.', name)
             exit(101)
 
         datamodule = BaseDataset(data_path)
@@ -87,7 +84,7 @@ class KnowIt:
 
         return summary
 
-    def global_args(self, device=None, safe_mode=None, and_viz=None, overwrite=None):
+    def global_args(self, device=None, safe_mode=None, and_viz=None):
 
         """ Modify and/or return global arguments according to user arguments. """
 
@@ -97,21 +94,16 @@ class KnowIt:
             self.global_safe_mode = safe_mode
         if and_viz is not None:
             self.global_and_viz = and_viz
-        if overwrite is not None:
-            self.global_overwrite = overwrite
 
         return {'global_device': self.global_device,
                 'global_and_viz': self.global_and_viz,
-                'global_overwrite': self.global_overwrite,
                 'global_safe_mode': self.global_safe_mode}
 
-    def import_arch(self, custom_arch_path, safe_mode=None, overwrite=None):
+    def import_arch(self, new_arch_path, safe_mode=None):
         """ Imports the architecture. """
         if safe_mode is None:
             safe_mode = self.global_safe_mode
-        if overwrite is None:
-            overwrite = self.global_overwrite
-        import_custom_arch(custom_arch_path, self.exp_output_dir, safe_mode, overwrite)
+        import_custom_arch(new_arch_path, self.exp_output_dir, safe_mode)
 
     def import_dataset(self, args: dict, safe_mode=None):
         """ Imports the dataset and returns it as a BaseDataset object.
@@ -151,7 +143,7 @@ class KnowIt:
         return ret_dict
 
     def train_model(self, model_name: str, args: dict, device=None,
-                    safe_mode=None, and_viz=None, overwrite=None):
+                    safe_mode=None, and_viz=None):
 
         if device is None:
             device = self.global_device
@@ -159,37 +151,24 @@ class KnowIt:
             safe_mode = self.global_safe_mode
         if and_viz is None:
             and_viz = self.global_and_viz
-        if overwrite is None:
-            overwrite = self.global_overwrite
 
         # check that all relevant args are provided
         relevant_args = setup_relevant_args(args, required_types=('data', 'arch', 'trainer', ))
 
-        # Set up required data modules, Models, and traininer arguments
-        datamodule, class_counts = self._get_datamodule(relevant_args['data'])
-        model, model_params = self._get_arch_setup(relevant_args['arch'],
-                                                    datamodule.in_shape,
-                                                    datamodule.out_shape)
-        trainer_args = self._get_trainer_setup(relevant_args['trainer'],
-                                                device,
-                                                class_counts,
-                                                model,
-                                                model_params,
-                                                model_name,
-                                               safe_mode,
-                                               overwrite)
+        save_dir = model_output_dir(self.exp_output_dir, model_name, safe_mode, overwrite=True)
+
+        # Set up required data modules, Models, and trainner arguments
+        datamodule, class_counts = KnowIt._get_datamodule(self.exp_output_dir, self.available_datasets(),
+                                                          relevant_args['data'])
+        model, model_params = KnowIt._get_arch_setup(self.exp_output_dir, self.available_archs(),
+                                                     relevant_args['arch'], datamodule.in_shape,
+                                                     datamodule.out_shape)
+        trainer_args = KnowIt._get_trainer_setup(relevant_args['trainer'], device, class_counts,
+                                                 model, model_params, save_dir)
 
         # Add dynamically generated data dynamics to relevant args and model_args storage
-        data_dynamics = {'in_shape': datamodule.in_shape,
-                         'out_shape': datamodule.out_shape,
-                         'train_size': datamodule.train_set_size,
-                         'valid_size': datamodule.valid_set_size,
-                         'eval_size': datamodule.eval_set_size}
-        if relevant_args['data']['task'] == 'classification':
-            data_dynamics['class_set'] = datamodule.class_set
-            data_dynamics['class_count'] = datamodule.class_counts
-        relevant_args['data_dynamics'] = data_dynamics
-        dict_to_yaml(relevant_args, model_args_path(self.exp_output_dir, model_name, safe_mode, overwrite))
+        relevant_args['data_dynamics'] = KnowIt._get_data_dynamics(relevant_args['data'], datamodule)
+        safe_dump(relevant_args, model_args_path(self.exp_output_dir, model_name), safe_mode)
 
         # Instantiate trainer and begin training
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
@@ -203,89 +182,30 @@ class KnowIt:
             learning_curves(self.exp_output_dir, model_name)
 
     def train_model_further(self, model_name: str, max_epochs: int, device=None,
-                    safe_mode=None, and_viz=None, overwrite=None):
+                    safe_mode=None, and_viz=None):
 
         # TODO: WIP = This function should train the desired model to the desired max_epochs without
-        #  overwriting old learning metrics
+        #  overwriting old learning metrics. See train_model() for reference.
 
-        if device is None:
-            device = self.global_device
+        logger.error('train_model_further not implemented yet.')
+        exit(101)
+
+    def generate_predictions(self, model_name: str, args: dict,
+                             safe_mode=None, and_viz=None):
+
         if safe_mode is None:
             safe_mode = self.global_safe_mode
         if and_viz is None:
             and_viz = self.global_and_viz
-        if overwrite is None:
-            overwrite = self.global_overwrite
-
-        relevant_args = yaml_to_dict(model_args_path(self.exp_output_dir, model_name))
-
-        epochs_done = relevant_args['trainer']['max_epochs']
-        if epochs_done >= max_epochs:
-            logger.error('Desired max_epochs(%s) <= epochs already trained (%s). Aborting.',
-                         str(max_epochs), str(epochs_done))
-            exit(101)
-
-        relevant_args['trainer']['max_epochs'] = max_epochs
-        path_to_ckpt = ckpt_path(self.exp_output_dir, model_name)
-
-        # Set up required data modules, Models, and traininer arguments
-        datamodule, class_counts = self._get_datamodule(relevant_args['data'])
-        model, model_params = self._get_arch_setup(relevant_args['arch'],
-                                                    datamodule.in_shape,
-                                                    datamodule.out_shape)
-        trainer_args = self._get_trainer_setup(relevant_args['trainer'],
-                                                device,
-                                                class_counts,
-                                                model,
-                                                model_params,
-                                                model_name,
-                                               safe_mode,
-                                               overwrite)
-
-        # Add dynamically generated data dynamics to relevant args and model_args storage
-        data_dynamics = {'in_shape': datamodule.in_shape,
-                         'out_shape': datamodule.out_shape,
-                         'train_size': datamodule.train_set_size,
-                         'valid_size': datamodule.valid_set_size,
-                         'eval_size': datamodule.eval_set_size}
-        if relevant_args['data']['task'] == 'classification':
-            data_dynamics['class_set'] = datamodule.class_set
-            data_dynamics['class_count'] = datamodule.class_counts
-        relevant_args['data_dynamics'] = data_dynamics
-        dict_to_yaml(relevant_args, model_args_path(self.exp_output_dir, model_name, safe_mode, overwrite))
-
-        # Instantiate trainer and begin training
-        optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
-        # trainer = KITrainer(state=TrainNew, base_trainer_kwargs=trainer_args,
-        #                     optional_pl_kwargs=optional_pl_kwargs)
-        trainer = KITrainer(state=ContinueTraining, base_trainer_kwargs=trainer_args,
-                            optional_pl_kwargs=optional_pl_kwargs, ckpt_file=path_to_ckpt)
-        trainer.fit_and_eval(dataloaders=(datamodule.get_dataloader('train'),
-                                          datamodule.get_dataloader('valid'),
-                                          datamodule.get_dataloader('eval')))
-
-        if and_viz and not trainer_args['mute_logger']:
-            learning_curves(self.exp_output_dir, model_name)
-
-    def generate_predictions(self, model_name: str, args: dict, device=None,
-                             safe_mode=None, and_viz=None, overwrite=None):
-
-        if device is None:
-            device = self.global_device
-        if safe_mode is None:
-            safe_mode = self.global_safe_mode
-        if and_viz is None:
-            and_viz = self.global_and_viz
-        if overwrite is None:
-            overwrite = self.global_overwrite
 
         relevant_args = setup_relevant_args(args, required_types=('predictor',))
 
         model_args = yaml_to_dict(model_args_path(self.exp_output_dir, model_name))
-        datamodule, class_counts = self._get_datamodule(model_args['data'])
-        model, model_params = self._get_arch_setup(model_args['arch'],
-                                                   datamodule.in_shape,
-                                                   datamodule.out_shape)
+        datamodule, class_counts = KnowIt._get_datamodule(self.exp_output_dir, self.available_datasets(),
+                                                          model_args['data'])
+        model, model_params = KnowIt._get_arch_setup(self.exp_output_dir, self.available_archs(),
+                                                     model_args['arch'], datamodule.in_shape,
+                                                     datamodule.out_shape)
         path_to_ckpt = ckpt_path(self.exp_output_dir, model_name)
         pt_model = model(**model_params)
         ckpt = torch.load(f=path_to_ckpt)
@@ -296,7 +216,7 @@ class KnowIt:
         pt_model.load_state_dict(state_dict)
         pt_model.eval()
 
-        save_dir = model_predictions_dir(self.exp_output_dir, model_name, safe_mode, overwrite)
+        save_dir = model_predictions_dir(self.exp_output_dir, model_name, safe_mode)
 
         dataloader = datamodule.get_dataloader(relevant_args['predictor']['prediction_set'], analysis=True)
 
@@ -308,19 +228,19 @@ class KnowIt:
             prediction = pt_model(x)
 
             file_name = relevant_args['predictor']['prediction_set'] + '-' + 'batch_' + str(batch[0]) + '.pickle'
-            dump_at_path((s_id, prediction.detach(), y), os.path.join(save_dir, file_name))
+            safe_dump((s_id, prediction.detach(), y), os.path.join(save_dir, file_name), safe_mode)
             for s in s_id:
                 inx_dict[s.item()] = batch[0]
 
         ist_values = datamodule.get_ist_values(relevant_args['predictor']['prediction_set'])
 
         file_name = '_' + relevant_args['predictor']['prediction_set'] + '-' + 'ist_inx_dict' + '.pickle'
-        dump_at_path((ist_values, inx_dict), os.path.join(save_dir, file_name))
+        safe_dump((ist_values, inx_dict), os.path.join(save_dir, file_name), safe_mode)
 
         if and_viz:
             set_predictions(self.exp_output_dir, model_name, relevant_args['predictor']['prediction_set'])
 
-    def interpret_model(self, model_name: str, args: dict, device=None, safe_mode=None, and_viz=None, overwrite=None):
+    def interpret_model(self, model_name: str, args: dict, device=None, safe_mode=None, and_viz=None):
 
         if device is None:
             device = self.global_device
@@ -328,18 +248,19 @@ class KnowIt:
             safe_mode = self.global_safe_mode
         if and_viz is None:
             and_viz = self.global_and_viz
-        if overwrite is None:
-            overwrite = self.global_overwrite
 
         relevant_args = setup_relevant_args(args, required_types=('interpreter',))
 
         interpret_args = copy.deepcopy(relevant_args['interpreter'])
 
+        save_dir = model_interpretations_dir(self.exp_output_dir, model_name, safe_mode)
+
         model_args = yaml_to_dict(model_args_path(self.exp_output_dir, model_name))
-        datamodule, class_counts = self._get_datamodule(model_args['data'])
-        model, model_params = self._get_arch_setup(model_args['arch'],
-                                                   datamodule.in_shape,
-                                                   datamodule.out_shape)
+        datamodule, class_counts = KnowIt._get_datamodule(self.exp_output_dir, self.available_datasets(),
+                                                          model_args['data'])
+        model, model_params = KnowIt._get_arch_setup(self.exp_output_dir, self.available_archs(),
+                                                     model_args['arch'], datamodule.in_shape,
+                                                     datamodule.out_shape)
         path_to_ckpt = ckpt_path(self.exp_output_dir, model_name)
 
         interpreter_class = KnowIt._get_interpret_setup(relevant_args['interpreter'])
@@ -361,23 +282,21 @@ class KnowIt:
         for a in interpret_args:
             save_name += str(interpret_args[a]) + '-'
         save_name = save_name[:-1] + '.pickle'
-
         interpret_args['results'] = attributions
 
-        save_dir = model_interpretations_dir(self.exp_output_dir, model_name, safe_mode, overwrite)
-        dump_at_path(interpret_args, os.path.join(save_dir, save_name))
+        safe_dump(interpret_args, os.path.join(save_dir, save_name), safe_mode)
 
         if and_viz:
             feature_attribution(self.exp_output_dir, model_name, relevant_args['interpreter'])
 
-    def _get_datamodule(self, data_args):
+    @staticmethod
+    def _get_datamodule(exp_output_dir, available_datasets, data_args):
         """ Given the data arguments, this function returns the corresponding data module.
             Note: The dataset is chosen from the custom experiment directory before trying the default directory."""
 
-        dataset_dict = self.available_datasets()
-        if data_args['name'] in dataset_dict['custom']:
-            data_path = custom_dataset_path(data_args['name'], self.exp_output_dir)
-        elif data_args['name'] in dataset_dict['defaults']:
+        if data_args['name'] in available_datasets['custom']:
+            data_path = custom_dataset_path(data_args['name'], exp_output_dir)
+        elif data_args['name'] in available_datasets['defaults']:
             data_path = dataset_path(data_args['name'])
         else:
             logger.error('Unknown dataset name %s. Aborting.', data_args['name'])
@@ -396,7 +315,8 @@ class KnowIt:
 
         return datamodule, class_counts
 
-    def _get_arch_setup(self, arch_args, in_shape, out_shape):
+    @staticmethod
+    def _get_arch_setup(exp_output_dir, available_archs, arch_args, in_shape, out_shape):
         """ Given the architecture arguments, this function returns the corresponding Model module.
             Note: The Model is chosen from the custom experiment directory before trying the default directory."""
 
@@ -417,10 +337,9 @@ class KnowIt:
             cls = getattr(module, class_name)
             return cls
 
-        arch_dict = self.available_archs()
-        if arch_args['name'] in arch_dict['custom']:
-            archi_path = custom_arch_path(arch_args['name'], self.exp_output_dir)
-        elif arch_args['name'] in arch_dict['defaults']:
+        if arch_args['name'] in available_archs['custom']:
+            archi_path = custom_arch_path(arch_args['name'], exp_output_dir)
+        elif arch_args['name'] in available_archs['defaults']:
             archi_path = arch_path(arch_args['name'])
         else:
             logger.error('Unknown arch name %s. Aborting.', arch_args['name'])
@@ -430,13 +349,13 @@ class KnowIt:
         model_params = {"input_dim": in_shape,
                         "output_dim": out_shape,
                         "task_name": arch_args['task']}
-        if 'arch_hps' in arch_args:
-            for hp in arch_args['arch_hps']:
-                model_params[hp] = arch_args['arch_hps'][hp]
+        for hp in arch_args['arch_hps']:
+            model_params[hp] = arch_args['arch_hps'][hp]
         return model, model_params
 
-    def _get_trainer_setup(self, trainer_args, device, class_counts, model,
-                           model_params, model_name, safe_mode, overwrite):
+    @staticmethod
+    def _get_trainer_setup(trainer_args, device, class_counts, model,
+                           model_params, save_dir):
         """ This function processes the trainer arguments according to a given set of
             dynamically generated parameters. """
 
@@ -449,7 +368,7 @@ class KnowIt:
         ret_trainer_args['model'] = model
         ret_trainer_args['model_params'] = model_params
         ret_trainer_args['device'] = device
-        ret_trainer_args['out_dir'] = model_output_dir(self.exp_output_dir, model_name, safe_mode, overwrite)
+        ret_trainer_args['out_dir'] = save_dir
         _ = ret_trainer_args.pop('task')
 
         return ret_trainer_args
@@ -467,3 +386,15 @@ class KnowIt:
             logger.error('Unknown interpreter %s.',
                          interpret_args['interpretation method'])
             exit(101)
+
+    @staticmethod
+    def _get_data_dynamics(data_args, datamodule):
+        data_dynamics = {'in_shape': datamodule.in_shape,
+                         'out_shape': datamodule.out_shape,
+                         'train_size': datamodule.train_set_size,
+                         'valid_size': datamodule.valid_set_size,
+                         'eval_size': datamodule.eval_set_size}
+        if data_args['task'] == 'classification':
+            data_dynamics['class_set'] = datamodule.class_set
+            data_dynamics['class_count'] = datamodule.class_counts
+        return data_dynamics

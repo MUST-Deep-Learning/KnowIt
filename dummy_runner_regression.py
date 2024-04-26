@@ -11,7 +11,7 @@ from knowit import KnowIt
 # You can construct an instance of the KnowIt module as indicated in the examples below:
 
 # Providing no additional arguments means that the experiment output directory will be temporary.
-# This means that the entire directory will be deleted after the instance of KnowIt is cleaned by
+# This means that the entire directory will be deleted when the instance of KnowIt is removed by
 # the garbage collector. This is useful for debugging or when KnowIt is used as a submodule of
 # a larger codebase.
 
@@ -21,17 +21,18 @@ from knowit import KnowIt
 # associated with a static (potentially pre-existing) experiment output directory.
 # This is useful for long-term experimentation.
 
-KI = KnowIt(custom_exp_dir='/home/tian/postdoc_work/KnowIt_debugging/my_dummy_exp')
+KI = KnowIt(custom_exp_dir='/home/tian/postdoc_work/KnowIt_debugging/my_dummy_exp_regression')
 
 # ----------------------------------------------------------------------------------------------------------------------
 # IMPORTING A CUSTOM ARCHITECTURE
 # ----------------------------------------------------------------------------------------------------------------------
 
 # KnowIt comes with a set of default architectures. However, if you want to import a custom one
-# you can call this function. The custom arch script will be checked and saved in the
+# you can call the following function. The custom arch script will be checked and saved in the
 # experiment output directory. See the archs.arch_how_to.md file along with the three default
 # architectures for more detail.
-# KI.import_arch(custom_arch_path='/home/tian/postdoc_work/KnowIt_debugging/new_dummy_arch.py')
+
+# KI.import_arch(new_arch_path='/home/tian/postdoc_work/KnowIt_debugging/new_dummy_arch.py')
 
 # ----------------------------------------------------------------------------------------------------------------------
 # IMPORTING A DATASET
@@ -51,19 +52,28 @@ KI = KnowIt(custom_exp_dir='/home/tian/postdoc_work/KnowIt_debugging/my_dummy_ex
 # ----------------------------------------------------------------------------------------------------------------------
 
 # check the state of global arguments for current instance of KnowIt
+print('CURRENT GLOBAL ARGUMENTS:')
 print(KI.global_args())
 # check the available datasets for current instance of KnowIt
+print('CURRENT AVAILABLE DATASETS:')
 print(KI.available_datasets())
 # check the available architectures for current instance of KnowIt
+print('CURRENT GLOBAL ARCHITECTURES:')
 print(KI.available_archs())
 # check the metadata of a particular dataset for current instance of KnowIt
+print('SUMMARY OF SOME DATASET:')
 print(KI.summarize_dataset('synth_1'))
-
-exit(101)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # TRAINING A MODEL
 # ----------------------------------------------------------------------------------------------------------------------
+
+# To train a model you need to provide a model name and a set of arguments.
+# - 'data' arguments relate to how the data should be split, scaled, sampled, and processed by the model.
+# - 'arch' arguments relate to what model architecture should be trained to perform what task.
+# - 'trainer' arguments relate to what methods should be used to train the model.
+# see the setup_action_args.py scripts for some options and default values.
+
 model_name = "my_new_model"
 data_args = {'name': 'synth_1',
              'task': 'regression',
@@ -81,35 +91,37 @@ arch_args = {'task': 'regression',
                           'width': 512}}
 trainer_args = {'loss_fn': 'mse_loss',
                 'optim': 'Adam',
-                'max_epochs': 3,
+                'max_epochs': 10,
                 'learning_rate': 0.01,
                 'task': 'regression'
                 }
+
 KI.train_model(model_name=model_name, args={'data': data_args, 'arch': arch_args, 'trainer': trainer_args})
 
-
-# KI.train_model_further(model_name=model_name, max_epochs=6)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # GENERATE MODEL PREDICTIONS
 # ----------------------------------------------------------------------------------------------------------------------
 
-# model_name = "my_new_model"
+# To generate predictions for a trained model you need to provide a model name and a set of arguments.
+# - 'predictor' arguments relate to what prediction points to predict on.
+
 # KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'train'}})
 # KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'valid'}})
-# KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'eval'}})
+KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'eval'}})
 
 # ----------------------------------------------------------------------------------------------------------------------
 # INTERPRET MODEL PREDICTIONS
 # ----------------------------------------------------------------------------------------------------------------------
 
-# model_name = "my_new_model"
-#
-# interpret_args = {'interpretation_method': 'DeepLift',
-#                   'interpretation_set': 'eval',
-#                   'selection': 'success',
-#                   'size': 100}
-#
-# KI.interpret_model(model_name=model_name, args={'interpreter': interpret_args})
+# To generate interpret predictions of a trained model you need to provide a model name and a set of arguments.
+# - 'interpreter' arguments relate to what prediction points to interpret on.
+# NOTE: In order to visualize feature attributions, the corresponding predictions must have been generated.
+
+interpret_args = {'interpretation_method': 'DeepLift',
+                  'interpretation_set': 'eval',
+                  'selection': 'random',
+                  'size': 100}
+KI.interpret_model(model_name=model_name, args={'interpreter': interpret_args})
 
 exit(101)

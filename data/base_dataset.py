@@ -113,7 +113,7 @@ class BaseDataset:
         from a given dataframe with raw data. """
         args = RawDataConverter(df, cls.__required_base_meta(),
                                 base_nan_filler, nan_filled_components).get_new_data()
-        data_path = custom_dataset_path(args['name'], exp_output_dir, safe_mode)
+        data_path = custom_dataset_path(args['name'], exp_output_dir)
         safe_dump(args, data_path, safe_mode)
         return cls(data_path)
 

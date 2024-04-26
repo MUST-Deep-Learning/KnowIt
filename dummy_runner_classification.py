@@ -5,7 +5,8 @@ KI = KnowIt(custom_exp_dir='/home/tian/postdoc_work/KnowIt_debugging/my_dummy_ex
 # ----------------------------------------------------------------------------------------------------------------------
 # TRAINING A MODEL
 # ----------------------------------------------------------------------------------------------------------------------
-model_name = "my_new_penguin_model"
+
+model_name = "my_new_penguin_model2"
 data_args = {'name': 'penguin_42_debug',
              'task': 'classification',
              'in_components': ['accX', 'accY', 'accZ'],
@@ -21,7 +22,7 @@ arch_args = {'task': 'classification',
              'name': 'CNN'}
 trainer_args = {'loss_fn': 'weighted_cross_entropy',
                 'optim': 'Adam',
-                'max_epochs': 3,
+                'max_epochs': 5,
                 'learning_rate': 0.001,
                 'learning_rate_scheduler': {'ExponentialLR': {'gamma': 0.9}},
                 'task': 'classification'}
@@ -31,16 +32,11 @@ KI.train_model(model_name=model_name, args={'data': data_args, 'arch': arch_args
 # GENERATE MODEL PREDICTIONS
 # ----------------------------------------------------------------------------------------------------------------------
 
-model_name = "my_new_penguin_model"
-KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'train'}})
-KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'valid'}})
 KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'eval'}})
 
 # ----------------------------------------------------------------------------------------------------------------------
 # INTERPRET MODEL PREDICTIONS
 # ----------------------------------------------------------------------------------------------------------------------
-
-model_name = "my_new_penguin_model"
 
 interpret_args = {'interpretation_method': 'DeepLift',
                   'interpretation_set': 'eval',
