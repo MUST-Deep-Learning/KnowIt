@@ -6,11 +6,8 @@ __description__ = 'Checks, filters, and adjusts user arguments for various actio
 Action arguments
 ------------------
 
-The user interacts with KnowIt by sending a combination of action key words, arguments, or paths to external files.
-This script contains a function ``setup_relevant_args`` that 
-
-
-
+The user interacts with KnowIt by sending arguments or paths to external files.
+This script contains a function ``setup_relevant_args`` that checks arguments.
 
 """
 
@@ -22,16 +19,14 @@ This script contains a function ``setup_relevant_args`` that
 from helpers.logger import get_logger
 logger = get_logger()
 
-arg_dict = {'importer':  {'required': ('path',),
-                          'optional': ('base_nan_filler',
-                                       'nan_filled_components')},
-            'id':       {'required': ('experiment_name',
-                                      'model_name'),
-                         'optional': ()},
-            'analyzer':      {'required': (),
-                              'optional': ()},
+arg_dict = {'data_import_args':  {'required': ('path',),
+                                  'optional': ('base_nan_filler',
+                                               'nan_filled_components'),
+                                  'default': {'base_nan_filler': None,
+                                              'nan_filled_components': None}},
             'arch':      {'required': ('task', 'name'),
-                          'optional': ('arch_hps',)},
+                          'optional': ('arch_hps',),
+                          'default': {'arch_hps': {}}},
             'data':         {'required': ('name',
                                           'task',
                                           'in_components',
@@ -45,12 +40,22 @@ arg_dict = {'importer':  {'required': ('path',),
                                           'scaling_method',
                                           'scaling_tag',
                                           'split_method',
-                                          'seed'),
-                             'default': {'seed': 123}},
+                                          'seed',
+                                          'shuffle_train',
+                                          'padding_method'),
+                             'default': {'seed': 123,
+                                         'limit': None,
+                                         'min_slice': None,
+                                         'scaling_method': 'z-norm',
+                                         'scaling_tag': None,
+                                         'split_method': 'chronological',
+                                         'shuffle_train': True,
+                                         'padding_method': 'zero'}},
             'trainer':      {'required': ('loss_fn',
                                           'optim',
                                           'max_epochs',
-                                          'learning_rate'),
+                                          'learning_rate',
+                                          'task'),
                              'optional': ('lr_scheduler',
                                           'performance_metrics',
                                           'early_stopping_args',
@@ -58,29 +63,32 @@ arg_dict = {'importer':  {'required': ('path',),
                                           'return_final',
                                           'model_selection_mode',
                                           'mute_logger',
-                                          'optional_pl_kwargs',
-                                          'state'),
+                                          'optional_pl_kwargs'),
                              'default': {'seed': 123,
-                                         'state': 'new',
-                                         'mute_logger': False}},
-            'tuner':         {'required': (),
-                              'optional': ()},
-            'interpret':    {'required': ('interpretation_method',),
-                             'optional': ('interpretation_set',
-                                          'selection',
-                                          'size',
-                                          'multiply_by_inputs'),
+                                         'mute_logger': False,
+                                         'optional_pl_kwargs': {}}},
+            'interpreter':    {'required': ('interpretation_method',),
+                               'optional': ('interpretation_set',
+                                            'selection',
+                                            'size',
+                                            'multiply_by_inputs'),
                              'default': {'interpretation_set': 'eval',
                                          'selection': 'random',
                                          'size': 1,
                                          'multiply_by_inputs': True,
                                          'seed': 123}},
             'predictor':      {'required': ('prediction_set',),
-                             'optional': ()}
+                               'optional': ()}
             }
 
 
-def setup_relevant_args(experiment_dict):
+def setup_relevant_args(experiment_dict, required_types=None):
+
+    if required_types:
+        missing_keys = set(required_types) - set(list(experiment_dict.keys()))
+        if len(missing_keys) > 0:
+            logger.error('Missing arg types: %s', str(missing_keys))
+            exit(101)
 
     valid_arg_types = list(arg_dict)
     ret_args = {}

@@ -87,7 +87,7 @@ class KITrainer:
     ) -> None:
         if ckpt_file:
             self._state = state(
-                ckpt_file=ckpt_file,
+                to_ckpt=ckpt_file,
                 base_kwargs=base_trainer_kwargs,
                 optional_pl_kwargs=optional_pl_kwargs,
             )

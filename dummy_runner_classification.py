@@ -1,12 +1,13 @@
 from knowit import KnowIt
 
+KI = KnowIt(custom_exp_dir='/home/tian/postdoc_work/KnowIt_debugging/my_dummy_exp_classification')
+
 # ----------------------------------------------------------------------------------------------------------------------
 # TRAINING A MODEL
 # ----------------------------------------------------------------------------------------------------------------------
 
-id_args = {'experiment_name': 'NITheCS_penguin_demo_1',
-           'model_name': 'my_first_penguin_model'}
-data_args = {'data': 'penguin_pce_full',
+model_name = "my_new_penguin_model2"
+data_args = {'name': 'penguin_42_debug',
              'task': 'classification',
              'in_components': ['accX', 'accY', 'accZ'],
              'out_components': ['PCE'],
@@ -14,36 +15,37 @@ data_args = {'data': 'penguin_pce_full',
              'out_chunk': [0, 0],
              'split_portions': [0.6, 0.2, 0.2],
              'batch_size': 32,
-             'split_method': 'instance-random',
+             'split_method': 'chronological',
              'scaling_tag': 'in_only',
-             'min_slice': 100,
-             'limit': 10}
+             'min_slice': 100}
 arch_args = {'task': 'classification',
-             'arch': 'CNN'}
+             'name': 'CNN'}
 trainer_args = {'loss_fn': 'weighted_cross_entropy',
                 'optim': 'Adam',
-                'max_epochs': 10,
+                'max_epochs': 5,
                 'learning_rate': 0.001,
                 'learning_rate_scheduler': {'ExponentialLR': {'gamma': 0.9}},
                 'task': 'classification'}
-KnowIt(action='train',
-       args={'id': id_args,
-             'data': data_args,
-             'arch': arch_args,
-             'trainer': trainer_args}, safe_mode=False)
-
+KI.train_model(model_name=model_name, args={'data': data_args, 'arch': arch_args, 'trainer': trainer_args})
 
 # ----------------------------------------------------------------------------------------------------------------------
-# INTERPRETING A MODEL
+# GENERATE MODEL PREDICTIONS
 # ----------------------------------------------------------------------------------------------------------------------
 
-# id_args = {'experiment_name': 'NITheCS_synth_demo_1',
-#            'model_name': 'my_first_model'}
-# interpret_args = {'interpretation_method': 'DeepLiftShap',
-#                   'interpretation_set': 'eval',
-#                   'selection': 'success',
-#                   'size': 100}
-#
-# KnowIt(action='interpret',
-#        args={'id': id_args,
-#              'interpret_args': interpret_args})
+KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'eval'}})
+
+# ----------------------------------------------------------------------------------------------------------------------
+# INTERPRET MODEL PREDICTIONS
+# ----------------------------------------------------------------------------------------------------------------------
+
+interpret_args = {'interpretation_method': 'DeepLift',
+                  'interpretation_set': 'eval',
+                  'selection': 'success',
+                  'size': 100}
+
+KI.interpret_model(model_name=model_name, args={'interpreter': interpret_args})
+
+
+
+
+exit(101)
