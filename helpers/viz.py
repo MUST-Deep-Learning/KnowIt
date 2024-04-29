@@ -19,8 +19,8 @@ import matplotlib.animation as animation
 # imports imports
 from env.env_paths import (learning_data_path, learning_curves_path,
                            model_args_path, model_predictions_dir,
-                           model_interpretations_dir)
-from helpers.read_configs import load_from_csv, yaml_to_dict, load_from_path, safe_mkdir
+                           model_interpretations_dir, model_interpretations_output_dir)
+from helpers.file_dir_procs import load_from_csv, yaml_to_dict, load_from_path
 from helpers.logger import get_logger
 
 logger = get_logger()
@@ -41,13 +41,11 @@ c_cycle = [train_color, valid_color, eval_color, 'darkorange', 'mediumblue']
 matplotlib.rcParams['axes.prop_cycle'] = matplotlib.cycler(color=c_cycle)
 
 
-def feature_attribution(id_args, interpret_args):
+def feature_attribution(exp_output_dir, model_name, interpret_args):
 
-    interpretation_dir = model_interpretations_dir(id_args['experiment_name'], id_args['model_name'])
-    predictions_dir = model_predictions_dir(id_args['experiment_name'], id_args['model_name'])
-
-    model_args = yaml_to_dict(model_args_path(id_args['experiment_name'],
-                                              id_args['model_name']))
+    interpretation_dir = model_interpretations_dir(exp_output_dir, model_name)
+    predictions_dir = model_predictions_dir(exp_output_dir, model_name)
+    model_args = yaml_to_dict(model_args_path(exp_output_dir, model_name))
 
     file_name = '_' + interpret_args['interpretation_set'] + '-' + 'ist_inx_dict' + '.pickle'
     ist_values, _ = load_from_path(os.path.join(predictions_dir, file_name))
@@ -73,8 +71,7 @@ def feature_attribution(id_args, interpret_args):
     #                                       relevant_ist, model_args)
 
     folder_name = file_name.split('.pickle')[0]
-    save_dir = os.path.join(interpretation_dir, folder_name)
-    safe_mkdir(save_dir, True, False)
+    save_dir = model_interpretations_output_dir(exp_output_dir, model_name, folder_name)
 
     if model_args['data']['task'] == 'regression':
         plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
@@ -385,12 +382,11 @@ def create_gif(save_dir, image_paths):
     plt.close()
 
 
-def set_predictions(id_args, data_tag):
+def set_predictions(exp_output_dir, model_name, data_tag):
 
-    model_args = yaml_to_dict(model_args_path(id_args['experiment_name'],
-                                              id_args['model_name']))
+    model_args = yaml_to_dict(model_args_path(exp_output_dir, model_name))
 
-    predictions_dir = model_predictions_dir(id_args['experiment_name'], id_args['model_name'])
+    predictions_dir = model_predictions_dir(exp_output_dir, model_name)
 
     file_name = '_' + data_tag + '-' + 'ist_inx_dict' + '.pickle'
     ist_values, _ = load_from_path(os.path.join(predictions_dir, file_name))
@@ -682,10 +678,10 @@ def classification_set_prediction(i, predictions, targets, data_tag,
     plt.close()
 
 
-def learning_curves(id_args):
+def learning_curves(exp_output_dir, model_name):
 
-    def get_curves(experiment_name, model_name):
-        csv_path = learning_data_path(experiment_name, model_name)
+    def get_curves(exp_output_dir, model_name):
+        csv_path = learning_data_path(exp_output_dir, model_name)
         curve_data = load_from_csv(csv_path)
         curves = defaultdict(dict)
         for row in curve_data:
@@ -732,7 +728,7 @@ def learning_curves(id_args):
 
         return result, result_epoch+1
 
-    curves, num_epochs = get_curves(id_args['experiment_name'], id_args['model_name'])
+    curves, num_epochs = get_curves(exp_output_dir, model_name)
     result, result_epoch = get_result_epoch(curves)
 
     loss_curves = [key for key in curves.keys() if 'perf' not in key]
@@ -779,7 +775,7 @@ def learning_curves(id_args):
     # plt.tight_layout()
     # plt.show()
 
-    save_path = learning_curves_path(id_args['experiment_name'], id_args['model_name'])
+    save_path = learning_curves_path(exp_output_dir, model_name)
     plt.savefig(save_path, dpi=generic_dpi)
 
 

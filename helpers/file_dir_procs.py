@@ -1,6 +1,6 @@
 __author__ = 'tiantheunissen@gmail.com'
-__description__ = ('Contains functions for loading, dumping, converting, or creating directories '
-                   'or files from local filesystem.')
+__description__ = ('Contains functions for loading, dumping, converting, '
+                   'or creating directories an files from local filesystem.')
 
 # external imports
 import os
@@ -20,30 +20,41 @@ from helpers.logger import get_logger
 logger = get_logger()
 
 
-def safe_mkdir(new_dir, safe_mode, overwrite=False):
+def proc_dir(new_dir: str, safe_mode: bool = True, overwrite: bool = False):
+
+    """
+    Ensures that a specified directory exists.
+        - safe_mode means 'Should I be prevented from overwriting any existing directory?'
+        - overwrite means 'Do I want to overwrite any existing directory?'
+
+    """
 
     dir_exists = os.path.exists(new_dir)
-
     if not dir_exists:
+        # create new dir
         try:
             os.makedirs(new_dir)
         except:
-            logger.error('Could not create dir %s', new_dir)
+            logger.error('Could not create new directory: %s', new_dir)
             exit(101)
-    elif dir_exists and not safe_mode and overwrite:
-        logger.warning('Automatically removing dir %s.', new_dir)
+    elif not overwrite:
+        # do nothing, use existing directory
+        # logger.warning('Directory already exists: %s. Using as is.', new_dir)
+        pass
+    elif safe_mode:
+        # error; the dir exists and wants to be overwritten but safe_mode
+        logger.error('Directory will be overwritten but safe_mode=True: %s.', new_dir)
+        exit(101)
+    else:
+        # overwrite; dir exists, safe_mode is off, and overwrite is on.
+        # TODO: Consider prompting user
+        logger.warning('Recreating directory: %s.', new_dir)
         shutil.rmtree(new_dir)
         try:
             os.makedirs(new_dir)
         except:
-            logger.error('Could not create dir %s', new_dir)
+            logger.error('Could not recreate directory: %s', new_dir)
             exit(101)
-    elif dir_exists and safe_mode and overwrite:
-        logger.warning('Dir already exists but safe_mode AND overwrite is on %s.', new_dir)
-        exit(101)
-    else:
-        logger.warning('Dir already exists %s. Using as is.', new_dir)
-
 
 
 def safe_dump(data, path, safe_mode):
@@ -53,6 +64,15 @@ def safe_dump(data, path, safe_mode):
         exit(101)
     else:
         dump_at_path(data, path)
+
+
+def safe_copy(path, new_path, safe_mode):
+    if os.path.exists(new_path) and safe_mode:
+        logger.error('File already exists: %s.',
+                     path)
+        exit(101)
+    else:
+        shutil.copyfile(path, new_path)
 
 
 def yaml_to_dict(config_path):
@@ -75,13 +95,6 @@ def yaml_to_dict(config_path):
     #         cfg[key] = cfg_yaml[key]['value']
 
     return cfg_yaml
-
-
-def dict_to_yaml(my_dict, dir_path, file_name):
-
-    path = os.path.join(dir_path, file_name)
-    with open(path, 'w+') as handle:
-        yaml.dump(my_dict, handle, allow_unicode=True)
 
 
 def dump_at_path(data, path):
@@ -116,6 +129,10 @@ def dump_at_path(data, path):
         elif file_ext == '.xz':
             with lzma.open(path, 'wb') as f:
                 pickle.dump(data, f)
+        elif file_ext in ('.yaml', '.yml'):
+            # assumes data is a dict?
+            with open(path, 'w+') as handle:
+                yaml.dump(data, handle, allow_unicode=True)
         else:
             logger.warning('Unknown file extension, %s, '
                            'storing as uncompressed pickle.', file_ext)
@@ -144,7 +161,7 @@ def load_from_path(path):
         logger.error('Could not determine file extension from path %s. '
                      'Aborting', path)
         exit(101)
-    logger.info('Loading file %s.', path)
+    # logger.info('Loading file %s.', path)
     try:
         if file_ext == '.pbz2':
             result = bz2.BZ2File(path, 'rb')
@@ -170,17 +187,6 @@ def load_from_path(path):
         exit(101)
 
     return result
-
-
-def safe_copy(destination_dir, origin_path, safe_mode):
-    file_name = origin_path.split('/')[-1]
-    destination_path = os.path.join(destination_dir, file_name)
-    if os.path.exists(destination_path) and safe_mode:
-        logger.error('File already exists: %s.',
-                     destination_path)
-        exit(101)
-    else:
-        shutil.copyfile(origin_path, destination_path)
 
 
 def save_to_csv(data, path_name, data_format):
