@@ -211,7 +211,7 @@ class PreparedDataset(BaseDataset):
         logger.info('Initializing PreparedClass for %s', args['name'])
 
         # initialize the BaseClass variables while keeping the_data in memory
-        super().__init__(args['name'], mem_light=False)
+        super().__init__(args['data_path'], mem_light=False)
 
         # Save default optional arguments
         self.__setattr_or_default(args, 'split_method', 'chronological')
