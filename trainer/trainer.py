@@ -97,6 +97,10 @@ class KITrainer:
                 optional_pl_kwargs=optional_pl_kwargs,
             )
 
+        if not self._state:
+            emsg = "Trainer state cannot be set to None."
+            raise TypeError(emsg)
+        
         self._state.context = self
 
     def fit_and_eval(
