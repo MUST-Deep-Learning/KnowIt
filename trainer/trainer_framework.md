@@ -10,6 +10,49 @@ The benefits of this design pattern are that it allows for easier debugging and 
 
 **1. Modules**
 
+The trainer framework consists of the following modules (indentation indicates inheritance):
+- BaseTrainer
+    - TrainNew
+    - ContinueTraining
+    - EvaluateOnly
+    - CustomTrainer
+- KITrainer
+- PLModel
+
+**2. BaseTrainer**
+
+The _BaseTrainer_ module is an abstract class that stores a user's input parameters and defines a set of abstract methods needed for the trainer states. It is inherited by one of the trainer states and functions similar to an interface between _KITrainer_ and a state. More information can be found in the modules documentation in _base_trainer.py_. 
+
+**3. TrainNew**
+
+A state that initializes and prepares the KnowIt trainer to train a new model, log various metrics, and save a model checkpoint file. After training is completed, the model will be evaluated on a user's dataloaders and the results printed in the terminal.
+
+_TrainNew_ inherits attributes and methods from _BaseTrainer_.
+
+**4. ContinueTraining**
+
+A state that initializes and prepares the KnowIt trainer to continue training an existing model from a checkpoint. Similar to _TrainNew_, this state module with log various metrics and save a new model checkpoint file. After training is completed, the model will be evaluated on a user's dataloaders and the results printed in the terminal.
+
+_ContinueTraining_ inherits attributes and methods from _BaseTrainer_.
+
+**5. EvaluateOnly**
+
+A state that initializes and prepares the KnowIt trainer to evaluate an existing model from checkpoint on a set of dataloaders. The results will be printed in the terminal.
+
+_EvaluateOnly_ inherits attributes and methods from _BaseTrainer_.
+
+**6. CustomTrainer**
+
+A custom template that can be edited by a user for more niche applications that are covered by the above states.
+
+The custom class must inherit attributes and methods from _BaseTrainer_.
+
+**7. KITrainer**
+
+The _KITrainer_ module interacts with KnowIt's architecture script. Based on a user's task, the module will prepare the trainer in one of the states.
+
+
+**8. PLModel**
 
 
 
