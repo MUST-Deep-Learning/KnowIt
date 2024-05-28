@@ -8,7 +8,7 @@ Knowit architecture script (which, in turn, interacts with all of KnowIt's sub-
 modules).
 
 The user is able to use the KnowIt Trainer in different ways, depending on the
-training task. As such, the trainer submodule is built according to a `State'
+training task. As such, the trainer submodule is built similar to a `State'
 pattern.
 
 Thus, there are three parts to the submodule: the context class (KITrainer)
@@ -21,7 +21,7 @@ The three possible concrete states are:
     - STATE 2 (CONTINUE): Continue training an existing model from checkpoint.
     - STATE 3 (EVAL): Load a trained model and evaluate it on a dataset.
 
-KnowIt's Trainer submodule is built using Pytorch Lightning. See here:
+KnowIt's Trainer module is built using Pytorch Lightning. See here:
 https://lightning.ai/pytorch-lightning
 """  # noqa: INP001, D205, D212, D400, D415
 
