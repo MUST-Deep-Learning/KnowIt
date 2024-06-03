@@ -8,7 +8,31 @@ ween the context class ``KITrainer'' and any of the concrete trainer state
 objects.
 
 The "BaseTrainer" class stores the user's parameters and defines a set of
-abstract methods to be used by the trainer state objects.
+abstract methods to be inherited by the trainer state objects.
+
+Note that some kwargs in the constructor require additional parameters (for
+example, the learning rate scheduler). In this case, the parameter is always
+provided as a dictionary with the keys as strings specifying the additional
+parameters.
+
+For example, if one wants to use the 'ReduceLROnPlateau' scheduler
+from Pytorch, then one can specify it as a string
+
+    lr_scheduler = 'ReduceLROnPlateau'
+    
+which will use the default values for the scheduler. However, if one wants to
+use use custom values or the scheduler requires additional kwargs, then the
+scheduler should be passed as a dictionary such as
+
+    lr_scheduler = {
+        'ReduceLROnPlateau':{
+            'factor': 0.2,
+            'patience': 5,
+            'threshold': 0.001
+        }
+    }
+The same idea holds for any other kwarg in "BaseTrainer" that might need addit-
+ional parameters.
 """  # noqa: INP001, D205, D212, D400, D415
 
 from __future__ import annotations  # required for Python versions <3.9
@@ -36,7 +60,7 @@ logger = get_logger()
 
 class BaseTrainer(ABC):
     """Abstract class to interface between the context class "KITrainer" and a
-    concrete state object.
+    trainer state.
 
     "BaseTrainer" will initialize necessary and optional kwargs to be used by
     any of the KnowIt Trainer states. It also defines abstract methods that are
@@ -58,7 +82,7 @@ class BaseTrainer(ABC):
         optim: str | dict[str, Any],
         max_epochs: int,
         learning_rate: float,
-        lr_scheduler: None | dict[str, Any] = None,
+        lr_scheduler: None | str | dict[str, Any] = None,
         performance_metrics: None | str | dict[str, Any] = None,
         early_stopping_args: None | dict[str, Any] = None,
         ckpt_mode: str = "min",
@@ -84,13 +108,13 @@ class BaseTrainer(ABC):
                                     formed (cpu or gpu).
 
             loss_fn (str | dict):   The loss function to be used during train-
-                                    ing. The string must match Pytorch's
-                                    functional library. See:
+                                    ing. The string must match the name in
+                                    Pytorch's functional library. See:
                                     https://pytorch.org/docs/stable/nn.functional.html#loss-functions
 
             optim (str | dict):     The optimizer to be used during training.
-                                    The string must match Pytorch's optimizer
-                                    library. See:
+                                    The string must match the name in
+                                    Pytorch's optimizer library. See:
                                     https://pytorch.org/docs/stable/nn.functional.html#loss-functions
 
             max_epochs (int):       The number of training iterations, where a
@@ -101,7 +125,7 @@ class BaseTrainer(ABC):
                                     parameter updates. It controls the size of
                                     the updates.
 
-            lr_scheduler (dict | None):
+            lr_scheduler (str | dict | None):
                                     The learning rate scheduler to be used
                                     during training. If not None, a dictionary
                                     must be given of the form
@@ -132,17 +156,15 @@ class BaseTrainer(ABC):
                                                         face names found here:
                                                         https://lightning.ai/docs/torchmetrics/stable/
 
-                                        metric_
-                                        kwargs:         A dictionary of kwargs
-                                                        required for 'metric'.
-                                    Default: None.
+                                        metric_kwargs:  A dictionary of kwargs
+                                        required for 'metric'. Default: None.
 
             early_stopping_args (None | dict):
                                     Sets the Pytorch Lightning's EarlyStopping
                                     callback. If not None, a dictionary must be
-                                    given with keywords corresponding to an
-                                    argument in EarlyStopping and the corres-
-                                    ponding value. See:
+                                    given with string keywords corresponding
+                                    to an argument in EarlyStopping and the
+                                    corresponding value. See:
                                     https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.callbacks.EarlyStopping.html#lightning.pytorch.callbacks.EarlyStopping
                                     Default: None
 
