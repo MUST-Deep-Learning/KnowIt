@@ -220,33 +220,14 @@ class BaseTrainer(ABC):
         self,
         dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
     ) -> None:
-        """Fit model to the training data and monitor metrics on val set.
-
-        Args:
-        ----
-            dataloaders (tuple):    The train dataloader and validation
-                                    dataloader. The ordering of the tuple
-                                    must be given is (train, val).
-
-        """
+        pass
 
     @abstractmethod
     def evaluate_model(
         self,
         dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
     ) -> None:
-        """Evaluate the trained model's performance on a tuple of data sets.
-
-        NOTE: If the concatenated strings for metrics become long, Pytorch
-        Lightning will print the evaluation results on two seperate lines in
-        the terminal.
-
-        Args:
-        ----
-            dataloaders (tuple):        A tuple consisting of three Pytorch
-                                        dataloaders (train, val, eval).
-
-        """
+        pass
 
     @abstractmethod
     def _prepare_pl_model(self) -> None:
