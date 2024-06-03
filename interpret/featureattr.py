@@ -62,7 +62,7 @@ class FeatureAttribution(KIInterpreter):
         super().__init__(
             model=model,
             model_params=model_params,
-            path_to_checkpoint=path_to_ckpt,
+            path_to_ckpt=path_to_ckpt,
             datamodule=datamodule,
             device=device,
         )
