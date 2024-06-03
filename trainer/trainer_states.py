@@ -78,7 +78,9 @@ class TrainNew(BaseTrainer):
             optional_pl_kwargs (dict[str, Any]):
                                             Additional kwargs to be provided to
                                             Pytorch Lightning's Trainer (such
-                                            as gradient clipping, etc).
+                                            as gradient clipping, etc). See
+                                            Pytorch Lightning's documentation
+                                            for more information.
 
         """
         super().__init__(**base_kwargs)
@@ -235,7 +237,9 @@ class ContinueTraining(BaseTrainer):
             optional_pl_kwargs (dict[str, Any]):
                                             Additional kwargs to be provided to
                                             Pytorch Lightning's Trainer (such
-                                            as gradient clipping, etc).
+                                            as gradient clipping, etc). See
+                                            Pytorch Lightning's documentation
+                                            for more information.
 
         """
         super().__init__(**base_kwargs)
