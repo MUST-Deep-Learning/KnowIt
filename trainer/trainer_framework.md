@@ -31,7 +31,7 @@ _TrainNew_ inherits attributes and methods from _BaseTrainer_.
 
 **4. ContinueTraining**
 
-A state that initializes and prepares the KnowIt trainer to continue training an existing model from a checkpoint. Similar to _TrainNew_, this state module with log various metrics and save a new model checkpoint file. The metrics and checkpoint file will be automatically saved to a user's project directory.
+A state that initializes and prepares the KnowIt trainer to continue training an existing model from a checkpoint. Similar to _TrainNew_, this state module will log various metrics and save a new model checkpoint file. The metrics and checkpoint file will be automatically saved to a user's project directory.
 
 _ContinueTraining_ inherits attributes and methods from _BaseTrainer_.
 
@@ -43,7 +43,7 @@ _EvaluateOnly_ inherits attributes and methods from _BaseTrainer_.
 
 **6. CustomTrainer**
 
-A custom template that can be edited by a user for more niche applications that are covered by the above states.
+A custom template that can be edited by a user for more niche applications that are not covered by the above states.
 
 The custom class must inherit attributes and methods from _BaseTrainer_.
 
@@ -54,7 +54,7 @@ The _KITrainer_ module interacts with KnowIt's architecture script. Based on a u
 
 **8. PLModel**
 
-The _PLModel_ module is a wrapper class that takes a user's Pytorch model class and any required parameters and builds a Pytorch Lightning model. The Pytorch Lightning model defines all the necessary methods required by Pytorch Lightning's Trainer module.
+The _PLModel_ module is a wrapper class that takes a user's Pytorch model class and any required parameters and builds a Pytorch Lightning model. The Pytorch Lightning model _PLModel_ defines all the necessary methods required by Pytorch Lightning's Trainer module.
 
 
 
