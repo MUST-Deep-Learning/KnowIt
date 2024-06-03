@@ -51,7 +51,7 @@ class PLModel(pl.LightningModule):
         loss: str | dict[str, Any],
         learning_rate: float,
         optimizer: str | dict[str, Any],
-        learning_rate_scheduler: str | dict[str, Any],
+        learning_rate_scheduler: None | str | dict[str, Any],
         performance_metrics: None | str | dict[str, Any],
         model: type,
         model_params: dict[str, Any],
