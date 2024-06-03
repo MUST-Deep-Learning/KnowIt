@@ -19,7 +19,7 @@ For example, if one wants to use the 'ReduceLROnPlateau' scheduler
 from Pytorch, then one can specify it as a string
 
     lr_scheduler = 'ReduceLROnPlateau'
-    
+
 which will use the default values for the scheduler. However, if one wants to
 use use custom values or the scheduler requires additional kwargs, then the
 scheduler should be passed as a dictionary such as
@@ -238,14 +238,14 @@ class BaseTrainer(ABC):
         self._context = context
 
     @abstractmethod
-    def fit_model(
+    def fit_model(  # noqa: D102
         self,
         dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
     ) -> None:
         pass
 
     @abstractmethod
-    def evaluate_model(
+    def evaluate_model(  # noqa: D102
         self,
         dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
     ) -> None:
