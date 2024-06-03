@@ -1,3 +1,6 @@
+# Users interact with KnowIt by either constructing an experiment script such as this one or importing KnowIt into their
+# own scripts and using specific functionalities in KnowIt.
+
 # ----------------------------------------------------------------------------------------------------------------------
 # IMPORTING THE KNOWIT MODULE
 # ----------------------------------------------------------------------------------------------------------------------
@@ -11,9 +14,9 @@ from knowit import KnowIt
 # You can construct an instance of the KnowIt module as indicated in the examples below:
 
 # Providing no additional arguments means that the experiment output directory will be temporary.
-# This means that the entire directory will be deleted when the instance of KnowIt is removed by
-# the garbage collector. This is useful for debugging or when KnowIt is used as a submodule of
-# a larger codebase.
+# This means that the entire directory, along with all outputs, will be deleted when the instance
+# of KnowIt is removed by the garbage collector. This is useful for debugging or when KnowIt is
+# used as a submodule of a larger codebase.
 
 # KI = KnowIt()
 
@@ -21,28 +24,29 @@ from knowit import KnowIt
 # associated with a static (potentially pre-existing) experiment output directory.
 # This is useful for long-term experimentation.
 
-KI = KnowIt(custom_exp_dir='/home/tian/postdoc_work/KnowIt_debugging/my_dummy_exp_regression')
+KI = KnowIt(custom_exp_dir='/path/to/my/new/experiment/directory')
 
 # ----------------------------------------------------------------------------------------------------------------------
 # IMPORTING A CUSTOM ARCHITECTURE
 # ----------------------------------------------------------------------------------------------------------------------
 
-# KnowIt comes with a set of default architectures. However, if you want to import a custom one
-# you can call the following function. The custom arch script will be checked and saved in the
-# experiment output directory. See the archs.arch_how_to.md file along with the three default
-# architectures for more detail.
+# KnowIt comes with a set of default architectures (see default_archs directory).
+# However, if you want to import a custom one you can call the following function.
+# The given script will be checked and saved in the experiment output directory.
+# See the default_archs.arch_how_to.md file along with the default architectures
+# for more detail.
 
-# KI.import_arch(new_arch_path='/home/tian/postdoc_work/KnowIt_debugging/new_dummy_arch.py')
+# KI.import_arch(new_arch_path='/path/to/my/custom/arch.py')
 
 # ----------------------------------------------------------------------------------------------------------------------
 # IMPORTING A DATASET
 # ----------------------------------------------------------------------------------------------------------------------
 
-# KnowIt has two default datasets for debugging. In order to handle external data you can import it
-# into your experiment output directory as follows. See the data.raw_data_conversion.py script's heading
-# for more details.
+# KnowIt has two default datasets for debugging (see default_datasets directory).
+# In order to handle external data you can import it into your experiment output directory as follows.
+# See the default_datasets.dataset_how_to.md file for more details.
 
-# import_args = {'path': '/home/tian/postdoc_work/LEAH_SYNTH_DATA/synth_1/synth_1.pickle',
+# import_args = {'path': '/path/to/my/custom/data.pickle',
 #                'base_nan_filler': 'linear',
 #                'nan_filled_components': ['x1', 'x2', 'x3', 'x4', 'y1']}
 # KI.import_dataset({'data_import_args': import_args})
@@ -72,7 +76,7 @@ print(KI.summarize_dataset('synth_1'))
 # - 'data' arguments relate to how the data should be split, scaled, sampled, and processed by the model.
 # - 'arch' arguments relate to what model architecture should be trained to perform what task.
 # - 'trainer' arguments relate to what methods should be used to train the model.
-# see the setup_action_args.py scripts for some options and default values.
+# see the setup.setup_action_args.py scripts for some options and default values.
 
 model_name = "my_new_model"
 data_args = {'name': 'synth_1',
@@ -114,7 +118,7 @@ KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_s
 # INTERPRET MODEL PREDICTIONS
 # ----------------------------------------------------------------------------------------------------------------------
 
-# To generate interpret predictions of a trained model you need to provide a model name and a set of arguments.
+# To interpret predictions of a trained model you need to provide a model name and a set of arguments.
 # - 'interpreter' arguments relate to what prediction points to interpret on.
 # NOTE: In order to visualize feature attributions, the corresponding predictions must have been generated.
 
