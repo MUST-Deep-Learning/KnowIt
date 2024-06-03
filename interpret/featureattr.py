@@ -13,16 +13,16 @@ Captum.
 
 """# noqa: INP001, D205, D212, D400, D415
 
-from __future__ import annotations  # required for Python versions <3.9
+from __future__ import annotations
 
 __author__ = "randlerabe@gmail.com"
 __description__ = "Contains the class for performing feature attribution."
 
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from torch import tensor
+    from torch import Tensor
 
 from helpers.logger import get_logger
 from interpret.interpreter import KIInterpreter
@@ -31,34 +31,39 @@ logger = get_logger()
 
 
 class FeatureAttribution(KIInterpreter):
-    """Provide methods for Captum's feature attribution modules.
-
-    Args:
-    ----
-        model (type):           The Pytorch model architecture defined in
-                                ./archs
-
-        model_params (dict):    The dictionary needed to intialize model.
-
-        path_to_ckpt (str):     The path to a trained model's checkpoint file.
-
-        datamodule (type)       The Knowit datamodule for the experiment.
-
-        i_data (str)            The user's choice of dataset to perform feature
-                                attribution. Choices: 'train', 'valid', 'eval'.
-
-    """
+    """Provide methods for Captum's feature attribution modules."""
 
     def __init__(
         self,
         model: type,
-        model_params: dict,
+        model_params: dict[str, Any],
         path_to_ckpt: str,
-        datamodule: object,
+        datamodule: type,
         i_data: str,
         device: str,
     ) -> None:
+        """FeatureAttribution constructor.
 
+        Args:
+        ----
+            model (type):           The Pytorch model architecture defined in
+                                    ./archs
+
+            model_params (dict):    The dictionary needed to intialize model.
+
+            path_to_ckpt (str):     The path to a trained model's checkpoint
+                                    file.
+
+            datamodule (type):      The Knowit datamodule for the experiment.
+
+            i_data (str):           The user's choice of dataset to perform
+                                    feature attribution. Choices: 'train',
+                                    'valid', 'eval'.
+
+            device (str):           The hardware device to be used for feature
+                                    extraction (either cpu or gpu).
+
+        """
         super().__init__(
             model=model,
             model_params=model_params,
@@ -70,27 +75,8 @@ class FeatureAttribution(KIInterpreter):
         self.i_data = i_data
 
     def _fetch_points_from_datamodule(
-        self, point_ids: int | tuple, *, is_baseline: bool = False,
-    ) -> tensor:
-        """Return the corresponding data points from Knowit's Datamodule.
-
-        Args:
-        ----
-            point_ids (Union[int, tuple]):      A single prediction point or a
-                                                range specified by a tuple.
-
-            is_baseline (bool):                 A flag to determine if user is
-                                                sampling points for generating
-                                                baselines.
-
-        Returns:
-        -------
-            tensor (tensor):                    A Pytorch tensor of shape
-                                                (number_of_points_ids,
-                                                in_chunk,
-                                                in_components).
-
-        """
+        self, point_ids: int | tuple[int, int], *, is_baseline: bool = False,
+    ) -> Tensor:
         if is_baseline:
             data_loader = self.datamodule.get_dataloader(
                 "train",
