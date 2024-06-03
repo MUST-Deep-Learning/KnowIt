@@ -48,17 +48,9 @@ class KITrainer:
 
     Args:
     ----
-        _state (None | type):   A concrete state object that corresponds to one
+        _state (None | type):   A concrete state that corresponds to one
                                 of the possible states for the trainer.
-
-        ckpt_file (None|str):   A string that points to a Pytorch checkpoint
-                                file. Required for certain trainer states.
-                                default: None
-
-    Kwargs:
-    ------
-        **kwargs (any):         Kwargs required to initialize the BaseTrainer
-                                abstract class.
+                                Default: None
 
     """
 
@@ -71,6 +63,27 @@ class KITrainer:
         optional_pl_kwargs: dict[str, Any],
         ckpt_file: None | str = None,
     ) -> None:
+        """KITrainer constructor.
+
+        Args:
+        ----
+            state (type[Any]):  A concrete state that corresponds to one
+                                of the possible states for the trainer.
+
+            base_trainer_kwargs (dict[str, Any]):
+                                The kwargs required in the BaseTrainer
+                                submodule.
+
+            optional_pl_kwargs (dict[str, Any]):
+                                An additional kwargs that a user would like to
+                                provide Pytorch Lightning's Trainer.
+
+            ckpt_file (None | str, optional):
+                                A string that points to a Pytorch checkpoint
+                                file. Required for certain trainer states.
+                                default: None
+
+        """
         self._set_state(
             state=state,
             base_trainer_kwargs=base_trainer_kwargs,
@@ -100,19 +113,21 @@ class KITrainer:
         if not self._state:
             emsg = "Trainer state cannot be set to None."
             raise TypeError(emsg)
-        
+
         self._state.context = self
 
     def fit_and_eval(
         self,
         dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
     ) -> None:
-        """Fit model to training data and evaluate on eval data.
+        """Fit model to training data and evaluate on all dataloaders.
 
         Args:
         ----
             dataloaders (tuple):    The Pytorch dataloaders that has been set
-                                    up in KnowIt's datamodule.
+                                    up in KnowIt's datamodule. The triplet
+                                    corresponds to the train, val, and eval
+                                    dataloaders.
 
         """
         if self._state is None:
@@ -131,7 +146,9 @@ class KITrainer:
         Args:
         ----
             dataloaders (tuple):    The Pytorch dataloaders that has been set
-                                    up in KnowIt's datamodule.
+                                    up in KnowIt's datamodule. The triplet
+                                    corresponds to the train, val, and eval
+                                    dataloaders.
 
         """
         if self._state is None:
