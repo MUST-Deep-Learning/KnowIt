@@ -6,8 +6,6 @@ Given a Pytorch model and Pytorch dataloaders (generated from KnowIt's data fram
 
 The trainer framework design pattern is similar to a State pattern. In particular, the pattern consists of a context class that interacts with KnowIt's main architecture module, an abstract base class that defines abstract methods and can act as an interface between the context class and states, and a set of trainer states that inherits from the abstract base class.
 
-The benefits of this design pattern are that it allows for easier debugging and will allow the trainer framework to be further customizable by a user through incorporating custom trainer states.
-
 **1. Modules**
 
 The trainer framework consists of the following modules (indentation indicates inheritance):
