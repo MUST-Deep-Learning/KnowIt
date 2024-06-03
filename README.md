@@ -1,5 +1,5 @@
 # KnowIt
-KnowIt (**Know**ledge discovery **I**n **T**ime series data) is toolkit to train and interpret deep time series models.\
+KnowIt (**Know**ledge discovery **I**n **T**ime series data) is a toolkit to train and interpret deep time series models.\
 It is developed in Python and uses [PyTorch Lightning](https://github.com/Lightning-AI/pytorch-lightning) for model building and [Captum](https://github.com/pytorch/captum) for model interpreting.
 
 **Installation**
