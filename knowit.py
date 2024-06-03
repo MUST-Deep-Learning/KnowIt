@@ -145,7 +145,7 @@ class KnowIt:
 
         return summary
 
-    def global_args(self, device=None, safe_mode=None, and_viz=None):
+    def global_args(self, device: str = None, safe_mode: bool = None, and_viz: bool = None):
 
         """
 
@@ -188,7 +188,7 @@ class KnowIt:
                 'global_and_viz': self.global_and_viz,
                 'global_safe_mode': self.global_safe_mode}
 
-    def import_arch(self, new_arch_path, safe_mode=None):
+    def import_arch(self, new_arch_path: str, safe_mode: bool = None):
 
         """
             Imports the architecture from the specified path.
@@ -286,7 +286,7 @@ class KnowIt:
                 ret_dict['custom'].append(d.split('.py')[0])
         return ret_dict
 
-    def import_dataset(self, args: dict, safe_mode=None):
+    def import_dataset(self, args: dict, safe_mode: bool = None):
 
         """
             Imports the dataset and returns it as a BaseDataset object.
@@ -329,8 +329,8 @@ class KnowIt:
         data_import_args['safe_mode'] = safe_mode
         return BaseDataset.from_path(**data_import_args)
 
-    def train_model(self, model_name: str, args: dict, device=None,
-                    safe_mode=None, and_viz=None):
+    def train_model(self, model_name: str, args: dict, device: str = None,
+                    safe_mode: bool = None, and_viz: bool = None):
 
         """
 
@@ -400,8 +400,8 @@ class KnowIt:
         if and_viz and not trainer_args['mute_logger']:
             learning_curves(self.exp_output_dir, model_name)
 
-    def train_model_further(self, model_name: str, max_epochs: int, device=None,
-                    safe_mode=None, and_viz=None):
+    def train_model_further(self, model_name: str, max_epochs: int, device: str = None,
+                    safe_mode: bool = None, and_viz: bool = None):
 
         # TODO: This function should train the desired model to the desired max_epochs without
         #  overwriting old learning metrics. See train_model() for reference.
@@ -410,7 +410,7 @@ class KnowIt:
         exit(101)
 
     def generate_predictions(self, model_name: str, args: dict,
-                             safe_mode=None, and_viz=None):
+                             safe_mode: bool = None, and_viz: bool = None):
 
         """
 
@@ -486,7 +486,8 @@ class KnowIt:
         if and_viz:
             set_predictions(self.exp_output_dir, model_name, relevant_args['predictor']['prediction_set'])
 
-    def interpret_model(self, model_name: str, args: dict, device=None, safe_mode=None, and_viz=None):
+    def interpret_model(self, model_name: str, args: dict, device: str = None,
+                        safe_mode: bool = None, and_viz: bool = None):
 
         """
 
@@ -573,8 +574,8 @@ class KnowIt:
             feature_attribution(self.exp_output_dir, model_name, relevant_args['interpreter'])
 
     @staticmethod
-    def _load_trained_model(exp_output_dir, available_datasets, available_archs,
-                            model_name, w_pt_model=False):
+    def _load_trained_model(exp_output_dir: str, available_datasets: dict, available_archs: dict,
+                            model_name: str, w_pt_model: bool = False):
 
         """
             Load a trained model along with details on its construction.
@@ -625,7 +626,7 @@ class KnowIt:
         return ret_dict
 
     @staticmethod
-    def _load_trained_pt_model(model, path_to_ckpt, model_params):
+    def _load_trained_pt_model(model: object, path_to_ckpt: str, model_params: dict):
 
         """
             Load a trained PyTorch model from a checkpoint.
@@ -661,7 +662,7 @@ class KnowIt:
         return pt_model
 
     @staticmethod
-    def _get_datamodule(exp_output_dir, available_datasets, data_args):
+    def _get_datamodule(exp_output_dir: str, available_datasets: dict, data_args: dict):
 
         """
             Retrieve the appropriate data module based on the provided data arguments.
@@ -716,7 +717,8 @@ class KnowIt:
         return datamodule, class_counts
 
     @staticmethod
-    def _get_arch_setup(exp_output_dir, available_archs, arch_args, in_shape, out_shape):
+    def _get_arch_setup(exp_output_dir: str, available_archs: dict, arch_args: dict,
+                        in_shape: tuple, out_shape: tuple):
 
         """
 
@@ -752,7 +754,7 @@ class KnowIt:
 
         """
 
-        def import_class_from_path(path, class_name):
+        def import_class_from_path(path: str, class_name: str):
 
             """
 
@@ -803,8 +805,8 @@ class KnowIt:
         return model, model_params
 
     @staticmethod
-    def _get_trainer_setup(trainer_args, device, class_counts, model,
-                           model_params, save_dir):
+    def _get_trainer_setup(trainer_args: dict, device: str, class_counts: list, model: object,
+                           model_params: dict, save_dir: str):
 
         """
 
@@ -852,7 +854,7 @@ class KnowIt:
         return ret_trainer_args
 
     @staticmethod
-    def _get_interpret_setup(interpret_args):
+    def _get_interpret_setup(interpret_args: dict):
 
         """
             Return the appropriate interpretation class based on the provided interpretation method.
@@ -890,7 +892,7 @@ class KnowIt:
             exit(101)
 
     @staticmethod
-    def _get_data_dynamics(data_args, datamodule):
+    def _get_data_dynamics(data_args: dict, datamodule: object):
 
         """
             Extract and return dynamic information about the dataset.
