@@ -3,10 +3,10 @@
 KIInterpreter
 -------------
 
-The ``KIInterpreter'' class is the parent (root) class that is to be
+The "KIInterpreter" class is the parent (root) class that is to be
 inherited by all other model interpretability modules.
 
-The function of the ``KIInterpreter'' class is to store the datamodule and
+The function of the "KIInterpreter" class is to store the datamodule and
 initialize the Pytorch model for use by its descendant classes. As such, it is
 a direct link to Knowit's other modules. It is agnostic to the user's choice of
 interpretability method.
