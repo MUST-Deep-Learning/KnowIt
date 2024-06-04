@@ -3,10 +3,10 @@
 FeatureAttribution
 ------------------
 
-The ``FeatureAttribution'' class is a child class which inherits from
-``KIInterpreter''.
+The "FeatureAttribution" class is a child class which inherits from
+"KIInterpreter".
 
-The function of the ``FeatureAttribution'' class is to serve the user's choice
+The function of the "FeatureAttribution" class is to serve the user's choice
 of feature attribution method (a descendant class) by extracting the necessary
 information from Knowit's datamodule and returning it in the expected form for
 Captum.
