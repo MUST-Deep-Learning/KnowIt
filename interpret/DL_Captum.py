@@ -158,50 +158,38 @@ class DeepL(FeatureAttribution):
 
         Args:
         ----
-            pred_point_id (int | tuple):    The prediction point or range of
-                                            prediction points that will be used
-                                            to generate attribution matrices.
+            pred_point_id (int | tuple):
+                                The prediction point or range of prediction
+                                points that will be used to generate
+                                attribution matrices.
 
-            num_baselines (int):            Specifies the size of the baseline
-                                            distribution.
+            num_baselines (int):
+                                Specifies the size of the baseline
+                                distribution.
 
         Returns:
         -------
-            results (dict):                 For a regression model with output
-                                            shape (out_chunk, out_components),
-                                            returns a dictionary as follows:
-                                                * Dict Key: a tuple (m, n) with
-                                                    m in range(out_chunk) and n
-                                                    in range(out_components).
+            results (dict):     For a regression model with output shape
+                                (out_chunk, out_components), returns a
+                                dictionary as follows:
+                                    * Dict Key: a tuple (m, n) with m in range
+                                    (out_chunk) and n in range(out_components).
+                                    * Dict Element: a torch tensor with shape:
+                                            > (prediction_points, in_chunk,
+                                            in_components) if pred_point_id is
+                                            a tuple.
+                                            > (in_chunk, in_components) if
+                                            pred_point_id is int.
 
-                                                * Dict Element: a torch tensor
-                                                    with shape:
-                                                        > (prediction_points,
-                                                        in_chunk, in_components
-                                                        )
-                                                        if pred_point_id is a
-                                                        tuple
-
-                                                        > (in_chunk,
-                                                        in_components) if
-                                                        pred_point_id is int.
-
-                                            For a classification model with
-                                            output shape (classes,), returns a
-                                            dictionary as follows:
-                                                * Dict Key: an class value from
-                                                    classes
-                                                * Dict Element: a torch tensor
-                                                    with shape:
-                                                        > (prediction_points,
-                                                        in_chunk,
-                                                        in_components)
-                                                        if pred_point_id is a
-                                                        tuple
-
-                                                        > (in_chunk,
-                                                        in_components) if
-                                                        pred_point_id is int.
+                                For a classification model with output shape
+                                (classes,), returns a dictionary as follows:
+                                    * Dict Key: an class value from classes.
+                                    * Dict Element: a torch tensor with shape:
+                                            > (prediction_points, in_chunk,
+                                            in_components) if pred_point_id is
+                                            a tuple.
+                                            > (in_chunk, in_components) if
+                                            pred_point_id is int.
 
         """
         # extract explicands using ids
