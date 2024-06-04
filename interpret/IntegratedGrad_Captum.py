@@ -96,7 +96,7 @@ class IntegratedGrad(FeatureAttribution):
         )
 
         self.ig = IntegratedGradients(
-            self.model,
+            self.model.forward,
             multiply_by_inputs=multiply_by_inputs,
         )
         self.seed = seed
