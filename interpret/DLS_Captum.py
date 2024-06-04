@@ -72,7 +72,7 @@ class DLS(FeatureAttribution):
         self,
         model: type,
         model_params: dict[str, Any],
-        datamodule: object,
+        datamodule: type,
         path_to_ckpt: str,
         i_data: str,
         device: str,
