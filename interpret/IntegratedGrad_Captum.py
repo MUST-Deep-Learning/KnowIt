@@ -59,8 +59,7 @@ class IntegratedGrad(FeatureAttribution):
 
         Args:
         ----
-            model (type):           The Pytorch model architecture defined in
-                                    ./archs.
+            model (type):           The Pytorch model architecture class.
 
             model_params (dict):    The dictionary needed to intialize model.
 
