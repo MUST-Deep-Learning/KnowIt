@@ -25,6 +25,11 @@ __author__ = "randlerabe@gmail.com"
 __description__ = "Implements Captum's Integrated Gradients attribution \
     method."
 
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from torch import Tensor
+
 import numpy as np
 import torch
 from captum.attr import IntegratedGradients
@@ -36,48 +41,51 @@ logger = get_logger()
 
 
 class IntegratedGrad(FeatureAttribution):
-    """Implement the DeepLiftShap feature attribution method.
-
-    Args:
-    ----
-        model (type):           The Pytorch model architecture defined in
-                                ./archs.
-
-        model_params (dict):    The dictionary needed to intialize model.
-
-        datamodule (type):      The Knowit datamodule for the experiment.
-
-        path_to_ckpt (str):     The path to a trained model's checkpoint file.
-
-        i_data (str):           The user's choice of dataset to perform feature
-                                attribution. Choices: 'train', 'valid', 'eval'.
-
-        device (str):           On which hardware device to generate
-                                attributions.
-
-        seed (int):             The seed to  be used by Numpy for random
-                                sampling of baselines and reproducibility.
-
-        multiply_by
-        _inputs (bool):         If True, perform local attributions. If False,
-                                perform global attributions. For more inform-
-                                ation, see Captum's documentation.
-
-    """
+    """Implement the DeepLiftShap feature attribution method."""
 
     def __init__(
         self,
-        i_data: str,
         model: type,
-        model_params: dict,
-        datamodule: object,
+        model_params: dict[str, Any],
+        datamodule: type,
         path_to_ckpt: str,
+        i_data: str,
         device: str,
         seed: int,
         *,
         multiply_by_inputs: bool = True,
     ) -> None:
+        """IntegratedGrad constructor.
 
+        Args:
+        ----
+            model (type):           The Pytorch model architecture defined in
+                                    ./archs.
+
+            model_params (dict):    The dictionary needed to intialize model.
+
+            datamodule (type):      The Knowit datamodule for the experiment.
+
+            path_to_ckpt (str):     The path to a trained model's checkpoint
+                                    file.
+
+            i_data (str):           The user's choice of dataset to perform
+                                    feature attribution. Choices: 'train',
+                                    'valid', 'eval'.
+
+            device (str):           On which hardware device to generate
+                                    attributions.
+
+            seed (int):             The seed to  be used by Numpy for random
+                                    sampling of baselines and reproducibility.
+
+            multiply_by_inputs (bool):
+                                    If True, perform local attributions. If
+                                    False, perform global attributions. For
+                                    more information, see Captum's
+                                    documentation. Default:True
+
+        """
         super().__init__(
             model=model,
             model_params=model_params,
@@ -88,12 +96,12 @@ class IntegratedGrad(FeatureAttribution):
         )
 
         self.ig = IntegratedGradients(
-            self.model,
+            self.model.forward,
             multiply_by_inputs=multiply_by_inputs,
         )
         self.seed = seed
 
-    def generate_baseline_from_data(self, num_baselines: int) -> torch.tensor:
+    def generate_baseline_from_data(self, num_baselines: int) -> Tensor:
         """Return a (single) baseline.
 
         Randomly samples a distribution of baselines from the training data and
@@ -138,9 +146,9 @@ class IntegratedGrad(FeatureAttribution):
 
     def interpret(
         self,
-        pred_point_id: int | tuple,
+        pred_point_id: int | tuple[int, int],
         num_baselines: int = 1000,
-    ) -> dict[int | tuple, dict[str, torch.tensor]]:
+    ) -> dict[int | tuple[int, int], dict[str, Tensor]]:
         """Return attribution matrices and deltas.
 
         Generates attribution matrices for a single prediction point or a range

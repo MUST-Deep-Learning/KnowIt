@@ -30,7 +30,7 @@ as follows:
             the model on a validation set and evaluation set.
 
 In the case that the above states are inadequate for a user's task, the module
-also contains an example template that a user can edit.
+also contains an example template class "CustomTrainer" that a user can edit.
 
 """  # noqa: INP001, D205, D212, D400, D415
 
@@ -97,9 +97,10 @@ class TrainNew(BaseTrainer):
 
         Args:
         ----
-            dataloaders (tuple):    The train dataloader and validation
-                                    dataloader. The ordering of the tuple
-                                    must be given is (train, val).
+            dataloaders (tuple):    The triplet containing the train
+                                    dataloader and validation dataloader. The
+                                    ordering of the tuple must be given as
+                                    (train, val, eval).
 
         """
         train_dataloader = dataloaders[0]
@@ -257,9 +258,10 @@ class ContinueTraining(BaseTrainer):
 
         Args:
         ----
-            dataloaders (tuple):    The train dataloader and validation
-                                    dataloader. The ordering of the tuple
-                                    must be given is (train, val).
+            dataloaders (tuple):    The triplet containing the train
+                                    dataloader and validation dataloader. The
+                                    ordering of the tuple must be given as
+                                    (train, val, eval).
 
         """
         train_dataloader = dataloaders[0]
@@ -447,25 +449,26 @@ class EvaluateOnly(BaseTrainer):
 
     def _save_model_state(self) -> None:
         pass
-    
-    
+
+
 class CustomTrainer(BaseTrainer):
     """A template KnowIt trainer state.
-    
+
     The template can be edited by a user to create a custom trainer state.
 
     Args:
     ----
         BaseTrainer (type):         Abstract class that stores user parameters
                                         and defines abstract methods.
+
     """
-    
+
     def __init__(
         self,
         base_kwargs: dict[str, Any],
         optional_pl_kwargs: dict[str, Any],
     ) -> None:
-        # customize
+        # configure
         super().__init__(**base_kwargs)
 
         self._prepare_pl_model()
@@ -476,7 +479,7 @@ class CustomTrainer(BaseTrainer):
         self,
         dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
     ) -> None:
-        # customize
+        # configure
         self.trainer.fit(
             model=self.pl_model,
             train_dataloaders=dataloaders[0],
@@ -487,35 +490,29 @@ class CustomTrainer(BaseTrainer):
         self,
         dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
     ) -> None:
-        # customize
+        # configure
         self.trainer.test(ckpt_path="best", dataloaders=dataloaders)
 
     def _prepare_pl_model(self) -> None:
-        # customize
+        # configure
         self.pl_model = PLModel(**self.pl_model_kwargs)
 
     def _prepare_pl_trainer(
         self,
         optional_pl_kwargs: dict[str, Any],
     ) -> None:
-        # customize
+        # configure
         self.trainer = PLTrainer(
             **self.trainer_kwargs,
             **optional_pl_kwargs,
         )
-        
+
     def custom_method(self):
-        # customize
+        # configure
         pass
 
     def _save_model_state(self) -> ModelCheckpoint:
-        # customize
+        # configure
         return ModelCheckpoint(
             dirpath=self.out_dir,
         )
-        
-        
-        
-        
-        
-        

@@ -21,6 +21,11 @@ https://captum.ai/api/deep_lift.html
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from torch import Tensor
+
 __author__ = "randlerabe@gmail.com"
 __description__ = "Implements Captum's DeepLift attribution method."
 
@@ -35,40 +40,13 @@ logger = get_logger()
 
 
 class DeepL(FeatureAttribution):
-    """Implement the DeepLift feature attribution method.
-
-    Args:
-    ----
-        model (type):           The Pytorch model architecture defined in
-                                ./archs.
-
-        model_params (dict):    The dictionary needed to intialize model.
-
-        datamodule (type):      The Knowit datamodule for the experiment.
-
-        path_to_ckpt (str):     The path to a trained model's checkpoint file.
-
-        i_data (str):           The user's choice of dataset to perform feature
-                                attribution. Choices: 'train', 'valid', 'eval'.
-
-        device (str):           On which hardware device to generate
-                                attributions.
-
-        seed (int):             The seed to  be used by Numpy for random
-                                sampling of baselines and reproducibility.
-
-        multiply_by
-        _inputs (bool):         If True, perform local attributions. If False,
-                                perform global attributions. For more inform-
-                                ation, see Captum's documentation.
-
-    """
+    """Implement the DeepLift feature attribution method."""
 
     def __init__(
         self,
         model: type,
-        model_params: dict,
-        datamodule: object,
+        model_params: dict[str, Any],
+        datamodule: type,
         path_to_ckpt: str,
         i_data: str,
         device: str,
@@ -76,7 +54,37 @@ class DeepL(FeatureAttribution):
         *,
         multiply_by_inputs: bool = True,
     ) -> None:
+        """DeepL constructor.
 
+        Args:
+        ----
+            model (type):           The Pytorch model architecture defined in
+                                    ./archs.
+
+            model_params (dict):    The dictionary needed to intialize model.
+
+            datamodule (type):      The Knowit datamodule for the experiment.
+
+            path_to_ckpt (str):     The path to a trained model's checkpoint
+                                    file.
+
+            i_data (str):           The user's choice of dataset to perform
+                                    feature attribution. Choices: 'train',
+                                    'valid', 'eval'.
+
+            device (str):           On which hardware device to generate
+                                    attributions.
+
+            seed (int):             The seed to  be used by Numpy for random
+                                    sampling of baselines and reproducibility.
+
+            multiply_by_inputs (bool):
+                                    If True, perform local attributions. If
+                                    False, perform global attributions. For
+                                    more information, see Captum's
+                                    documentation.
+
+        """
         super().__init__(
             model=model,
             model_params=model_params,
@@ -89,7 +97,7 @@ class DeepL(FeatureAttribution):
         self.dl = DeepLift(self.model, multiply_by_inputs=multiply_by_inputs)
         self.seed = seed
 
-    def generate_baseline_from_data(self, num_baselines: int) -> torch.tensor:
+    def generate_baseline_from_data(self, num_baselines: int) -> Tensor:
         """Return a (single) baseline.
 
         Randomly samples a distribution of baselines from the training data and
@@ -136,7 +144,7 @@ class DeepL(FeatureAttribution):
         self,
         pred_point_id: int | tuple,
         num_baselines: int = 1000,
-    ) -> dict[int | tuple, dict[str, torch.tensor]]:
+    ) -> dict[int | tuple, dict[str, Tensor]]:
         """Return attribution matrices and deltas.
 
         Generates attribution matrices for a single prediction point or a range
