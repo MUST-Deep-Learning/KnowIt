@@ -11,7 +11,7 @@ of feature attribution method (a descendant class) by extracting the necessary
 information from Knowit's datamodule and returning it in the expected form for
 Captum.
 
-"""# noqa: INP001, D205, D212, D400, D415
+"""  # noqa: INP001, D205, D212, D400, D415
 
 from __future__ import annotations
 
@@ -75,7 +75,10 @@ class FeatureAttribution(KIInterpreter):
         self.i_data = i_data
 
     def _fetch_points_from_datamodule(
-        self, point_ids: int | tuple[int, int], *, is_baseline: bool = False,
+        self,
+        point_ids: int | list[int] | tuple[int, int],
+        *,
+        is_baseline: bool = False,
     ) -> Tensor:
         if is_baseline:
             data_loader = self.datamodule.get_dataloader(
