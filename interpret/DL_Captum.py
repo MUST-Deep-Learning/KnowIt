@@ -58,8 +58,7 @@ class DeepL(FeatureAttribution):
 
         Args:
         ----
-            model (type):           The Pytorch model architecture defined in
-                                    ./archs.
+            model (type):           The Pytorch model architecture class.
 
             model_params (dict):    The dictionary needed to intialize model.
 
@@ -142,9 +141,9 @@ class DeepL(FeatureAttribution):
 
     def interpret(
         self,
-        pred_point_id: int | tuple,
+        pred_point_id: int | tuple[int, int],
         num_baselines: int = 1000,
-    ) -> dict[int | tuple, dict[str, Tensor]]:
+    ) -> dict[int | tuple[int, int], dict[str, Tensor]]:
         """Return attribution matrices and deltas.
 
         Generates attribution matrices for a single prediction point or a range
