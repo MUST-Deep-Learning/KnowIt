@@ -605,6 +605,8 @@ class KnowIt:
                 - 'datamodule': The data module associated with the model.
                 - 'class_counts': The class counts used by the data module.
                 - 'path_to_ckpt': The path to the model checkpoint.
+                - 'model': The untrained PyTorch model.
+                - 'model_params': The model hyperparameters.
                 - 'pt_model' (optional): The loaded PyTorch model, included if w_pt_model is True.
 
         """
@@ -619,7 +621,9 @@ class KnowIt:
         ret_dict = {'model_args': model_args,
                     'datamodule': datamodule,
                     'class_counts': class_counts,
-                    'path_to_ckpt': path_to_ckpt}
+                    'path_to_ckpt': path_to_ckpt,
+                    'model': model,
+                    'model_params': model_params}
         if w_pt_model:
             ret_dict['pt_model'] = KnowIt._load_trained_pt_model(model, path_to_ckpt, model_params)
 
