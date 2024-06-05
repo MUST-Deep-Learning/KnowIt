@@ -307,12 +307,9 @@ class PLModel(pl.LightningModule):
                     )
                     lr_dict["scheduler"] = scheduler
                 return {"optimizer": optimizer, "lr_scheduler": lr_dict}
-            scheduler = get_lr_scheduler(self.lr_scheduler)(
-                optimizer=optimizer
-            )
+            scheduler = get_lr_scheduler(self.lr_scheduler)(optimizer=optimizer)
             return {"optimizer": optimizer, "lr_scheduler": scheduler}
         return {"optimizer": optimizer}
-
 
     def _build_model(self, model: type, model_params: dict[str, Any]) -> type:
         """Instantiate a Pytorch model with the given model parameters.
@@ -331,7 +328,6 @@ class PLModel(pl.LightningModule):
 
         """
         return model(**model_params)
-
 
     def _compute_loss(
         self,
@@ -364,7 +360,7 @@ class PLModel(pl.LightningModule):
             self.loss_functions: dict[
                 str,
                 Callable[..., float | Tensor],
-            ] = prepare_function(user_args=self.loss)
+            ] = prepare_function(user_args=self.loss, is_loss=True)
 
         for _function in self.loss_functions:
             function = self.loss_functions[_function]
@@ -379,7 +375,6 @@ class PLModel(pl.LightningModule):
             raise TypeError(e_msg)
 
         return loss, log_metrics
-
 
     def _compute_performance(
         self,
@@ -419,7 +414,10 @@ class PLModel(pl.LightningModule):
             self.perf_functions: dict[
                 str,
                 Callable[..., float | Tensor],
-            ] = prepare_function(user_args=self.performance_metrics)
+            ] = prepare_function(
+                user_args=self.performance_metrics,
+                is_loss=False,
+            )
 
         for _function in self.perf_functions:
             function = self.perf_functions[_function]
