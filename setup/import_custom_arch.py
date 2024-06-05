@@ -86,10 +86,9 @@ def complies(path: str):
 
     # check forward arguments
     forward_args = inspect.getfullargspec(cls.forward).args
-    required_args = {'x', 'self'}
-    missing_args = required_args - set(forward_args)
-    if len(missing_args) > 0:
-        logger.error("Cannot import custom arch. forward() missing arguments: %s", str(missing_args))
+    if 'self' not in forward_args or len(forward_args) != 2:
+        logger.error("Cannot import custom arch. forward() function must receive exactly two arguments "
+                     "of which self is one, got %s", str(forward_args))
         exit(101)
 
     return True
