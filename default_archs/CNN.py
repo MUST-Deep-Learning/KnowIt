@@ -21,17 +21,6 @@ logger = get_logger()
 
 available_tasks = ('regression', 'classification', 'forecasting')
 
-# Default hyperparameter values
-HP_defaults_dict = {'num_filters': 64,
-                    'kernel_size': 3,
-                    'normalization': 'batch',
-                    'dropout': 0.3,
-                    'activations': 'ReLU',
-                    'output_activation': None,
-                    'residual_connect': True,
-                    'dilation_base': 2,
-                    'depth': -1}
-
 # The ranges for each hyperparameter (used later for Knowit Tuner module)
 HP_ranges_dict = {'depth': range(-1, 21, 1),
                   'num_filters': range(3, 1025, 1),
@@ -55,15 +44,15 @@ class Model(nn.Module):
                  input_dim: list,
                  output_dim: list,
                  task_name: str,
-                 depth: int = HP_defaults_dict['depth'],
-                 num_filters: int = HP_defaults_dict['num_filters'],
-                 kernel_size: int = HP_defaults_dict['kernel_size'],
-                 normalization: bool = HP_defaults_dict['normalization'],
-                 dropout: float = HP_defaults_dict['dropout'],
-                 activations: str = HP_defaults_dict['activations'],
-                 output_activation: str = HP_defaults_dict['output_activation'],
-                 residual_connect: bool = HP_defaults_dict['residual_connect'],
-                 dilation_base: int = HP_defaults_dict['dilation_base']
+                 depth: int = -1,
+                 num_filters: int = 64,
+                 kernel_size: int = 3,
+                 normalization: bool = 'batch',
+                 dropout: float = 0.3,
+                 activations: str = 'ReLU',
+                 output_activation: str = None,
+                 residual_connect: bool = True,
+                 dilation_base: int = 2
                  ):
 
         super(Model, self).__init__()

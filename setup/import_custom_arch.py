@@ -54,38 +54,41 @@ def complies(path: str):
         logger.error("Cannot import custom arch. Model must have available_tasks list.")
         exit(101)
     try:
-        HP_defaults_dict = getattr(module, 'HP_defaults_dict')
-    except:
-        logger.error("Cannot import custom arch. Model must have HP_defaults_dict dictionary.")
-        exit(101)
-    try:
         HP_ranges_dict = getattr(module, 'HP_ranges_dict')
     except:
         logger.error("Cannot import custom arch. Model must have HP_ranges_dict dictionary.")
         exit(101)
 
     # check init arguments
-    init_args = inspect.getfullargspec(cls.__init__).args
+    init_args = set(inspect.getfullargspec(cls.__init__).args)
     required_args = {'task_name', 'input_dim', 'output_dim', 'self'}
-    missing_args = required_args - set(init_args)
+    missing_args = required_args - init_args
     if len(missing_args) > 0:
         logger.error("Cannot import custom arch. __init__() missing arguments: %s", str(missing_args))
         exit(101)
-    missing_defaults = set(init_args) - set(HP_defaults_dict.keys()) - required_args
-    if len(missing_defaults) > 0:
-        logger.error("Cannot import custom arch. HP_defaults_dict missing arguments: %s", str(missing_defaults))
-        exit(101)
-    missing_ranges = set(init_args) - set(HP_ranges_dict.keys()) - required_args
+    missing_ranges = init_args - set(HP_ranges_dict.keys()) - required_args
     if len(missing_ranges) > 0:
         logger.error("Cannot import custom arch. HP_ranges_dict missing arguments: %s", str(missing_ranges))
         exit(101)
 
+    # check that default args are provided
+    other_args = init_args - required_args
+    signature = inspect.signature(cls.__init__)
+    defaults = {
+        k: v.default
+        for k, v in signature.parameters.items()
+        if v.default is not inspect.Parameter.empty
+    }
+    missing_defaults = other_args - set(defaults.keys())
+    if len(missing_defaults) > 0:
+        logger.error("Cannot import custom arch. Default values for %s missing.", str(missing_defaults))
+        exit(101)
+
     # check forward arguments
     forward_args = inspect.getfullargspec(cls.forward).args
-    required_args = {'x', 'self'}
-    missing_args = required_args - set(forward_args)
-    if len(missing_args) > 0:
-        logger.error("Cannot import custom arch. forward() missing arguments: %s", str(missing_args))
+    if 'self' not in forward_args or len(forward_args) != 2:
+        logger.error("Cannot import custom arch. forward() function must receive exactly two arguments "
+                     "of which self is one, got %s", str(forward_args))
         exit(101)
 
     return True
