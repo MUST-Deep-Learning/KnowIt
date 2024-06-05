@@ -19,7 +19,7 @@ To use an external architecture a few details must be provided in the script:
                             Where t is the number of time steps (delays) and c is the number of output components.
                 All other arguments are optional and default values must be provided.
 
-            -   The class must also have a forward function.
+            -   The class must also have a forward function that recieved one argument (the input tensor).
 
             - Otherwise the only current expectation is that the module is based on pytorch modules.
 
