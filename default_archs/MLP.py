@@ -13,7 +13,7 @@ or deep. The MLP is capable of handling regression or classification tasks.
 from __future__ import annotations
 
 __author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com"
-__description__ = "This is an MLP."
+__description__ = "Example of MLP model architecture."
 
 from typing import TYPE_CHECKING
 
