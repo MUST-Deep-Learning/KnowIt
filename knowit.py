@@ -23,7 +23,7 @@ from helpers.viz import (learning_curves, set_predictions, feature_attribution)
 from setup.setup_action_args import setup_relevant_args
 from setup.select_interpretation_points import get_interpretation_inx
 from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
-from setup.import_custom_arch import import_custom_arch
+from setup.import_custom_arch import import_custom_arch, complies
 from data.base_dataset import BaseDataset
 from data.classification_dataset import ClassificationDataset
 from data.regression_dataset import RegressionDataset
@@ -777,6 +777,12 @@ class KnowIt:
                     The imported class.
 
             """
+
+            # check that the arch still complies with KnowIt requirements
+            if not complies(path):
+                logger.error('Selected architecture at %s no longer complies with KnowIt requirements. '
+                             'Aborting.', path)
+                exit(101)
 
             # Determine module name from path
             module_name = path.replace("/", ".").replace("\\", ".").rstrip(".py")
