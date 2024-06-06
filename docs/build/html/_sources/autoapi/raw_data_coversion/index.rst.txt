@@ -1,0 +1,152 @@
+raw_data_coversion
+==================
+
+.. py:module:: raw_data_coversion
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   raw_data_coversion.__author__
+   raw_data_coversion.__description__
+   raw_data_coversion.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   raw_data_coversion.RawDataConverter
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Contains the RawDataConverter class for Knowit.'
+
+
+   --------------------
+   RawDataConverter
+   --------------------
+   This module takes a given dataframe and converts it to a known datastructure for Knowit.
+   The dataframe needs to comply with a set of conditions to be properly converted:
+   1. Must be time indexed. (with a pandas.Timedelta or datetime.timedelta, not strings)
+   2. Must contain the required meta data (as defined in BaseDataset.__required_base_meta).
+       in the dataframe.attrs dictionary. Meta data can alternatively be passed with the 'meta' argument.
+        - name (str)
+        - components (list)
+        - time_delta (Timedelta, timedelta)
+   3. Must contain no all-NaN columns.
+   4. Must contain columns corresponding to the components defined in the meta data.
+   5. If instances are desired, they must be defined in the meta data as instances(list)
+       And a corresponding column 'instance' must be present in the dataframe. 
+       This column cannot have any NaNs.
+       
+   The resulting datastructure can be returned with the RawDataConverter.get_new_data function.
+   The format of the resulting data structure is defined at the top of the base_dataset.py script.
+
+   --------------------
+   Handling NaNs
+   --------------------
+   RawDataConverter is instantiated with two special variables to handle possible NaNs:
+    - nan_filler (str, None): 
+       - None (default): No NaNs will be filled. 
+       - split:          Slices will be split on NaNs.
+       - ''method'' from pandas.DataFrame.interpolate used to interpolate NaNs in both directions.
+           (https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.interpolate.html)
+    - nan_filled_components (str, None)
+       - None (default): All columns with float datatype will be flagged for NaN-handling.
+       - A list of column headers to flag for NaN-handling.
+       
+   --------
+   Note!
+   --------
+
+   - Duplicate time steps within an instance are dropped after ordering chronologically.
+   - Time series are split into slices based on the time_delta presented in the meta data.
+
+
+.. py:data:: logger
+
+.. py:class:: RawDataConverter(df: pandas.DataFrame, required_meta: dict, nan_filler: str = None, nan_filled_components: str = None, meta: dict = None)
+
+   .. py:method:: get_new_data()
+
+      Return the converted data structure. 
+
+
+
+   .. py:method:: __summarize_data()
+
+
+   .. py:method:: __compile_data()
+
+      For each instance and slice, drop duplicates, split on time delta,
+      and handling missing values
+
+
+
+   .. py:method:: __split_by_instance()
+
+      Create a dictionary of instances for further processing. 
+
+
+
+   .. py:method:: __check_df()
+
+      Check that the dataframe meets the required conditions. 
+
+
+
+   .. py:method:: __check_meta()
+
+      Check that the metadata is correctly provided. 
+
+
+
+   .. py:method:: __handle_nans(i: object, i_slices: list)
+
+      Handle missing values in the given slices. 
+
+
+
+   .. py:method:: __split_nans(slices: list, nan_filled_components: str)
+      :staticmethod:
+
+
+      Split slices on NaN values. 
+
+
+
+   .. py:method:: __fill_nans(slices: list, nan_filler: str, nan_filled_components: str)
+      :staticmethod:
+
+
+      Fill NaNs in proved slices. 
+
+
+
+   .. py:method:: __split_on_timedelta(df: pandas.DataFrame, time_delta: object)
+      :staticmethod:
+
+
+      Split dataframe (df) based on time_delta. 
+
+
+
+   .. py:method:: __drop_duplicates(df: pandas.DataFrame)
+      :staticmethod:
+
+
+      Drop duplicates from dataframe (df). 
+
+
+

@@ -1,0 +1,63 @@
+classification_dataset
+======================
+
+.. py:module:: classification_dataset
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   classification_dataset.__author__
+   classification_dataset.__description__
+   classification_dataset.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   classification_dataset.ClassificationDataset
+   classification_dataset.CustomClassificationDataset
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Contains the ClassificationDataset class for Knowit.'
+
+
+.. py:data:: logger
+
+.. py:class:: ClassificationDataset(**args)
+
+   Bases: :py:obj:`data.prepared_dataset.PreparedDataset`
+
+
+   .. py:method:: __get_classes()
+
+
+   .. py:method:: get_dataloader(set_tag: str, analysis: bool = False)
+
+
+.. py:class:: CustomClassificationDataset(c, x, y)
+
+   Bases: :py:obj:`torch.utils.data.Dataset`
+
+
+   Dataset format for torch.
+
+
+   .. py:method:: __len__()
+
+
+   .. py:method:: __getitem__(idx)
+
+

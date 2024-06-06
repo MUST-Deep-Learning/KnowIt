@@ -1,0 +1,180 @@
+TCN
+===
+
+.. py:module:: TCN
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   TCN.__author__
+   TCN.__description__
+   TCN.logger
+   TCN.available_tasks
+   TCN.HP_ranges_dict
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   TCN.Model
+   TCN.FinalBlock
+   TCN.ConvBlock
+   TCN.ClipRightPad
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   TCN.init_mod
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'This is a Temporal Convolutional Network (TCN)'
+
+
+   This is a TCN stage followed by a secondary block that depends on the task.
+
+   A TCN architecture is a fully convolutional architecture that performs 1D convolutions 
+   over the time domain. It uses dilated causal convolutions and padding, to ensure that 
+   there is no information leakage from future values and it outputs a sequence equal in 
+   length to the input.
+
+   See the following links for details.
+   https://unit8.com/resources/temporal-convolutional-networks-and-forecasting/
+   https://arxiv.org/abs/1803.01271
+
+   The overall architecture contains a number of ConvBlock modules followed by a FinalBlock module.
+
+
+   ------------
+   ConvBlock
+   ------------
+
+   This module consists of 5 layers.
+   * is optional
+
+   [convolution] -> [normalization*] -> [activation] -> [dropout] -> [residual connection*]
+
+       -   [convolution] = nn.Conv1d(num_input_components, num_filters)    ... if at input
+                           nn.Conv1d(num_filters, num_filters)             ... if in between
+                           nn.Conv1d(num_filters, num_output_components)   ... if at the end
+               -   This layer performs 1D convolution over the time steps, with the the input 
+                   components as channels.
+               -   It outputs a tensor of (batch_size, num_time_steps, num_filters)
+       -   [normalization] = depends on the normalization hyperparameter
+               - nn.utils.weight_norm if normalization='weight'
+               - nn.BatchNorm1d if normalization='batch'
+               - skipped if normalization=None
+       -   [activation] = depends on the 'activations' hyperparameter
+       -   [dropout] = nn.Dropout
+       -   [residual connection] = The input to the block is added to the output. 
+               A 1x1 conv is used to resize the input if the input size != output size.
+               
+   ------------
+   FinalBlock
+   ------------
+
+   After the TCN stage we have a tensor T(batch_size, num_input_time_steps, num_output_components).
+   If task_name = 'regression'
+       -   T is flattened to T(batch_size, num_input_time_steps * num_output_components) 
+               a linear layer is applied, and it is reshaped to the desired output
+               T(batch_size, num_output_time_steps, num_output_components).
+   If task_name = 'classification'
+       -   T is flattened to T(batch_size, num_input_time_steps * num_output_components) 
+               a linear layer is applied, which outputs
+               T(batch_size, num_output_components).
+   If task_name = 'forecast' (WIP)
+       -   T(batch_size, num_output_time_steps, num_output_components) is return where the 
+              num_output_time_steps is the last chunk from num_input_time_steps.           
+
+
+
+.. py:data:: logger
+
+.. py:data:: available_tasks
+   :value: ('regression', 'classification', 'forecasting')
+
+
+.. py:data:: HP_ranges_dict
+
+.. py:class:: Model(input_dim: list, output_dim: list, task_name: str, depth: int = -1, num_filters: int = 64, kernel_size: int = 3, normalization: bool = 'batch', dropout: float = 0.3, activations: str = 'ReLU', output_activation: str = None, residual_connect: bool = True, dilation_base: int = 2)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   Temporal Convolutional Network
+   Paper link: https://arxiv.org/abs/1803.01271
+
+
+   .. py:method:: __check_and_add_arg(name, val, expected)
+
+
+   .. py:method:: __build_fcn(dilation_base=2)
+
+
+   .. py:method:: calc_min_depth(dilation_base, num_model_in_time_steps, kernel_size)
+      :staticmethod:
+
+
+
+   .. py:method:: forward(x)
+
+
+.. py:class:: FinalBlock(num_model_in_time_steps, num_model_out_channels, num_model_out_time_steps, output_activation, task)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   Performs the necessary manipulation of the TCN output for the current task. 
+
+
+   .. py:method:: classify(x)
+
+
+   .. py:method:: regress(x)
+
+
+   .. py:method:: forward(x)
+
+
+.. py:class:: ConvBlock(n_inputs, n_outputs, kernel_size, stride, dilation, padding, dropout, normalization, activations, residual_connect)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   A single fully convolutional block for the TCN. 
+
+
+   .. py:method:: forward(x)
+
+
+.. py:class:: ClipRightPad(clip_size)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   This module removes the right padding to ensure causality. 
+
+
+   .. py:method:: forward(x)
+
+
+.. py:function:: init_mod(mod)
+
+   Initialize the parameters of the given module. 
+
+

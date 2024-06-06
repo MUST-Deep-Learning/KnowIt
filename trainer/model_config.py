@@ -425,3 +425,7 @@ class PLModel(pl.LightningModule):
             log_metrics[perf_label + _function] = val
 
         return log_metrics
+
+__all__ = [
+    "PLModel",
+]

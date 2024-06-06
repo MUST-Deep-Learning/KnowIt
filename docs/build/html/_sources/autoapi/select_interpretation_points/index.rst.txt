@@ -1,0 +1,45 @@
+select_interpretation_points
+============================
+
+.. py:module:: select_interpretation_points
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   select_interpretation_points.__author__
+   select_interpretation_points.__description__
+   select_interpretation_points.logger
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   select_interpretation_points.get_interpretation_inx
+   select_interpretation_points.select_chunk
+   select_interpretation_points.get_mae_performance
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Contains functions to select the appropriate prediction points for interpretation.'
+
+
+.. py:data:: logger
+
+.. py:function:: get_interpretation_inx(interpretation_args, model_args, predictions_dir)
+
+.. py:function:: select_chunk(interpretation_args, model_args, selection, predictions_dir)
+
+.. py:function:: get_mae_performance(interpretation_args, model_args, selection, predictions_dir)
+

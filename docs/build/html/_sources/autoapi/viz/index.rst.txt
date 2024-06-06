@@ -1,0 +1,135 @@
+viz
+===
+
+.. py:module:: viz
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   viz.__author__
+   viz.__description__
+   viz.logger
+   viz.train_color
+   viz.valid_color
+   viz.eval_color
+   viz.back_color
+   viz.grid_color
+   viz.generic_figsize
+   viz.large_figsize
+   viz.WIDE_figsize
+   viz.TALL_figsize
+   viz.generic_dpi
+   viz.quick_dpi
+   viz.generic_cmap
+   viz.c_cycle
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   viz.feature_attribution
+   viz.plot_mean_feat_att_regression
+   viz.fetch_feature_values
+   viz.plot_feat_att_classification
+   viz.plot_feat_att_regression
+   viz.create_gif
+   viz.set_predictions
+   viz.fetch_predictions
+   viz.regression_set_prediction
+   viz.classification_set_prediction
+   viz.learning_curves
+   viz.get_color
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Contains various functions to visualize KnowIt data structures.'
+
+
+.. py:data:: logger
+
+.. py:data:: train_color
+   :value: 'rebeccapurple'
+
+
+.. py:data:: valid_color
+   :value: 'deeppink'
+
+
+.. py:data:: eval_color
+   :value: 'crimson'
+
+
+.. py:data:: back_color
+   :value: 'black'
+
+
+.. py:data:: grid_color
+   :value: 'dimgray'
+
+
+.. py:data:: generic_figsize
+   :value: (10, 6)
+
+
+.. py:data:: large_figsize
+   :value: (20, 11.25)
+
+
+.. py:data:: WIDE_figsize
+   :value: (40, 11.25)
+
+
+.. py:data:: TALL_figsize
+   :value: (20, 24)
+
+
+.. py:data:: generic_dpi
+   :value: 200
+
+
+.. py:data:: quick_dpi
+   :value: 100
+
+
+.. py:data:: generic_cmap
+   :value: 'plasma'
+
+
+.. py:data:: c_cycle
+
+.. py:function:: feature_attribution(exp_output_dir, model_name, interpret_args)
+
+.. py:function:: plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
+
+.. py:function:: fetch_feature_values(predictions_dir, data_tag, ist_values, model_args)
+
+.. py:function:: plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, interpret_args)
+
+.. py:function:: plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
+
+.. py:function:: create_gif(save_dir, image_paths)
+
+.. py:function:: set_predictions(exp_output_dir, model_name, data_tag)
+
+.. py:function:: fetch_predictions(predictions_dir, data_tag, ist_values)
+
+.. py:function:: regression_set_prediction(i, predictions, targets, data_tag, out_components, predictions_dir)
+
+.. py:function:: classification_set_prediction(i, predictions, targets, data_tag, out_components, predictions_dir, model_args)
+
+.. py:function:: learning_curves(exp_output_dir, model_name)
+
+.. py:function:: get_color(tag)
+

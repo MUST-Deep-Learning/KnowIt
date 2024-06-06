@@ -97,3 +97,7 @@ class KIInterpreter:
         model.eval()
 
         return model
+
+__all__ = [
+    "KIInterpreter",
+]

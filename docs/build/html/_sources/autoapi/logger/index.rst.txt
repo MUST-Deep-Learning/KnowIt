@@ -1,0 +1,186 @@
+logger
+======
+
+.. py:module:: logger
+
+.. autoapi-nested-parse::
+
+   Provide multiprocessing-safe logging.
+
+   The main function provided by this module is |get_logger|.  This function
+   provides a logger unique to the calling process.
+
+   The |set_logging_format| function can be used to change the global logging
+   format.
+
+   Before these functions can be used in a child process, |setup_logging| must be
+   called from the child process.  The queue passed to |setup_logging| can be
+   obtained by calling |get_logging_queue| from the parent process or any other
+   process that has already called |setup_logging|.
+
+   .. |get_logger| replace:: :py:func:`.get_logger`
+   .. |set_logging_format| replace:: :py:func:`.set_logging_format`
+   .. |setup_logging| replace:: :py:func:`.setup_logging`
+   .. |get_logging_queue| replace:: :py:func:`.get_logging_queue`
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   logger.__description__
+   logger.__author__
+   logger._logging_queue
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   logger._logging_listener
+   logger._start_listener
+   logger.setup_logging
+   logger.get_logging_queue
+   logger.get_logger
+   logger.set_logging_format
+
+
+Module Contents
+---------------
+
+.. py:data:: __description__
+   :value: 'Provide multiprocessing-safe logging'
+
+
+.. py:data:: __author__
+   :value: 'dgerbrandh@gmail.com'
+
+
+.. py:data:: _logging_queue
+   :value: None
+
+
+.. py:function:: _logging_listener(queue)
+
+   Await and handle logging events in the given queue.
+
+   Meant to be run in a separate process, this function awaits logging events
+   in the given queue and logs them to std error.  The events in the queue
+   may come from different processes or threads.
+
+   If a string is found in the queue, it is used as the new format string
+   for the logger.
+
+   If ``None`` is found in the queue, the function returns.
+
+   Args:
+       queue (multiprocessing.Queue): Queue that will be monitored for events.
+
+
+
+.. py:function:: _start_listener()
+
+   Start the main logging process if required and possible.
+
+   Start the main logging process if it has not been started and if the
+   current process is the main process.
+
+
+
+.. py:function:: setup_logging(queue)
+
+   Set up logging in the current process.
+
+   This function must be called in any child process before any of the other
+   functions in this module can be used in that process.  It does not need to
+   be called by the main process.
+
+   Example:
+
+   .. code-block:: python
+       :linenos:
+
+       import multiprocessing
+       from mustnet.utils.logger import get_logging_queue, setup_logging
+
+       def child_wrapper(queue, *args, **kwargs):
+           setup_logging(queue)
+           # `child_process()` is the function to be run in a child process
+           return child_process(*args, **kwargs)
+
+       queue = get_logging_queue()
+       proc = multiprocessing.Process(
+           target=child_wrapper,
+           args=(queue, *other_args), kwargs={**other_kwargs}
+       )
+       proc.start()
+
+   Args:
+       queue (multiprocessing.queues.Queue): Logging queue.
+
+
+
+.. py:function:: get_logging_queue()
+
+   Get the logging queue.
+
+   The logging queue must be passed to |setup_logging| from any created child
+   processes.
+
+   Before this function can be used in a child process, |setup_logging| must
+   be called from that child process.
+
+   Returns:
+       multiprocessing.Queue: Logging queue.
+
+
+
+.. py:function:: get_logger()
+
+   Configure and return a logger for the current process.
+
+   The returned logger is not the root logger, and the root logger should
+   **not** be directly used or modified.  The messages logged using the
+   returned logger are passed to the main logging process where they are
+   logged to std error.
+
+   Before this function can be used in a child process, |setup_logging| must
+   be called from that child process.
+
+   The ``propagate`` attribute of the returned logger should remain ``False``.
+   Setting this to ``True`` might duplicate log messages.
+
+   The main logging process coordinates messages from different processes, and
+   any logging handlers that do not require this coordination can be directly
+   attached to the returned logger.  If, for example, log messages from a
+   **single** process should also be sent to a file, the handler for the file
+   can be directly attached to the returned logger.  If, however, messages
+   from **multiple** processes should be sent to the same file, the logging
+   structure would have to be modified.
+
+   Returns:
+       logging.Logger: Logger for the current process.
+
+
+
+.. py:function:: set_logging_format(fmt)
+
+   Change the format string used by the main logger.
+
+   This change affects the messages logged to std error by any child process.
+
+   Before this function can be used in a child process, |setup_logging| must
+   be called from that child process.
+
+   To change the format string of any process-local handlers, the methods
+   provided by the ``logging`` module can be used (the root logger should
+   just not be modified).
+
+   Args:
+       fmt (str): New format string to be used.
+
+
+

@@ -1,0 +1,50 @@
+NITheCS_synth_demo_bad_model
+============================
+
+.. py:module:: NITheCS_synth_demo_bad_model
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   NITheCS_synth_demo_bad_model.model_name
+   NITheCS_synth_demo_bad_model.arch
+   NITheCS_synth_demo_bad_model.id_args
+   NITheCS_synth_demo_bad_model.data_args
+   NITheCS_synth_demo_bad_model.arch_args
+   NITheCS_synth_demo_bad_model.trainer_args
+   NITheCS_synth_demo_bad_model.predict_args
+   NITheCS_synth_demo_bad_model.predict_args
+   NITheCS_synth_demo_bad_model.predict_args
+   NITheCS_synth_demo_bad_model.interpret_args
+
+
+Module Contents
+---------------
+
+.. py:data:: model_name
+   :value: 'my_bad_mlp'
+
+
+.. py:data:: arch
+   :value: 'MLP'
+
+
+.. py:data:: id_args
+
+.. py:data:: data_args
+
+.. py:data:: arch_args
+
+.. py:data:: trainer_args
+
+.. py:data:: predict_args
+
+.. py:data:: predict_args
+
+.. py:data:: predict_args
+
+.. py:data:: interpret_args
+

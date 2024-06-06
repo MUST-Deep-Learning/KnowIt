@@ -1,0 +1,44 @@
+interpreter
+===========
+
+.. py:module:: interpreter
+
+.. autoapi-nested-parse::
+
+   -------------
+   KIInterpreter
+   -------------
+
+   The "KIInterpreter" class is the parent (root) class that is to be
+   inherited by all other model interpretability modules.
+
+   The function of the "KIInterpreter" class is to store the datamodule and
+   initialize the Pytorch model for use by its descendant classes. As such, it is
+   a direct link to Knowit's other modules. It is agnostic to the user's choice of
+   interpretability method.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   interpreter.KIInterpreter
+
+
+Module Contents
+---------------
+
+.. py:class:: KIInterpreter(model: type, model_params: dict[str, Any], datamodule: type, device: str, path_to_ckpt: str)
+
+   Root class to be inherited by all interpretability classes.
+
+   The class stores the user's parameters and initializes a trained Pytorch
+   model from checkpoint.
+
+
+
+   .. py:method:: _load_model_from_ckpt(model: type, model_params: dict[str, Any], ckpt_path: str) -> type[Any]
+
+

@@ -1,0 +1,78 @@
+regression_dataset
+==================
+
+.. py:module:: regression_dataset
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   regression_dataset.__author__
+   regression_dataset.__description__
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   regression_dataset.RegressionDataset
+   regression_dataset.CustomRegressionDataset
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Contains the RegressionDataset class for Knowit.'
+
+
+   -------------------
+   RegressionDataset
+   -------------------
+   This module represents a PreparedDataset that has the ability to create a Pytorch 
+   dataloader ready for regression tasks. It inherits from PreparedDataset.
+
+   The only difference is the addition of the RegressionDataset.get_dataloader function.
+   This function extracts the corresponding dataset split, casts it as a CustomRegressionDataset 
+   object, and creates a Pytorch DataLoader from it.
+
+
+   -------------------------
+   CustomRegressionDataset
+   -------------------------
+
+   This is a custom dataset that inherits from the Pytorch Dataset class.
+   It receives the full input (x) and output (y) arrays as arguments.
+   When an item is sampled with __getitem__, the relevant sample is taken from x and y,
+   each value is cast as a Tensor with float type, and the unique sample index is also returned.
+
+
+.. py:class:: RegressionDataset(**args)
+
+   Bases: :py:obj:`data.prepared_dataset.PreparedDataset`
+
+
+   .. py:method:: get_dataloader(set_tag, analysis: bool = False)
+
+
+.. py:class:: CustomRegressionDataset(x, y)
+
+   Bases: :py:obj:`torch.utils.data.Dataset`
+
+
+   Dataset format for torch.
+
+
+   .. py:method:: __len__()
+
+
+   .. py:method:: __getitem__(idx)
+
+

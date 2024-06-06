@@ -1,0 +1,126 @@
+data_scaling
+============
+
+.. py:module:: data_scaling
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   data_scaling.__author__
+   data_scaling.__description__
+   data_scaling.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   data_scaling.DataScaler
+   data_scaling.ZScale
+   data_scaling.LinScale
+   data_scaling.NoScale
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Contains the DataScaler class for Knowit.'
+
+
+   ---------------
+   DataScaler
+   ---------------
+   This module takes the extracted training set from PreparedDataset and fits two scalers to the data, 
+   one for the input of the model and one for the output. This is done based on the criteria presented by the 
+   'method' and 'tag' arguments. These scalers are used in PreparedDataset to scale the features upon further 
+   extractions of the datasets.
+
+   The 'tag' argument defines what features will be scaled.
+       -   if tag='in_only' then only input features to the model is scaled.
+       -   if tag='full' then the input and output features to the model are scaled.
+       -   if tag=None (default) then no features will be scaled.
+
+   The 'method' argument defines the type of scaler to use.
+       -   if method='z-norm' (default) then the mean and standard deviation of each feature-timestep pair
+               is used to standardize the features.
+       -   if method='zero-one' then each feature-timestep pair is linearly scaled to (0, 1) separately.
+       -   if method=None then no features will be scaled.  
+
+   In practice, when either tag=None or method=None, a 'NoScale' scaler is used, that
+   does not change any feature values.
+
+   Scalers are returned with the DataScaler.get_scalers() function.
+
+
+.. py:data:: logger
+
+.. py:class:: DataScaler(train_set: dict, method: str, tag: str)
+
+   .. py:method:: get_scalers()
+
+      Returns the fitted scalers. 
+
+
+
+   .. py:method:: __fit_scaler(data: numpy.array, method: str)
+      :staticmethod:
+
+
+      Fits the appropriate scaler based on method. 
+
+
+
+.. py:class:: ZScale
+
+   Performs a basic per feature standardization across samples assuming the
+   first column in the data represents samples.
+
+
+   .. py:method:: fit(data)
+
+
+   .. py:method:: transform(data)
+
+
+   .. py:method:: inverse_transform(data)
+
+
+.. py:class:: LinScale(target_min=0, target_max=1)
+
+   Performs a basic per feature linear scaling across samples assuming the
+   first column in the data represents samples. Can be scaled to any range,
+   but default is (0, 1). 
+
+
+   .. py:method:: fit(data)
+
+
+   .. py:method:: transform(data)
+
+
+   .. py:method:: inverse_transform(data)
+
+
+.. py:class:: NoScale
+
+   A dummy scaler performing no changes to data features.
+
+
+   .. py:method:: fit(data)
+
+
+   .. py:method:: transform(data)
+
+
+   .. py:method:: inverse_transform(data)
+
+

@@ -1,0 +1,43 @@
+featureattr
+===========
+
+.. py:module:: featureattr
+
+.. autoapi-nested-parse::
+
+   ------------------
+   FeatureAttribution
+   ------------------
+
+   The "FeatureAttribution" class is a child class which inherits from
+   "KIInterpreter".
+
+   The function of the "FeatureAttribution" class is to serve the user's choice
+   of feature attribution method (a descendant class) by extracting the necessary
+   information from Knowit's datamodule and returning it in the expected form for
+   Captum.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   featureattr.FeatureAttribution
+
+
+Module Contents
+---------------
+
+.. py:class:: FeatureAttribution(model: type, model_params: dict[str, Any], path_to_ckpt: str, datamodule: type, i_data: str, device: str)
+
+   Bases: :py:obj:`interpret.interpreter.KIInterpreter`
+
+
+   Provide methods for Captum's feature attribution modules.
+
+
+   .. py:method:: _fetch_points_from_datamodule(point_ids: int | list[int] | tuple[int, int], *, is_baseline: bool = False) -> torch.Tensor
+
+

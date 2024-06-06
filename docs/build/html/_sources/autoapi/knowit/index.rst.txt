@@ -1,0 +1,546 @@
+knowit
+======
+
+.. py:module:: knowit
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   knowit.__author__
+   knowit.__description__
+   knowit.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   knowit.KnowIt
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Contains the main KnowIt module.'
+
+
+.. py:data:: logger
+
+.. py:class:: KnowIt(custom_exp_dir: str = None, global_safe_mode: bool = True, global_device: str = 'gpu', global_and_viz: bool = True, safe_mode: bool = True, overwrite: bool = False)
+
+   This is the main class that manages the current experiment directory
+   and operates all submodules according to user-specified arguments.
+
+
+
+   .. py:method:: summarize_dataset(name: str)
+
+      Summarizes the dataset corresponding to the given name.
+
+      Args:
+      ----------
+      name : str
+          The name of the dataset to summarize. It can be either a custom dataset or a default dataset.
+
+      Returns:
+      -------
+      summary : dict
+          A dictionary containing the summary of the dataset, including:
+          - 'dataset_name': The name of the dataset.
+          - 'components': The components of the dataset.
+          - 'instances': A list of instance names in the dataset.
+          - 'time_delta': The time delta between time steps in the dataset.
+
+      Notes:
+      -----
+      The function first checks if the dataset name exists in the custom datasets. If not found, it then
+      checks in the default datasets. If the dataset name is not found in either, it logs an error and exits.
+
+
+
+
+   .. py:method:: global_args(device: str = None, safe_mode: bool = None, and_viz: bool = None)
+
+      Modify and/or return global arguments according to user arguments.
+
+      This function allows the modification of global settings such as the device,
+      safe mode, and visualization settings. If no arguments are provided, it returns
+      the current values of these settings.
+
+      Args:
+      -----
+      device : str, optional
+          If provided, sets the global device to be used for operations.
+          Typically 'gpu' or 'cpu'.
+      safe_mode : bool, optional
+          If provided, sets the global safe mode value,
+          which determines whether existing files should be protected.
+      and_viz : bool, optional
+          If provided, sets the global visualization setting,
+          determining whether results should also be visualized.
+
+      Returns:
+      --------
+      dict
+          A dictionary containing the current global settings:
+          - 'global_device': The device being used for operations.
+          - 'global_safe_mode': The current safe mode setting.
+          - 'global_and_viz': The current visualization setting.
+
+
+
+
+   .. py:method:: import_arch(new_arch_path: str, safe_mode: bool = None)
+
+      Imports the architecture from the specified path.
+
+      This function imports a custom architecture from the given path and stores it
+      in the experiment output directory. The operation can be performed in safe mode
+      to protect existing files.
+
+      Args:
+      -----
+      new_arch_path : str
+          The file path to the new architecture that needs to be imported.
+      safe_mode : bool, optional
+          If provided, sets the safe mode value for this operation. Safe mode determines
+          whether existing files should be protected from being overwritten. If not provided,
+          the global safe mode setting will be used.
+
+      Returns:
+      --------
+      None
+
+
+
+
+   .. py:method:: available_datasets()
+
+      Returns a dictionary showing the available datasets for the current instance of KnowIt.
+
+      This function lists all available datasets from the default and custom dataset
+      directories. It returns a dictionary with two keys: 'defaults' and 'custom', each
+      containing a list of dataset names without file extensions.
+
+      Returns:
+      --------
+      dict
+          A dictionary with the following structure:
+          - 'defaults': A list of names of the default datasets available.
+          - 'custom': A list of names of the custom datasets available.
+
+      Notes:
+      -----
+      The function looks for dataset files with the '.pickle' extension in both the default
+      dataset directory and the custom dataset directory specified by the experiment output
+      directory.
+
+
+
+
+   .. py:method:: available_archs()
+
+      Returns a dictionary showing the available architectures for the current instance of KnowIt.
+
+      This function lists all available architectures from the default and custom architecture
+      directories. It returns a dictionary with two keys: 'defaults' and 'custom', each containing
+      a list of architecture names without file extensions.
+
+      Returns:
+      --------
+      dict
+          A dictionary with the following structure:
+          - 'defaults': A list of names of the default architectures available.
+          - 'custom': A list of names of the custom architectures available.
+
+      Notes:
+      -----
+      The function looks for architecture files with the '.py' extension in both the default
+      architecture directory and the custom architecture directory specified by the experiment
+      output directory.
+
+
+
+
+   .. py:method:: import_dataset(args: dict, safe_mode: bool = None)
+
+      Imports the dataset and returns it as a BaseDataset object.
+
+      This function imports a dataset using the provided arguments and returns it as a
+      BaseDataset object. The function expects the dictionary to contain specific keys
+      required for data import.
+
+      Args:
+      -----
+      args : dict
+          A dictionary containing the arguments for data import. It must include the key
+          'data_import_args'.
+      safe_mode : bool, optional
+          If provided, sets the safe mode value for this operation. Safe mode determines
+          whether existing files should be protected from being overwritten. If not provided,
+          the global safe mode setting will be used.
+
+      Returns:
+      --------
+      BaseDataset
+          The imported dataset as a BaseDataset object.
+
+      Raises:
+      -------
+      KeyError
+          If 'data_import_args' is not present in the provided dictionary.
+
+      Notes:
+      -----
+      See setup.setup_action_args.py for details on the arguments required in args['data_import_args'].
+
+
+
+
+   .. py:method:: train_model(model_name: str, args: dict, device: str = None, safe_mode: bool = None, and_viz: bool = None)
+
+      This function sets up and trains a model using the provided arguments and configurations.
+      It checks and uses global settings for the device, safe mode, and visualization unless
+      overridden by the provided arguments.
+
+      Args:
+      -----
+      model_name : str
+          The name of the model to be trained.
+      args : dict
+          A dictionary containing the necessary arguments for setting up the data, architecture,
+          and trainer. Expected keys are 'data', 'arch', and 'trainer'.
+      device : str, optional
+          The device to be used for training. Defaults to the global device setting if not provided.
+      safe_mode : bool, optional
+          If provided, sets the safe mode value for this operation to protect existing files.
+          Defaults to the global safe mode setting if not provided.
+      and_viz : bool, optional
+          If provided, sets the visualization setting for this operation. Defaults to the global
+          visualization setting if not provided.
+
+      Returns:
+      --------
+      None
+
+      Notes:
+      -----
+      See setup.setup_action_args.py for details on the arguments required in args.
+
+
+
+
+   .. py:method:: train_model_further(model_name: str, max_epochs: int, device: str = None, safe_mode: bool = None, and_viz: bool = None)
+
+
+   .. py:method:: generate_predictions(model_name: str, args: dict, safe_mode: bool = None, and_viz: bool = None)
+
+      Generate predictions using a trained model and save them to disk.
+
+      This method loads a trained model, retrieves a dataloader for the specified prediction set,
+      and generates predictions for each batch of data. The predictions, along with the sample IDs
+      and ground truth labels, are saved to disk. Additionally, a dictionary mapping sample IDs
+      to batch indices is created and saved. Optionally, visualizations can be generated based on
+      the predictions.
+
+      Args:
+      ----------
+      model_name : str
+          The name of the trained model to use for generating predictions.
+      args : dict
+          A dictionary of arguments required for setting up the prediction process.
+          Must include a 'predictor' key with relevant settings.
+      safe_mode : bool, optional
+          Whether to operate in safe mode, which affects how data is saved. If not provided,
+          the global safe mode setting is used.
+      and_viz : bool, optional
+          Whether to generate visualizations based on the predictions. If not provided,
+          the global visualization setting is used.
+
+      Returns:
+      -------
+      None
+          This method does not return any values. The predictions and related data are saved to disk.
+
+      Notes:
+      -----
+      See setup.setup_action_args.py for details on the arguments required in args['predictor'].
+
+
+
+
+   .. py:method:: interpret_model(model_name: str, args: dict, device: str = None, safe_mode: bool = None, and_viz: bool = None)
+
+      Interpret a trained model and save the interpretation results.
+
+      This method loads a trained model, sets up the interpretation process, and generates feature
+      attributions for the specified prediction points. The interpretation results are saved to disk.
+      Optionally, visualizations based on the interpretation can be generated.
+
+      Args:
+      ----------
+      model_name : str
+          The name of the trained model to be interpreted.
+      args : dict
+          A dictionary of arguments required for setting up the interpretation process.
+          Must include an 'interpreter' key with relevant settings.
+      device : str, optional
+          The device to use for computation (e.g., 'cpu', 'cuda'). If not provided, the global device
+          setting is used.
+      safe_mode : bool, optional
+          Whether to operate in safe mode, which affects how data is saved. If not provided,
+          the global safe mode setting is used.
+      and_viz : bool, optional
+          Whether to generate visualizations based on the interpretation. If not provided,
+          the global visualization setting is used.
+
+      Returns:
+      -------
+      None
+          This method does not return any values. The interpretation results are saved to disk.
+
+      Notes:
+      -----
+      See setup.setup_action_args.py for details on the arguments required in args['interpreter'].
+
+
+
+
+   .. py:method:: _load_trained_model(exp_output_dir: str, available_datasets: dict, available_archs: dict, model_name: str, w_pt_model: bool = False)
+      :staticmethod:
+
+
+      Load a trained model along with details on its construction.
+
+      This method loads the configuration, data module, model architecture, and checkpoint path
+      for a specified trained model. Optionally, it can also load the actual PyTorch model.
+
+      Parameters:
+      ----------
+      exp_output_dir : str
+          The directory containing the experiment outputs.
+      available_datasets : dict
+          A dictionary with keys 'custom' and 'defaults' listing the available datasets.
+      available_archs : dict
+          A dictionary listing the available model architectures.
+      model_name : str
+          The name of the trained model to load.
+      w_pt_model : bool, optional
+          Whether to load the actual PyTorch model. If set to True, the PyTorch model is loaded
+          and included in the returned dictionary. Default is False.
+
+      Returns:
+      -------
+      dict
+          A dictionary containing the following keys:
+          - 'model_args': The arguments/configuration used for the model.
+          - 'datamodule': The data module associated with the model.
+          - 'class_counts': The class counts used by the data module.
+          - 'path_to_ckpt': The path to the model checkpoint.
+          - 'model': The untrained PyTorch model.
+          - 'model_params': The model hyperparameters.
+          - 'pt_model' (optional): The loaded PyTorch model, included if w_pt_model is True.
+
+
+
+
+   .. py:method:: _load_trained_pt_model(model: object, path_to_ckpt: str, model_params: dict)
+      :staticmethod:
+
+
+      Load a trained PyTorch model from a checkpoint.
+
+      This method initializes a PyTorch model with the given arguments, loads the model's state
+      dictionary from a checkpoint file, and sets the model to evaluation mode.
+
+      Args:
+      ----------
+      model : nn.Module
+          The model class or function to initialize the PyTorch model.
+      path_to_ckpt : str
+          The path to the checkpoint file containing the trained model's state dictionary.
+      model_params : dict
+          A dictionary of parameters to initialize the PyTorch model.
+
+      Returns:
+      -------
+      nn.Module
+          The loaded PyTorch model set to evaluation mode.
+
+
+
+
+   .. py:method:: _get_datamodule(exp_output_dir: str, available_datasets: dict, data_args: dict)
+      :staticmethod:
+
+
+      Retrieve the appropriate data module based on the provided data arguments.
+
+      This method determines the data path based on whether the dataset is custom or default,
+      initializes the appropriate data module (regression or classification), and returns it
+      along with class counts if applicable.
+
+      Args:
+      ----------
+      exp_output_dir : str
+          The directory containing the experiment outputs.
+      available_datasets : dict
+          A dictionary with keys 'custom' and 'defaults' listing the available datasets.
+      data_args : dict
+          A dictionary containing the arguments needed to set up the data module. Must include:
+          - 'name': The name of the dataset.
+          - 'task': The type of task ('regression' or 'classification').
+
+      Returns:
+      -------
+      tuple
+          A tuple containing:
+          - datamodule: The initialized data module.
+          - class_counts: The class counts for classification tasks, or None for regression tasks.
+
+      Notes:
+      -----
+      The dataset is chosen from the custom experiment directory before trying the default directory.
+
+
+
+
+   .. py:method:: _get_arch_setup(exp_output_dir: str, available_archs: dict, arch_args: dict, in_shape: tuple, out_shape: tuple)
+      :staticmethod:
+
+
+      Given the architecture arguments, return the corresponding untrained Model module.
+
+      This function identifies and imports the appropriate model architecture based on the provided
+      arguments. It first checks the custom experiment directory for the specified model; if not
+      found, it checks the default directory. It then sets up the model with the provided input
+      and output shapes and additional hyperparameters.
+
+      Args:
+      ----------
+      exp_output_dir : str
+          The directory containing the experiment outputs.
+      available_archs : dict
+          A dictionary with keys 'custom' and 'defaults' listing the available architectures.
+      arch_args : dict
+          The arguments/configuration for the architecture, including the name and hyperparameters.
+      in_shape : tuple
+          The input shape for the model.
+      out_shape : tuple
+          The output shape for the model.
+
+      Returns:
+      -------
+      tuple
+          A tuple containing:
+          - model : class
+              The imported Model class.
+          - model_params : dict
+              A dictionary of parameters to initialize the model, including input and output dimensions
+              and task-specific hyperparameters.
+
+
+
+
+   .. py:method:: _get_trainer_setup(trainer_args: dict, device: str, class_counts: list, model: object, model_params: dict, save_dir: str)
+      :staticmethod:
+
+
+      Process and return the trainer arguments with dynamically generated parameters.
+
+      This function takes in the initial trainer arguments and modifies them based on
+      specific conditions such as the type of loss function. It also incorporates additional
+      parameters like the model, device, and save directory into the trainer arguments.
+
+      Args:
+      ----------
+      trainer_args : dict
+          The initial arguments for the trainer, including configurations such as loss function and task type.
+      device : str
+          The device on which the model will be trained (e.g., 'cpu' or 'cuda').
+      class_counts : list or None
+          The counts of each class in the dataset, used for tasks like computing weighted loss functions.
+      model : class
+          The model class to be trained.
+      model_params : dict
+          The parameters required to initialize the model.
+      save_dir : str
+          The directory where the training outputs will be saved.
+
+      Returns:
+      -------
+      dict
+          The processed trainer arguments, including dynamically set parameters like the model,
+          model parameters, device, and output directory.
+
+
+
+
+   .. py:method:: _get_interpret_setup(interpret_args: dict)
+      :staticmethod:
+
+
+      Return the appropriate interpretation class based on the provided interpretation method.
+
+      This function selects and returns the interpretation class corresponding to the
+      specified interpretation method in the `interpret_args` dictionary.
+
+      Args:
+      ----------
+      interpret_args : dict
+          A dictionary containing the arguments for the interpretation setup, specifically the
+          `interpretation_method` key which determines which interpretation class to use.
+
+      Returns:
+      -------
+      class
+          The class corresponding to the specified interpretation method.
+
+      Raises:
+      -------
+      SystemExit
+          If the provided interpretation method is unknown, the function logs an error and exits.
+
+
+
+
+   .. py:method:: _get_data_dynamics(data_args: dict, datamodule: object)
+      :staticmethod:
+
+
+      Extract and return dynamic information about the dataset.
+
+      This function gathers various dynamic attributes of the dataset from the provided
+      data module and organizes them into a dictionary.
+
+      Args:
+      ----------
+      data_args : dict
+          A dictionary containing the arguments related to the dataset, including the task type.
+      datamodule : object
+          The data module object containing the dataset and its properties.
+
+      Returns:
+      -------
+      dict
+          A dictionary containing the following keys:
+          - 'in_shape': The shape of the input data.
+          - 'out_shape': The shape of the output data.
+          - 'train_size': The size of the training set.
+          - 'valid_size': The size of the validation set.
+          - 'eval_size': The size of the evaluation set.
+          - 'class_set' (optional): The set of classes, included if the task is classification.
+          - 'class_count' (optional): The count of each class, included if the task is classification.
+
+
+
+

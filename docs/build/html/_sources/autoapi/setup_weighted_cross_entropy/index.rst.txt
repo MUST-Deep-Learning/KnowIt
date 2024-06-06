@@ -1,0 +1,39 @@
+setup_weighted_cross_entropy
+============================
+
+.. py:module:: setup_weighted_cross_entropy
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   setup_weighted_cross_entropy.__author__
+   setup_weighted_cross_entropy.__description__
+   setup_weighted_cross_entropy.logger
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   setup_weighted_cross_entropy.proc_weighted_cross_entropy
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Contains a function to prepare a weighted CE function.'
+
+
+.. py:data:: logger
+
+.. py:function:: proc_weighted_cross_entropy(task, device, class_counts)
+

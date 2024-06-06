@@ -1,0 +1,38 @@
+penguin_grid_search
+===================
+
+.. py:module:: penguin_grid_search
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   penguin_grid_search.id_args
+   penguin_grid_search.data_args
+   penguin_grid_search.arch_args
+   penguin_grid_search.trainer_args
+   penguin_grid_search.learning_rates
+   penguin_grid_search.batch_sizes
+
+
+Module Contents
+---------------
+
+.. py:data:: id_args
+
+.. py:data:: data_args
+
+.. py:data:: arch_args
+
+.. py:data:: trainer_args
+
+.. py:data:: learning_rates
+   :value: [0.0001, 0.001]
+
+
+.. py:data:: batch_sizes
+   :value: [2048, 4096]
+
+

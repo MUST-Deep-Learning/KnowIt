@@ -1,0 +1,53 @@
+setup_action_args
+=================
+
+.. py:module:: setup_action_args
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   setup_action_args.__author__
+   setup_action_args.__description__
+   setup_action_args.logger
+   setup_action_args.arg_dict
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   setup_action_args.setup_relevant_args
+   setup_action_args.setup_type_args
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Checks, filters, and adjusts user arguments for various actions in KnowIt.'
+
+
+   ------------------
+   Action arguments
+   ------------------
+
+   The user interacts with KnowIt by sending arguments or paths to external files.
+   This script contains a function ``setup_relevant_args`` that checks arguments.
+
+
+.. py:data:: logger
+
+.. py:data:: arg_dict
+
+.. py:function:: setup_relevant_args(experiment_dict, required_types=None)
+
+.. py:function:: setup_type_args(experiment_dict, arg_type)
+

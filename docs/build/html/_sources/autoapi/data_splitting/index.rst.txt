@@ -1,0 +1,164 @@
+data_splitting
+==============
+
+.. py:module:: data_splitting
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   data_splitting.__author__
+   data_splitting.__description__
+   data_splitting.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   data_splitting.DataSplitter
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Contains the DataSplitter class for Knowit.'
+
+
+   ---------------
+   DataSplitter
+   ---------------
+
+   This module selects a set of prediction points from the_data structure that are appropriate
+   for model training and then splits them into a train, validation, and evaluation set.
+   A prediction point is appropriate for model training if:
+       1. Its corresponding slice is larger or equal to the minimum slice length.
+       2. There are no missing values in the features corresponding to the model outputs.
+       3. The out_chunk corresponding to it is within its corresponding slice.
+       
+   ------------------
+   Selection matrix
+   ------------------
+
+   Appropriate prediction points are stored in a `selection matrix'.
+   This is an n-row, 3-column matrix where each row corresponds to a prediction point.
+   The value in each column indicates:
+       -   The relative position, in BaseDataset.instances, of the instance to which 
+               the prediction point belongs.
+       -   The relative position, within said instance, of the slice to which 
+               the prediction point belongs.
+       -   The relative position, within said slice, of the timestep at which 
+               a prediction is to be made. 
+   This is also the format that the data splits are stored in (i.e. one matrix for each split).
+               
+   ------------------
+   Splitting
+   ------------------
+
+   Given a selection matrix for all available prediction points, they need to be split into 3 
+   sets according to the proportions given by the `portions' tuple. In practice, they are all 
+   split train-then-valid-then-eval, however the elements being split on, and the order of these 
+   elements are defined by the 'method' argument.
+       -   random:                 : split on timesteps in random order
+       -   chronological (default) : split on timesteps in chronological order
+       -   instance-random         : split on instances in random order
+       -   instance-chronological  : split on instances in chronological order
+               The ordering is based on the first time step in the instance.
+       -   slice-chronological     : split on slices in chronological order
+               The ordering is based on the first time step in the slice.
+       -   slice-random            : split on slices in random order
+
+   This means that 'portions' are defined i.t.o the specific 'method'. For examples: 
+   portions=(0.8, 0.1, 0.1) and method=instance-random means that the prediction points of a random 80% of instances,
+   will constitute training data, another random 10% will constitute valid data, and another 10% will constitute 
+   eval data. Alternatively, if method=random, a random 80% of time steps (regardless of instance or slice), 
+   will constitute training data, etc.
+
+    
+   ------------------
+   Limiting
+   ------------------           
+   The limiting of the data occurs after the ordering of the elements (instance, slice, or timestep) and before 
+   the data is split. The value of 'limit' is then also defined i.t.o 'method'. The data will be limited to 
+    the first n elements if limit=n. E.g. if limit=500 and method=instance-random, the data is limited to the first 
+    500 random instances.  
+
+
+.. py:data:: logger
+
+.. py:class:: DataSplitter(the_data: dict, method: str, portions: tuple, instances: list, limit: int, y_map: numpy.array, out_chunk: list, min_slice: int)
+
+   .. py:method:: get_selection()
+
+      Returns the obtained data splits as a dictionary of selection matrices. 
+
+
+
+   .. py:method:: __sample_and_stack(prediction_points: numpy.array, start_stop_indxs: numpy.array, elements: numpy.array)
+      :staticmethod:
+
+
+      This function samples blocks from 'prediction_points' based on the 'elements' provided
+      and stacks these sampled blocks vertically to create a new array.
+
+      Parameters:
+          prediction_points (array): The data from which blocks are sampled.
+          start_stop_indxs (array): Start and stop indices of each element.
+          elements (array): Selected element indices.
+
+      Returns:
+          blocks (array): A stacked array containing the sampled blocks.
+
+
+
+
+   .. py:method:: __ordered_split(elements: numpy.array, portions: tuple)
+      :staticmethod:
+
+
+      Split the elements array (1D array) into 3 based on portions, in order. 
+
+
+
+   .. py:method:: __split_indices_on(prediction_points: numpy.array, tag: str)
+      :staticmethod:
+
+
+      This function takes a selection matrix (prediction_points) and splits it into blocks based on
+      the specified criteria (tag), such as 'instance', 'slice', or 'timestep'.
+      It then returns the start and stop indices for each block.
+
+      Parameters:
+          prediction_points (array-like): The selection matrix to split.
+          tag (str): The criteria for splitting (e.g., 'instance', 'slice', 'timestep').
+
+      Returns:
+          start_stop_indxs (array-like): An array of start-and-stop indices for each split block.
+
+
+
+
+   .. py:method:: __do_split(prediction_points: numpy.array, times: numpy.array, portions: tuple, method: str, limit: int)
+      :staticmethod:
+
+
+      Performs the overall splitting and limiting of prediction points. 
+
+
+
+   .. py:method:: __select_prediction_points(data: dict, instances: list, y: numpy.array, out_chunk: list, min_slice: int)
+      :staticmethod:
+
+
+      Construct the full selection matrix (all appropriate prediction points). 
+
+
+

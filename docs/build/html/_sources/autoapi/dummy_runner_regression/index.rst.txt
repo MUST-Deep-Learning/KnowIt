@@ -1,0 +1,36 @@
+dummy_runner_regression
+=======================
+
+.. py:module:: dummy_runner_regression
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   dummy_runner_regression.KI
+   dummy_runner_regression.model_name
+   dummy_runner_regression.data_args
+   dummy_runner_regression.arch_args
+   dummy_runner_regression.trainer_args
+   dummy_runner_regression.interpret_args
+
+
+Module Contents
+---------------
+
+.. py:data:: KI
+
+.. py:data:: model_name
+   :value: 'my_new_model'
+
+
+.. py:data:: data_args
+
+.. py:data:: arch_args
+
+.. py:data:: trainer_args
+
+.. py:data:: interpret_args
+

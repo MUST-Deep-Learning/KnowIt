@@ -1,0 +1,143 @@
+model_config
+============
+
+.. py:module:: model_config
+
+.. autoapi-nested-parse::
+
+   -------
+   PLModel
+   -------
+
+   The "PLModel" class is required in order to be able to use Pytorch Lightning's
+   Trainer. It initializes a Pytorch model and defines the train, validation, and
+   test steps as well as the optimizers and any learning rate schedulers.
+
+   For more information, see Pytorch Lightning's documentation here:
+   https://lightning.ai/docs/pytorch/stable/common/lightning_module.html
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   model_config.PLModel
+
+
+Module Contents
+---------------
+
+.. py:class:: PLModel(loss: str | dict[str, Any], learning_rate: float, optimizer: str | dict[str, Any], learning_rate_scheduler: None | str | dict[str, Any], performance_metrics: None | str | dict[str, Any], model: type, model_params: dict[str, Any])
+
+   Bases: :py:obj:`pytorch_lightning.LightningModule`
+
+
+   Wrapper class to prepare model for Pytorch Lightning's Trainer.
+
+   The class initializes a Pytorch model and defines the training,
+   validation, and test steps over a batch. The optimizer configuration is
+   also set inside this class. This is required for Pytorch Lightning's
+   Trainer.
+
+   Args:
+   ----
+       pl.LightningModule (type):      A Pytorch Lightning module.
+
+
+
+   .. py:method:: training_step(batch: dict[str, Any], batch_idx: int)
+
+      Compute loss and optional metrics, log metrics, and return the loss.
+
+      Overrides the method in pl.LightningModule.
+
+
+
+   .. py:method:: validation_step(batch: dict[str, Any], batch_idx: int)
+
+      Compute loss and optional metrics, log metrics, and return the loss.
+
+      Overrides the method in pl.LightningModule.
+
+
+
+   .. py:method:: test_step(batch: dict[str, Any], batch_idx: int, dataloader_idx: int)
+
+      Compute loss and optional metrics, log metrics and return the log.
+
+      Overrides the method in pl.LightningModule.
+
+
+
+   .. py:method:: configure_optimizers() -> dict[str, Any]
+
+      Return configured optimizer and optional learning rate scheduler.
+
+      Overrides the method in pl.LightningModule.
+
+
+
+   .. py:method:: _build_model(model: type, model_params: dict[str, Any]) -> type
+
+      Instantiate a Pytorch model with the given model parameters.
+
+      Args:
+      ----
+          model (type):               An unitialized Pytorch model class
+                                      defined in ~./archs.
+
+          model_params (dict):        The parameters needed to instantiate
+                                      the above Pytorch model class.
+
+      Returns:
+      -------
+          (type):                     An Pytorch model object.
+
+
+
+
+   .. py:method:: _compute_loss(y: float | torch.Tensor, y_pred: float | torch.Tensor, loss_label: str) -> tuple[float | torch.Tensor, dict[str, float | torch.Tensor]]
+
+      Return the loss and the metrics log.
+
+      Args:
+      ----
+          y (float | Tensor):         The target value from a set of training
+                                      pairs.
+
+          y_pred (float | Tensor):    The model's prediction.
+
+          loss_label (str):           Name to be used for labeling purposes.
+
+      Returns:
+      -------
+          (tuple):                    The computed loss between y and y_pred
+                                      and the dictionary that logs the loss.
+
+
+
+
+   .. py:method:: _compute_performance(y: float | torch.Tensor, y_pred: float | torch.Tensor, perf_label: str) -> dict[str, float | torch.Tensor]
+
+      Return the performance scores(s) and the metrics log.
+
+      Args:
+      ----
+          y (float | tensor):         The target value from a set of training
+                                      pairs.
+
+          y_pred (float | tensor):    The model's prediction.
+
+          perf_label (str):           Name to be used for labeling purposes.
+
+      Returns:
+      -------
+          (tuple):                    The computed score between y and
+                                      y_pred and the dictionary that logs
+                                      the performance score.
+
+
+
+

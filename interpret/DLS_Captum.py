@@ -254,3 +254,7 @@ class DLS(FeatureAttribution):
                     }
 
         return results
+
+__all__ = [
+    "DLS",
+]

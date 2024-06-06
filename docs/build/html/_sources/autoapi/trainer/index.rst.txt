@@ -1,0 +1,97 @@
+trainer
+=======
+
+.. py:module:: trainer
+
+.. autoapi-nested-parse::
+
+   ---------------
+   KITrainer
+   ---------------
+
+   The "KITrainer" is a context class that that interacts with the overall
+   Knowit architecture script (which, in turn, interacts with all of KnowIt's sub-
+   modules).
+
+   The user is able to use the KnowIt Trainer in different ways, depending on the
+   training task. As such, the trainer submodule is built similar to a `State'
+   pattern.
+
+   Thus, there are three parts to the submodule: the context class (KITrainer)
+   that Knowit directly interacts with, an abstract class (BaseTrainer) that
+   interfaces the context class with a concrete trainer state, and a set of
+   trainer state classes.
+
+   The three possible concrete states are:
+       - STATE 1 (NEW): Train a new model from scratch.
+       - STATE 2 (CONTINUE): Continue training an existing model from checkpoint.
+       - STATE 3 (EVAL): Load a trained model and evaluate it on a dataset.
+
+   KnowIt's Trainer module is built using Pytorch Lightning. See here:
+   https://lightning.ai/pytorch-lightning
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   trainer.KITrainer
+
+
+Module Contents
+---------------
+
+.. py:class:: KITrainer(state: type[Any], base_trainer_kwargs: dict[str, Any], optional_pl_kwargs: dict[str, Any], ckpt_file: None | str = None)
+
+   Context class that interacts with KnowIt.
+
+   The class interacts with the overall KnowIt architecture script. Based on
+   the user's training task, it will point to the correct Trainer state.
+
+   Args:
+   ----
+       _state (None | type):   A concrete state that corresponds to one
+                               of the possible states for the trainer.
+                               Default: None
+
+
+
+   .. py:attribute:: _state
+      :type:  None | type[Any]
+      :value: None
+
+
+
+   .. py:method:: _set_state(state: type[Any], base_trainer_kwargs: dict[str, Any], ckpt_file: None | str, optional_pl_kwargs: dict[str, Any]) -> None
+
+
+   .. py:method:: fit_and_eval(dataloaders: tuple[torch.utils.data.dataloader.DataLoader[Any], torch.utils.data.dataloader.DataLoader[Any], torch.utils.data.dataloader.DataLoader[Any]]) -> None
+
+      Fit model to training data and evaluate on all dataloaders.
+
+      Args:
+      ----
+          dataloaders (tuple):    The Pytorch dataloaders that has been set
+                                  up in KnowIt's datamodule. The triplet
+                                  corresponds to the train, val, and eval
+                                  dataloaders.
+
+
+
+
+   .. py:method:: eval(dataloaders: tuple[torch.utils.data.dataloader.DataLoader[Any], torch.utils.data.dataloader.DataLoader[Any], torch.utils.data.dataloader.DataLoader[Any]]) -> None
+
+      Evaluate a trained model from checkpoint on a user's data.
+
+      Args:
+      ----
+          dataloaders (tuple):    The Pytorch dataloaders that has been set
+                                  up in KnowIt's datamodule. The triplet
+                                  corresponds to the train, val, and eval
+                                  dataloaders.
+
+
+
+

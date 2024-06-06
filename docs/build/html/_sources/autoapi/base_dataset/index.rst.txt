@@ -1,0 +1,136 @@
+base_dataset
+============
+
+.. py:module:: base_dataset
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   base_dataset.__author__
+   base_dataset.__description__
+   base_dataset.logger
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   base_dataset.BaseDataset
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Contains the BaseDataset class for Knowit.'
+
+
+   ---------------
+   BaseDataset
+   ---------------
+
+   The ``BaseDataset'' represents a dataset that only contains raw features over time in a known format.
+   These features do not contain duplicates, and are ordered equidistantly according to a 
+   specific time delta. They are seperated by ``instance'' and by ``slice''. See below. 
+
+   An instance is a potential occurrences of a phenomenon measured across time, 
+   assumed to be independent of other potential occurrences. For example, if two subjects 
+   are measured / observed at the same time. These two subjects should be stored as separate instances.
+   The main practical distinction is that no duplicate time steps are allowed within an instance, 
+   but they are allowed across instances. If no instances are defined, all slices are stored in 
+   one ``super instance''.
+
+   A slice is just a contiguous block of time steps with an exact time delta between each time step.
+   An instance, therefore, consists of a variable number of slices.
+
+   A BaseDataset contains the following variables:
+    - name (str):                          A unique identifier used by Knowit to refer to the specific dataset.
+    - components (list):                   A list identifying the features that are measured across time.
+       It also defines the order of features in the stored data structure.
+    - time_delta (object):                 The specific time delta between time steps.
+    - instances (list):                    A list of instances in the dataset.
+    - the_data (dict):                     The datastructure. Not always stored. 
+       Can, alternatively, be loaded from disk.
+    - base_nan_filler (str, None):         Identifies the method used to fill NaNs, if applicable.
+    - nan_filled_components (list, None):  A list of components that were nan-filled, if applicable.
+
+
+   ------------
+   the_data
+   ------------
+
+   The data is stored as a dictionary where each key-value pair represents an instance, 
+   with the key being the instance name (as defined in the BaseDataset.instances variable) 
+   and the value being a list of slices. Each slice is a dictionary of two key-value pairs.
+       - 't' = array: (n,)
+       - 'd' = array: (n, f)
+   where n is the number of time steps in the current slice and f is the number of components 
+   (as define and ordered in the BaseDataset.components). The 't' array contains the time steps 
+   in datetime format, and the 'd' array contains the corresponding feature values.
+
+
+   ---------
+   NOTE! 
+   ---------
+
+   To instantiate a BaseDataset with BaseDataset(name), a data option corresponding to `name' needs 
+   to have been generated before. This can be done with the two class-methods BaseDataset.from_path and 
+   BaseDataset.from_df, of which the former is a wrapper for the latter. A dataframe needs to be provided 
+   that has the minimum required meta data (see BaseDataset.__required_base_meta) in its `attrs' attribute.
+   The BaseDataset module uses the RawDataConverter module to convert this dataframe into a known structure.
+   See that module for more details.
+
+
+.. py:data:: logger
+
+.. py:class:: BaseDataset(data_path: str, mem_light=True)
+
+   .. py:method:: get_the_data()
+
+      Return the_data structure from memory if available,
+      otherwise load from disk and return. 
+
+
+
+   .. py:method:: from_path(path: str, safe_mode: bool, base_nan_filler: str, nan_filled_components: list, exp_output_dir: str)
+      :classmethod:
+
+
+      Instantiate a BaseDataset object by first creating the dataset option
+      from a given path to a file containing a dataframe with raw data. 
+
+
+
+   .. py:method:: from_df(df: pandas.DataFrame, safe_mode: bool, base_nan_filler: str, nan_filled_components: list, exp_output_dir: str)
+      :classmethod:
+
+
+      Instantiate a BaseDataset object by first creating the dataset option
+      from a given dataframe with raw data. 
+
+
+
+   .. py:method:: __populate_from_option()
+
+      Populate the current object with variables from disk
+      found at data_path. 
+
+
+
+   .. py:method:: __required_base_meta()
+      :staticmethod:
+
+
+      These are the variables (and their formats) that need to be given in the
+      dataframe.attrs dictionary when creating a new dataset option. 
+
+
+

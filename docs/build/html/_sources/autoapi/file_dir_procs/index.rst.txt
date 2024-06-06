@@ -1,0 +1,91 @@
+file_dir_procs
+==============
+
+.. py:module:: file_dir_procs
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   file_dir_procs.__author__
+   file_dir_procs.__description__
+   file_dir_procs.logger
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   file_dir_procs.proc_dir
+   file_dir_procs.safe_dump
+   file_dir_procs.safe_copy
+   file_dir_procs.yaml_to_dict
+   file_dir_procs.dump_at_path
+   file_dir_procs.load_from_path
+   file_dir_procs.save_to_csv
+   file_dir_procs.load_from_csv
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Contains functions for loading, dumping, converting, or creating directories an files from...
+
+
+.. py:data:: logger
+
+.. py:function:: proc_dir(new_dir: str, safe_mode: bool = True, overwrite: bool = False)
+
+   Ensures that a specified directory exists.
+       - safe_mode means 'Should I be prevented from overwriting any existing directory?'
+       - overwrite means 'Do I want to overwrite any existing directory?'
+
+
+
+.. py:function:: safe_dump(data, path, safe_mode)
+
+.. py:function:: safe_copy(path, new_path, safe_mode)
+
+.. py:function:: yaml_to_dict(config_path)
+
+.. py:function:: dump_at_path(data, path)
+
+   Dump (and possibly compress) the given data at the given path.
+   File extension is inferred from path.
+
+   Args:
+       data (Variable):              data to be dumped
+       path (str):                   the path (including file extension)
+
+
+
+.. py:function:: load_from_path(path)
+
+   Load (and possibly uncompress) the data at the given path.
+   File extension is inferred from path.
+
+   Args:
+       path (str):         the path (including file extension)
+
+   Returns:
+       data (Variable):   data found at path
+
+
+.. py:function:: save_to_csv(data, path_name, data_format)
+
+   Save data in a humanly readable form to a specified file.
+
+
+.. py:function:: load_from_csv(path)
+
+   Load humanly readable data from a given path.
+
+

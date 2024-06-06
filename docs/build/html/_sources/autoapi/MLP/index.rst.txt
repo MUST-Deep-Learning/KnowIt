@@ -1,0 +1,131 @@
+MLP
+===
+
+.. py:module:: MLP
+
+.. autoapi-nested-parse::
+
+   ---------------------
+   Multilayer Perceptron
+   ---------------------
+
+   As an example, we define a multilayer perceptron (MLP) architecture using the
+   well-known Pytorch library.
+
+   The example shows one way of constructing the MLP which can either be shallow
+   or deep. The MLP is capable of handling regression or classification tasks.
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   MLP.__author__
+   MLP.__description__
+   MLP.available_tasks
+   MLP.HP_ranges_dict
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   MLP.Model
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'randlerabe@gmail.com, tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Example of MLP model architecture.'
+
+
+.. py:data:: available_tasks
+   :value: ('regression', 'classification')
+
+
+.. py:data:: HP_ranges_dict
+
+.. py:class:: Model(input_dim: list[int], output_dim: list[int], task_name: str, depth: int = 3, width: int = 256, dropout: float = 0.5, activations: str = 'ReLU', output_activation: None | str = None, *, batchnorm: bool = True)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   Define MLP architecture.
+
+   The multilayer perceptron (MLP) is a fully connected feedforward neural
+   network with nonlinear activation functions.
+
+   For more information on this architecture, see for example:
+   [1] "Deep Learning" by I. Goodfellow, Y. Bengio, and A. Courville
+   Link: https://www.deeplearningbook.org/
+
+   [2] "Understanding Deep Learning" by S.J.D Prince
+   Link: https://udlbook.github.io/udlbook/
+
+
+   .. py:method:: _build_hidden_layers() -> list[torch.nn.Module]
+
+
+   .. py:method:: _regression(x: torch.Tensor) -> torch.Tensor
+
+      Return model output for an input batch for a regression task.
+
+      Args:
+      ----
+          x (Tensor):     An input tensor of shape
+                          (batch_size, in_chunk * in_components)
+
+      Returns:
+      -------
+          (Tensor):       Model output of shape
+                          (batch_size, out_chunk, out_components)
+
+
+
+
+   .. py:method:: _classification(x: torch.Tensor) -> torch.Tensor
+
+      Return model output for an input batch for a classification task.
+
+      Args:
+      ----
+          x (Tensor):     An input tensor of shape
+                          (batch_size, in_chunk * in_components)
+
+      Returns:
+      -------
+          (Tensor):       Model output of shape
+                          (batch_size, num_classes)
+
+
+
+
+   .. py:method:: forward(x: torch.Tensor) -> torch.Tensor
+
+      Return model output for an input batch.
+
+      Args:
+      ----
+          x (Tensor):     An input tensor of shape
+                          (batch_size, in_chunk, in_components).
+
+      Returns:
+      -------
+          (Tensor):       Model output of shape
+                          (batch_size, out_chunk, out_components) if regress-
+                          ion.
+
+                          Model output of shape
+                          (batch_size, num_classes) if classification.
+
+
+
+

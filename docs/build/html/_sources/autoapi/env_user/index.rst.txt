@@ -1,0 +1,38 @@
+env_user
+========
+
+.. py:module:: env_user
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   env_user.__author__
+   env_user.__description__
+   env_user.repo_dir
+   env_user.default_dataset_dir
+   env_user.default_archs_dir
+   env_user.temp_exp_dir
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'Contains user-specific environment settings.'
+
+
+.. py:data:: repo_dir
+
+.. py:data:: default_dataset_dir
+
+.. py:data:: default_archs_dir
+
+.. py:data:: temp_exp_dir
+

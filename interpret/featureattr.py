@@ -103,3 +103,7 @@ class FeatureAttribution(KIInterpreter):
             sys.exit()
 
         return tensor
+
+__all__ = [
+    "FeatureAttribution",
+]

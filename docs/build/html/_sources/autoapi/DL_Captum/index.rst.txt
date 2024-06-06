@@ -1,0 +1,118 @@
+DL_Captum
+=========
+
+.. py:module:: DL_Captum
+
+.. autoapi-nested-parse::
+
+   --------
+   DeepLift
+   --------
+
+   DeepLift is a feature attribution method.
+
+   For each of the model's output features, feature attribution assigns a value
+   to each input feature that is based on its contribution to the model's output.
+
+   The method is implemented through the Captum library.
+
+   For more information on the method, see:
+   https://arxiv.org/abs/1704.02685
+
+   and
+
+   https://captum.ai/api/deep_lift.html
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   DL_Captum.DeepL
+
+
+Module Contents
+---------------
+
+.. py:class:: DeepL(model: type, model_params: dict[str, Any], datamodule: type, path_to_ckpt: str, i_data: str, device: str, seed: int, *, multiply_by_inputs: bool = True)
+
+   Bases: :py:obj:`interpret.featureattr.FeatureAttribution`
+
+
+   Implement the DeepLift feature attribution method.
+
+
+   .. py:method:: generate_baseline_from_data(num_baselines: int) -> torch.Tensor
+
+      Return a (single) baseline.
+
+      Randomly samples a distribution of baselines from the training data and
+      then averages over the sample to obtain a single baseline.
+
+      Args:
+      ----
+          num_baselines (int):            The total number of baselines to
+                                          sample.
+
+      Returns:
+      -------
+          (torch.tensor):                 A torch tensor of shape
+                                          (1, in_chunk, in_components)
+
+
+
+
+   .. py:method:: interpret(pred_point_id: int | tuple[int, int], num_baselines: int = 1000) -> dict[int | tuple[int, int], dict[str, torch.Tensor]]
+
+      Return attribution matrices and deltas.
+
+      Generates attribution matrices for a single prediction point or a range
+      of prediction points (also referred to as explicands).
+
+      NOTE: The output stores the information from a tensor of size
+
+      (out_chunk, out_components, prediction_points, in_chunk, in_components)
+
+      inside a dictionary data structure. For time series data, this can grow
+      rapidly, which may therefore obscure model interpretability.
+
+      Args:
+      ----
+          pred_point_id (int | tuple):
+                              The prediction point or range of prediction
+                              points that will be used to generate
+                              attribution matrices.
+
+          num_baselines (int):
+                              Specifies the size of the baseline
+                              distribution.
+
+      Returns:
+      -------
+          results (dict):     For a regression model with output shape
+                              (out_chunk, out_components), returns a
+                              dictionary as follows:
+                                  * Dict Key: a tuple (m, n) with m in range
+                                  (out_chunk) and n in range(out_components).
+                                  * Dict Element: a torch tensor with shape:
+                                          > (prediction_points, in_chunk,
+                                          in_components) if pred_point_id is
+                                          a tuple.
+                                          > (in_chunk, in_components) if
+                                          pred_point_id is int.
+
+                              For a classification model with output shape
+                              (classes,), returns a dictionary as follows:
+                                  * Dict Key: an class value from classes.
+                                  * Dict Element: a torch tensor with shape:
+                                          > (prediction_points, in_chunk,
+                                          in_components) if pred_point_id is
+                                          a tuple.
+                                          > (in_chunk, in_components) if
+                                          pred_point_id is int.
+
+
+
+

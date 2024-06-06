@@ -1,0 +1,103 @@
+base_trainer
+============
+
+.. py:module:: base_trainer
+
+.. autoapi-nested-parse::
+
+   -----------
+   BaseTrainer
+   -----------
+
+   The "BaseTrainer" is an abstract class that functions as the interface bet-
+   ween the context class ``KITrainer'' and any of the concrete trainer state
+   objects.
+
+   The "BaseTrainer" class stores the user's parameters and defines a set of
+   abstract methods to be inherited by the trainer state objects.
+
+   Note that some kwargs in the constructor require additional parameters (for
+   example, the learning rate scheduler). In this case, the parameter is always
+   provided as a dictionary with the keys as strings specifying the additional
+   parameters.
+
+   For example, if one wants to use the 'ReduceLROnPlateau' scheduler
+   from Pytorch, then one can specify it as a string
+
+       lr_scheduler = 'ReduceLROnPlateau'
+
+   which will use the default values for the scheduler. However, if one wants to
+   use use custom values or the scheduler requires additional kwargs, then the
+   scheduler should be passed as a dictionary such as
+
+       lr_scheduler = {
+           'ReduceLROnPlateau':{
+               'factor': 0.2,
+               'patience': 5,
+               'threshold': 0.001
+           }
+       }
+   The same idea holds for any other kwarg in "BaseTrainer" that might need addit-
+   ional parameters.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   base_trainer.BaseTrainer
+
+
+Module Contents
+---------------
+
+.. py:class:: BaseTrainer(model: type, model_params: dict[str, Any], out_dir: str, device: str, loss_fn: str | dict[str, Any], optim: str | dict[str, Any], max_epochs: int, learning_rate: float, lr_scheduler: None | str | dict[str, Any] = None, performance_metrics: None | str | dict[str, Any] = None, early_stopping_args: None | dict[str, Any] = None, ckpt_mode: str = 'min', *, return_final: bool = False, mute_logger: bool = False, seed: None | int = 123)
+
+   Bases: :py:obj:`abc.ABC`
+
+
+   Abstract class to interface between the context class "KITrainer" and a
+   trainer state.
+
+   "BaseTrainer" will initialize necessary and optional kwargs to be used by
+   any of the KnowIt Trainer states. It also defines abstract methods that are
+   to be defined in each state object.
+
+   Args:
+   ----
+       ABC (abc.ABC):          Used to define abstract class.
+
+
+
+   .. py:property:: context
+      :type: trainer.trainer.KITrainer
+
+
+
+   .. py:method:: fit_model(dataloaders: tuple[torch.utils.data.dataloader.DataLoader[Any], torch.utils.data.dataloader.DataLoader[Any], torch.utils.data.dataloader.DataLoader[Any]]) -> None
+      :abstractmethod:
+
+
+
+   .. py:method:: evaluate_model(dataloaders: tuple[torch.utils.data.dataloader.DataLoader[Any], torch.utils.data.dataloader.DataLoader[Any], torch.utils.data.dataloader.DataLoader[Any]]) -> None
+      :abstractmethod:
+
+
+
+   .. py:method:: _prepare_pl_model() -> None
+      :abstractmethod:
+
+
+
+   .. py:method:: _prepare_pl_trainer(optional_pl_kwargs: dict[str, Any]) -> None
+      :abstractmethod:
+
+
+
+   .. py:method:: _save_model_state() -> pytorch_lightning.callbacks.ModelCheckpoint | None
+      :abstractmethod:
+
+
+

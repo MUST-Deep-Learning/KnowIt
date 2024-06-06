@@ -1,0 +1,32 @@
+import_custom_arch
+==================
+
+.. py:module:: import_custom_arch
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   import_custom_arch.logger
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   import_custom_arch.import_custom_arch
+   import_custom_arch.complies
+
+
+Module Contents
+---------------
+
+.. py:data:: logger
+
+.. py:function:: import_custom_arch(path: str, exp_output_dir: str, safe_mode: bool)
+
+.. py:function:: complies(path: str)
+

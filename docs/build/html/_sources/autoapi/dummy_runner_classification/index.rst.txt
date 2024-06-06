@@ -1,0 +1,36 @@
+dummy_runner_classification
+===========================
+
+.. py:module:: dummy_runner_classification
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   dummy_runner_classification.KI
+   dummy_runner_classification.model_name
+   dummy_runner_classification.data_args
+   dummy_runner_classification.arch_args
+   dummy_runner_classification.trainer_args
+   dummy_runner_classification.interpret_args
+
+
+Module Contents
+---------------
+
+.. py:data:: KI
+
+.. py:data:: model_name
+   :value: 'my_new_penguin_model'
+
+
+.. py:data:: data_args
+
+.. py:data:: arch_args
+
+.. py:data:: trainer_args
+
+.. py:data:: interpret_args
+

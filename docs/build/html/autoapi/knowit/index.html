@@ -1,0 +1,1082 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>knowit &#8212; KnowIt 0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=362ab14a" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=eafc0fe6" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
+  <script src="../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=e031e9a9"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/knowit/index';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="logger" href="../logger/index.html" />
+    <link rel="prev" title="conf" href="../conf/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">KnowIt 0.1 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="../index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <label class="sidebar-toggle secondary-toggle" for="__secondary" tabindex="0">
+      <span class="fa-solid fa-outdent"></span>
+    </label>
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item">
+<nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="../index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../viz/index.html">viz</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TCN/index.html">TCN</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../MLP/index.html">MLP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CNN/index.html">CNN</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conf/index.html">conf</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">knowit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger/index.html">logger</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../trainer/index.html">trainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../env_user/index.html">env_user</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../DL_Captum/index.html">DL_Captum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../env_paths/index.html">env_paths</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../DLS_Captum/index.html">DLS_Captum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../featureattr/index.html">featureattr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../interpreter/index.html">interpreter</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model_config/index.html">model_config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_trainer/index.html">base_trainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_dataset/index.html">base_dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_scaling/index.html">data_scaling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../trainer_states/index.html">trainer_states</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_dir_procs/index.html">file_dir_procs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_splitting/index.html">data_splitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../fetch_torch_mods/index.html">fetch_torch_mods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../prepared_dataset/index.html">prepared_dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../setup_action_args/index.html">setup_action_args</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../regression_dataset/index.html">regression_dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../raw_data_coversion/index.html">raw_data_coversion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../import_custom_arch/index.html">import_custom_arch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../penguin_grid_search/index.html">penguin_grid_search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../IntegratedGrad_Captum/index.html">IntegratedGrad_Captum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../classification_dataset/index.html">classification_dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dummy_runner_regression/index.html">dummy_runner_regression</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dummy_runner_classification/index.html">dummy_runner_classification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../NITheCS_synth_demo_bad_model/index.html">NITheCS_synth_demo_bad_model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../select_interpretation_points/index.html">select_interpretation_points</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../setup_weighted_cross_entropy/index.html">setup_weighted_cross_entropy</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">API Reference</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">knowit</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="module-knowit">
+<span id="knowit"></span><h1>knowit<a class="headerlink" href="#module-knowit" title="Permalink to this heading">#</a></h1>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Permalink to this heading">#</a></h2>
+<table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#knowit.__author__" title="knowit.__author__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__author__</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#knowit.__description__" title="knowit.__description__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__description__</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#knowit.logger" title="knowit.logger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logger</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h2>
+<table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#knowit.KnowIt" title="knowit.KnowIt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KnowIt</span></code></a></p></td>
+<td><p>This is the main class that manages the current experiment directory</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this heading">#</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="knowit.__author__">
+<span class="sig-prename descclassname"><span class="pre">knowit.</span></span><span class="sig-name descname"><span class="pre">__author__</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'tiantheunissen&#64;gmail.com'</span></em><a class="headerlink" href="#knowit.__author__" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="knowit.__description__">
+<span class="sig-prename descclassname"><span class="pre">knowit.</span></span><span class="sig-name descname"><span class="pre">__description__</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Contains</span> <span class="pre">the</span> <span class="pre">main</span> <span class="pre">KnowIt</span> <span class="pre">module.'</span></em><a class="headerlink" href="#knowit.__description__" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="knowit.logger">
+<span class="sig-prename descclassname"><span class="pre">knowit.</span></span><span class="sig-name descname"><span class="pre">logger</span></span><a class="headerlink" href="#knowit.logger" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="knowit.KnowIt">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">knowit.</span></span><span class="sig-name descname"><span class="pre">KnowIt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_exp_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_safe_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'gpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_and_viz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt" title="Permalink to this definition">#</a></dt>
+<dd><p>This is the main class that manages the current experiment directory
+and operates all submodules according to user-specified arguments.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt.summarize_dataset">
+<span class="sig-name descname"><span class="pre">summarize_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt.summarize_dataset" title="Permalink to this definition">#</a></dt>
+<dd><p>Summarizes the dataset corresponding to the given name.</p>
+<section id="args">
+<h3>Args:<a class="headerlink" href="#args" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>name<span class="classifier">str</span></dt><dd><p>The name of the dataset to summarize. It can be either a custom dataset or a default dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="returns">
+<h3>Returns:<a class="headerlink" href="#returns" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>summary<span class="classifier">dict</span></dt><dd><p>A dictionary containing the summary of the dataset, including:
+- ‘dataset_name’: The name of the dataset.
+- ‘components’: The components of the dataset.
+- ‘instances’: A list of instance names in the dataset.
+- ‘time_delta’: The time delta between time steps in the dataset.</p>
+</dd>
+</dl>
+</section>
+<section id="notes">
+<h3>Notes:<a class="headerlink" href="#notes" title="Permalink to this heading">#</a></h3>
+<p>The function first checks if the dataset name exists in the custom datasets. If not found, it then
+checks in the default datasets. If the dataset name is not found in either, it logs an error and exits.</p>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt.global_args">
+<span class="sig-name descname"><span class="pre">global_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">and_viz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt.global_args" title="Permalink to this definition">#</a></dt>
+<dd><p>Modify and/or return global arguments according to user arguments.</p>
+<p>This function allows the modification of global settings such as the device,
+safe mode, and visualization settings. If no arguments are provided, it returns
+the current values of these settings.</p>
+<section id="id1">
+<h3>Args:<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>device<span class="classifier">str, optional</span></dt><dd><p>If provided, sets the global device to be used for operations.
+Typically ‘gpu’ or ‘cpu’.</p>
+</dd>
+<dt>safe_mode<span class="classifier">bool, optional</span></dt><dd><p>If provided, sets the global safe mode value,
+which determines whether existing files should be protected.</p>
+</dd>
+<dt>and_viz<span class="classifier">bool, optional</span></dt><dd><p>If provided, sets the global visualization setting,
+determining whether results should also be visualized.</p>
+</dd>
+</dl>
+</section>
+<section id="id2">
+<h3>Returns:<a class="headerlink" href="#id2" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>dict</dt><dd><p>A dictionary containing the current global settings:
+- ‘global_device’: The device being used for operations.
+- ‘global_safe_mode’: The current safe mode setting.
+- ‘global_and_viz’: The current visualization setting.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt.import_arch">
+<span class="sig-name descname"><span class="pre">import_arch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_arch_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt.import_arch" title="Permalink to this definition">#</a></dt>
+<dd><p>Imports the architecture from the specified path.</p>
+<p>This function imports a custom architecture from the given path and stores it
+in the experiment output directory. The operation can be performed in safe mode
+to protect existing files.</p>
+<section id="id3">
+<h3>Args:<a class="headerlink" href="#id3" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>new_arch_path<span class="classifier">str</span></dt><dd><p>The file path to the new architecture that needs to be imported.</p>
+</dd>
+<dt>safe_mode<span class="classifier">bool, optional</span></dt><dd><p>If provided, sets the safe mode value for this operation. Safe mode determines
+whether existing files should be protected from being overwritten. If not provided,
+the global safe mode setting will be used.</p>
+</dd>
+</dl>
+</section>
+<section id="id4">
+<h3>Returns:<a class="headerlink" href="#id4" title="Permalink to this heading">#</a></h3>
+<p>None</p>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt.available_datasets">
+<span class="sig-name descname"><span class="pre">available_datasets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt.available_datasets" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns a dictionary showing the available datasets for the current instance of KnowIt.</p>
+<p>This function lists all available datasets from the default and custom dataset
+directories. It returns a dictionary with two keys: ‘defaults’ and ‘custom’, each
+containing a list of dataset names without file extensions.</p>
+<section id="id5">
+<h3>Returns:<a class="headerlink" href="#id5" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>dict</dt><dd><p>A dictionary with the following structure:
+- ‘defaults’: A list of names of the default datasets available.
+- ‘custom’: A list of names of the custom datasets available.</p>
+</dd>
+</dl>
+</section>
+<section id="id6">
+<h3>Notes:<a class="headerlink" href="#id6" title="Permalink to this heading">#</a></h3>
+<p>The function looks for dataset files with the ‘.pickle’ extension in both the default
+dataset directory and the custom dataset directory specified by the experiment output
+directory.</p>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt.available_archs">
+<span class="sig-name descname"><span class="pre">available_archs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt.available_archs" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns a dictionary showing the available architectures for the current instance of KnowIt.</p>
+<p>This function lists all available architectures from the default and custom architecture
+directories. It returns a dictionary with two keys: ‘defaults’ and ‘custom’, each containing
+a list of architecture names without file extensions.</p>
+<section id="id7">
+<h3>Returns:<a class="headerlink" href="#id7" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>dict</dt><dd><p>A dictionary with the following structure:
+- ‘defaults’: A list of names of the default architectures available.
+- ‘custom’: A list of names of the custom architectures available.</p>
+</dd>
+</dl>
+</section>
+<section id="id8">
+<h3>Notes:<a class="headerlink" href="#id8" title="Permalink to this heading">#</a></h3>
+<p>The function looks for architecture files with the ‘.py’ extension in both the default
+architecture directory and the custom architecture directory specified by the experiment
+output directory.</p>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt.import_dataset">
+<span class="sig-name descname"><span class="pre">import_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt.import_dataset" title="Permalink to this definition">#</a></dt>
+<dd><p>Imports the dataset and returns it as a BaseDataset object.</p>
+<p>This function imports a dataset using the provided arguments and returns it as a
+BaseDataset object. The function expects the dictionary to contain specific keys
+required for data import.</p>
+<section id="id9">
+<h3>Args:<a class="headerlink" href="#id9" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>args<span class="classifier">dict</span></dt><dd><p>A dictionary containing the arguments for data import. It must include the key
+‘data_import_args’.</p>
+</dd>
+<dt>safe_mode<span class="classifier">bool, optional</span></dt><dd><p>If provided, sets the safe mode value for this operation. Safe mode determines
+whether existing files should be protected from being overwritten. If not provided,
+the global safe mode setting will be used.</p>
+</dd>
+</dl>
+</section>
+<section id="id10">
+<h3>Returns:<a class="headerlink" href="#id10" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>BaseDataset</dt><dd><p>The imported dataset as a BaseDataset object.</p>
+</dd>
+</dl>
+</section>
+<section id="raises">
+<h3>Raises:<a class="headerlink" href="#raises" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>KeyError</dt><dd><p>If ‘data_import_args’ is not present in the provided dictionary.</p>
+</dd>
+</dl>
+</section>
+<section id="id11">
+<h3>Notes:<a class="headerlink" href="#id11" title="Permalink to this heading">#</a></h3>
+<p>See setup.setup_action_args.py for details on the arguments required in args[‘data_import_args’].</p>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt.train_model">
+<span class="sig-name descname"><span class="pre">train_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">and_viz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt.train_model" title="Permalink to this definition">#</a></dt>
+<dd><p>This function sets up and trains a model using the provided arguments and configurations.
+It checks and uses global settings for the device, safe mode, and visualization unless
+overridden by the provided arguments.</p>
+<section id="id12">
+<h3>Args:<a class="headerlink" href="#id12" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>model_name<span class="classifier">str</span></dt><dd><p>The name of the model to be trained.</p>
+</dd>
+<dt>args<span class="classifier">dict</span></dt><dd><p>A dictionary containing the necessary arguments for setting up the data, architecture,
+and trainer. Expected keys are ‘data’, ‘arch’, and ‘trainer’.</p>
+</dd>
+<dt>device<span class="classifier">str, optional</span></dt><dd><p>The device to be used for training. Defaults to the global device setting if not provided.</p>
+</dd>
+<dt>safe_mode<span class="classifier">bool, optional</span></dt><dd><p>If provided, sets the safe mode value for this operation to protect existing files.
+Defaults to the global safe mode setting if not provided.</p>
+</dd>
+<dt>and_viz<span class="classifier">bool, optional</span></dt><dd><p>If provided, sets the visualization setting for this operation. Defaults to the global
+visualization setting if not provided.</p>
+</dd>
+</dl>
+</section>
+<section id="id13">
+<h3>Returns:<a class="headerlink" href="#id13" title="Permalink to this heading">#</a></h3>
+<p>None</p>
+</section>
+<section id="id14">
+<h3>Notes:<a class="headerlink" href="#id14" title="Permalink to this heading">#</a></h3>
+<p>See setup.setup_action_args.py for details on the arguments required in args.</p>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt.train_model_further">
+<span class="sig-name descname"><span class="pre">train_model_further</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_epochs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">and_viz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt.train_model_further" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt.generate_predictions">
+<span class="sig-name descname"><span class="pre">generate_predictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">and_viz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt.generate_predictions" title="Permalink to this definition">#</a></dt>
+<dd><p>Generate predictions using a trained model and save them to disk.</p>
+<p>This method loads a trained model, retrieves a dataloader for the specified prediction set,
+and generates predictions for each batch of data. The predictions, along with the sample IDs
+and ground truth labels, are saved to disk. Additionally, a dictionary mapping sample IDs
+to batch indices is created and saved. Optionally, visualizations can be generated based on
+the predictions.</p>
+<section id="id15">
+<h3>Args:<a class="headerlink" href="#id15" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>model_name<span class="classifier">str</span></dt><dd><p>The name of the trained model to use for generating predictions.</p>
+</dd>
+<dt>args<span class="classifier">dict</span></dt><dd><p>A dictionary of arguments required for setting up the prediction process.
+Must include a ‘predictor’ key with relevant settings.</p>
+</dd>
+<dt>safe_mode<span class="classifier">bool, optional</span></dt><dd><p>Whether to operate in safe mode, which affects how data is saved. If not provided,
+the global safe mode setting is used.</p>
+</dd>
+<dt>and_viz<span class="classifier">bool, optional</span></dt><dd><p>Whether to generate visualizations based on the predictions. If not provided,
+the global visualization setting is used.</p>
+</dd>
+</dl>
+</section>
+<section id="id16">
+<h3>Returns:<a class="headerlink" href="#id16" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>None</dt><dd><p>This method does not return any values. The predictions and related data are saved to disk.</p>
+</dd>
+</dl>
+</section>
+<section id="id17">
+<h3>Notes:<a class="headerlink" href="#id17" title="Permalink to this heading">#</a></h3>
+<p>See setup.setup_action_args.py for details on the arguments required in args[‘predictor’].</p>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt.interpret_model">
+<span class="sig-name descname"><span class="pre">interpret_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">and_viz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt.interpret_model" title="Permalink to this definition">#</a></dt>
+<dd><p>Interpret a trained model and save the interpretation results.</p>
+<p>This method loads a trained model, sets up the interpretation process, and generates feature
+attributions for the specified prediction points. The interpretation results are saved to disk.
+Optionally, visualizations based on the interpretation can be generated.</p>
+<section id="id18">
+<h3>Args:<a class="headerlink" href="#id18" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>model_name<span class="classifier">str</span></dt><dd><p>The name of the trained model to be interpreted.</p>
+</dd>
+<dt>args<span class="classifier">dict</span></dt><dd><p>A dictionary of arguments required for setting up the interpretation process.
+Must include an ‘interpreter’ key with relevant settings.</p>
+</dd>
+<dt>device<span class="classifier">str, optional</span></dt><dd><p>The device to use for computation (e.g., ‘cpu’, ‘cuda’). If not provided, the global device
+setting is used.</p>
+</dd>
+<dt>safe_mode<span class="classifier">bool, optional</span></dt><dd><p>Whether to operate in safe mode, which affects how data is saved. If not provided,
+the global safe mode setting is used.</p>
+</dd>
+<dt>and_viz<span class="classifier">bool, optional</span></dt><dd><p>Whether to generate visualizations based on the interpretation. If not provided,
+the global visualization setting is used.</p>
+</dd>
+</dl>
+</section>
+<section id="id19">
+<h3>Returns:<a class="headerlink" href="#id19" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>None</dt><dd><p>This method does not return any values. The interpretation results are saved to disk.</p>
+</dd>
+</dl>
+</section>
+<section id="id20">
+<h3>Notes:<a class="headerlink" href="#id20" title="Permalink to this heading">#</a></h3>
+<p>See setup.setup_action_args.py for details on the arguments required in args[‘interpreter’].</p>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt._load_trained_model">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_load_trained_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exp_output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">available_datasets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">available_archs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_pt_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt._load_trained_model" title="Permalink to this definition">#</a></dt>
+<dd><p>Load a trained model along with details on its construction.</p>
+<p>This method loads the configuration, data module, model architecture, and checkpoint path
+for a specified trained model. Optionally, it can also load the actual PyTorch model.</p>
+<section id="parameters">
+<h3>Parameters:<a class="headerlink" href="#parameters" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>exp_output_dir<span class="classifier">str</span></dt><dd><p>The directory containing the experiment outputs.</p>
+</dd>
+<dt>available_datasets<span class="classifier">dict</span></dt><dd><p>A dictionary with keys ‘custom’ and ‘defaults’ listing the available datasets.</p>
+</dd>
+<dt>available_archs<span class="classifier">dict</span></dt><dd><p>A dictionary listing the available model architectures.</p>
+</dd>
+<dt>model_name<span class="classifier">str</span></dt><dd><p>The name of the trained model to load.</p>
+</dd>
+<dt>w_pt_model<span class="classifier">bool, optional</span></dt><dd><p>Whether to load the actual PyTorch model. If set to True, the PyTorch model is loaded
+and included in the returned dictionary. Default is False.</p>
+</dd>
+</dl>
+</section>
+<section id="id21">
+<h3>Returns:<a class="headerlink" href="#id21" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>dict</dt><dd><p>A dictionary containing the following keys:
+- ‘model_args’: The arguments/configuration used for the model.
+- ‘datamodule’: The data module associated with the model.
+- ‘class_counts’: The class counts used by the data module.
+- ‘path_to_ckpt’: The path to the model checkpoint.
+- ‘model’: The untrained PyTorch model.
+- ‘model_params’: The model hyperparameters.
+- ‘pt_model’ (optional): The loaded PyTorch model, included if w_pt_model is True.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt._load_trained_pt_model">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_load_trained_pt_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_to_ckpt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt._load_trained_pt_model" title="Permalink to this definition">#</a></dt>
+<dd><p>Load a trained PyTorch model from a checkpoint.</p>
+<p>This method initializes a PyTorch model with the given arguments, loads the model’s state
+dictionary from a checkpoint file, and sets the model to evaluation mode.</p>
+<section id="id22">
+<h3>Args:<a class="headerlink" href="#id22" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>model<span class="classifier">nn.Module</span></dt><dd><p>The model class or function to initialize the PyTorch model.</p>
+</dd>
+<dt>path_to_ckpt<span class="classifier">str</span></dt><dd><p>The path to the checkpoint file containing the trained model’s state dictionary.</p>
+</dd>
+<dt>model_params<span class="classifier">dict</span></dt><dd><p>A dictionary of parameters to initialize the PyTorch model.</p>
+</dd>
+</dl>
+</section>
+<section id="id23">
+<h3>Returns:<a class="headerlink" href="#id23" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>nn.Module</dt><dd><p>The loaded PyTorch model set to evaluation mode.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt._get_datamodule">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_get_datamodule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exp_output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">available_datasets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt._get_datamodule" title="Permalink to this definition">#</a></dt>
+<dd><p>Retrieve the appropriate data module based on the provided data arguments.</p>
+<p>This method determines the data path based on whether the dataset is custom or default,
+initializes the appropriate data module (regression or classification), and returns it
+along with class counts if applicable.</p>
+<section id="id24">
+<h3>Args:<a class="headerlink" href="#id24" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>exp_output_dir<span class="classifier">str</span></dt><dd><p>The directory containing the experiment outputs.</p>
+</dd>
+<dt>available_datasets<span class="classifier">dict</span></dt><dd><p>A dictionary with keys ‘custom’ and ‘defaults’ listing the available datasets.</p>
+</dd>
+<dt>data_args<span class="classifier">dict</span></dt><dd><p>A dictionary containing the arguments needed to set up the data module. Must include:
+- ‘name’: The name of the dataset.
+- ‘task’: The type of task (‘regression’ or ‘classification’).</p>
+</dd>
+</dl>
+</section>
+<section id="id25">
+<h3>Returns:<a class="headerlink" href="#id25" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>tuple</dt><dd><p>A tuple containing:
+- datamodule: The initialized data module.
+- class_counts: The class counts for classification tasks, or None for regression tasks.</p>
+</dd>
+</dl>
+</section>
+<section id="id26">
+<h3>Notes:<a class="headerlink" href="#id26" title="Permalink to this heading">#</a></h3>
+<p>The dataset is chosen from the custom experiment directory before trying the default directory.</p>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt._get_arch_setup">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_get_arch_setup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exp_output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">available_archs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arch_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_shape</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_shape</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt._get_arch_setup" title="Permalink to this definition">#</a></dt>
+<dd><p>Given the architecture arguments, return the corresponding untrained Model module.</p>
+<p>This function identifies and imports the appropriate model architecture based on the provided
+arguments. It first checks the custom experiment directory for the specified model; if not
+found, it checks the default directory. It then sets up the model with the provided input
+and output shapes and additional hyperparameters.</p>
+<section id="id27">
+<h3>Args:<a class="headerlink" href="#id27" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>exp_output_dir<span class="classifier">str</span></dt><dd><p>The directory containing the experiment outputs.</p>
+</dd>
+<dt>available_archs<span class="classifier">dict</span></dt><dd><p>A dictionary with keys ‘custom’ and ‘defaults’ listing the available architectures.</p>
+</dd>
+<dt>arch_args<span class="classifier">dict</span></dt><dd><p>The arguments/configuration for the architecture, including the name and hyperparameters.</p>
+</dd>
+<dt>in_shape<span class="classifier">tuple</span></dt><dd><p>The input shape for the model.</p>
+</dd>
+<dt>out_shape<span class="classifier">tuple</span></dt><dd><p>The output shape for the model.</p>
+</dd>
+</dl>
+</section>
+<section id="id28">
+<h3>Returns:<a class="headerlink" href="#id28" title="Permalink to this heading">#</a></h3>
+<dl>
+<dt>tuple</dt><dd><p>A tuple containing:
+- model : class</p>
+<blockquote>
+<div><p>The imported Model class.</p>
+</div></blockquote>
+<ul class="simple">
+<li><dl class="simple">
+<dt>model_params<span class="classifier">dict</span></dt><dd><p>A dictionary of parameters to initialize the model, including input and output dimensions
+and task-specific hyperparameters.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt._get_trainer_setup">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_get_trainer_setup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trainer_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_counts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt._get_trainer_setup" title="Permalink to this definition">#</a></dt>
+<dd><p>Process and return the trainer arguments with dynamically generated parameters.</p>
+<p>This function takes in the initial trainer arguments and modifies them based on
+specific conditions such as the type of loss function. It also incorporates additional
+parameters like the model, device, and save directory into the trainer arguments.</p>
+<section id="id29">
+<h3>Args:<a class="headerlink" href="#id29" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>trainer_args<span class="classifier">dict</span></dt><dd><p>The initial arguments for the trainer, including configurations such as loss function and task type.</p>
+</dd>
+<dt>device<span class="classifier">str</span></dt><dd><p>The device on which the model will be trained (e.g., ‘cpu’ or ‘cuda’).</p>
+</dd>
+<dt>class_counts<span class="classifier">list or None</span></dt><dd><p>The counts of each class in the dataset, used for tasks like computing weighted loss functions.</p>
+</dd>
+<dt>model<span class="classifier">class</span></dt><dd><p>The model class to be trained.</p>
+</dd>
+<dt>model_params<span class="classifier">dict</span></dt><dd><p>The parameters required to initialize the model.</p>
+</dd>
+<dt>save_dir<span class="classifier">str</span></dt><dd><p>The directory where the training outputs will be saved.</p>
+</dd>
+</dl>
+</section>
+<section id="id30">
+<h3>Returns:<a class="headerlink" href="#id30" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>dict</dt><dd><p>The processed trainer arguments, including dynamically set parameters like the model,
+model parameters, device, and output directory.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt._get_interpret_setup">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_get_interpret_setup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interpret_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt._get_interpret_setup" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the appropriate interpretation class based on the provided interpretation method.</p>
+<p>This function selects and returns the interpretation class corresponding to the
+specified interpretation method in the <cite>interpret_args</cite> dictionary.</p>
+<section id="id31">
+<h3>Args:<a class="headerlink" href="#id31" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>interpret_args<span class="classifier">dict</span></dt><dd><p>A dictionary containing the arguments for the interpretation setup, specifically the
+<cite>interpretation_method</cite> key which determines which interpretation class to use.</p>
+</dd>
+</dl>
+</section>
+<section id="id32">
+<h3>Returns:<a class="headerlink" href="#id32" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>class</dt><dd><p>The class corresponding to the specified interpretation method.</p>
+</dd>
+</dl>
+</section>
+<section id="id33">
+<h3>Raises:<a class="headerlink" href="#id33" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>SystemExit</dt><dd><p>If the provided interpretation method is unknown, the function logs an error and exits.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="knowit.KnowIt._get_data_dynamics">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_get_data_dynamics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datamodule</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#knowit.KnowIt._get_data_dynamics" title="Permalink to this definition">#</a></dt>
+<dd><p>Extract and return dynamic information about the dataset.</p>
+<p>This function gathers various dynamic attributes of the dataset from the provided
+data module and organizes them into a dictionary.</p>
+<section id="id34">
+<h3>Args:<a class="headerlink" href="#id34" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>data_args<span class="classifier">dict</span></dt><dd><p>A dictionary containing the arguments related to the dataset, including the task type.</p>
+</dd>
+<dt>datamodule<span class="classifier">object</span></dt><dd><p>The data module object containing the dataset and its properties.</p>
+</dd>
+</dl>
+</section>
+<section id="id35">
+<h3>Returns:<a class="headerlink" href="#id35" title="Permalink to this heading">#</a></h3>
+<dl class="simple">
+<dt>dict</dt><dd><p>A dictionary containing the following keys:
+- ‘in_shape’: The shape of the input data.
+- ‘out_shape’: The shape of the output data.
+- ‘train_size’: The size of the training set.
+- ‘valid_size’: The size of the validation set.
+- ‘eval_size’: The size of the evaluation set.
+- ‘class_set’ (optional): The set of classes, included if the task is classification.
+- ‘class_count’ (optional): The count of each class, included if the task is classification.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../conf/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">conf</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../logger/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">logger</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#attributes">Attributes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.__author__"><code class="docutils literal notranslate"><span class="pre">__author__</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.__description__"><code class="docutils literal notranslate"><span class="pre">__description__</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.logger"><code class="docutils literal notranslate"><span class="pre">logger</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt"><code class="docutils literal notranslate"><span class="pre">KnowIt</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt.summarize_dataset"><code class="docutils literal notranslate"><span class="pre">KnowIt.summarize_dataset()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt.global_args"><code class="docutils literal notranslate"><span class="pre">KnowIt.global_args()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt.import_arch"><code class="docutils literal notranslate"><span class="pre">KnowIt.import_arch()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt.available_datasets"><code class="docutils literal notranslate"><span class="pre">KnowIt.available_datasets()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt.available_archs"><code class="docutils literal notranslate"><span class="pre">KnowIt.available_archs()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt.import_dataset"><code class="docutils literal notranslate"><span class="pre">KnowIt.import_dataset()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt.train_model"><code class="docutils literal notranslate"><span class="pre">KnowIt.train_model()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt.train_model_further"><code class="docutils literal notranslate"><span class="pre">KnowIt.train_model_further()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt.generate_predictions"><code class="docutils literal notranslate"><span class="pre">KnowIt.generate_predictions()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt.interpret_model"><code class="docutils literal notranslate"><span class="pre">KnowIt.interpret_model()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt._load_trained_model"><code class="docutils literal notranslate"><span class="pre">KnowIt._load_trained_model()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt._load_trained_pt_model"><code class="docutils literal notranslate"><span class="pre">KnowIt._load_trained_pt_model()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt._get_datamodule"><code class="docutils literal notranslate"><span class="pre">KnowIt._get_datamodule()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt._get_arch_setup"><code class="docutils literal notranslate"><span class="pre">KnowIt._get_arch_setup()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt._get_trainer_setup"><code class="docutils literal notranslate"><span class="pre">KnowIt._get_trainer_setup()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt._get_interpret_setup"><code class="docutils literal notranslate"><span class="pre">KnowIt._get_interpret_setup()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#knowit.KnowIt._get_data_dynamics"><code class="docutils literal notranslate"><span class="pre">KnowIt._get_data_dynamics()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../../_sources/autoapi/knowit/index.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024, Tian Theunissen, Randle Rabe.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.2.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.14.4.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

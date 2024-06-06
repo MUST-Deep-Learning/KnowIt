@@ -1,0 +1,116 @@
+CNN
+===
+
+.. py:module:: CNN
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   CNN.__author__
+   CNN.__description__
+   CNN.logger
+   CNN.available_tasks
+   CNN.HP_ranges_dict
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   CNN.Model
+   CNN.FinalBlock
+   CNN.ConvBlock
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   CNN.init_mod
+
+
+Module Contents
+---------------
+
+.. py:data:: __author__
+   :value: 'tiantheunissen@gmail.com'
+
+
+.. py:data:: __description__
+   :value: 'This is a 1D convolutional neural network.'
+
+
+   This is the same as the TCN but made non-causal by removing the padding and clipping, 
+   as suggested here. https://github.com/locuslab/TCN/issues/45.
+
+   Otherwise it performs in the exact same way.           
+
+
+
+.. py:data:: logger
+
+.. py:data:: available_tasks
+   :value: ('regression', 'classification', 'forecasting')
+
+
+.. py:data:: HP_ranges_dict
+
+.. py:class:: Model(input_dim: list, output_dim: list, task_name: str, depth: int = -1, num_filters: int = 64, kernel_size: int = 3, normalization: bool = 'batch', dropout: float = 0.3, activations: str = 'ReLU', output_activation: str = None, residual_connect: bool = True, dilation_base: int = 2)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   1D Convolutional Network
+   Paper link: https://arxiv.org/abs/1803.01271
+   But without the causal convolutions.
+
+
+   .. py:method:: __check_and_add_arg(name, val, expected)
+
+
+   .. py:method:: __build_fcn(dilation_base=2)
+
+
+   .. py:method:: calc_min_depth(dilation_base, num_model_in_time_steps, kernel_size)
+      :staticmethod:
+
+
+
+   .. py:method:: forward(x)
+
+
+.. py:class:: FinalBlock(num_model_in_time_steps, num_model_out_channels, num_model_out_time_steps, output_activation, task)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   Performs the necessary manipulation of the CNN output for the current task. 
+
+
+   .. py:method:: classify(x)
+
+
+   .. py:method:: regress(x)
+
+
+   .. py:method:: forward(x)
+
+
+.. py:class:: ConvBlock(n_inputs, n_outputs, kernel_size, stride, dilation, padding, dropout, normalization, activations, residual_connect)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   A single fully convolutional block for the CNN. 
+
+
+   .. py:method:: forward(x)
+
+
+.. py:function:: init_mod(mod)
+
