@@ -1,9 +1,9 @@
 name: knowit_env
 channels:
-  - anaconda
   - nvidia
   - pytorch
   - conda-forge
+  - anaconda
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
@@ -14,13 +14,13 @@ dependencies:
   - babel=2.11.0=py38h06a4308_0
   - blas=1.0=mkl
   - boost-cpp=1.74.0=h9359b55_0
-  - bottleneck=1.3.7=py38ha9d4c09_0
+  - bottleneck=1.3.5=py38h7deecbd_0
   - brotli-python=1.0.9=py38h6a678d5_7
   - brotlipy=0.7.0=py38h27cfd23_1003
   - bzip2=1.0.8=h7b6447c_0
-  - ca-certificates=2024.3.11=h06a4308_0
+  - ca-certificates=2023.08.22=h06a4308_0
   - captum=0.6.0=0
-  - certifi=2024.2.2=py38h06a4308_0
+  - certifi=2023.11.17=py38h06a4308_0
   - cffi=1.15.1=py38h5eee18b_3
   - cgal-cpp=5.0.3=h764656a_1
   - charset-normalizer=2.0.4=pyhd3eb1b0_0
@@ -40,9 +40,9 @@ dependencies:
   - docker-pycreds=0.4.0=pyhd3eb1b0_0
   - docutils=0.18.1=py38h06a4308_3
   - eigen=3.3.7=hd09550d_1
-  - exceptiongroup=1.2.0=py38h06a4308_0
+  - exceptiongroup=1.0.4=py38h06a4308_0
   - ffmpeg=4.2.2=h20bf706_0
-  - filelock=3.13.1=py38h06a4308_0
+  - filelock=3.9.0=py38h06a4308_0
   - freetype=2.12.1=h4a9f257_0
   - giflib=5.2.1=h5eee18b_3
   - gitdb=4.0.7=pyhd3eb1b0_0
@@ -112,11 +112,9 @@ dependencies:
   - networkx=3.1=py38h06a4308_0
   - nlopt=2.7.0=py38h6599729_1
   - numexpr=2.8.4=py38he184ba9_0
-  - numpy=1.24.3=py38h14f4228_0
-  - numpy-base=1.24.3=py38h31eccc5_0
   - openh264=2.1.1=h4ff587b_0
   - openjpeg=2.4.0=h3ad879b_0
-  - openssl=3.0.13=h7f8727e_0
+  - openssl=3.0.12=h7f8727e_0
   - packaging=23.1=py38h06a4308_0
   - pandas=1.4.2=py38h295c915_0
   - pathtools=0.1.2=pyhd3eb1b0_1
@@ -160,7 +158,6 @@ dependencies:
   - six=1.16.0=pyhd3eb1b0_1
   - smmap=4.0.0=pyhd3eb1b0_0
   - snowballstemmer=2.2.0=pyhd3eb1b0_0
-  - sphinx=5.0.2=py38h06a4308_0
   - sphinxcontrib-applehelp=1.0.2=pyhd3eb1b0_0
   - sphinxcontrib-devhelp=1.0.2=pyhd3eb1b0_0
   - sphinxcontrib-htmlhelp=2.0.0=pyhd3eb1b0_0
@@ -169,14 +166,14 @@ dependencies:
   - sphinxcontrib-qthelp=1.0.3=pyhd3eb1b0_0
   - sphinxcontrib-serializinghtml=1.1.5=pyhd3eb1b0_0
   - sqlite=3.41.2=h5eee18b_0
-  - sympy=1.12=py38h06a4308_0
+  - sympy=1.11.1=py38h06a4308_0
   - threadpoolctl=2.2.0=pyh0d69192_0
   - tk=8.6.12=h1ccaba5_0
   - toml=0.10.2=pyhd3eb1b0_0
   - tomli=2.0.1=py38h06a4308_0
   - tomlkit=0.11.1=py38h06a4308_0
   - torchaudio=2.1.0=py38_cu118
-  - torchmetrics=1.1.2=py38h06a4308_0
+  - torchmetrics=0.11.4=py38h2f386ee_1
   - torchtriton=2.1.0=py38
   - torchvision=0.16.0=py38_cu118
   - tornado=6.3.3=py38h5eee18b_0
@@ -194,6 +191,8 @@ dependencies:
   - zlib=1.2.13=h5eee18b_0
   - zstd=1.4.9=haebb681_0
   - pip:
+      - accessible-pygments==0.0.4
+      - beautifulsoup4==4.12.3
       - cloudpickle==2.0.0
       - configspace==0.5.0
       - cython==0.29.28
@@ -204,12 +203,19 @@ dependencies:
       - heapdict==1.0.1
       - locket==1.0.0
       - msgpack==1.0.3
+      - numpy==1.22.4
       - partd==1.2.0
+      - pydata-sphinx-theme==0.14.4
       - pynisher==0.6.4
       - pyrfr==0.8.2
       - smac==1.3.1
       - sortedcontainers==2.4.0
+      - soupsieve==2.5
+      - sphinx==7.1.2
+      - sphinx-autoapi==3.1.1
+      - sphinx-rtd-theme==2.0.0
+      - sphinxcontrib-jquery==4.1
       - tblib==1.7.0
       - toolz==0.11.2
       - zict==2.2.0
-prefix: /home/tian/miniconda3/envs/knowit_env
+prefix: /home/randle/miniconda3/envs/knowit_env
