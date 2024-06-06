@@ -24,7 +24,7 @@ from knowit import KnowIt
 # associated with a static (potentially pre-existing) experiment output directory.
 # This is useful for long-term experimentation.
 
-KI = KnowIt(custom_exp_dir='/path/to/my/new/experiment/directory')
+KI = KnowIt(custom_exp_dir='/home/randle/projects/KnowIt')
 
 # ----------------------------------------------------------------------------------------------------------------------
 # IMPORTING A CUSTOM ARCHITECTURE
@@ -95,12 +95,12 @@ arch_args = {'task': 'regression',
                           'width': 512}}
 trainer_args = {'loss_fn': 'mse_loss',
                 'optim': 'Adam',
-                'max_epochs': 10,
+                'max_epochs': 2,
                 'learning_rate': 0.01,
                 'task': 'regression'
                 }
 
-KI.train_model(model_name=model_name, args={'data': data_args, 'arch': arch_args, 'trainer': trainer_args})
+KI.train_model(model_name=model_name, args={'data': data_args, 'arch': arch_args, 'trainer': trainer_args}, safe_mode=False)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -122,10 +122,10 @@ KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_s
 # - 'interpreter' arguments relate to what prediction points to interpret on.
 # NOTE: In order to visualize feature attributions, the corresponding predictions must have been generated.
 
-interpret_args = {'interpretation_method': 'DeepLift',
+interpret_args = {'interpretation_method': 'IntegratedGradients',
                   'interpretation_set': 'eval',
                   'selection': 'random',
-                  'size': 100}
+                  'size': 10}
 KI.interpret_model(model_name=model_name, args={'interpreter': interpret_args})
 
 exit(101)
