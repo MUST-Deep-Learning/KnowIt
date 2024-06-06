@@ -1,0 +1,4 @@
+KnowIt
+=====
+
+**KnowIt** is a Python library for knowledge discovery in time series data. The library allows a user to train deep neural networks on time series data and to perform interpretations to understand the model's output.
