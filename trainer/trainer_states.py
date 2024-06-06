@@ -516,3 +516,10 @@ class CustomTrainer(BaseTrainer):
         return ModelCheckpoint(
             dirpath=self.out_dir,
         )
+
+__all__ = [
+    "TrainNew",
+    "ContinueTraining",
+    "EvaluateOnly",
+    "CustomTrainer",
+]

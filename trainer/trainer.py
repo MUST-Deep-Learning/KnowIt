@@ -156,3 +156,7 @@ class KITrainer:
             raise TypeError(emsg)
 
         self._state.evaluate_model(dataloaders=dataloaders)
+
+__all__ = [
+    "KITrainer",
+]

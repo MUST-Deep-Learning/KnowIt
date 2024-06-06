@@ -265,3 +265,7 @@ class BaseTrainer(ABC):
     @abstractmethod
     def _save_model_state(self) -> ModelCheckpoint | None:
         pass
+
+__all__ = [
+    "BaseTrainer",
+]
