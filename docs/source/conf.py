@@ -64,3 +64,14 @@ html_static_path = ['_static']
 
 # For autoapi:
 autoapi_dirs = ['../../../KnowIt']
+autoapi_python_class_content = 'both' # display both class and __init__ docs.
+autoapi_options=[
+   'members',
+   'undoc-members',
+   'show-inheritance',
+   'show-module-summary',
+   'special-members',
+   'imported-members', 
+]
+
+
