@@ -23,7 +23,7 @@ The three possible concrete states are:
 
 KnowIt's Trainer module is built using Pytorch Lightning. See here:
 https://lightning.ai/pytorch-lightning
-"""  # noqa: INP001, D205, D212, D400, D415
+"""  # noqa: D205, D400
 
 from __future__ import annotations
 
@@ -46,12 +46,27 @@ class KITrainer:
     The class interacts with the overall KnowIt architecture script. Based on
     the user's training task, it will point to the correct Trainer state.
 
-    Args:
-    ----
-        _state (None | type):   A concrete state that corresponds to one
-                                of the possible states for the trainer.
-                                Default: None
+    Parameters
+    ----------
+    state : type[Any]
+        A concrete state that corresponds to one of the possible states for
+        the trainer.
 
+    base_trainer_kwargs : dict[str, Any]
+        The kwargs required in the BaseTrainer submodule.
+
+    optional_pl_kwargs : dict[str, Any]
+        An additional kwargs that a user would like to provide Pytorch
+        Lightning's Trainer.
+
+    ckpt_file : None | str, default=None
+        A string that points to a Pytorch checkpoint file. Required for
+        certain trainer states.
+
+    Attributes
+    ----------
+    _state: None | type[Any], default=None
+        The current state that the Trainer is initialized in.
     """
 
     _state: None | type[Any] = None
@@ -63,27 +78,6 @@ class KITrainer:
         optional_pl_kwargs: dict[str, Any],
         ckpt_file: None | str = None,
     ) -> None:
-        """KITrainer constructor.
-
-        Args:
-        ----
-            state (type[Any]):  A concrete state that corresponds to one
-                                of the possible states for the trainer.
-
-            base_trainer_kwargs (dict[str, Any]):
-                                The kwargs required in the BaseTrainer
-                                submodule.
-
-            optional_pl_kwargs (dict[str, Any]):
-                                An additional kwargs that a user would like to
-                                provide Pytorch Lightning's Trainer.
-
-            ckpt_file (None | str, optional):
-                                A string that points to a Pytorch checkpoint
-                                file. Required for certain trainer states.
-                                default: None
-
-        """
         self._set_state(
             state=state,
             base_trainer_kwargs=base_trainer_kwargs,
@@ -122,12 +116,12 @@ class KITrainer:
     ) -> None:
         """Fit model to training data and evaluate on all dataloaders.
 
-        Args:
-        ----
-            dataloaders (tuple):    The Pytorch dataloaders that has been set
-                                    up in KnowIt's datamodule. The triplet
-                                    corresponds to the train, val, and eval
-                                    dataloaders.
+        Parameters
+        ----------
+        dataloaders tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
+            The Pytorch dataloaders that has been set up in KnowIt's
+            datamodule. The triplet corresponds to the train, val, and eval
+            dataloaders.
 
         """
         if self._state is None:
@@ -143,12 +137,12 @@ class KITrainer:
     ) -> None:
         """Evaluate a trained model from checkpoint on a user's data.
 
-        Args:
-        ----
-            dataloaders (tuple):    The Pytorch dataloaders that has been set
-                                    up in KnowIt's datamodule. The triplet
-                                    corresponds to the train, val, and eval
-                                    dataloaders.
+        Parameters
+        ----------
+        dataloaders tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
+            The Pytorch dataloaders that has been set up in KnowIt's
+            datamodule. The triplet corresponds to the train, val, and eval
+            dataloaders.
 
         """
         if self._state is None:
