@@ -32,6 +32,8 @@ release = '0.1'
 # ones.
 extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.inheritance_diagram',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
     'autoapi.extension',
 ]
 
@@ -62,16 +64,22 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# For napoleon:
+napoleon_use_param = False
+napoleon_use_ivar = True
+napoleon_attr_annotations = False
+napoleon_preprocess_types = True
+
 # For autoapi:
 autoapi_dirs = ['../../../KnowIt']
-autoapi_python_class_content = 'both' # display both class and __init__ docs.
+autoapi_python_class_content = 'class'
 autoapi_options=[
    'members',
-   'undoc-members',
    'show-inheritance',
    'show-module-summary',
-   'special-members',
-   'imported-members', 
 ]
+autodoc_typehints = 'description'
+autodoc_typehints_description_target = 'documented'
 
+# https://bylr.info/articles/2022/05/10/api-doc-with-sphinx-autoapi/
 
