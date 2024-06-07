@@ -32,7 +32,7 @@ as follows:
 In the case that the above states are inadequate for a user's task, the module
 also contains an example template class "CustomTrainer" that a user can edit.
 
-"""  # noqa: INP001, D205, D212, D400, D415
+"""  # noqa: D205, D400
 
 from __future__ import annotations
 
@@ -56,11 +56,24 @@ logger = get_logger()
 class TrainNew(BaseTrainer):
     """Fit a model to a training dataset and evaluate on val/eval sets.
 
-    Args:
-    ----
-        BaseTrainer (type):         Abstract class that stores user parameters
-                                    and defines abstract methods.
+    Parameters
+    ----------
+    base_kwargs : dict[str, Any]
+        The user's input parameters (to be stored in the parent class).
 
+    optional_pl_kwargs : dict[str, Any]
+        Additional kwargs to be provided to Pytorch Lightning's Trainer (such
+        as gradient clipping, etc). See Pytorch Lightning's documentation for
+        more information.
+
+    Attributes
+    ----------
+    pl_model : type
+        The Pytorch Lightning model initialized with a user's Pytorch model.
+
+    trainer : type
+        The Pytorch Lightning trainer initialized with pl_model and any
+        additional user kwargs (see optional_pl_kwargs).
     """
 
     def __init__(
@@ -68,21 +81,6 @@ class TrainNew(BaseTrainer):
         base_kwargs: dict[str, Any],
         optional_pl_kwargs: dict[str, Any],
     ) -> None:
-        """TrainNew constructor.
-
-        Args:
-        ----
-            base_kwargs (dict[str, Any]):   The user's input parameters (to be
-                                            stored in the parent class).
-
-            optional_pl_kwargs (dict[str, Any]):
-                                            Additional kwargs to be provided to
-                                            Pytorch Lightning's Trainer (such
-                                            as gradient clipping, etc). See
-                                            Pytorch Lightning's documentation
-                                            for more information.
-
-        """
         super().__init__(**base_kwargs)
 
         self._prepare_pl_model()
@@ -95,12 +93,12 @@ class TrainNew(BaseTrainer):
     ) -> None:
         """Fit model to the training data and monitor metrics on val set.
 
-        Args:
-        ----
-            dataloaders (tuple):    The triplet containing the train
-                                    dataloader and validation dataloader. The
-                                    ordering of the tuple must be given as
-                                    (train, val, eval).
+        Parameters
+        ----------
+        dataloaders : tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
+            The triplet containing the train dataloader and validation
+            dataloader. The ordering of the tuple must be given as
+            (train, val, eval).
 
         """
         train_dataloader = dataloaders[0]
@@ -118,14 +116,16 @@ class TrainNew(BaseTrainer):
     ) -> None:
         """Evaluate the trained model's performance on a tuple of data sets.
 
+        Parameters
+        ----------
+        dataloaders : tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
+            The triplet containing the train dataloader and validation
+            dataloader. The ordering of the tuple must be given as
+            (train, val, eval).
+
         NOTE: If the concatenated strings for metrics become long, Pytorch
         Lightning will print the evaluation results on two seperate lines in
         the terminal.
-
-        Args:
-        ----
-            dataloaders (tuple):        A tuple consisting of three Pytorch
-                                        dataloaders (train, val, eval).
 
         """
         if self.return_final:
@@ -213,11 +213,27 @@ class TrainNew(BaseTrainer):
 class ContinueTraining(BaseTrainer):
     """Fit a pretrained model to a training set and evaluate on val/eval sets.
 
-    Args:
-    ----
-        BaseTrainer (type):         Abstract class that stores user parameters
-                                    and defines abstract methods.
+    Parameters
+    ----------
+     to_ckpt : None | str
+        Path to the model checkpoint file.
 
+    base_kwargs : dict[str, Any]
+        The user's input parameters (to be stored in the parent class).
+
+    optional_pl_kwargs : dict[str, Any]
+        Additional kwargs to be provided to Pytorch Lightning's Trainer (such
+        as gradient clipping, etc). See Pytorch Lightning's documentation for
+        more information.
+
+    Attributes
+    ----------
+    pl_model : type
+        The Pytorch Lightning model initialized with a user's Pytorch model.
+
+    trainer : type
+        The Pytorch Lightning trainer initialized with pl_model and any
+        additional user kwargs (see optional_pl_kwargs).
     """
 
     def __init__(
@@ -226,23 +242,6 @@ class ContinueTraining(BaseTrainer):
         base_kwargs: dict[str, Any],
         optional_pl_kwargs: dict[str, Any],
     ) -> None:
-        """ContinueTraining constructor.
-
-        Args:
-        ----
-            to_ckpt (None | str):           Path to the model checkpoint file.
-
-            base_kwargs (dict[str, Any]):   The user's input parameters (to be
-                                            stored in the parent class).
-
-            optional_pl_kwargs (dict[str, Any]):
-                                            Additional kwargs to be provided to
-                                            Pytorch Lightning's Trainer (such
-                                            as gradient clipping, etc). See
-                                            Pytorch Lightning's documentation
-                                            for more information.
-
-        """
         super().__init__(**base_kwargs)
         self.ckpt_file = to_ckpt
 
@@ -256,12 +255,12 @@ class ContinueTraining(BaseTrainer):
     ) -> None:
         """Fit model to the training data and monitor metrics on val set.
 
-        Args:
-        ----
-            dataloaders (tuple):    The triplet containing the train
-                                    dataloader and validation dataloader. The
-                                    ordering of the tuple must be given as
-                                    (train, val, eval).
+        Parameters
+        ----------
+        dataloaders : tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
+            The triplet containing the train dataloader and validation
+            dataloader. The ordering of the tuple must be given as
+            (train, val, eval).
 
         """
         train_dataloader = dataloaders[0]
@@ -281,14 +280,16 @@ class ContinueTraining(BaseTrainer):
     ) -> None:
         """Evaluate the trained model's performance on a tuple of data sets.
 
+        Parameters
+        ----------
+        dataloaders : tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
+            The triplet containing the train dataloader and validation
+            dataloader. The ordering of the tuple must be given as
+            (train, val, eval).
+
         NOTE: If the concatenated strings for metrics become long, Pytorch
         Lightning will print the evaluation results on two seperate lines in
         the terminal.
-
-        Args:
-        ----
-            dataloaders (tuple):        A tuple consisting of three Pytorch
-                                        dataloaders (train, val, eval).
 
         """
         if self.return_final:
@@ -378,43 +379,36 @@ class ContinueTraining(BaseTrainer):
 class EvaluateOnly(BaseTrainer):
     """Evaluate a trained model on a dataset.
 
-    Args:
-    ----
-        BaseTrainer (type):         Abstract class that stores user parameters
-                                    and defines abstract methods.
+    Parameters
+    ----------
+     to_ckpt : None | str
+        Path to the model checkpoint file.
 
+    Attributes
+    ----------
+    pl_model : type
+        The Pytorch Lightning model initialized with a user's Pytorch model.
+
+    trainer : type
+        The Pytorch Lightning trainer initialized with pl_model and any
+        additional user kwargs (see optional_pl_kwargs).
     """
 
     def __init__(
         self,
         to_ckpt: str,
     ) -> None:
-        """EvaluateOnly constructor.
-
-        Args:
-        ----
-            to_ckpt (None | str):           Path to the model checkpoint file.
-
-        """
         self.ckpt_file = to_ckpt
 
         self._prepare_pl_model()
 
         self._prepare_pl_trainer(optional_pl_kwargs={})
 
-    def fit_model(
+    def fit_model(  # noqa: D102
         self,
         dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
     ) -> None:
-        """Fit model to the training data and monitor metrics on val set.
-
-        Args:
-        ----
-            dataloaders (tuple):    The train dataloader and validation
-                                    dataloader. The ordering of the tuple
-                                    must be given is (train, val).
-
-        """
+        pass
 
     def evaluate_model(
         self,
@@ -422,14 +416,16 @@ class EvaluateOnly(BaseTrainer):
     ) -> None:
         """Evaluate the trained model's performance on a tuple of data sets.
 
+        Parameters
+        ----------
+        dataloaders : tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
+            The triplet containing the train dataloader and validation
+            dataloader. The ordering of the tuple must be given as
+            (train, val, eval).
+
         NOTE: If the concatenated strings for metrics become long, Pytorch
         Lightning will print the evaluation results on two seperate lines in
         the terminal.
-
-        Args:
-        ----
-            dataloaders (tuple):        A tuple consisting of three Pytorch
-                                        dataloaders (train, val, eval).
 
         """
         logger.info("Testing on model loaded from checkpoint.")
@@ -456,10 +452,15 @@ class CustomTrainer(BaseTrainer):
 
     The template can be edited by a user to create a custom trainer state.
 
-    Args:
-    ----
-        BaseTrainer (type):         Abstract class that stores user parameters
-                                        and defines abstract methods.
+    Parameters
+    ----------
+    base_kwargs : dict[str, Any]
+        The user's input parameters (to be stored in the parent class).
+
+    optional_pl_kwargs : dict[str, Any]
+        Additional kwargs to be provided to Pytorch Lightning's Trainer (such
+        as gradient clipping, etc). See Pytorch Lightning's documentation for
+        more information.
 
     """
 
