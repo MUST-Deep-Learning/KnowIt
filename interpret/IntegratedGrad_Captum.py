@@ -204,7 +204,9 @@ class IntegratedGrad(FeatureAttribution):
                     pred_point_id is a tuple.
                     > (in_chunk, in_components) if pred_point_id is int.
 
-        NOTE: The output stores the information from a tensor of size
+        Notes
+        -----
+        The output stores the information from a tensor of size
         (out_chunk, out_components, prediction_points, in_chunk, in_components)
         inside a dictionary data structure. For time series data, this can grow
         rapidly, which may therefore obscure model interpretability.
