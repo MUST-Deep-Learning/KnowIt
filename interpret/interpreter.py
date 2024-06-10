@@ -3,22 +3,25 @@
 KIInterpreter
 -------------
 
-The "KIInterpreter" class is the parent (root) class that is to be
-inherited by all other model interpretability modules.
+The "KIInterpreter" class is the parent (root) class that is to be inherited
+by all other model interpretability modules.
 
 The function of the "KIInterpreter" class is to store the datamodule and
 initialize the Pytorch model for use by its descendant classes. As such, it is
 a direct link to Knowit's other modules. It is agnostic to the user's choice of
 interpretability method.
 
-"""# noqa: INP001, D205, D212, D400, D415
+"""  # noqa: D205, D400
 
 from __future__ import annotations
 
 __author__ = "randlerabe@gmail.com"
 __description__ = "Contains the Knowit interpreter class."
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from torch.nn import Module
 
 import torch
 
@@ -30,35 +33,46 @@ logger = get_logger()
 class KIInterpreter:
     """Root class to be inherited by all interpretability classes.
 
-    The class stores the user's parameters and initializes a trained Pytorch
+    The class stores the user's parameters and initializes a trained PyTorch
     model from checkpoint.
 
+    Parameters
+    ----------
+    model : type
+        The PyTorch model architecture class.
+
+    model_params : dict
+        The dictionary needed to initialize the model.
+
+    datamodule : type
+        The Knowit datamodule for the experiment.
+
+    device : str
+        The device on which to run the model.
+
+    path_to_ckpt : str
+        The path to a trained model's checkpoint file.
+
+    Attributes
+    ----------
+    model : Module
+        The initialized PyTorch model loaded with weights from the checkpoint.
+
+    datamodule : type
+        The Knowit datamodule for the experiment.
+
+    device : torch.device
+        The device on which the model is run.
     """
 
     def __init__(
         self,
-        model: type,
+        model: Module,
         model_params: dict[str, Any],
         datamodule: type,
         device: str,
         path_to_ckpt: str,
     ) -> None:
-        """KIInterpreter constructor.
-
-        Args:
-        ----
-            model (type):           The Pytorch model architecture class.
-
-            model_params (dict):    The dictionary needed to intialize model.
-
-            datamodule (type):      The Knowit datamodule for the experiment.
-
-            device (str):           The device on which to run the model.
-
-            path_to_ckpt (str):     The path to a trained model's checkpoint
-                                    file.
-
-        """
         self.model = self._load_model_from_ckpt(
             model=model,
             model_params=model_params,
@@ -70,10 +84,26 @@ class KIInterpreter:
 
     def _load_model_from_ckpt(
         self,
-        model: type,
+        model: Module,
         model_params: dict[str, Any],
         ckpt_path: str,
-    ) -> type[Any]:
+    ) -> Module:
+        """Load a PyTorch model from a checkpoint file.
+
+        Parameters
+        ----------
+        model : Module
+            The PyTorch model class to be initialized.
+        model_params : dict[str, Any]
+            The parameters for initializing the model.
+        ckpt_path : str
+            The path to the checkpoint file.
+
+        Returns
+        -------
+        Module
+            The model loaded with weights from the checkpoint.
+        """
         logger.info("Initializing Pytorch model using checkpoint file.")
 
         # init Pytorch model with user params
@@ -97,7 +127,3 @@ class KIInterpreter:
         model.eval()
 
         return model
-
-__all__ = [
-    "KIInterpreter",
-]
