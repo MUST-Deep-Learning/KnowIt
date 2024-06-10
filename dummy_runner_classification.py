@@ -14,7 +14,8 @@ from knowit import KnowIt
 # CONSTRUCTING AN INSTANCE OF KNOWIT
 # ----------------------------------------------------------------------------------------------------------------------
 
-KI = KnowIt(custom_exp_dir='/path/to/my/new/experiment/directory')
+# KI = KnowIt(custom_exp_dir='/path/to/my/new/experiment/directory')
+KI = KnowIt()
 
 # ----------------------------------------------------------------------------------------------------------------------
 # TRAINING A MODEL
@@ -40,13 +41,13 @@ trainer_args = {'loss_fn': 'weighted_cross_entropy',
                 'learning_rate': 0.001,
                 'learning_rate_scheduler': {'ExponentialLR': {'gamma': 0.9}},
                 'task': 'classification'}
-KI.train_model(model_name=model_name, args={'data': data_args, 'arch': arch_args, 'trainer': trainer_args})
+KI.train_model(model_name=model_name, kwargs={'data': data_args, 'arch': arch_args, 'trainer': trainer_args})
 
 # ----------------------------------------------------------------------------------------------------------------------
 # GENERATE MODEL PREDICTIONS
 # ----------------------------------------------------------------------------------------------------------------------
 
-KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'eval'}})
+KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction_set': 'eval'}})
 
 # ----------------------------------------------------------------------------------------------------------------------
 # INTERPRET MODEL PREDICTIONS
@@ -57,7 +58,7 @@ interpret_args = {'interpretation_method': 'DeepLift',
                   'selection': 'success',
                   'size': 100}
 
-KI.interpret_model(model_name=model_name, args={'interpreter': interpret_args})
+KI.interpret_model(model_name=model_name, kwargs={'interpreter': interpret_args})
 
 
 exit(101)

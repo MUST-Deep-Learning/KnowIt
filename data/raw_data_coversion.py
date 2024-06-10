@@ -58,7 +58,7 @@ class RawDataConverter:
 
     def __init__(self, df: DataFrame, required_meta: dict,
                  nan_filler: str = None,
-                 nan_filled_components: str = None,
+                 nan_filled_components: list = None,
                  meta: dict = None):
         """
         Instantiate the RawDataConverter module with the given arguments.
@@ -68,7 +68,7 @@ class RawDataConverter:
             required_meta (dict): A dictionary specifying the required metadata for processing.
             nan_filler (str, optional): A string representing how to handle missing values
                 in the data (default is None).
-            nan_filled_components (str, optional): A string specifying which components to treat
+            nan_filled_components (list, optional): A list specifying which components to treat
                 for missing values (default is None).
             meta (dict, optional): Alternative metadata to be associated
                 with the raw data (default is None).

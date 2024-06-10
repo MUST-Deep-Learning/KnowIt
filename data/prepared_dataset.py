@@ -1,39 +1,36 @@
-__author__ = 'tiantheunissen@gmail.com'
-__description__ = 'Contains the PreparedDataset class for Knowit.'
-
 """
 ------------------
 PreparedDataset
 ------------------
 
 The ``PreparedDataset`` represents a BaseDataset that is preprocessed for model training.
-It inherits from BaseDataset. Based on the provided `name' variable, it will populate the 
-parent BaseDataset's variables. 
+It inherits from BaseDataset. Based on the provided data path, it will populate the
+parent BaseDataset's variables.
 
 --------------------
 Prediction points
 --------------------
 
-In order to define a PreparedDataset, the input-output dynamics of the model to be trained 
-must defined rather precisely. The PreparedDataset is built on the idea of 'prediction points'.
-Each time step in the BaseDataset can be regarded a prediction point (under some assumptions). 
-At every prediction point, a model is to predict a specific set of features-over-time from 
+In order to define a PreparedDataset, the input-output dynamics of the model to be trained
+must be defined rather precisely. The PreparedDataset is built on the idea of 'prediction points'.
+Each time step in the BaseDataset can be regarded a prediction point (under some assumptions).
+At every prediction point, a model is to predict a specific set of features-over-time from
 a specific other set of features-over-time. The specifics are defined as follows.
 
     -   in_components (list): A subset of the 'components' variable of the BaseDataset.
             These are the components that will be used as input to the model.
     -   out_components (list): A subset of the 'components' variable of the BaseDataset.
             These are the components that will be used as output to the model.
-    -   in_chunk (list): A list of two integers [a, b] for which a <= b. This defines the 
-            time steps (of in_components) to be used for prediction at point 
+    -   in_chunk (list): A list of two integers [a, b] for which a <= b. This defines the
+            time steps (of in_components) to be used for prediction at point
             t as [t + a, t + b].
-    -   out_chunk (list): A list of two integers [a, b] for which a <= b. This defines the 
-            time steps (of out_components) to be predicted at prediction point 
+    -   out_chunk (list): A list of two integers [a, b] for which a <= b. This defines the
+            time steps (of out_components) to be predicted at prediction point
             t as [t + a, t + b].
-            
+
 Note that this might seem cumbersome, but it allows us to easily define many different types of tasks:
-    
-    -   regression (heartrate from 11 millisecond window given three instantaneous biometrics)
+
+    -   regression (heartrate from an 11-millisecond window given three instantaneous biometrics)
             in_components = [biometric1, biometric2, biometric2]
             out_components = [heart rate]
             in_chunk = [-5, 5]
@@ -54,29 +51,29 @@ Note that this might seem cumbersome, but it allows us to easily define many dif
 Input arguments
 --------------------
 
-In addition to the dataset name and prediction point dynamics defined above, the following variables 
+In addition to the dataset path and prediction point dynamics defined above, the following variables
 should also be provided.
 
-- name (str): The name of the new dataset option.
+    - name (str): The name of the new dataset option.
     - split_portions (tuple): The approximate portions of the (train, valid, eval) splits.
         Note these portions are considered in combination with the split_method.
     - seed (int): The seed for reproducibility.
     - batch_size (int): The mini-batch size for training.
-    
+
     - shuffle_train (bool, optional): Whether the training set is shuffled after every epoch.
         Default: True
     - split_method (str, optional): The method of splitting data. See below for details.
         Default: 'chronological'
-    - limit (int, optional): The number of instances / slices / time steps to limit 
+    - limit (int, optional): The number of instances / slices / time steps to limit
         the data to. This depends on the split_method.
         Default: None = no limit.
-    - scaling_method (str, optional): What method to use for scaling the data features. 
+    - scaling_method (str, optional): What method to use for scaling the data features.
         See below for details. Default: z-norm
     - scaling_tag (str, optional): In what mode to scale the data. (in_only, full, None)
         See below for details. Default: None
-    - padding_method (str, optional): What method to pad model inputs will.
+    - padding_method (str, optional): What method to pad model inputs with.
         See below for details. Default: zero
-    - min_slice (str, optional): The minimum slice size to consider 
+    - min_slice (str, optional): The minimum slice size to consider
         during data splitting / selection. Default: None = Consider all slices
 
 
@@ -84,27 +81,27 @@ should also be provided.
 Splitting & Limiting
 -----------------------
 
-The first step in preparing the dataset is to split it into a train-, validation-, 
-and evaluation set (train, valid, eval) along with limiting it if applicable. 
-This is done with the DataSplitter module.  More details can be found there, 
+The first step in preparing the dataset is to split it into a train-, validation-,
+and evaluation set (train, valid, eval) along with limiting it if applicable.
+This is done with the DataSplitter module.  More details can be found there,
 but we summarize the options here:
-- `split_method` = 
-    - 'random': Ignore all distinction between instances and slices, 
+- `split_method` =
+    - 'random': Ignore all distinction between instances and slices,
             and split on time steps randomly.
-    - 'chronological' (default): Ignore all distinction between instances and slices, 
+    - 'chronological' (default): Ignore all distinction between instances and slices,
             and split on time steps chronologically.
-    - 'slice-random': Ignore all distinction between instances, 
+    - 'slice-random': Ignore all distinction between instances,
             and split on slices randomly.
-    - 'slice-chronological': Ignore all distinction between instances, 
+    - 'slice-chronological': Ignore all distinction between instances,
             and split on slices chronologically.
     - 'instance-random': Split on instances randomly.
     - 'instance-chronological': Split on instances chronologically.
-Note that the data is split ON the relevant level (instance, slice, or timesteps). 
-I.e. If you split on instances and there are only 3 instances, then split_portions=(0.6, 0.2, 0.2) 
+Note that the data is split ON the relevant level (instance, slice, or timesteps).
+I.e. If you split on instances and there are only 3 instances, then split_portions=(0.6, 0.2, 0.2)
 will be a wild approximation i.t.o actual time steps.
-    
-Note that the data is limited during splitting, and the data is limited by removing 
-the excess data points from the end of the data block after shuffling or ordering according to time. 
+
+Note that the data is limited during splitting, and the data is limited by removing
+the excess data points from the end of the data block after shuffling or ordering according to time.
 Also note that if the data is limited too much for a given split_portion to have a single entry,
  an error will occur confirming it.
 
@@ -113,15 +110,15 @@ Also note that if the data is limited too much for a given split_portion to have
 Scaling
 ----------
 
-After the data is split and limited, a scaler is fit to the train set data 
+After the data is split and limited, a scaler is fit to the train set data
 which will be applied to all data being extracted for model training.
-This is done with the DataScaler module. 
+This is done with the DataScaler module.
 More details can be found there, but we summarize the options here:
 - `scaling_method`
-    - 'z-norm': Features are scaled by subtracting the mean and dividing by the std.
+    - 'z-norm': Input features are scaled by subtracting the mean and dividing by the std.
     - 'zero-one': Input features are scaled linearly to be in the range (0, 1).
     - None: No scaling occurs.
-If the task is regression, then the scaling also applies to the output features.
+If the task is regression, then the scaling can also be applied to the output features.
 - `scaling_tag`
     - 'in_only': Only the input features will be scaled.
     - 'full': The in and output features will be scaled.
@@ -131,13 +128,16 @@ If the task is regression, then the scaling also applies to the output features.
 ----------
 Padding
 ----------
-At some prediction points the `in_chunk' or 'out_chunk' might exceed the corresponding 
+At some prediction points the `in_chunk' or 'out_chunk' might exceed the corresponding
 slice range. In these cases we pad the input values. The output values are never padded.
-Prediction points that do not have valid output values for an 'out_chunk' are not selected 
-during data splitting. The argument `padding_method' is the same as 'mode' in the numpy.pad 
+Prediction points that do not have valid output values for an 'out_chunk' are not selected
+during data splitting. The argument `padding_method' is the same as 'mode' in the numpy.pad
 function (https://numpy.org/doc/stable/reference/generated/numpy.pad.html).
 
 """
+
+__author__ = 'tiantheunissen@gmail.com'
+__description__ = 'Contains the PreparedDataset class for Knowit.'
 
 # external imports
 from numpy import (array, random, unique, arange,
@@ -154,9 +154,113 @@ logger = get_logger()
 
 class PreparedDataset(BaseDataset):
 
+    """
+
+            This is the PreparedDataset which represents a dataset that is preprocessed for model training.
+            It is meant to be an abstract class. It contains all the variables in BaseDataset,
+            in addition to metadata regarding data splitting, scaling, sampling, and shuffling.
+
+    """
+
     def __init__(self, **args):
 
-        """ Instantiate a PreparedDataset object with the specified configuration. """
+        """
+
+            Instantiate a PreparedDataset object with the specified configuration.
+
+            Args:
+            -----------
+            **args : dict
+                Keyword arguments specifying the configuration for the PreparedDataset. The following keys are required:
+                - data_path (str): The path to the dataset.
+                - name (str): The name of the new dataset option.
+                - in_components (list): A subset of the 'components' variable of the BaseDataset to be used as input to the model.
+                - out_components (list): A subset of the 'components' variable of the BaseDataset to be used as output to the model.
+                - in_chunk (list): A list of two integers [a, b] for which a <= b, defining the time steps of in_components for prediction at point t.
+                - out_chunk (list): A list of two integers [a, b] for which a <= b, defining the time steps of out_components for prediction at point t.
+                - split_portions (tuple): The approximate portions of the (train, valid, eval) splits.
+                - seed (int): The seed for reproducibility.
+                - batch_size (int): The mini-batch size for training.
+
+            The following keys are optional:
+                - split_method (str, optional): The method of splitting data. Default is 'chronological'.
+                - scaling_method (str, optional): The method for scaling data features. Default is 'z-norm'.
+                - scaling_tag (str, optional): The mode to scale the data (in_only, full, None). Default is None.
+                - shuffle_train (bool, optional): Whether the training set is shuffled after every epoch. Default is True.
+                - limit (int, optional): The number of instances/slices/time steps to limit the data to. Default is None.
+                - padding_method (str, optional): The method to pad model inputs with. Default is 'zero'.
+                - min_slice (int, optional): The minimum slice size to consider during data splitting/selection. Default is None.
+
+            Attributes:
+            -----------
+            components : None
+                Inherited from BaseDataset.
+            instances : None
+                Inherited from BaseDataset.
+            time_delta : None
+                Inherited from BaseDataset.
+            base_nan_filler : None
+                Inherited from BaseDataset.
+            nan_filled_components : None
+                Inherited from BaseDataset.
+            name : str
+                Name of the dataset.
+            in_components : list
+                Input components for the model.
+            out_components : list
+                Output components for the model.
+            in_chunk : list
+                Time steps of in_components for prediction.
+            out_chunk : list
+                Time steps of out_components for prediction.
+            split_portions : tuple
+                Portions of the (train, valid, eval) splits.
+            seed : int
+                Seed for reproducibility.
+            batch_size : int
+                Mini-batch size for training.
+            split_method : str
+                Method of splitting data.
+            scaling_method : str
+                Method for scaling data features.
+            scaling_tag : str
+                Mode to scale the data.
+            shuffle_train : bool
+                Whether the training set is shuffled after every epoch.
+            limit : int
+                Limit on the number of instances/slices/time steps.
+            padding_method : str
+                Method to pad model inputs.
+            min_slice : int
+                Minimum slice size to consider.
+            x_map : None
+                To be filled automatically.
+            y_map : None
+                To be filled automatically.
+            train_set_size : None
+                To be filled automatically.
+            valid_set_size : None
+                To be filled automatically.
+            eval_set_size : None
+                To be filled automatically.
+            selection : None
+                To be filled automatically.
+            x_scaler : None
+                To be filled automatically.
+            y_scaler : None
+                To be filled automatically.
+            in_shape : None
+                To be filled automatically.
+            out_shape : None
+                To be filled automatically.
+
+            Notes:
+            ------
+            - This method initializes the BaseClass variables while keeping the data in memory.
+            - Default values for optional arguments are set using `_setattr_or_default`.
+            - The `_prepare` method is called to initiate data preparation.
+
+        """
 
         # inherited from BaseDataset
         self.components = None
@@ -197,7 +301,7 @@ class PreparedDataset(BaseDataset):
         self.out_shape = None
 
         # check that all the required variables are given in the right format
-        for key, value in self.__required_prepared_meta().items():
+        for key, value in self._required_prepared_meta().items():
             if key not in args:
                 logger.error('Argument %s not provided for prepared dataset.', key)
                 exit(101)
@@ -214,19 +318,19 @@ class PreparedDataset(BaseDataset):
         super().__init__(args['data_path'], mem_light=False)
 
         # Save default optional arguments
-        self.__setattr_or_default(args, 'split_method', 'chronological')
-        self.__setattr_or_default(args, 'scaling_method', 'z-norm')
-        self.__setattr_or_default(args, 'scaling_tag', None)
-        self.__setattr_or_default(args, 'shuffle_train', True)
-        self.__setattr_or_default(args, 'limit', None)
-        self.__setattr_or_default(args, 'padding_method', 'zero')
-        self.__setattr_or_default(args, 'min_slice', None)
+        self._setattr_or_default(args, 'split_method', 'chronological')
+        self._setattr_or_default(args, 'scaling_method', 'z-norm')
+        self._setattr_or_default(args, 'scaling_tag', None)
+        self._setattr_or_default(args, 'shuffle_train', True)
+        self._setattr_or_default(args, 'limit', None)
+        self._setattr_or_default(args, 'padding_method', 'zero')
+        self._setattr_or_default(args, 'min_slice', None)
 
         # Initiate the data preparation
         random.seed(self.seed)
-        self.__prepare()
+        self._prepare()
 
-    def __setattr_or_default(self, args: dict, name: str, default: object):
+    def _setattr_or_default(self, args: dict, name: str, default: object):
         """ Set object attribute with given (if given) or given default. """
 
         if name in args:
@@ -234,7 +338,7 @@ class PreparedDataset(BaseDataset):
         else:
             setattr(self, name, default)
 
-    def __prepare(self):
+    def _prepare(self):
 
         """Prepare the dataset by splitting and scaling the data.
         Note that this is not done directly on the data. The splits are defined in the
@@ -431,7 +535,7 @@ class PreparedDataset(BaseDataset):
         return ret_vals
 
     @staticmethod
-    def __required_prepared_meta():
+    def _required_prepared_meta():
 
         """ These are the variables (and their formats) that need to be given
         when creating a new PreparedDataset object. """

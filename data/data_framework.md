@@ -1,15 +1,15 @@
 Main author = tiantheunissen@gmail.com
 
-This directory contains the scripts for managing datastructures in Knowit.
+This directory contains the scripts for managing datastructures in KnowIt.
 We call these scripts the "data framework" collectively.
 
-Generally, the data framework creates and loads custom datasets that 
-are stored in the 'datasets' subdirectory of the experiment output directory. 
-It then loads this data and prepares it for other modules in Knowit.
+Generally, the data framework creates custom datasets that 
+are stored in the 'custom_datasets' subdirectory of the experiment output directory. 
+It then loads this data and prepares it for other modules in KnowIt.
 
 **1. Modules**
 
-The data framework of Knowit consists of four classes with the following inheritance structure:
+The data framework of KnowIt consists of four classes with the following inheritance structure:
 - BaseDataset
   - PreparedDataset
     - RegressionDataset
@@ -17,7 +17,7 @@ The data framework of Knowit consists of four classes with the following inherit
 
 **2. BaseDataset**
 
-The _BaseDataset_ represents the bare minimum info Knowit requires.
+The _BaseDataset_ represents the bare minimum info KnowIt requires.
 It serves to load, clean, compile, and store raw data (with critical metadata).
 It does not carry any concept of models or training, only information related
 to the data is stored. See the top of the _base_dataset.py_ 
@@ -51,5 +51,6 @@ of the _classification_dataset.py_ script for more details.
 - RawDataConverter: Used by BaseDataset to create new datasets from a given dataframe.
 - DataSplitter: Used by PreparedDataset to split the raw data into train/valid/eval sets.
 - DataScaler: Used by PreparedDataset to scale the raw data for model training.
+
 See the corresponding scripts for details.
 
