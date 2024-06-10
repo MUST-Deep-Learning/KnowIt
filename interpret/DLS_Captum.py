@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from torch import Tensor
+    from torch.nn import Module
 
 import numpy as np
 import torch
@@ -42,35 +43,59 @@ logger = get_logger()
 class DLS(FeatureAttribution):
     """Implement the DeepLiftShap feature attribution method.
 
-    Args:
-    ----
-        model (type):           The Pytorch model architecture class.
+    Parameters
+    ----------
+    model : Module
+        The Pytorch model architecture class.
 
-        model_params (dict):    The dictionary needed to intialize model.
+    model_params : dict[str, Any]
+        The dictionary needed to initialize the model.
 
-        datamodule (type):      The Knowit datamodule for the experiment.
+    datamodule : type
+        The Knowit datamodule for the experiment.
 
-        path_to_ckpt (str):     The path to a trained model's checkpoint file.
+    path_to_ckpt : str
+        The path to a trained model's checkpoint file.
 
-        i_data (str):           The user's choice of dataset to perform feature
-                                attribution. Choices: 'train', 'valid', 'eval'.
+    i_data : str
+        The user's choice of dataset to perform feature attribution.
+        Choices: 'train', 'valid', 'eval'.
 
-        device (str):           On which hardware device to generate
-                                attributions.
+    device : str
+        On which hardware device to generate attributions.
 
-        seed (int):             The seed to  be used by Numpy for random
-                                sampling of baselines and reproducibility.
+    seed : int
+        The seed to be used by Numpy for random sampling of baselines
+        and reproducibility.
 
-        multiply_by
-        _inputs (bool):         If True, perform local attributions. If False,
-                                perform global attributions. For more inform-
-                                ation, see Captum's documentation.
+    multiply_by_inputs : bool, default=True
+        If True, perform local attributions. If False, perform global
+        attributions. For more information, see Captum's documentation.
 
+    Attributes
+    ----------
+    model : Module
+        The initialized PyTorch model loaded with weights from the checkpoint.
+
+    datamodule : type
+        The Knowit datamodule for the experiment.
+
+    device : torch.device
+        The device on which the model is run.
+
+    i_data : str
+        The user's choice of dataset to perform feature attribution.
+
+    seed : int
+        The seed used by Numpy for random sampling of baselines.
+
+    dls : DeepLiftShap
+        The DeepLiftShap instance from Captum for feature attribution.
     """
 
     def __init__(
         self,
-        model: type,
+        model: Module,
         model_params: dict[str, Any],
         datamodule: type,
         path_to_ckpt: str,
@@ -101,15 +126,15 @@ class DLS(FeatureAttribution):
 
         Randomly samples a distribution of baselines from the training data.
 
-        Args:
-        ----
-            num_baselines (int):    The total number of baselines to sample.
+        Parameters
+        ----------
+        num_baselines : int
+            The total number of baselines to sample.
 
-        Returns:
+        Returns
         -------
-            (torch.tensor):         A torch tensor of shape (num_baselines,
-                                    in_chunk, in_components).
-
+        Tensor
+            A torch tensor of shape (num_baselines, in_chunk, in_components).
         """
         logger.info("Generating baselines.")
 
@@ -145,48 +170,42 @@ class DLS(FeatureAttribution):
         Generates attribution matrices for a single prediction point or a range
         of prediction points (also referred to as explicands).
 
-        NOTE: The output stores the information from a tensor of size
+        Parameters
+        ----------
+        pred_point_id : int | tuple
+            The prediction point or range of prediction points that will be
+            used to generate attribution matrices.
 
+        num_baselines : int, default=1000
+            Specifies the size of the baseline distribution.
+
+        Returns
+        -------
+        results : dict[int | tuple[int, int], dict[str, Tensor]]
+            For a regression model with output shape
+            (out_chunk, out_components),
+            returns a dictionary as follows:
+                * Dict Key: a tuple (m, n) with m in range(out_chunk) and
+                n in range(out_components).
+                * Dict Element: a torch tensor with shape:
+                    > (prediction_points, in_chunk, in_components) if
+                    pred_point_id is a tuple.
+                    > (in_chunk, in_components) if pred_point_id is int.
+
+            For a classification model with output shape (classes,), returns a
+            dictionary as follows:
+                * Dict Key: a class value from classes.
+                * Dict Element: a torch tensor with shape:
+                    > (prediction_points, in_chunk, in_components) if
+                    pred_point_id is a tuple.
+                    > (in_chunk, in_components) if pred_point_id is int.
+
+        Notes
+        -----
+        The output stores the information from a tensor of size
         (out_chunk, out_components, prediction_points, in_chunk, in_components)
-
         inside a dictionary data structure. For time series data, this can grow
         rapidly, which may therefore obscure model interpretability.
-
-        Args:
-        ----
-            pred_point_id (int | tuple):
-                                The prediction point or range of prediction
-                                points that will be used to generate
-                                attribution matrices.
-
-            num_baselines (int):
-                                Specifies the size of the baseline
-                                distribution.
-
-        Returns:
-        -------
-            results (dict):     For a regression model with output shape
-                                (out_chunk, out_components), returns a
-                                dictionary as follows:
-                                    * Dict Key: a tuple (m, n) with m in range
-                                    (out_chunk) and n in range(out_components).
-                                    * Dict Element: a torch tensor with shape:
-                                            > (prediction_points, in_chunk,
-                                            in_components) if pred_point_id is
-                                            a tuple.
-                                            > (in_chunk, in_components) if
-                                            pred_point_id is int.
-
-                                For a classification model with output shape
-                                (classes,), returns a dictionary as follows:
-                                    * Dict Key: an class value from classes.
-                                    * Dict Element: a torch tensor with shape:
-                                            > (prediction_points, in_chunk,
-                                            in_components) if pred_point_id is
-                                            a tuple.
-                                            > (in_chunk, in_components) if
-                                            pred_point_id is int.
-
         """
         # extract explicands using ids
         input_tensor = super()._fetch_points_from_datamodule(pred_point_id)
@@ -254,7 +273,3 @@ class DLS(FeatureAttribution):
                     }
 
         return results
-
-__all__ = [
-    "DLS",
-]
