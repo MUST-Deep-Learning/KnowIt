@@ -3,18 +3,17 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to KnowIt's documentation!
-==================================
+KnowIt: Knowledge Discovery in Time Series Data
+===============================================
 
 .. toctree::
-   :hidden:
    :maxdepth: 2
    :caption: Contents:
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   markdowns/quickstart_readme
+   markdowns/datasets_readme
+   markdowns/archs_readme
+   markdowns/data_readme
+   markdowns/trainer_readme
+   markdowns/interpreter_readme
+   markdowns/env_readme
