@@ -1,9 +1,9 @@
 name: knowit_env
 channels:
-  - anaconda
   - nvidia
   - pytorch
   - conda-forge
+  - anaconda
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
@@ -112,8 +112,6 @@ dependencies:
   - networkx=3.1=py38h06a4308_0
   - nlopt=2.7.0=py38h6599729_1
   - numexpr=2.8.4=py38he184ba9_0
-  - numpy=1.24.3=py38h14f4228_0
-  - numpy-base=1.24.3=py38h31eccc5_0
   - openh264=2.1.1=h4ff587b_0
   - openjpeg=2.4.0=h3ad879b_0
   - openssl=3.0.12=h7f8727e_0
@@ -160,7 +158,6 @@ dependencies:
   - six=1.16.0=pyhd3eb1b0_1
   - smmap=4.0.0=pyhd3eb1b0_0
   - snowballstemmer=2.2.0=pyhd3eb1b0_0
-  - sphinx=5.0.2=py38h06a4308_0
   - sphinxcontrib-applehelp=1.0.2=pyhd3eb1b0_0
   - sphinxcontrib-devhelp=1.0.2=pyhd3eb1b0_0
   - sphinxcontrib-htmlhelp=2.0.0=pyhd3eb1b0_0
@@ -194,6 +191,8 @@ dependencies:
   - zlib=1.2.13=h5eee18b_0
   - zstd=1.4.9=haebb681_0
   - pip:
+      - accessible-pygments==0.0.4
+      - beautifulsoup4==4.12.3
       - cloudpickle==2.0.0
       - configspace==0.5.0
       - cython==0.29.28
@@ -204,12 +203,19 @@ dependencies:
       - heapdict==1.0.1
       - locket==1.0.0
       - msgpack==1.0.3
+      - numpy==1.22.4
       - partd==1.2.0
+      - pydata-sphinx-theme==0.14.4
       - pynisher==0.6.4
       - pyrfr==0.8.2
       - smac==1.3.1
       - sortedcontainers==2.4.0
+      - soupsieve==2.5
+      - sphinx==7.1.2
+      - sphinx-autoapi==3.1.1
+      - sphinx-rtd-theme==2.0.0
+      - sphinxcontrib-jquery==4.1
       - tblib==1.7.0
       - toolz==0.11.2
       - zict==2.2.0
-prefix: /home/tian/miniconda3/envs/knowit_env
+prefix: /home/randle/miniconda3/envs/knowit_env

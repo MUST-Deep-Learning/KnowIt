@@ -1,12 +1,26 @@
+# Users interact with KnowIt by either constructing an experiment script such as this one or importing KnowIt into their
+# own scripts and using specific functionalities in KnowIt.
+
+# This script shows an example of how to perform time series classification.
+# See dummy_runner_regression.py for a version that performs time series regression and contains more details.
+
+# ----------------------------------------------------------------------------------------------------------------------
+# IMPORTING THE KNOWIT MODULE
+# ----------------------------------------------------------------------------------------------------------------------
+
 from knowit import KnowIt
 
-KI = KnowIt(custom_exp_dir='/home/tian/postdoc_work/KnowIt_debugging/my_dummy_exp_classification')
+# ----------------------------------------------------------------------------------------------------------------------
+# CONSTRUCTING AN INSTANCE OF KNOWIT
+# ----------------------------------------------------------------------------------------------------------------------
+
+KI = KnowIt(custom_exp_dir='/path/to/my/new/experiment/directory')
 
 # ----------------------------------------------------------------------------------------------------------------------
 # TRAINING A MODEL
 # ----------------------------------------------------------------------------------------------------------------------
 
-model_name = "my_new_penguin_model2"
+model_name = "my_new_penguin_model"
 data_args = {'name': 'penguin_42_debug',
              'task': 'classification',
              'in_components': ['accX', 'accY', 'accZ'],
@@ -44,8 +58,6 @@ interpret_args = {'interpretation_method': 'DeepLift',
                   'size': 100}
 
 KI.interpret_model(model_name=model_name, args={'interpreter': interpret_args})
-
-
 
 
 exit(101)

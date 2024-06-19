@@ -5,22 +5,21 @@ PLModel
 
 The "PLModel" class is required in order to be able to use Pytorch Lightning's
 Trainer. It initializes a Pytorch model and defines the train, validation, and
-test loops as well as the optimizers and any learning rate schedulers.
+test steps as well as the optimizers and any learning rate schedulers.
 
 For more information, see Pytorch Lightning's documentation here:
 https://lightning.ai/docs/pytorch/stable/common/lightning_module.html
 
-"""  # noqa: INP001, D205, D212, D400, D415
+"""  # noqa: D400, D205
 
 from __future__ import annotations
 
 __author__ = "randlerabe@gmail.com"
 __description__ = "Constructs a Pytorch Lightning model class."
 
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 import pytorch_lightning as pl
-from torch import Tensor
 
 from helpers.fetch_torch_mods import (
     get_lr_scheduler,
@@ -28,6 +27,10 @@ from helpers.fetch_torch_mods import (
     prepare_function,
 )
 from helpers.logger import get_logger
+
+if TYPE_CHECKING:
+    from torch import Tensor
+    from torch.nn import Module
 
 logger = get_logger()
 
@@ -40,9 +43,78 @@ class PLModel(pl.LightningModule):
     also set inside this class. This is required for Pytorch Lightning's
     Trainer.
 
-    Args:
-    ----
-        pl.LightningModule (type):      A Pytorch Lightning module.
+    Parameters
+    ----------
+    loss : str, dict[str, Any]
+        The loss function to be used during training. The string must match the
+        name in Pytorch's functional library. See:
+        https://pytorch.org/docs/stable/nn.functional.html#loss-functions
+
+    learning_rate : float
+        The learning rate to be used during training.
+
+    optimizer : str | dict[str, Any]
+        The optimizer to be used during training. The string must match the
+        name in Pytorch's optimizer library. See:
+        https://pytorch.org/docs/stable/nn.functional.html#loss-functions
+
+    learning_rate_scheduler : None | str | dict[str, Any], default=None
+        The learning rate scheduler to be used during training. If not None, a
+        dictionary must be given of the form
+
+            ``{scheduler: scheduler_kwargs}``
+
+        where
+            scheduler:  A string that specifies the Pytorch scheduler to be
+            used. Must match names found here:
+            https://pytorch.org/docs/stable/optim.html#module-torch.optim.lr_scheduler
+
+            scheduler_kwargs: A dictionary of kwargs required for 'scheduler'.
+
+    performance_metrics : None | str | dict[str, Any], default=None
+        Performance metrics to be logged during training. If type=dict, then
+        the dictionary must be given of the form
+
+            ``{metric: metric_kwargs}``
+
+        where
+            metric: A string that specifies the TORCHMETRICS metric to be
+            used. Must match the functional interface names found here:
+            https://lightning.ai/docs/torchmetrics/stable/
+
+            metric_kwargs: A dictionary of kwargs required for 'metric'.
+
+    model : Module
+        An unitialized Pytorch model class defined in the user's model direc-
+        tory.
+
+    model_params : dict[str, Any]
+        The parameters needed to instantiate the above Pytorch model class.
+
+
+    Attributes
+    ----------
+    loss : str, dict[str, Any]
+        Stores the name of the loss function to be used during training and any
+        additional kwargs if needed.
+
+    lr : float
+        Stores the value of the learning rate to be used during training.
+
+    lr_scheduler : None | str | dict[str, Any]
+        Stores the name of the learning rate scheduler to be used during
+        training and any additional kwargs if needed.
+
+    optimizer : str | dict[str, Any]
+        Stores the name of the optimizer to be used during training and any
+        additional kwargs if needed.
+
+    performance_metrics : None | str | dict[str, Any], default=None
+        Stores the name of the performance metric(s) to be used during training
+        and any additional kwargs if needed.
+
+    model : Module
+        An initialized Pytorch model.
 
     """
 
@@ -51,49 +123,11 @@ class PLModel(pl.LightningModule):
         loss: str | dict[str, Any],
         learning_rate: float,
         optimizer: str | dict[str, Any],
-        learning_rate_scheduler: str | dict[str, Any],
+        learning_rate_scheduler: None | str | dict[str, Any],
         performance_metrics: None | str | dict[str, Any],
-        model: type,
+        model: Module,
         model_params: dict[str, Any],
     ) -> None:
-        """PLModel constructor.
-
-        Args:
-        ----
-            loss (str, dict):           Loss function as given in
-                                        torch.nn.functional
-
-            learning_rate (float):      The learning rate to be used during
-                                        training.
-
-            optimizer (str, dict):      The optimizer to be used for training
-                                        as given in torch.optim. Additional
-                                        kwargs can be provided as a dictionary
-                                        with the pairs key (str corresponding
-                                        to name) and a corresponding value.
-
-            learning_rate_scheduler (dict):
-                                        The choice of learning rate scheduler
-                                        as given in torch.optim.lr_scheduler.
-                                        Additional kwargs can be provided as a
-                                        dictionary with the pairs key (str
-                                        corresponding to name) and a
-                                        corresponding value.
-
-            performance_metrics (dict): The choice of performance metrics as
-                                        given in torchmetrics.functional.
-                                        Additional kwargs can be provided as a
-                                        dictionary with the pairs key (str
-                                        corresponding to name) and a
-                                        corresponding value.
-
-            model (type):               An unitialized Pytorch model class
-                                        defined in ~./archs.
-
-            model_params (dict):        The parameters needed to instantiate
-                                        the above Pytorch model class.
-
-        """
         super().__init__()
 
         self.loss = loss
@@ -283,31 +317,30 @@ class PLModel(pl.LightningModule):
                     )
                     lr_dict["scheduler"] = scheduler
                 return {"optimizer": optimizer, "lr_scheduler": lr_dict}
-            scheduler = get_lr_scheduler(self.lr_scheduler)(
-                optimizer=optimizer
-            )
+            scheduler = get_lr_scheduler(self.lr_scheduler)(optimizer=optimizer)
             return {"optimizer": optimizer, "lr_scheduler": scheduler}
         return {"optimizer": optimizer}
 
-
-    def _build_model(self, model: type, model_params: dict[str, Any]) -> type:
+    def _build_model(self, model: Module, model_params: dict[str, Any]) -> type:
         """Instantiate a Pytorch model with the given model parameters.
 
-        Args:
-        ----
-            model (type):               An unitialized Pytorch model class
-                                        defined in ~./archs.
+        Parameters
+        ----------
+        model : Module
+            An unitialized Pytorch model class defined in a user's model
+            directory.
 
-            model_params (dict):        The parameters needed to instantiate
-                                        the above Pytorch model class.
+        model_params : dict[str, Any]
+            The parameters needed to instantiate the above Pytorch model
+            class.
 
-        Returns:
+        Returns
         -------
-            (type):                     An Pytorch model object.
+        type
+            A Pytorch model object.
 
         """
         return model(**model_params)
-
 
     def _compute_loss(
         self,
@@ -315,21 +348,24 @@ class PLModel(pl.LightningModule):
         y_pred: float | Tensor,
         loss_label: str,
     ) -> tuple[float | Tensor, dict[str, float | Tensor]]:
-        """Return the loss and the updated the metrics log.
+        """Return the loss and the metrics log.
 
-        Args:
-        ----
-            y (float | Tensor):         The target value from a set of training
-                                        pairs.
+        Parameters
+        ----------
+        y : float | Tensor
+            The target value from a set of training pairs.
 
-            y_pred (float | Tensor):    The model's prediction.
+        y_pred : float | Tensor
+            The model's prediction.
 
-            loss_label (str):           Name to be used for labeling purposes.
+        loss_label : str
+            Name to be used for labeling purposes.
 
-        Returns:
+        Returns
         -------
-            (tuple):                    The computed loss between y and y_pred
-                                        and the dictionary that logs the loss.
+        tuple
+            The computed loss between y and y_pred and the dictionary that
+            logs the loss.
 
         """
         log_metrics: dict[str, float | Tensor] = {}
@@ -340,7 +376,7 @@ class PLModel(pl.LightningModule):
             self.loss_functions: dict[
                 str,
                 Callable[..., float | Tensor],
-            ] = prepare_function(user_args=self.loss)
+            ] = prepare_function(user_args=self.loss, is_loss=True)
 
         for _function in self.loss_functions:
             function = self.loss_functions[_function]
@@ -356,29 +392,30 @@ class PLModel(pl.LightningModule):
 
         return loss, log_metrics
 
-
     def _compute_performance(
         self,
         y: float | Tensor,
         y_pred: float | Tensor,
         perf_label: str,
     ) -> dict[str, float | Tensor]:
-        """Return the performance scores(s) and the updated the metrics log.
+        """Return the performance scores(s) and the metrics log.
 
-        Args:
-        ----
-            y (float | tensor):         The target value from a set of training
-                                        pairs.
+        Parameters
+        ----------
+        y : float | tensor
+            The target value from a set of training pairs.
 
-            y_pred (float | tensor):    The model's prediction.
+        y_pred : float | tensor
+            The model's prediction.
 
-            perf_label (str):           Name to be used for labeling purposes.
+        perf_label : str
+            Name to be used for labeling purposes.
 
-        Returns:
+        Returns
         -------
-            (tuple):                    The computed score between y and
-                                        y_pred and the dictionary that logs
-                                        the performance score.
+        tuple
+            The computed score between y and y_pred and the dictionary that
+            logs the performance score.
 
         """
         log_metrics: dict[str, float | Tensor] = {}
@@ -395,7 +432,10 @@ class PLModel(pl.LightningModule):
             self.perf_functions: dict[
                 str,
                 Callable[..., float | Tensor],
-            ] = prepare_function(user_args=self.performance_metrics)
+            ] = prepare_function(
+                user_args=self.performance_metrics,
+                is_loss=False,
+            )
 
         for _function in self.perf_functions:
             function = self.perf_functions[_function]

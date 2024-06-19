@@ -4,8 +4,8 @@ __author__ = "randlerabe@gmail.com"
 __description__ = "Helper functions used in KnowIt's trainer module."
 
 
-from typing import TYPE_CHECKING, Any, Callable, Iterator
 from functools import partial
+from typing import TYPE_CHECKING, Any, Callable, Iterator
 
 if TYPE_CHECKING:
     from torch import Tensor
@@ -73,9 +73,9 @@ def get_optim(
 
     Returns:
     -------
-        (type):             An uninitiliazed Pytorch optimizer. Takes as input
-                            the model parameters method, the learning rate,
-                            and an optional dictionary of kwargs.
+        (type):             An uninitialized Pytorch optimizer. Takes as input
+                            the model class' parameters method, the learning
+                            rate, and an optional dictionary of kwargs.
 
     """
     return getattr(optim, optimizer)
@@ -94,7 +94,7 @@ def get_lr_scheduler(
 
     Returns:
     -------
-        (type):             An uninitiliazed Pytorch learning rate scheduler.
+        (type):             An uninitialized Pytorch learning rate scheduler.
                             Takes as input a Pytorch optimizer object and an
                             optional dictionary of kwargs.
 
@@ -102,7 +102,7 @@ def get_lr_scheduler(
     return getattr(lr_scheduler, scheduler)
 
 
-def prepare_function(user_args: str | dict[str, Any]) -> (
+def prepare_function(user_args: str | dict[str, Any], *, is_loss: bool) -> (
         dict[str, Callable[..., float | Tensor]]
     ):
         """Set up and return a user's choice of function.
@@ -113,51 +113,31 @@ def prepare_function(user_args: str | dict[str, Any]) -> (
         Returns
         -------
             functions (dict):   A prepared function suitable for a task in the
-                                trainer submodule.
+                                trainer module.
 
         """
         function: dict[str, Callable[..., float|Tensor]] = {}
-        if isinstance(user_args, dict):
+        if is_loss and isinstance(user_args, dict):
             for _metric in user_args:
                 kwargs = user_args[_metric]
-                try:
-                    loss_f = partial(
-                        get_loss_function(_metric),
-                        **kwargs,
-                    )
-                    function[_metric] = loss_f
-                except:
-                    loss_f = partial(
-                        get_performance_metric(_metric),
-                        **kwargs,
-                    )
-                    function[_metric] = loss_f
-        else:
-            try:
+                loss_f = partial(
+                    get_loss_function(_metric),
+                    **kwargs,
+                )
+                function[_metric] = loss_f
+        elif is_loss and not isinstance(user_args, dict):
                 loss_f = get_loss_function(user_args)
                 function[user_args] = loss_f
-            except:
-                loss_f = get_performance_metric(user_args)
-                function[user_args] = loss_f
+        elif not is_loss and isinstance(user_args, dict):
+            for _metric in user_args:
+                kwargs = user_args[_metric]
+                perf_f = partial(
+                    get_performance_metric(_metric),
+                    **kwargs,
+                )
+                function[_metric] = perf_f
+        elif not is_loss and not isinstance(user_args, dict):
+                perf_f = get_performance_metric(user_args)
+                function[user_args] = perf_f
 
         return function
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

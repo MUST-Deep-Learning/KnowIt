@@ -8,7 +8,7 @@ Knowit architecture script (which, in turn, interacts with all of KnowIt's sub-
 modules).
 
 The user is able to use the KnowIt Trainer in different ways, depending on the
-training task. As such, the trainer submodule is built according to a `State'
+training task. As such, the trainer submodule is built similar to a `State'
 pattern.
 
 Thus, there are three parts to the submodule: the context class (KITrainer)
@@ -21,9 +21,9 @@ The three possible concrete states are:
     - STATE 2 (CONTINUE): Continue training an existing model from checkpoint.
     - STATE 3 (EVAL): Load a trained model and evaluate it on a dataset.
 
-KnowIt's Trainer submodule is built using Pytorch Lightning. See here:
+KnowIt's Trainer module is built using Pytorch Lightning. See here:
 https://lightning.ai/pytorch-lightning
-"""  # noqa: INP001, D205, D212, D400, D415
+"""  # noqa: D205, D400
 
 from __future__ import annotations
 
@@ -46,20 +46,27 @@ class KITrainer:
     The class interacts with the overall KnowIt architecture script. Based on
     the user's training task, it will point to the correct Trainer state.
 
-    Args:
-    ----
-        _state (None | type):   A concrete state object that corresponds to one
-                                of the possible states for the trainer.
+    Parameters
+    ----------
+    state : type[Any]
+        A concrete state that corresponds to one of the possible states for
+        the trainer.
 
-        ckpt_file (None|str):   A string that points to a Pytorch checkpoint
-                                file. Required for certain trainer states.
-                                default: None
+    base_trainer_kwargs : dict[str, Any]
+        The kwargs required in the BaseTrainer submodule.
 
-    Kwargs:
-    ------
-        **kwargs (any):         Kwargs required to initialize the BaseTrainer
-                                abstract class.
+    optional_pl_kwargs : dict[str, Any]
+        An additional kwargs that a user would like to provide Pytorch
+        Lightning's Trainer.
 
+    ckpt_file : None | str, default=None
+        A string that points to a Pytorch checkpoint file. Required for
+        certain trainer states.
+
+    Attributes
+    ----------
+    _state: None | type[Any], default=None
+        The current state that the Trainer is initialized in.
     """
 
     _state: None | type[Any] = None
@@ -97,18 +104,24 @@ class KITrainer:
                 optional_pl_kwargs=optional_pl_kwargs,
             )
 
+        if not self._state:
+            emsg = "Trainer state cannot be set to None."
+            raise TypeError(emsg)
+
         self._state.context = self
 
     def fit_and_eval(
         self,
         dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
     ) -> None:
-        """Fit model to training data and evaluate on eval data.
+        """Fit model to training data and evaluate on all dataloaders.
 
-        Args:
-        ----
-            dataloaders (tuple):    The Pytorch dataloaders that has been set
-                                    up in KnowIt's datamodule.
+        Parameters
+        ----------
+        dataloaders tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
+            The Pytorch dataloaders that has been set up in KnowIt's
+            datamodule. The triplet corresponds to the train, val, and eval
+            dataloaders.
 
         """
         if self._state is None:
@@ -124,10 +137,12 @@ class KITrainer:
     ) -> None:
         """Evaluate a trained model from checkpoint on a user's data.
 
-        Args:
-        ----
-            dataloaders (tuple):    The Pytorch dataloaders that has been set
-                                    up in KnowIt's datamodule.
+        Parameters
+        ----------
+        dataloaders tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
+            The Pytorch dataloaders that has been set up in KnowIt's
+            datamodule. The triplet corresponds to the train, val, and eval
+            dataloaders.
 
         """
         if self._state is None:

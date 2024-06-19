@@ -3,26 +3,27 @@
 FeatureAttribution
 ------------------
 
-The ``FeatureAttribution'' class is a child class which inherits from
-``KIInterpreter''.
+The "FeatureAttribution" class is a child class which inherits from
+"KIInterpreter".
 
-The function of the ``FeatureAttribution'' class is to serve the user's choice
+The function of the "FeatureAttribution" class is to serve the user's choice
 of feature attribution method (a descendant class) by extracting the necessary
 information from Knowit's datamodule and returning it in the expected form for
 Captum.
 
-"""# noqa: INP001, D205, D212, D400, D415
+"""  # noqa: D205, D400
 
-from __future__ import annotations  # required for Python versions <3.9
+from __future__ import annotations
 
 __author__ = "randlerabe@gmail.com"
 __description__ = "Contains the class for performing feature attribution."
 
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from torch import tensor
+    from torch import Tensor
+    from torch.nn import Module
 
 from helpers.logger import get_logger
 from interpret.interpreter import KIInterpreter
@@ -33,36 +34,56 @@ logger = get_logger()
 class FeatureAttribution(KIInterpreter):
     """Provide methods for Captum's feature attribution modules.
 
-    Args:
-    ----
-        model (type):           The Pytorch model architecture defined in
-                                ./archs
+    Parameters
+    ----------
+    model : Module
+        The Pytorch model architecture class.
 
-        model_params (dict):    The dictionary needed to intialize model.
+    model_params : dict
+        The dictionary needed to initialize the model.
 
-        path_to_ckpt (str):     The path to a trained model's checkpoint file.
+    path_to_ckpt : str
+        The path to a trained model's checkpoint file.
 
-        datamodule (type)       The Knowit datamodule for the experiment.
+    datamodule : type
+        The Knowit datamodule for the experiment.
 
-        i_data (str)            The user's choice of dataset to perform feature
-                                attribution. Choices: 'train', 'valid', 'eval'.
+    i_data : str
+        The user's choice of dataset to perform feature attribution.
+        Choices: 'train', 'valid', 'eval'.
 
+    device : str
+        The hardware device to be used for feature extraction (either cpu or
+        gpu).
+
+    Attributes
+    ----------
+    model : Module
+        The initialized PyTorch model loaded with weights from the checkpoint.
+
+    datamodule : type
+        The Knowit datamodule for the experiment.
+
+    device : torch.device
+        The device on which the model is run.
+
+    i_data : str
+        The user's choice of dataset to perform feature attribution.
     """
 
     def __init__(
         self,
-        model: type,
-        model_params: dict,
+        model: Module,
+        model_params: dict[str, Any],
         path_to_ckpt: str,
-        datamodule: object,
+        datamodule: type,
         i_data: str,
         device: str,
     ) -> None:
-
         super().__init__(
             model=model,
             model_params=model_params,
-            path_to_checkpoint=path_to_ckpt,
+            path_to_ckpt=path_to_ckpt,
             datamodule=datamodule,
             device=device,
         )
@@ -70,26 +91,37 @@ class FeatureAttribution(KIInterpreter):
         self.i_data = i_data
 
     def _fetch_points_from_datamodule(
-        self, point_ids: int | tuple, *, is_baseline: bool = False,
-    ) -> tensor:
-        """Return the corresponding data points from Knowit's Datamodule.
+        self,
+        point_ids: int | list[int] | tuple[int, int],
+        *,
+        is_baseline: bool = False,
+    ) -> Tensor:
+        """Fetch data points from the datamodule based on provided point IDs.
 
-        Args:
-        ----
-            point_ids (Union[int, tuple]):      A single prediction point or a
-                                                range specified by a tuple.
+        Parameters
+        ----------
+        point_ids : int | list[int] | tuple[int, int]
+            The IDs of the data points to fetch. Can be a single integer, a
+            list of integers, or a tuple specifying a range (start, end).
+        is_baseline : bool, default=False
+            If True, fetches baseline points from the training set.
 
-            is_baseline (bool):                 A flag to determine if user is
-                                                sampling points for generating
-                                                baselines.
-
-        Returns:
+        Returns
         -------
-            tensor (tensor):                    A Pytorch tensor of shape
-                                                (number_of_points_ids,
-                                                in_chunk,
-                                                in_components).
+        Tensor
+            A tensor containing the data points corresponding to the provided
+            IDs.
 
+        Raises
+        ------
+        ValueError
+            If the provided point IDs are invalid or out of range.
+
+        Notes
+        -----
+        If `is_baseline` is True, the method fetches data points from the
+        training set. Otherwise, it fetches data points from the dataset
+        specified by `self.i_data`.
         """
         if is_baseline:
             data_loader = self.datamodule.get_dataloader(
