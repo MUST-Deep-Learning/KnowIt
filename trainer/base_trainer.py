@@ -89,8 +89,7 @@ class BaseTrainer(ABC):
 
     optim : str | dict
         The optimizer to be used during training. The string must
-        match the name in Pytorch's optimizer library. See:
-        https://pytorch.org/docs/stable/optim.html#algorithms
+        match the name in Pytorch's `optimizer library <https://pytorch.org/docs/stable/optim.html#algorithms>`_.
 
     max_epochs : int
         The number of training iterations, where a single iteration is
