@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from torch.nn import Module
 
 import torch
+from torch import nn
 
 from helpers.logger import get_logger
 
@@ -78,9 +79,16 @@ class KIInterpreter:
             model_params=model_params,
             ckpt_path=path_to_ckpt,
         )
-        self.datamodule = datamodule
+        mods = [str(m) for m in self.model.modules() if not isinstance(m, nn.Sequential)]
+        for m in mods:
+            if "lstm" in m.lower() or "rnn" in m.lower():
+                torch.backends.cudnn.enabled = False
+                break
+
+
         self.device = torch.device("cuda" if device == "gpu" else "cpu")
         self.model.to(self.device)
+        self.datamodule = datamodule
 
     def _load_model_from_ckpt(
         self,
