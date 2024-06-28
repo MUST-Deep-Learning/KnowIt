@@ -82,7 +82,7 @@ class KIInterpreter:
         mods = [str(m) for m in self.model.modules() if not isinstance(m, nn.Sequential)]
         for m in mods:
             if "lstm" in m.lower() or "rnn" in m.lower():
-                torch.backends.cudnn.enabled = False
+                torch.backends.cudnn.enabled = False # see Captum's FAQ
                 break
 
 
