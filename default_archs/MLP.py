@@ -8,7 +8,7 @@ well-known Pytorch library.
 
 The example shows one way of constructing the MLP which can either be shallow
 or deep. The MLP is capable of handling regression or classification tasks.
-"""  # noqa: INP001, D415, D400, D212, D205
+"""  # noqa: INP001, D400, D205
 
 from __future__ import annotations
 
@@ -139,19 +139,14 @@ class Model(nn.Module):
             raise NameError(emsg)
         self.task_name = task_name
 
-        if self.task_name == "regression":
-            output_layer = nn.Linear(
-                self.hidden_width,
-                self.model_out_dim,
-                bias=False,
-            )
-            layers.append(output_layer)
+        output_layer = nn.Linear(
+            self.hidden_width,
+            self.model_out_dim,
+            bias=False,
+        )
+        layers.append(output_layer)
+
         if self.task_name == "classification":
-            output_layer = nn.Linear(
-                self.hidden_width,
-                self.model_out_dim,
-                bias=False,
-            )
             if self.output_activation == "Softmax":
                 output_layer_activation = getattr(nn,
                                                   self.output_activation)(dim=1)
@@ -159,7 +154,6 @@ class Model(nn.Module):
                 output_layer_activation = nn.Identity()
             else:
                 output_layer_activation = getattr(nn, self.output_activation)()
-            layers.append(output_layer)
             layers.append(output_layer_activation)
 
         # Merge layers together in Sequential
@@ -188,7 +182,7 @@ class Model(nn.Module):
             x (Tensor):     An input tensor of shape
                             (batch_size, in_chunk * in_components)
 
-        Returns:
+        Returns
         -------
             (Tensor):       Model output of shape
                             (batch_size, out_chunk, out_components)
@@ -211,7 +205,7 @@ class Model(nn.Module):
             x (Tensor):     An input tensor of shape
                             (batch_size, in_chunk * in_components)
 
-        Returns:
+        Returns
         -------
             (Tensor):       Model output of shape
                             (batch_size, num_classes)
@@ -228,7 +222,7 @@ class Model(nn.Module):
             x (Tensor):     An input tensor of shape
                             (batch_size, in_chunk, in_components).
 
-        Returns:
+        Returns
         -------
             (Tensor):       Model output of shape
                             (batch_size, out_chunk, out_components) if regress-
