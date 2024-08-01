@@ -111,8 +111,8 @@ KI.train_model(model_name=model_name, kwargs={'data': data_args, 'arch': arch_ar
 # To generate predictions for a trained model you need to provide a model name and a set of arguments.
 # - 'predictor' arguments relate to what prediction points to predict on.
 
-# KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'train'}})
-# KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'valid'}})
+# KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction_set': 'train'}})
+# KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction_set': 'valid'}})
 KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction_set': 'eval'}})
 
 # ----------------------------------------------------------------------------------------------------------------------

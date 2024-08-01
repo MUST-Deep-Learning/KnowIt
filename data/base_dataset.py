@@ -3,7 +3,7 @@
 BaseDataset
 -----------
 
-The "BaseDataset" represents a dataset that only contains raw features over time in a known format.
+The ``BaseDataset`` represents a dataset that only contains raw features over time in a known format.
 These features do not contain duplicates, and are ordered equidistantly according to a 
 specific time delta. They are seperated by "instance" and by "slice". See below.
 
@@ -24,12 +24,12 @@ An instance, therefore, consists of a variable number of slices.
 
 Along with the required metadata, the data is stored as a dictionary (i.e. "the_data")
 where each key-value pair represents an instance, with the key being the instance name
-(as defined in the BaseDataset.instances variable) and the value being a list of slices.
+(as defined in the ``BaseDataset.instances`` variable) and the value being a list of slices.
 Each slice is a dictionary of two key-value pairs.
     - 't' = array: (n, )
     - 'd' = array: (n, c)
 where n is the number of time steps in the current slice and c is the number of components 
-(as define and ordered in the BaseDataset.components). The 't' array contains the time steps 
+(as define and ordered in the ``BaseDataset.components``). The 't' array contains the time steps
 in datetime format, and the 'd' array contains the corresponding feature values.
 
 ---------------
@@ -38,14 +38,14 @@ Dataset options
 
 BaseDataset is instantiated with a path (i.e. data_path) to an existing dictionary pickled on disk.
 This path can be to the custom experiment output directory's "custom_datasets" subdirectory,
-or to the default KnowIt.default_archs directory.
+or to the default ``KnowIt.default_archs`` directory.
 
-To construct such a dictionary the two class-methods BaseDataset.from_path and BaseDataset.from_df,
+To construct such a dictionary the two class-methods ``BaseDataset.from_path`` and ``BaseDataset.from_df``,
 of which the former is a wrapper for the latter, can be used to import external data (in Dataframe format)
 and package it into the expected structure.
 
-A dataframe needs to be provided that has the minimum required metadata (see BaseDataset._required_base_meta)
-in its "attrs" attribute. The BaseDataset module uses the RawDataConverter module to convert this dataframe
+A dataframe needs to be provided that has the minimum required metadata (see ``BaseDataset._required_base_meta``)
+in its "attrs" attribute. The BaseDataset module uses the ``RawDataConverter`` module to convert this dataframe
 into a known structure. See that module for more details.
 """
 from __future__ import annotations
@@ -142,7 +142,7 @@ class BaseDataset:
 
         Returns
         -------
-        dict
+        dict[any, list]
             The `the_data` structure, either from memory or loaded from disk.
 
         Notes
@@ -213,9 +213,9 @@ class BaseDataset:
         BaseDataset
             An instance of the BaseDataset class, initialized with the processed data and specified parameters.
 
-        Notes:
-        ------
-            See KnowIt.raw_data_conversion for details on base_nan_filler.
+        Notes
+        -----
+        See KnowIt.raw_data_conversion for details on base_nan_filler.
         """
         args = RawDataConverter(df, cls._required_base_meta(),
                                 base_nan_filler, nan_filled_components).get_new_data()

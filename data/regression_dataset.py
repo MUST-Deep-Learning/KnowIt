@@ -1,43 +1,83 @@
-__author__ = 'tiantheunissen@gmail.com'
-__description__ = 'Contains the RegressionDataset class for Knowit.'
-
 """
--------------------
+-----------------
 RegressionDataset
--------------------
-This module represents a PreparedDataset that has the ability to create a Pytorch 
-dataloader ready for regression tasks. It inherits from PreparedDataset.
+-----------------
+This module represents a ``PreparedDataset`` that has the ability to create a Pytorch
+dataloader ready for regression tasks. It inherits from ``PreparedDataset``.
 
-The only difference is the addition of the RegressionDataset.get_dataloader function.
-This function extracts the corresponding dataset split, casts it as a CustomRegressionDataset 
-object, and creates a Pytorch DataLoader from it.
+Additionally, the ``RegressionDataset.get_dataloader`` function
+extracts the corresponding dataset split, casts it as a ``CustomRegressionDataset``
+object, and returns a Pytorch DataLoader from it.
 
-
--------------------------
+-----------------------
 CustomRegressionDataset
--------------------------
+-----------------------
 
 This is a custom dataset that inherits from the Pytorch Dataset class.
 It receives the full input (x) and output (y) arrays as arguments.
 When an item is sampled with __getitem__, the relevant sample is taken from x and y,
 each value is cast as a Tensor with float type, and the unique sample index is also returned.
-
 """
+from __future__ import annotations
+__author__ = 'tiantheunissen@gmail.com'
+__description__ = 'Contains the RegressionDataset class for Knowit.'
 
 # external imports
 from torch.utils.data import Dataset, DataLoader
-from torch import is_tensor, from_numpy
+from torch import is_tensor, from_numpy, Tensor
+from numpy import array
 
 # internal imports
 from data.prepared_dataset import PreparedDataset
 
 
 class RegressionDataset(PreparedDataset):
+    """The RegressionDataset class inherits from the PreparedDataset class and is used to perform regression tasks.
 
-    def __init__(self, **args):
-        super().__init__(**args)
+    This is the RegressionDataset class that is used to create a regression
+    specific KnowIt dataset. It contains all the attributes and functions in PreparedDataset,
+    in addition to methods that can create a Pytorch dataloader ready for training
+    a regression model along with the following.
 
-    def get_dataloader(self, set_tag, analysis: bool = False):
+    Parameters
+    ----------
+    **kwargs : dict[str, any]
+        Keyword arguments that are passed to the PreparedDataset constructor.
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def get_dataloader(self, set_tag, analysis: bool = False) -> DataLoader:
+        """Creates and returns a PyTorch DataLoader for a specified dataset split.
+
+        This method generates a DataLoader for a given dataset split (e.g., train, valid, or eval).
+        It uses the `CustomRegressionDataset` class to create the dataset and then initializes
+        a DataLoader with the specified parameters.
+
+        Parameters
+        ----------
+        set_tag : str
+            A string indicating the dataset split to load ('train', 'valid', 'eval').
+        analysis : bool, default = False
+            A flag indicating whether the dataloader is being used for analysis purposes. If set to True,
+            the `drop_last` parameter of the DataLoader will be set to False.
+
+        Returns
+        -------
+        DataLoader
+            A PyTorch DataLoader for the specified dataset split.
+
+        Notes
+        -----
+        The method uses the following steps.
+            1. The method calls `extract_dataset` with the `set_tag` to get the dataset parameters.
+            2. It creates a `CustomRegressionDataset` instance using the extracted parameters.
+            3. Depending on the `set_tag` and `analysis` flag, it sets the `drop_last` parameter:
+               - If `set_tag` is 'train' and `analysis` is False,
+               `drop_last` is set to True to drop the last incomplete batch. Otherwise, `drop_last` is set to False.
+            4. It initializes a DataLoader with the specified batch size, shuffle option, and `drop_last` parameter.
+            5. The method returns the created DataLoader.
+        """
         dataset = CustomRegressionDataset(**self.extract_dataset(set_tag))
 
         drop_last = False
@@ -50,16 +90,58 @@ class RegressionDataset(PreparedDataset):
 
 
 class CustomRegressionDataset(Dataset):
-    """Dataset format for torch."""
+    """Custom dataset for PyTorch for regression tasks.
 
-    def __init__(self, x, y):
+    This class creates a dataset format suitable for regression tasks, which can be used with
+    PyTorch DataLoader. It provides the necessary methods to get the length and individual samples of the dataset.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        The input features of the dataset with shape (num_samples, num_features, ...).
+    y : numpy.ndarray
+        The class labels of the dataset with shape (num_samples, 1).
+
+    Attributes
+    ----------
+    x : array
+        The input features of the dataset.
+    y : array
+        The integer class labels of the dataset, transformed from the original class labels.
+    """
+    x = None
+    y = None
+
+    def __init__(self, x: array, y: array) -> None:
         self.x = x
         self.y = y
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return the number of samples in the dataset.
+
+        Returns:
+        --------
+        int
+            The number of samples in the dataset.
+        """
         return self.y.shape[0]
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int | Tensor) -> dict:
+        """Return a single sample from the dataset at the given index.
+
+        Parameters
+        ----------
+        idx : int or Tensor
+            The index of the sample to retrieve.
+
+        Returns
+        -------
+        dict[str, any]
+            A dictionary containing
+                -   'x' (Tensor): the input features,
+                -   'y' (Tensor): the one-hot encoded labels,
+                -   's_id' (int): the sample ID 's_id'.
+        """
         if is_tensor(idx):
             idx = idx.tolist()
         input_x = self.x[idx, :, :]

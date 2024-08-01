@@ -2,16 +2,17 @@
 ---------------------
 ClassificationDataset
 ---------------------
-This module represents a PreparedDataset that has the ability to create a Pytorch
-dataloader ready for classification tasks. It inherits from PreparedDataset.
+This module represents a ``PreparedDataset`` that has the ability to create a Pytorch
+dataloader ready for classification tasks. It inherits from ``PreparedDataset``.
 
-In addition to all the functionality of PreparedDataset, it also determines the class set
+In addition to all the functionality of ``PreparedDataset``, it also determines the class set
 in the data. It assumes that each unique state of the output components is a single class.
-It also changes the PreparedDataset.out_shape to (1, c), where c is the number of classes.
+It also changes the ``PreparedDataset.out_shape`` to (1, c), where c is the number of classes.
+It also changes ``PreparedDataset.scaling_tag`` to "in_only" if "full" is selected.
 
-Additionally, the ClassificationDataset.get_dataloader function
-extracts the corresponding dataset split, casts it as a CustomClassificationDataset
-object, and creates a Pytorch DataLoader from it.
+Additionally, the ``ClassificationDataset.get_dataloader`` function
+extracts the corresponding dataset split, casts it as a ``CustomClassificationDataset``
+object, and returns a Pytorch DataLoader from it.
 
 ---------------------------
 CustomClassificationDataset
@@ -23,13 +24,14 @@ It casts the y-values into integer classes according to the class set.
 When an item is sampled with __getitem__, the relevant sample is taken from x and y,
 x is cast as a Tensor with float type, and the unique sample index is also returned.
 """
+from __future__ import annotations
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the ClassificationDataset class for KnowIt.'
 
 # external imports
-from numpy import isnan, unique, zeros, argwhere
+from numpy import isnan, unique, zeros, argwhere, array
 from torch.utils.data import Dataset, DataLoader
-from torch import is_tensor, from_numpy
+from torch import is_tensor, from_numpy, Tensor
 from torch import zeros as zeros_tensor
 
 # internal imports
@@ -39,51 +41,46 @@ logger = get_logger()
 
 
 class ClassificationDataset(PreparedDataset):
-    """The ClassificationDataset class inherits from the PreparedDataset class.
+    """The ClassificationDataset class inherits from the PreparedDataset class
+    and is used to perform classification tasks.
 
     This is the ClassificationDataset class that is used to create a classification
-    specific Knowit dataset. It contains all the attributes and functions in PreparedDataset,
+    specific KnowIt dataset. It contains all the attributes and functions in PreparedDataset,
     in addition to methods that can create a Pytorch dataloader ready for training
     a classification model along with the following.
 
+    Parameters
+    ----------
+    **kwargs : dict[str, any]
+        Keyword arguments that are passed to the PreparedDataset constructor.
+
     Attributes
     ----------
-        class_set : dict
+        class_set : dict[any, int]
             A dictionary that has class labels as keys and corresponding unique integers as values.
-        class_counts : dict
-            A dictionary that has class labels as keys and corresponding class counts as values.
+        class_counts : dict[any, int]
+            A dictionary that has class labels as keys and corresponding
+            class counts (number of prediction points) as values.
+
+    Raises
+    ------
+    SystemExit
+        If the `out_chunk` attribute does not have matching start and end values, the
+        program will log an error message and exit with status code 101.
     """
     class_set = {}
     class_counts = {}
 
     def __init__(self, **kwargs) -> None:
-        """Instantiates a ClassificationDataset object given the required arguments.
-
-        This constructor initializes the ClassificationDataset by invoking the parent class
-        PreparedDataset's constructor with the provided arguments. It then determines the number
-        of classes in the dataset and modifies the out_shape variable accordingly.
-        It also validates that the `out_chunk` attribute has the same start and end values,
-        which is currently required for classification tasks in Knowit.
-
-        Parameters
-        ----------
-        **kwargs : dict
-            Keyword arguments that are passed to the PreparedDataset constructor.
-
-        Raises
-        ------
-        SystemExit
-            If the `out_chunk` attribute does not have matching start and end values, the
-            program will log an error message and exit with status code 101.
-        """
-        super().__init__(**kwargs)
-
-        if self.out_chunk[0] != self.out_chunk[1]:
+        if kwargs['out_chunk'][0] != kwargs['out_chunk'][1]:
             logger.error('Currently, KnowIt can only perform classification at one specific time step at a time. '
                          'Please change the out_chunk %s argument to reflect this. Both values must match.',
-                         str(self.out_chunk))
+                         str(kwargs['out_chunk']))
             exit(101)
-
+        if kwargs['scaling_tag'] == 'full':
+            logger.warning('scaling_tag cannot be full for classification tasks. Changing to scaling_tag=in_only.')
+            kwargs['scaling_tag'] = 'in_only'
+        super().__init__(**kwargs)
         self._get_classes()
         self.out_shape = [1, len(self.class_set)]
 
@@ -94,8 +91,9 @@ class ClassificationDataset(PreparedDataset):
         and counts the occurrences of each class. The unique classes and their counts are stored
         in the `class_set` and `class_counts` attributes, respectively.
 
-        Process
-        -------
+        Notes
+        -----
+        The method uses the following steps.
             - The method retrieves the dataset using `get_the_data()`.
             - For each instance in `self.instances`, it iterates over the relevant slices.
             - It identifies the unique combinations of entries in the output components.
@@ -147,18 +145,18 @@ class ClassificationDataset(PreparedDataset):
             the `drop_last` parameter of the DataLoader will be set to False.
 
         Returns
-        --------
+        -------
         DataLoader
             A PyTorch DataLoader for the specified dataset split.
 
-        Process
-        --------
+        Notes
+        -----
+        The method uses the following steps.
             1. The method calls `extract_dataset` with the `set_tag` to get the dataset parameters.
             2. It creates a `CustomClassificationDataset` instance using the class set and the extracted parameters.
             3. Depending on the `set_tag` and `analysis` flag, it sets the `drop_last` parameter:
-               - If `set_tag` is 'train' and `analysis` is False, `drop_last` is set to True
-                    to drop the last incomplete batch.
-               - Otherwise, `drop_last` is set to False.
+               - If `set_tag` is 'train' and `analysis` is False,
+               `drop_last` is set to True to drop the last incomplete batch. Otherwise, `drop_last` is set to False.
             4. It initializes a DataLoader with the specified batch size, shuffle option, and `drop_last` parameter.
             5. The method returns the created DataLoader.
         """
@@ -202,7 +200,7 @@ class CustomClassificationDataset(Dataset):
     y = None
     c = None
 
-    def __init__(self, c, x, y) -> None:
+    def __init__(self, c: dict, x: array, y: array) -> None:
         self.x = x
         self.c = c
         # Initialize the labels array with -1 indicating an invalid state
@@ -220,38 +218,32 @@ class CustomClassificationDataset(Dataset):
             got_class = (y.squeeze(axis=1) == k).all(axis=1)
             self.y[got_class.squeeze()] = v
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return the number of samples in the dataset.
 
+        Returns:
+        --------
+        int
+            The number of samples in the dataset.
         """
-            Return the number of samples in the dataset.
-
-            Returns:
-            --------
-            int
-                The number of samples in the dataset.
-        """
-
         return self.y.shape[0]
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int | Tensor) -> dict:
+        """Return a single sample from the dataset at the given index.
 
+        Parameters
+        ----------
+        idx : int or Tensor
+            The index of the sample to retrieve.
+
+        Returns
+        -------
+        dict[str, any]
+            A dictionary containing
+                -   'x' (Tensor): the input features,
+                -   'y' (Tensor): the one-hot encoded labels,
+                -   's_id' (int): the sample ID 's_id'.
         """
-
-            Return a single sample from the dataset at the given index.
-
-            Args:
-            -----
-            idx : int or Tensor
-                The index of the sample to retrieve.
-
-            Returns:
-            --------
-            dict
-                A dictionary containing the input features 'x', the one-hot encoded labels 'y', and
-                the sample ID 's_id'.
-
-        """
-
         if is_tensor(idx):
             idx = idx.tolist()
         input_x = self.x[idx, :, :]

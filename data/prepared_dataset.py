@@ -3,97 +3,63 @@
 PreparedDataset
 ------------------
 
-The ``PreparedDataset`` represents a BaseDataset that is preprocessed for model training.
-It inherits from BaseDataset. Based on the provided data path, it will populate the
-parent BaseDataset's variables.
+The ``PreparedDataset`` represents a ``BaseDataset`` that is preprocessed for model training.
+It inherits from ``BaseDataset``. Based on the provided data path, it will populate the
+parent's variables.
 
---------------------
+-----------------
 Prediction points
---------------------
+-----------------
 
 In order to define a PreparedDataset, the input-output dynamics of the model to be trained
-must be defined rather precisely. The PreparedDataset is built on the idea of 'prediction points'.
-Each time step in the BaseDataset can be regarded a prediction point (under some assumptions).
+must be defined rather precisely. The ``PreparedDataset`` is built on the idea of 'prediction points'.
+Each time step in the ``BaseDataset`` can be regarded a prediction point (under some assumptions).
 At every prediction point, a model is to predict a specific set of features-over-time from
 a specific other set of features-over-time. The specifics are defined as follows.
 
-    -   in_components (list): A subset of the 'components' variable of the BaseDataset.
-            These are the components that will be used as input to the model.
-    -   out_components (list): A subset of the 'components' variable of the BaseDataset.
-            These are the components that will be used as output to the model.
-    -   in_chunk (list): A list of two integers [a, b] for which a <= b. This defines the
-            time steps (of in_components) to be used for prediction at point
-            t as [t + a, t + b].
-    -   out_chunk (list): A list of two integers [a, b] for which a <= b. This defines the
-            time steps (of out_components) to be predicted at prediction point
-            t as [t + a, t + b].
+    in_components : list
+        A subset of ``BaseDataset.components`` representing the components that will be used as input to the model.
+    out_components : list
+        A subset of ``BaseDataset.components`` representing the components that will be used as output to the model.
+    in_chunk : list
+        A list of two integers [a, b] for which a <= b defining the time steps (of in_components)
+        to be used for prediction at point t as [t + a, t + b].
+    out_chunk : list
+        A list of two integers [a, b] for which a <= b defining the time steps (of out_components)
+        to be predicted at prediction point t as [t + a, t + b].
 
-Note that this might seem cumbersome, but it allows us to easily define many different types of tasks:
+Note that this might seem cumbersome, but it allows us to easily define several different types of tasks.
+For example:
 
-    -   regression (heartrate from an 11-millisecond window given three instantaneous biometrics)
-            in_components = [biometric1, biometric2, biometric2]
-            out_components = [heart rate]
-            in_chunk = [-5, 5]
-            out_chunk = [0, 0]
-    - autoregressive univariate forcasting (predict a stock's value in 5 days given last 20 days)
-            in_components = [stock,]
-            out_components = [stock,]
-            in_chunk = [-20, 0]
-            out_chunk = [5, 5]
-    - time series classification (detect a whale call given an audio recording of 5 seconds)
-            in_components = [sound,]
-            out_components = [positive_call,]
-            in_chunk = [-2, 2]
-            out_chunk = [0, 0]
+- regression (heartrate from an 11-millisecond window given three instantaneous biometrics)
+    - in_components = [biometric1, biometric2, biometric2]
+    - out_components = [heart rate]
+    - in_chunk = [-5, 5]
+    - out_chunk = [0, 0]
 
+- autoregressive univariate forcasting (predict a stock's value in 5 days given last 20 days)
+    - in_components = [stock,]
+    - out_components = [stock,]
+    - in_chunk = [-20, 0]
+    - out_chunk = [5, 5]
+- time series classification (detect a whale call given an audio recording of 5 seconds)
+    - in_components = [sound,]
+    - out_components = [positive_call,]
+    - in_chunk = [-2, 2]
+    - out_chunk = [0, 0]
 
 --------------------
-Input arguments
---------------------
-
-In addition to the dataset path and prediction point dynamics defined above, the following variables
-should also be provided.
-
-    - name (str): The name of the new dataset option.
-    - split_portions (tuple): The approximate portions of the (train, valid, eval) splits.
-        Note these portions are considered in combination with the split_method.
-    - seed (int): The seed for reproducibility.
-    - batch_size (int): The mini-batch size for training.
-
-    - shuffle_train (bool, optional): Whether the training set is shuffled after every epoch.
-        Default: True
-    - split_method (str, optional): The method of splitting data. See below for details.
-        Default: 'chronological'
-    - limit (int, optional): The number of instances / slices / time steps to limit
-        the data to. This depends on the split_method.
-        Default: None = no limit.
-    - scaling_method (str, optional): What method to use for scaling the data features.
-        See below for details. Default: z-norm
-    - scaling_tag (str, optional): In what mode to scale the data. (in_only, full, None)
-        See below for details. Default: None
-    - padding_method (str, optional): What method to pad model inputs with.
-        See below for details. Default: zero
-    - min_slice (str, optional): The minimum slice size to consider
-        during data splitting / selection. Default: None = Consider all slices
-
-
------------------------
 Splitting & Limiting
------------------------
+--------------------
 
 The first step in preparing the dataset is to split it into a train-, validation-,
-and evaluation set (train, valid, eval) along with limiting it if applicable.
-This is done with the DataSplitter module.  More details can be found there,
-but we summarize the options here:
-- `split_method` =
-    - 'random': Ignore all distinction between instances and slices,
-            and split on time steps randomly.
-    - 'chronological' (default): Ignore all distinction between instances and slices,
-            and split on time steps chronologically.
-    - 'slice-random': Ignore all distinction between instances,
-            and split on slices randomly.
-    - 'slice-chronological': Ignore all distinction between instances,
-            and split on slices chronologically.
+and evaluation set along with limiting it if applicable. This is done with the ``DataSplitter`` module.
+The ``split_method`` keyword argument defines the way the dataset is split.
+More details can be found in ``DataSplitter``, but we summarize the options here:
+    - 'random': Ignore all distinction between instances and slices, and split on time steps randomly.
+    - 'chronological' (default): Ignore all distinction between instances and slices, and split on time steps chronologically.
+    - 'slice-random': Ignore all distinction between instances, and split on slices randomly.
+    - 'slice-chronological': Ignore all distinction between instances, and split on slices chronologically.
     - 'instance-random': Split on instances randomly.
     - 'instance-chronological': Split on instances chronologically.
 Note that the data is split ON the relevant level (instance, slice, or timesteps).
@@ -102,9 +68,8 @@ will be a wild approximation i.t.o actual time steps.
 
 Note that the data is limited during splitting, and the data is limited by removing
 the excess data points from the end of the data block after shuffling or ordering according to time.
-Also note that if the data is limited too much for a given split_portion to have a single entry,
- an error will occur confirming it.
-
+Also note that if the data is limited too much for a given ``split_portion`` to have a single entry,
+an error will occur confirming it.
 
 ----------
 Scaling
@@ -112,28 +77,25 @@ Scaling
 
 After the data is split and limited, a scaler is fit to the train set data
 which will be applied to all data being extracted for model training.
-This is done with the DataScaler module.
-More details can be found there, but we summarize the options here:
-- `scaling_method`
-    - 'z-norm': Input features are scaled by subtracting the mean and dividing by the std.
-    - 'zero-one': Input features are scaled linearly to be in the range (0, 1).
-    - None: No scaling occurs.
-If the task is regression, then the scaling can also be applied to the output features.
-- `scaling_tag`
-    - 'in_only': Only the input features will be scaled.
-    - 'full': The in and output features will be scaled.
-    - None: No features will be scaled.
+This is done with the ``DataScaler`` module and the corresponding ``scaling_method`` and ``scaling_tag``,
+keyword arguments. More details can be found there, but we summarize the options here:
+    - scaling_method='z-norm': Features are scaled by subtracting the mean and dividing by the std.
+    - scaling_method='zero-one': Features are scaled linearly to be in the range (0, 1).
+    - scaling_method=None: No scaling occurs.
+    - scaling_tag='in_only': Only the input features will be scaled.
+    - scaling_tag='full': The input and output features will be scaled.
+    - scaling_tag=None: No features will be scaled.
+Note that scaling of output components is not permitted if performing a classification task. scaling_tag='full' will be
+automatically changed to scaling_tag='in_only' for classification tasks.
 
-
-----------
+-------
 Padding
-----------
-At some prediction points the `in_chunk' or 'out_chunk' might exceed the corresponding
+-------
+At some prediction points the ``in_chunk`` might exceed the corresponding
 slice range. In these cases we pad the input values. The output values are never padded.
-Prediction points that do not have valid output values for an 'out_chunk' are not selected
-during data splitting. The argument `padding_method' is the same as 'mode' in the numpy.pad
+Prediction points that do not have valid output values for an ``out_chunk`` are not selected
+during data splitting. The argument ``padding_method`` is the same as ``mode`` in the numpy.pad
 function (https://numpy.org/doc/stable/reference/generated/numpy.pad.html).
-
 """
 
 __author__ = 'tiantheunissen@gmail.com'
@@ -153,198 +115,236 @@ logger = get_logger()
 
 
 class PreparedDataset(BaseDataset):
+    """This is the PreparedDataset which represents a dataset that is preprocessed for model training.
+    It is meant to be an abstract class. It contains all the variables in BaseDataset,
+    in addition to metadata regarding data splitting, scaling, sampling, and shuffling.
 
+    Parameters
+    ----------
+    data_path : str
+        The path to the dataset on disk.
+    in_components : list, shape=[num_in_components,]
+        A subset of the 'components' variable of the BaseDataset to be used as input to the model.
+    out_components : list, shape=[num_in_components,]
+        A subset of the 'components' variable of the BaseDataset to be used as output to the model.
+    in_chunk : list, shape=[2,]
+        A list of two integers [a, b] for which a <= b,
+        defining the time steps of in_components for each prediction point.
+    out_chunk : list, shape=[2,]
+        A list of two integers [a, b] for which a <= b,
+        defining the time steps of out_components for each prediction point.
+    split_portions : tuple, shape=[3,]
+        The approximate portions of the (train, valid, eval) splits. Needs to add up to 1.
+    seed : int
+        The seed for reproducibility.
+    batch_size : int
+        The mini-batch size for training.
+    split_method : str
+        The method of splitting data. Options are 'random', 'chronological',
+        'instance-random', 'instance-chronological', 'slice-random', or 'slice-chronological'.
+        See heading for description.
+    scaling_method : str | None
+        The method for scaling data features. Options are 'z-norm', 'zero-one', or None.
+        See heading for description.
+    scaling_tag : str | None
+        The mode to scale the data. Options are 'in_only', 'full', or None.
+        See heading for description.
+    shuffle_train : bool
+        Whether the training set is shuffled after every epoch.
+    limit : int | None
+        The number of elements (instances/slices/time) steps to limit the data to.
+        See heading for description.
+    padding_method : str
+        The method to pad model inputs with.
+        Options can be found at (https://numpy.org/doc/stable/reference/generated/numpy.pad.html).
+        See heading for description.
+    min_slice : int | None
+        The minimum slice size to consider during data splitting/selection.
+        If None, no slice selection is performed.
+
+    Attributes
+    ----------
+    x_map : array, shape=[n_in_components,]
+        An array that contains the indices of BaseDataset.components that correspond to input components.
+    y_map : array, shape=[n_out_components,]
+        An array that contains the indices of BaseDataset.components that correspond to output components.
+    train_set_size : int
+        The number of prediction points in the training set.
+    valid_set_size : int
+        The number of prediction points in the validation set.
+    eval_set_size : int
+        The number of prediction points in the evaluation set.
+    selection : dict[str, array]
+        A dictionary containing the selection matrices corresponding to each data split.
+    x_scaler : object
+        The scaler fitted to the training set input features.
+    y_scaler : object
+        The scaler fitted to the training set output features.
+    in_shape : list, shape=[n_input_time_delays, n_in_components]
+        A list that represents the shape of the inputs to the model.
+    out_shape : list, shape=[n_output_time_delays, n_output_components]
+        A list that represents the shape of the outputs to the model. Is modified for classification tasks.
+
+    Notes
+    -----
+        - All the listed parameters are also stored as attributes.
+        - This method initializes the BaseClass variables while keeping the data in memory.
+        - The `_prepare` method is automatically called at initialization to initiate data preparation.
     """
+    # to be provided
+    in_components = None
+    out_components = None
+    in_chunk = None
+    out_chunk = None
+    split_portions = None
+    seed = None
+    batch_size = None
+    split_method = None
+    scaling_method = None
+    scaling_tag = None
+    shuffle_train = None
+    limit = None
+    padding_method = None
+    min_slice = None
 
-            This is the PreparedDataset which represents a dataset that is preprocessed for model training.
-            It is meant to be an abstract class. It contains all the variables in BaseDataset,
-            in addition to metadata regarding data splitting, scaling, sampling, and shuffling.
+    # to be filled automatically
+    x_map = None
+    y_map = None
+    train_set_size = None
+    valid_set_size = None
+    eval_set_size = None
+    selection = None
+    x_scaler = None
+    y_scaler = None
+    in_shape = None
+    out_shape = None
 
-    """
+    def __init__(self, **kwargs) -> None:
 
-    def __init__(self, **args):
-
-        """
-
-            Instantiate a PreparedDataset object with the specified configuration.
-
-            Args:
-            -----------
-            **args : dict
-                Keyword arguments specifying the configuration for the PreparedDataset. The following keys are required:
-                - data_path (str): The path to the dataset.
-                - name (str): The name of the new dataset option.
-                - in_components (list): A subset of the 'components' variable of the BaseDataset to be used as input to the model.
-                - out_components (list): A subset of the 'components' variable of the BaseDataset to be used as output to the model.
-                - in_chunk (list): A list of two integers [a, b] for which a <= b, defining the time steps of in_components for prediction at point t.
-                - out_chunk (list): A list of two integers [a, b] for which a <= b, defining the time steps of out_components for prediction at point t.
-                - split_portions (tuple): The approximate portions of the (train, valid, eval) splits.
-                - seed (int): The seed for reproducibility.
-                - batch_size (int): The mini-batch size for training.
-
-            The following keys are optional:
-                - split_method (str, optional): The method of splitting data. Default is 'chronological'.
-                - scaling_method (str, optional): The method for scaling data features. Default is 'z-norm'.
-                - scaling_tag (str, optional): The mode to scale the data (in_only, full, None). Default is None.
-                - shuffle_train (bool, optional): Whether the training set is shuffled after every epoch. Default is True.
-                - limit (int, optional): The number of instances/slices/time steps to limit the data to. Default is None.
-                - padding_method (str, optional): The method to pad model inputs with. Default is 'zero'.
-                - min_slice (int, optional): The minimum slice size to consider during data splitting/selection. Default is None.
-
-            Attributes:
-            -----------
-            components : None
-                Inherited from BaseDataset.
-            instances : None
-                Inherited from BaseDataset.
-            time_delta : None
-                Inherited from BaseDataset.
-            base_nan_filler : None
-                Inherited from BaseDataset.
-            nan_filled_components : None
-                Inherited from BaseDataset.
-            name : str
-                Name of the dataset.
-            in_components : list
-                Input components for the model.
-            out_components : list
-                Output components for the model.
-            in_chunk : list
-                Time steps of in_components for prediction.
-            out_chunk : list
-                Time steps of out_components for prediction.
-            split_portions : tuple
-                Portions of the (train, valid, eval) splits.
-            seed : int
-                Seed for reproducibility.
-            batch_size : int
-                Mini-batch size for training.
-            split_method : str
-                Method of splitting data.
-            scaling_method : str
-                Method for scaling data features.
-            scaling_tag : str
-                Mode to scale the data.
-            shuffle_train : bool
-                Whether the training set is shuffled after every epoch.
-            limit : int
-                Limit on the number of instances/slices/time steps.
-            padding_method : str
-                Method to pad model inputs.
-            min_slice : int
-                Minimum slice size to consider.
-            x_map : None
-                To be filled automatically.
-            y_map : None
-                To be filled automatically.
-            train_set_size : None
-                To be filled automatically.
-            valid_set_size : None
-                To be filled automatically.
-            eval_set_size : None
-                To be filled automatically.
-            selection : None
-                To be filled automatically.
-            x_scaler : None
-                To be filled automatically.
-            y_scaler : None
-                To be filled automatically.
-            in_shape : None
-                To be filled automatically.
-            out_shape : None
-                To be filled automatically.
-
-            Notes:
-            ------
-            - This method initializes the BaseClass variables while keeping the data in memory.
-            - Default values for optional arguments are set using `_setattr_or_default`.
-            - The `_prepare` method is called to initiate data preparation.
-
-        """
-
-        # inherited from BaseDataset
-        self.components = None
-        self.instances = None
-        self.time_delta = None
-        self.base_nan_filler = None
-        self.nan_filled_components = None
-
-        # required as arguments
-        self.name = None
-        self.in_components = None
-        self.out_components = None
-        self.in_chunk = None
-        self.out_chunk = None
-        self.split_portions = None
-        self.seed = None
-        self.batch_size = None
-
-        # optional arguments
-        self.split_method = None
-        self.scaling_method = None
-        self.scaling_tag = None
-        self.shuffle_train = None
-        self.limit = None
-        self.padding_method = None
-        self.min_slice = None
-
-        # to be filled automatically
-        self.x_map = None
-        self.y_map = None
-        self.train_set_size = None
-        self.valid_set_size = None
-        self.eval_set_size = None
-        self.selection = None
-        self.x_scaler = None
-        self.y_scaler = None
-        self.in_shape = None
-        self.out_shape = None
-
-        # check that all the required variables are given in the right format
-        for key, value in self._required_prepared_meta().items():
-            if key not in args:
-                logger.error('Argument %s not provided for prepared dataset.', key)
-                exit(101)
-            if isinstance(args[key], value):
-                setattr(self, key, args[key])
-            else:
-                logger.error('Provided %s should be of type %s.', key,
-                             str(value))
-                exit(101)
-
-        logger.info('Initializing PreparedClass for %s', args['name'])
+        logger.info('Initializing PreparedClass for %s', kwargs['name'])
 
         # initialize the BaseClass variables while keeping the_data in memory
-        super().__init__(args['data_path'], mem_light=False)
+        super().__init__(kwargs['data_path'], mem_light=False)
 
-        # Save default optional arguments
-        self._setattr_or_default(args, 'split_method', 'chronological')
-        self._setattr_or_default(args, 'scaling_method', 'z-norm')
-        self._setattr_or_default(args, 'scaling_tag', None)
-        self._setattr_or_default(args, 'shuffle_train', True)
-        self._setattr_or_default(args, 'limit', None)
-        self._setattr_or_default(args, 'padding_method', 'zero')
-        self._setattr_or_default(args, 'min_slice', None)
+        # storing relevant parameters
+        self.in_components = kwargs['in_components']
+        self.out_components = kwargs['out_components']
+        self.in_chunk = kwargs['in_chunk']
+        self.out_chunk = kwargs['out_chunk']
+        self.split_portions = kwargs['split_portions']
+        self.seed = kwargs['seed']
+        self.batch_size = kwargs['batch_size']
+        self.split_method = kwargs['split_method']
+        self.scaling_method = kwargs['scaling_method']
+        self.scaling_tag = kwargs['scaling_tag']
+        self.shuffle_train = kwargs['shuffle_train']
+        self.limit = kwargs['limit']
+        self.padding_method = kwargs['padding_method']
+        self.min_slice = kwargs['min_slice']
 
         # Initiate the data preparation
         random.seed(self.seed)
         self._prepare()
 
-    def _setattr_or_default(self, args: dict, name: str, default: object):
-        """ Set object attribute with given (if given) or given default. """
+    def get_ist_values(self, set_tag: str) -> list:
+        """Get the IST values for a given set tag.
 
-        if name in args:
-            setattr(self, name, args[name])
+        This function retrieves the Instance-Slice-Time (IST) for each prediction point in a specific dataset split.
+
+        Parameters
+        ----------
+        set_tag : str
+            The data split to retrieve the IST values for.
+            Options are 'train', 'valid', 'eval' or 'all'.
+
+        Returns
+        -------
+        ist_values : list
+            The IST values for a given set tag.
+            Each row represents one prediction point by the following three values.
+                - The first value (Any) indicates the instance that the prediction point belongs to.
+                - The second value (int) indicates the index, within the instance, of the slice that the prediction point belongs to.
+                - The third value (numpy.datetime64) indicates the timestep at which the prediction point is found.
+
+        Notes
+        -----
+            - If set_tag='all' then all prediction points are returned in order ['train', 'valid', 'eval'].
+        """
+        the_data = self.get_the_data()
+        ist_values = []
+        if set_tag == 'all':
+            tags = ['train', 'valid', 'eval']
+            for tag in tags:
+                for p in self.selection[tag]:
+                    i = self.instances[p[0]]
+                    s = p[1]
+                    t = the_data[i][s]['t'][p[2]]
+                    ist_values.append((i, s, t))
+        elif set_tag in ('train', 'valid', 'eval'):
+            for p in self.selection[set_tag]:
+                i = self.instances[p[0]]
+                s = p[1]
+                t = the_data[i][s]['t'][p[2]]
+                ist_values.append((i, s, t))
         else:
-            setattr(self, name, default)
+            logger.error('Unknown set tag %s', set_tag)
+            exit(101)
+        return ist_values
 
-    def _prepare(self):
+    def extract_dataset(self, set_tag: str) -> dict:
+        """Extracts the relevant samples for one of the data splits.
 
+        This function retrieves the 'the_data' dictionary,
+        procs the function to extract specific prediction points,
+        and then scales them if applicable.
+
+        Parameters
+        ----------
+        set_tag : str
+            The data split to retrieve the relevant samples for.
+            Options are 'train', 'valid', 'eval'.
+
+        Returns
+        -------
+        dataset : dict[str, array]
+            The relevant samples for the selected data split.
+            The dictionary includes the following keys:
+                - 'x' (array): The input features with the shape [num_prediction_points, num_in_time_delays, num_in_components]
+                - 'y' (array): The output features with the shape [num_prediction_points, num_out_time_delays, num_out_components]
+
+        Notes
+        -----
+            - The data is scaled if scalers are available.
+        """
+        # TODO: This method is very heavy on memory if the dataset is large.
+        #  Will need to find alternative where we do not put the entire dataset in memory.
+
+        x_vals, y_vals = self._fast_extract(self.get_the_data(), self.selection[set_tag],
+                                            self.in_chunk, self.out_chunk,
+                                            self.instances, self.x_map, self.y_map,
+                                            self.padding_method)
+
+        if self.x_scaler:
+            x_vals = self.x_scaler.transform(x_vals)
+        if self.y_scaler:
+            y_vals = self.y_scaler.transform(y_vals)
+
+        return {'x': x_vals, 'y': y_vals}
+
+    def _prepare(self) -> None:
         """Prepare the dataset by splitting and scaling the data.
-        Note that this is not done directly on the data. The splits are defined in the
-        'selection' variable in a selection matrix. """
 
-        logger.info('Preparing overhead.')
+        This function calculates some relevant overhead variables (in_shape, out_shape, etc.),
+        it defines the correct data splits, and fits the correct scalers.
+
+        Notes
+        -----
+            - The splits are defined in the 'selection' variable in three selection matrices.
+            - The scalers are stored in the 'x_scaler' and 'y_scaler' variables.
+            - After the data is prepared the 'the_data' dictionary is removed from memory.
+
+        """
+        # check that desired components are in dataset
         missing_in_components = set(self.in_components) - set(self.components)
         if len(missing_in_components) > 0:
             logger.error('Defined in_components %s not in data option.',
@@ -355,15 +355,18 @@ class PreparedDataset(BaseDataset):
             logger.error('Defined out_components %s not in data option.',
                          str(missing_out_components))
             exit(101)
+
+        # infer input output component mappings
         self.y_map = array([i for i, e in enumerate(self.components)
                             if e in self.out_components])
         self.x_map = array([i for i, e in enumerate(self.components)
                             if e in self.in_components])
-        # self.in_shape = (self.in_chunk[1] - self.in_chunk[0] + 1, len(self.in_components))
-        # self.out_shape = (self.out_chunk[1] - self.out_chunk[0] + 1, len(self.out_components))
+
+        # infer model input and output shapes
         self.in_shape = [self.in_chunk[1] - self.in_chunk[0] + 1, len(self.in_components)]
         self.out_shape = [self.out_chunk[1] - self.out_chunk[0] + 1, len(self.out_components)]
 
+        # split the dataset
         logger.info('Preparing data splits (selection).')
         self.selection = DataSplitter(self.get_the_data(), self.split_method,
                                       self.split_portions, self.instances,
@@ -376,6 +379,7 @@ class PreparedDataset(BaseDataset):
                                                 self.valid_set_size,
                                                 self.eval_set_size)))
 
+        # scale the dataset
         logger.info('Preparing data scalers, if relevant.')
         self.x_scaler, self.y_scaler = DataScaler(self.extract_dataset('train'),
                                                   self.scaling_method,
@@ -385,103 +389,140 @@ class PreparedDataset(BaseDataset):
             delattr(self, 'the_data')
             logger.info('the_data structure is removed from memory.')
 
-    def get_ist_values(self, set_tag: str):
+    @staticmethod
+    def _fast_extract(the_data: dict, selection: array, in_chunk: list, out_chunk: list,
+                      instances: list, x_map: array, y_map: array, padding_method: str) -> tuple:
+        """Extracts the relevant input values (padded) and output values (not padded) for prediction points defined
+        in the provided selection matrix.
 
-        the_data = self.get_the_data()
+        This function collects the relevant slices, creates padded versions of the corresponding input components,
+        and then initiates a parallel sampling of blocks of input and output values.
 
-        ist_values = []
-        for p in self.selection[set_tag]:
-            i = self.instances[p[0]]
-            s = p[1]
-            t = the_data[i][s]['t'][p[2]]
-            ist_values.append((i, s, t))
-        return ist_values
+        Parameters
+        ----------
+        the_data : dict
+            The 'the_data' dictionary as stored on disk.
+        selection : array, shape=[num_prediction_points, 3]
+            A selection matrix.
+        in_chunk : list, shape=[2,]
+            A list of two integers [a, b] for which a <= b,
+            defining the time steps of in_components for each prediction point.
+        out_chunk : list, shape=[2,]
+            A list of two integers [a, b] for which a <= b,
+            defining the time steps of out_components for each prediction point.
+        instances : list
+            A list of instances in the dataset.
+        x_map : array, shape=[n_in_components,]
+            An array that contains the indices of BaseDataset.components that correspond to input components.
+        y_map : array, shape=[n_out_components,]
+            An array that contains the indices of BaseDataset.components that correspond to output components.
+        padding_method : str
+            The method to pad model inputs with.
+            Options can be found at (https://numpy.org/doc/stable/reference/generated/numpy.pad.html).
+            See heading for description.
 
-    def extract_dataset(self, set_tag: str):
+        Returns
+        -------
+        tuple
+            A tuple containing:
+            - x_vals : array
+                The input features with the shape [num_prediction_points, num_in_time_delays, num_in_components]
+            - y_vals : array
+                The output features with the shape [num_prediction_points, num_out_time_delays, num_out_components]
 
-        """Extracts the relevant samples for one of the data splits, scale them, and package them. """
-
-        # TODO: This method is very heavy on memory if the dataset is large.
-        #  Will need to find alternative where we do not put the entire split in memory.
-
-        the_data = self.get_the_data()
-
-        # [sample][time steps][features]
-        x_vals, y_vals = self.__fast_extract(the_data, set_tag)
-
-        if self.x_scaler:
-            x_vals = self.x_scaler.transform(x_vals)
-        if self.y_scaler:
-            y_vals = self.y_scaler.transform(y_vals)
-
-        return {'x': x_vals, 'y': y_vals}
-
-    def __fast_extract(self, the_data: dict, set_tag: str):
-
-        """ Pad relevant slices. And sample the input values (padded)
-        and output values (not padded). """
-
-        # get overhead
-        selection = self.selection[set_tag]
+        """
+        # get the indices of all relevant slices
         relevant_slice_indx = unique(selection[:, :2], axis=0)
-        max_pad = max(abs(array(self.in_chunk))) + 1
+        # calculates the maximum padding that could be required
+        max_pad = max(abs(array(in_chunk))) + 1
 
-        # only pad the relevant slices
+        # extract the input feature values for the relevant slices and pad them in both directions
         padded_slices = {}
         for r in relevant_slice_indx:
-            i = self.instances[r[0]]
+            i = instances[r[0]]
             s = r[1]
-            padded_slices[tuple(r)] = the_data[i][s]['d'][:, self.x_map]
-            padded_slices[tuple(r)] = self.__do_padding(padded_slices[tuple(r)],
-                                                        'backward',
-                                                        self.padding_method,
-                                                        len(padded_slices[tuple(r)]) + max_pad)
-            padded_slices[tuple(r)] = self.__do_padding(padded_slices[tuple(r)],
-                                                        'forward',
-                                                        self.padding_method,
-                                                        len(padded_slices[tuple(r)]) + max_pad)
+            padded_slices[tuple(r)] = the_data[i][s]['d'][:, x_map]
+            padded_slices[tuple(r)] = PreparedDataset._do_padding(padded_slices[tuple(r)],
+                                                                  'backward',
+                                                                  padding_method,
+                                                                  len(padded_slices[tuple(r)]) + max_pad)
+            padded_slices[tuple(r)] = PreparedDataset._do_padding(padded_slices[tuple(r)],
+                                                                  'forward',
+                                                                  padding_method,
+                                                                  len(padded_slices[tuple(r)]) + max_pad)
         # sample input and output values
-        x_vals, y_vals = PreparedDataset.__parr_sample(selection, self.in_chunk, self.out_chunk,
-                                                       max_pad, padded_slices, the_data,
-                                                       self.instances, self.y_map)
+        x_vals, y_vals = PreparedDataset._parr_sample(selection, in_chunk, out_chunk,
+                                                      max_pad, padded_slices, the_data,
+                                                      instances, y_map)
 
         return x_vals, y_vals
 
     @staticmethod
-    def __parr_sample(selection: array, in_chunk: list, out_chunk: list, max_pad: int,
-                      padded_slices: dict, the_data: dict,
-                      instances: list, y_map: array):
+    def _parr_sample(selection: array, in_chunk: list, out_chunk: list, max_pad: int,
+                     padded_slices: dict, the_data: dict, instances: list, y_map: array) -> tuple:
+        """Sample per prediction point data blocks,
+        retrieves the corresponding feature values and package as two arrays.
 
+
+        Parameters
+        ----------
+        selection : array, shape=[num_prediction_points, 3]
+            A selection matrix.
+        in_chunk : list, shape=[2,]
+            A list of two integers [a, b] for which a <= b,
+            defining the time steps of in_components for each prediction point.
+        out_chunk : list, shape=[2,]
+            A list of two integers [a, b] for which a <= b,
+            defining the time steps of out_components for each prediction point.
+        max_pad : int
+            The maximum padding that could be required.
+        padded_slices : dict
+            A dictionary with slice ind
+        the_data : dict
+            The 'the_data' dictionary as stored on disk.
+        instances : list
+            A list of instances in the dataset.
+        y_map : array, shape=[n_out_components,]
+            An array that contains the indices of BaseDataset.components that correspond to output components.
+
+        Returns
+        -------
+        tuple
+            A tuple containing:
+            - x_vals : array
+                The input features with the shape [num_prediction_points, num_in_time_delays, num_in_components]
+            - y_vals : array
+                The output features with the shape [num_prediction_points, num_out_time_delays, num_out_components]
         """
-        Sample data blocks for parallel processing based on selection indices.
 
-        This function samples data blocks from the provided inputs according to the selection indices. It samples blocks
-        from the input data and the target data for parallel processing.
+        def _sample_blocks(t: array, chunk: list, pad_size: int):
+            """Generate per prediction point sample blocks based on the provided time indices, chunk size, and padding.
 
-        Parameters:
-            selection (array-like): Selection indices specifying the data blocks to sample.
-            in_chunk (tuple): Input data chunk size.
-            out_chunk (tuple): Target data chunk size.
-            max_pad (int): Maximum padding for input data blocks.
-            padded_slices (dict): Dictionary containing padded slices of the input data.
-            the_data (list): List containing the input data instances.
-            instances (list): List of instances related to the input data.
-            y_map (array): Mapping for target data components.
+            This function creates an array of sample blocks by adding padding to the specified
+            chunk size and applying it to the provided time indices. Each row in the output array represents
+            the input time indices that corresponds to each prediction point in t.
 
-        Returns:
-            x_vals (array-like): Sampled input data blocks.
-            y_vals (array-like): Sampled target data blocks.
+            Parameters
+            ----------
+            t : array, shape=[num_prediction_points,]
+                An array of time indices for which the sample blocks are generated.
+            chunk : list, shape=[2,]
+                A tuple representing the start and end of the chunk size.
+            pad_size : int
+                The amount of padding to be added to the chunk size.
 
-        Internal Function:
-        sample_blocks(t, chunk, pad):
-            Helper function for sampling blocks of data along a given axis.
+            Returns
+            -------
+            blocks : array, shape=[num_prediction_points, num_in_time_delays]
+                A 2D array where each row corresponds to a time index from `t` and contains the
+                sample blocks generated by adding the chunk size and padding.
 
-        The function samples data blocks from the specified inputs based on the selection indices, and returns the
-        sampled input and target data as arrays.
-        """
-
-        def sample_blocks(t, chunk, pad):
-            blocks = arange(chunk[0] + pad, chunk[1] + pad + 1)
+            Notes
+            -----
+                - The `blocks` array is generated by first creating a range of indices based on the chunk size
+                  and padding, and then adding these to each time index in `t`.
+            """
+            blocks = arange(chunk[0] + pad_size, chunk[1] + pad_size + 1)
             blocks = expand_dims(blocks, axis=0)
             t_selection = t
             blocks = repeat(blocks, len(t_selection), axis=0)
@@ -490,30 +531,58 @@ class PreparedDataset(BaseDataset):
             blocks += t_selection
             return blocks
 
-        x_blocks = sample_blocks(selection[:, 2], in_chunk, max_pad)
-        y_blocks = sample_blocks(selection[:, 2], out_chunk, 0)
+        x_blocks = _sample_blocks(selection[:, 2], in_chunk, max_pad)
+        y_blocks = _sample_blocks(selection[:, 2], out_chunk, 0)
         x_vals = []
         y_vals = []
         s_indx = 0
         # TODO: Here is still a bottleneck. But at least it is just sampling now.
         for s in selection:
             x_vals.append(padded_slices[(s[0], s[1])][x_blocks[s_indx]])
-            # y_vals.append(the_data[instances[s[0]]][s[1]]['d'][y_blocks[s_indx], y_map])
             y_vals.append(the_data[instances[s[0]]][s[1]]['d'][y_blocks[s_indx]][:, y_map])
-
             s_indx += 1
         x_vals = array(x_vals)
         y_vals = array(y_vals)
-
         return x_vals, y_vals
 
     @staticmethod
-    def __do_padding(vals: array, direction: str, method: str, cap: int):
+    def _do_padding(vals: array, direction: str, method: str, cap: int) -> array:
+        """Pad the input array 'vals' using the specified method and direction up to the given size (cap).
 
-        """ Pad vals = [timesteps, features] using the
-        given method in the given direction up to the given size (cap).
-        See https://numpy.org/doc/stable/reference/generated/numpy.pad.html."""
+        This function pads the input 2D array `vals` (with shape [num_timesteps, num_features]) based on the
+        provided direction and method. The padding is applied either forward or backward to reach
+        the specified size (cap).
 
+        Parameters
+        ----------
+        vals : array, shape=[num_timesteps, num_features]
+            The input array that needs to be padded.
+        direction : str
+            The direction in which to apply the padding. Must be either 'backward' or 'forward'.
+            - 'backward': Pads at the beginning of the array.
+            - 'forward': Pads at the end of the array.
+        method : str
+            The padding method to use. Must be one of the methods supported by `numpy.pad`.
+            Common options include 'constant' for zero padding, 'reflect', 'symmetric', etc.
+        cap : int
+            The target size for the number of timesteps after padding.
+
+        Returns
+        -------
+        ret_vals : array, shape=[cap, num_features]
+            The padded array with the number of timesteps equal to `cap`.
+
+        Raises
+        ------
+        ValueError
+            If an unknown padding direction or method is provided.
+
+        Notes
+        -----
+            The `vals` array is padded with zeros if the method is 'zero', otherwise, the specified method
+            is used. Refer to https://numpy.org/doc/stable/reference/generated/numpy.pad.html for more details
+            on available padding methods.
+        """
         if direction == 'backward':
             pw = ((cap - vals.shape[0], 0), (0, 0))
         elif direction == 'forward':
@@ -524,30 +593,11 @@ class PreparedDataset(BaseDataset):
 
         pw = array(pw)
         if method == 'zero':
-            ret_vals = pad(vals,
-                              pad_width=pw,
-                              mode='constant')
+            ret_vals = pad(vals, pad_width=pw, mode='constant')
         else:
-            ret_vals = pad(vals,
-                              pad_width=pw,
-                              mode=method)
+            ret_vals = pad(vals, pad_width=pw, mode=method)
 
         return ret_vals
-
-    @staticmethod
-    def _required_prepared_meta():
-
-        """ These are the variables (and their formats) that need to be given
-        when creating a new PreparedDataset object. """
-
-        return {'name': (str,),
-                'in_components': (list,),
-                'out_components': (list,),
-                'in_chunk': (list, tuple),
-                'out_chunk': (list, tuple),
-                'split_portions': (list, tuple),
-                'seed': (int,),
-                'batch_size': (int,)}
 
 
 
