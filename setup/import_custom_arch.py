@@ -6,7 +6,7 @@ import inspect
 import torch.nn as nn
 
 
-from env.env_paths import custom_arch_path
+from env.env_paths import custom_arch_path, arch_name
 from helpers.file_dir_procs import safe_copy
 logger = get_logger()
 
@@ -29,7 +29,7 @@ def import_custom_arch(path: str, exp_output_dir: str, safe_mode: bool):
 
 def complies(path: str):
 
-    module_name = path.replace("/", ".").replace("\\", ".").rstrip(".py")
+    module_name = arch_name(path)
     spec = importlib.util.spec_from_file_location(module_name, path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module

@@ -18,13 +18,14 @@ from knowit import KnowIt
 # of KnowIt is removed by the garbage collector. This is useful for debugging or when KnowIt is
 # used as a submodule of a larger codebase.
 
-# KI = KnowIt()
+# KI = KnowIt('/home/tian/postdoc_work/KnowIt_debugging/new_exp_train_cpu_pred_gpu')
+KI = KnowIt()
 
 # Providing a custom_exp_dir path means that the constructed instance of KnowIt will be
 # associated with a static (potentially pre-existing) experiment output directory.
 # This is useful for long-term experimentation.
 
-KI = KnowIt(custom_exp_dir='/path/to/my/new/experiment/directory')
+# KI = KnowIt(custom_exp_dir='/path/to/my/new/experiment/directory')
 
 # ----------------------------------------------------------------------------------------------------------------------
 # IMPORTING A CUSTOM ARCHITECTURE
@@ -36,7 +37,7 @@ KI = KnowIt(custom_exp_dir='/path/to/my/new/experiment/directory')
 # See the default_archs.arch_how_to.md file along with the default architectures
 # for more detail.
 
-# KI.import_arch(new_arch_path='/path/to/my/custom/arch.py')
+# KI.import_arch(new_arch_path='/home/tian/postdoc_work/KnowIt_debugging/new_dummy_arch.py')
 
 # ----------------------------------------------------------------------------------------------------------------------
 # IMPORTING A DATASET
@@ -46,7 +47,7 @@ KI = KnowIt(custom_exp_dir='/path/to/my/new/experiment/directory')
 # In order to handle external data you can import it into your experiment output directory as follows.
 # See the default_datasets.dataset_how_to.md file for more details.
 
-# import_args = {'path': '/path/to/my/custom/data.pickle',
+# import_args = {'path': '/home/tian/postdoc_work/LEAH_SYNTH_DATA/synth_1/synth_1.pickle',
 #                'base_nan_filler': 'linear',
 #                'nan_filled_components': ['x1', 'x2', 'x3', 'x4', 'y1']}
 # KI.import_dataset({'data_import_args': import_args})
@@ -95,12 +96,12 @@ arch_args = {'task': 'regression',
                           'width': 512}}
 trainer_args = {'loss_fn': 'mse_loss',
                 'optim': 'Adam',
-                'max_epochs': 10,
+                'max_epochs': 3,
                 'learning_rate': 0.01,
                 'task': 'regression'
                 }
 
-KI.train_model(model_name=model_name, args={'data': data_args, 'arch': arch_args, 'trainer': trainer_args})
+KI.train_model(model_name=model_name, kwargs={'data': data_args, 'arch': arch_args, 'trainer': trainer_args})
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -110,9 +111,9 @@ KI.train_model(model_name=model_name, args={'data': data_args, 'arch': arch_args
 # To generate predictions for a trained model you need to provide a model name and a set of arguments.
 # - 'predictor' arguments relate to what prediction points to predict on.
 
-# KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'train'}})
-# KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'valid'}})
-KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_set': 'eval'}})
+# KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction_set': 'train'}})
+# KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction_set': 'valid'}})
+KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction_set': 'eval'}})
 
 # ----------------------------------------------------------------------------------------------------------------------
 # INTERPRET MODEL PREDICTIONS
@@ -122,10 +123,10 @@ KI.generate_predictions(model_name=model_name, args={'predictor': {'prediction_s
 # - 'interpreter' arguments relate to what prediction points to interpret on.
 # NOTE: In order to visualize feature attributions, the corresponding predictions must have been generated.
 
-interpret_args = {'interpretation_method': 'DeepLift',
-                  'interpretation_set': 'eval',
-                  'selection': 'random',
-                  'size': 100}
-KI.interpret_model(model_name=model_name, args={'interpreter': interpret_args})
+# interpret_args = {'interpretation_method': 'DeepLift',
+#                   'interpretation_set': 'eval',
+#                   'selection': 'random',
+#                   'size': 100}
+# KI.interpret_model(model_name=model_name, kwargs={'interpreter': interpret_args})
 
 exit(101)
