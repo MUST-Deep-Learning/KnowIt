@@ -59,6 +59,11 @@ def arch_path(name: str):
     return os.path.join(default_archs_dir, name + '.py')
 
 
+def arch_name(path: str):
+    """ Returns the architecture name for the given architecture path."""
+    return path.replace("/", ".").replace("\\", ".").rstrip(".py")
+
+
 def custom_arch_dir(exp_output_dir: str, safe_mode: bool = True, overwrite: bool = False):
     """ Returns the architecture directory from the given experiment path.
         Note that the directory is created if it does not exist. """

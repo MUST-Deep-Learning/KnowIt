@@ -497,8 +497,8 @@ def fetch_predictions(predictions_dir, data_tag, ist_values):
             t = ist_values[pp][2]
             y_hat = batch_pred[p]
             y = batch_target[p]
-            predictions[i].append([t, y_hat.numpy()])
-            targets[i].append([t, y.numpy()])
+            predictions[i].append([t, y_hat.cpu().numpy()])
+            targets[i].append([t, y.cpu().numpy()])
     predictions = dict(predictions)
     targets = dict(targets)
 
