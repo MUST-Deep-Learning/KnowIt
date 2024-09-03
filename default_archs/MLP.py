@@ -1,13 +1,30 @@
-"""
----------------------
-Multilayer Perceptron
----------------------
+"""This is a set of fully connected feed-forward blocks, 
+with optional batch normalization and dropout, 
+followed by a final linear layer, 
+with optional output activation.
 
-As an example, we define a multilayer perceptron (MLP) architecture using the
-well-known Pytorch library.
+-----------
+HiddenBlock
+-----------
 
-The example shows one way of constructing the MLP which can either be shallow
-or deep. The MLP is capable of handling regression or classification tasks.
+This block consists of 2 to 4 layers.
+* is optional
+
+[linear] -> [batch-norm*] -> [activation] -> [dropout*]
+
+    -   [linear] = nn.Linear
+    -   [batch-norm*] = nn.BatchNorm1d
+    -   [activation] = Depends on the activation function. Set by getattr(nn, activation)(). See https://pytorch.org/docs/stable/nn.html for details.
+    -   [dropout*] = nn.Dropout
+
+Notes
+-----
+    - The MLP is capable of handling regression or classification tasks.
+    - All HiddenBlocks have bias parameters.
+    - All hidden layers have the same number of hidden units, defined by the ``width`` parameter.
+    - This architecture flattens the input Tensor, and does not assume any temporal dynamics internally.
+    - In practice. The output layer is just a ``HiddenBlock`` with no batch normalization, dropout or bias, and a different activation function.
+
 """  # noqa: INP001, D415, D400, D212, D205
 
 from __future__ import annotations
@@ -23,6 +40,9 @@ if TYPE_CHECKING:
 
 import numpy as np
 from torch import nn
+
+from helpers.logger import get_logger
+logger = get_logger()
 
 available_tasks = ("regression", "classification")
 
@@ -43,204 +63,162 @@ HP_ranges_dict = {
 
 
 class Model(nn.Module):
-    """Define MLP architecture.
+    """Defines an MLP architecture.
 
     The multilayer perceptron (MLP) is a fully connected feedforward neural
     network with nonlinear activation functions.
 
     For more information on this architecture, see for example:
+
     [1] "Deep Learning" by I. Goodfellow, Y. Bengio, and A. Courville
     Link: https://www.deeplearningbook.org/
 
     [2] "Understanding Deep Learning" by S.J.D Prince
     Link: https://udlbook.github.io/udlbook/
+
+    Parameters
+    ----------
+    input_dim : list[int], shape=[in_chunk, in_components]
+        The shape of the input data. The "time axis" is along the first dimension.
+    output_dim : list[int], shape=[out_chunk, out_components]
+        The shape of the output data. The "time axis" is along the first dimension.
+    task_name : str
+        The type of task (classification or regression).
+    depth : int, default=3
+        The desired number of hidden layers.
+    width : int, default=256
+        The desired width (number of nodes) of each hidden layer.
+    dropout : float | None, default=0.5
+        Sets the dropout probability. If None, no dropout is applied.
+    activations : str, default='ReLU'
+        Sets the activation type for the hidden units. See https://pytorch.org/docs/stable/nn.html for details.
+    output_activation : None | str, default=None
+        Sets an output activation. See https://pytorch.org/docs/stable/nn.html for details.
+        If None, no output activation.
+    batchnorm : bool, default=True
+        Whether to add batchnorm to hidden layers.
+
+    Attributes
+    ----------
+    task_name : str | None
+        The type of task (classification or regression).
+    model_in_dim : int | None
+        Number of model input features. Equal to in_chunk * in_component.
+    model_out_dim : int | None
+        Number of model output features. Equal to out_chunk * out_component.
+    final_out_dim : list[int], shape=[out_chunk, out_components]
+        The shape of the output data. The "time axis" is along the first dimension.
+    model : nn.Sequential
+        The entire model architecture.
     """
+    task_name = None
+    model_in_dim = None
+    model_out_dim = None
+    final_out_dim = None
 
     def __init__(
         self,
         input_dim: list[int],
         output_dim: list[int],
         task_name: str,
+        *,
         depth: int = 3,
         width: int = 256,
-        dropout: float = 0.5,
-        activations: str = "ReLU",
+        dropout: float | None = 0.5,
+        activations: str = 'ReLU',
         output_activation: None | str = None,
-        *,
         batchnorm: bool = True,
     ) -> None:
-        """Model constructor.
-
-        Args:
-        ----
-            input_dim (list[int]):  The model's input features of shape
-                                    [in_chunk, in_components].
-
-            output_dim (list[int]): The model's output features of shape
-                                    [out_chunk, out_components].
-
-            task_name (str):        The type of task (classification or
-                                    regression).
-
-            depth (int):            The number of hidden layers. Default: 3.
-
-            width (int):            The width of each hidden layer.
-                                    Default: 256.
-
-            dropout (float):
-                                    Sets the dropout value. Default: 0.5.
-
-            activations (str):
-                                    Sets the activation type for the hidden
-                                    units. Defaults: "ReLU".
-
-            output_activation (None | str):
-                                    Sets an output activation (needed for
-                                    classification tasks). Default: None.
-
-            batchnorm (bool):       Adds batchnorm to layers. Default: True.
-
-        """
         super().__init__()  # type: ignore[reportUnknownMemberType]
 
-        # Hyperparameters
-        self.task_name = task_name
-        self.hidden_depth = depth
-        self.hidden_width = width
-        self.batchnorm = batchnorm
-        self.dropout = dropout
-        self.activations = activations
-        self.output_activation = output_activation
+        if task_name not in available_tasks:
+            logger.error('Only %s tasks are available for MLP. %s given.', str(available_tasks), task_name)
+            exit(101)
 
+        self.task_name = task_name
         self.model_in_dim = int(np.prod(input_dim))
         self.model_out_dim = int(np.prod(output_dim))
-        self.final_out_dim = output_dim
+        self.final_out_shape = output_dim
 
-        # Input layer
-        layers: list[Module] = []
-        layers.append(
-            nn.Linear(
-                self.model_in_dim,
-                self.hidden_width,
-                bias=True,
-            ),
-        )
-        if self.batchnorm:
-            layers.append(nn.BatchNorm1d(self.hidden_width))
-        layers.append(getattr(nn, self.activations)())
-        layers.append(nn.Dropout(p=self.dropout))
-
-        # Construct MLP hidden layers
-        layers = layers + self._build_hidden_layers()
-
-        # Set output layer according to task type
-        if task_name not in available_tasks:
-            emsg = "Task must be either: 'regression' or 'classification'."
-            raise NameError(emsg)
-        self.task_name = task_name
-
-        if self.task_name == "regression":
-            output_layer = nn.Linear(
-                self.hidden_width,
-                self.model_out_dim,
-                bias=False,
-            )
-            layers.append(output_layer)
-        if self.task_name == "classification":
-            output_layer = nn.Linear(
-                self.hidden_width,
-                self.model_out_dim,
-                bias=False,
-            )
-            if self.output_activation == "Softmax":
-                output_layer_activation = getattr(nn,
-                                                  self.output_activation)(dim=1)
-            elif self.output_activation is None:
-                output_layer_activation = nn.Identity()
-            else:
-                output_layer_activation = getattr(nn, self.output_activation)()
-            layers.append(output_layer)
-            layers.append(output_layer_activation)
-
-        # Merge layers together in Sequential
+        layers = [HiddenBlock(self.model_in_dim, width, batchnorm=batchnorm,
+                              activation=activations, dropout=dropout, bias=True)]
+        for _ in range(depth - 1):
+            layers.append(HiddenBlock(width, width, batchnorm=batchnorm,
+                                      activation=activations, dropout=dropout, bias=True))
+        layers.append(HiddenBlock(width, self.model_out_dim, batchnorm=False,
+                                  activation=output_activation, dropout=None, bias=False))
         self.model = nn.Sequential(*layers)
-
-
-    def _build_hidden_layers(self) -> list[Module]:
-        hidden_blocks: list[Module] = []
-        for _ in range(self.hidden_depth - 1):
-            hidden_blocks.append(
-                nn.Linear(self.hidden_width, self.hidden_width, bias=True),
-            )
-            if self.batchnorm:
-                hidden_blocks.append(nn.BatchNorm1d(self.hidden_width))
-            hidden_blocks.append(getattr(nn, self.activations)())
-            hidden_blocks.append(nn.Dropout(p=self.dropout))
-
-        return hidden_blocks
-
-
-    def _regression(self, x: Tensor) -> Tensor:
-        """Return model output for an input batch for a regression task.
-
-        Args:
-        ----
-            x (Tensor):     An input tensor of shape
-                            (batch_size, in_chunk * in_components)
-
-        Returns:
-        -------
-            (Tensor):       Model output of shape
-                            (batch_size, out_chunk, out_components)
-
-        """
-        out = self.model(x)
-
-        return out.view(
-            out.shape[0],
-            self.final_out_dim[0],
-            self.final_out_dim[1],
-        )
-
-
-    def _classification(self, x: Tensor) -> Tensor:
-        """Return model output for an input batch for a classification task.
-
-        Args:
-        ----
-            x (Tensor):     An input tensor of shape
-                            (batch_size, in_chunk * in_components)
-
-        Returns:
-        -------
-            (Tensor):       Model output of shape
-                            (batch_size, num_classes)
-
-        """
-        return self.model(x)
 
 
     def forward(self, x: Tensor) -> Tensor:
         """Return model output for an input batch.
 
-        Args:
-        ----
-            x (Tensor):     An input tensor of shape
-                            (batch_size, in_chunk, in_components).
+        Parameters
+        ----------
+        x : Tensor, shape=[batch_size, in_chunk, in_components]
+            An input tensor.
 
-        Returns:
+        Returns
         -------
-            (Tensor):       Model output of shape
-                            (batch_size, out_chunk, out_components) if regress-
-                            ion.
-
-                            Model output of shape
-                            (batch_size, num_classes) if classification.
+        Tensor, shape=[batch_size, out_chunk, out_components] or [batch_size, num_classes]
+            Model output.
 
         """
         x = x.view(x.shape[0], self.model_in_dim)
-
+        out = self.model(x)
         if self.task_name == "regression":
-            return self._regression(x)
+            out_reshaped = out.view(x.shape[0], self.final_out_shape[0], self.final_out_shape[1])
+            return out_reshaped
+        else:
+            return out
 
-        return self._classification(x)
+
+class HiddenBlock(nn.Module):
+
+    """A hidden block of an MLP.
+
+    This block consists of a linear layer, followed by an activation function.
+    An optional batchnorm layer can be placed before the activation layer,
+    and an optional dropout layer can be placed after.
+
+    Parameters
+    ----------
+    in_dim : int
+        The number of input features.
+    out_dim : int
+        The number of output features.
+    batchnorm : bool
+        Whether to include a batchnorm layer before the activation function.
+    activation : str | None
+        The activation function to be used. See https://pytorch.org/docs/stable/nn.html for details.
+    dropout : float | None
+        The dropout probability. If None, no dropout will be applied.
+    bias : bool
+        Whether the linear layer should have a bias vector.
+
+    Attributes
+    ----------
+    block : nn.Module
+        The hidden block.
+    """
+    def __init__(self, in_dim: int, out_dim: int, *, batchnorm: bool,
+                 activation: str | None, dropout: float | None, bias: bool) -> None:
+
+        super(HiddenBlock, self).__init__()
+        layers = [nn.Linear(in_dim, out_dim, bias)]
+        if batchnorm:
+            layers.append(nn.BatchNorm1d(out_dim))
+        if activation is not None:
+            if activation == "Softmax":
+                layers.append(getattr(nn, activation)(dim=1))
+            else:
+                layers.append(getattr(nn, activation)())
+        if dropout:
+            layers.append(nn.Dropout(p=dropout))
+        self.block = nn.Sequential(*layers)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Applies the hidden block to the input tensor."""
+        return self.block(x)
+
+
