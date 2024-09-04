@@ -11,6 +11,7 @@ import copy
 import torch
 import tempfile
 import sys
+import numpy as np
 
 # internal imports
 from env.env_user import temp_exp_dir
@@ -24,7 +25,7 @@ from helpers.logger import get_logger
 from helpers.file_dir_procs import (yaml_to_dict, safe_dump)
 from helpers.viz import (learning_curves, set_predictions, feature_attribution)
 from setup.setup_action_args import setup_relevant_args
-from setup.select_interpretation_points import get_interpretation_inx
+from setup.select_interpretation_points import get_interpretation_inx, get_predictions
 from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
 from setup.import_custom_arch import import_custom_arch, complies
 from data.base_dataset import BaseDataset
@@ -504,14 +505,31 @@ class KnowIt:
 
         i_inx = get_interpretation_inx(relevant_args['interpreter'], trained_model_dict['model_args'],
                                        model_predictions_dir(self.exp_output_dir, model_name))
-        attributions = interpreter.interpret(pred_point_id=i_inx)
+
+        interpret_args['results'] = interpreter.interpret(pred_point_id=i_inx)
         interpret_args['i_inx'] = i_inx
 
+        # TODO: Make _fetch_points_from_datamodule non-private with RR permission
+        interpret_args['input_features'] = interpreter._fetch_points_from_datamodule(i_inx)
+
+        points, predictions, targets, timestamps = get_predictions(model_predictions_dir(self.exp_output_dir, model_name),
+                                                       relevant_args['interpreter']['interpretation_set'],
+                                                       trained_model_dict['model_args'])
+        if isinstance(i_inx, int):
+            interpret_args['targets'] = targets[i_inx]
+            interpret_args['predictions'] = predictions[i_inx]
+            interpret_args['timestamps'] = timestamps[i_inx]
+        else:
+            interpret_args['targets'] = [targets[i] for i in range(i_inx[0], i_inx[1])]
+            interpret_args['predictions'] = [predictions[i] for i in range(i_inx[0], i_inx[1])]
+            interpret_args['timestamps'] = [timestamps[i] for i in range(i_inx[0], i_inx[1])]
+
+
         save_name = ''
-        for a in interpret_args:
+        for a in ('interpretation_method', 'interpretation_set', 'selection',
+                  'size', 'multiply_by_inputs', 'seed', 'i_inx'):
             save_name += str(interpret_args[a]) + '-'
         save_name = save_name[:-1] + '.pickle'
-        interpret_args['results'] = attributions
 
         safe_dump(interpret_args, os.path.join(save_dir, save_name), safe_mode)
 
