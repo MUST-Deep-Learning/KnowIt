@@ -53,7 +53,7 @@ def select_chunk(interpretation_args, model_args, selection, predictions_dir):
 
     chunk = interpretation_args['size']
 
-    mae = get_mae_performance(interpretation_args, model_args, selection, predictions_dir)
+    mae = get_mae_performance(interpretation_args, model_args, predictions_dir)
     chunk_perf = np.convolve(mae, np.ones(chunk) / chunk, mode='valid')
 
     if selection == 'success':
@@ -66,36 +66,11 @@ def select_chunk(interpretation_args, model_args, selection, predictions_dir):
     return select_chunk
 
 
-def get_mae_performance(interpretation_args, model_args, selection, predictions_dir):
+def get_mae_performance(interpretation_args, model_args, predictions_dir):
     # TODO: This function has overlap with viz.set_predictions. Need to refactor later.
 
-    if not os.path.exists(predictions_dir):
-        logger.error('Please generate prediction values if you want to interpret %s', selection)
-        exit(101)
-
-    batches = []
-    for b in os.listdir(predictions_dir):
-        if b.startswith(interpretation_args['interpretation_set'] + '-' + 'batch'):
-            batches.append(b)
-
-    predictions = {}
-    targets = {}
-    for b in batches:
-        batch = load_from_path(os.path.join(predictions_dir, b))
-        s_inx = batch[0]
-        for p in range(len(s_inx)):
-            s = s_inx[p].item()
-            y_hat = batch[1][p]
-            y = batch[2][p]
-            predictions[s] = y_hat.numpy()
-            targets[s] = y.numpy()
-
-    if len(predictions) != model_args['data_dynamics'][interpretation_args['interpretation_set'] + '_size']:
-        logger.error('Could not find all prediction points for interpretation selection.')
-        exit(101)
-
-    points = np.array(list(predictions.keys()))
-    points = np.sort(points)
+    points, predictions, targets, timestamps = get_predictions(predictions_dir,
+                                                   interpretation_args['interpretation_set'], model_args)
 
     performance = []
     for p in points:
@@ -108,3 +83,39 @@ def get_mae_performance(interpretation_args, model_args, selection, predictions_
 
     return performance
 
+
+def get_predictions(predictions_dir, interpretation_set, model_args):
+
+    if not os.path.exists(predictions_dir):
+        logger.error('Please generate prediction values if you want to interpret prediction points first.')
+        exit(101)
+
+    batches = []
+    for b in os.listdir(predictions_dir):
+        if b.startswith(interpretation_set + '-' + 'batch'):
+            batches.append(b)
+
+    inx_path = os.path.join(predictions_dir, '_' + interpretation_set + '-' + 'ist_inx_dict.pickle')
+    inx = load_from_path(inx_path)
+
+    predictions = {}
+    targets = {}
+    timestamps = {}
+    for b in batches:
+        batch = load_from_path(os.path.join(predictions_dir, b))
+        s_inx = batch[0]
+        for p in range(len(s_inx)):
+            s = s_inx[p].item()
+            y_hat = batch[1][p]
+            y = batch[2][p]
+            predictions[s] = y_hat.detach().cpu().numpy()
+            targets[s] = y.detach().cpu().numpy()
+            timestamps[s] = inx[0][s]
+
+    if len(predictions) != model_args['data_dynamics'][interpretation_set + '_size']:
+        logger.error('Could not find all prediction points for interpretation selection.')
+        exit(101)
+
+    points = np.array(list(predictions.keys()))
+    points = np.sort(points)
+    return points, predictions, targets, timestamps

@@ -1,0 +1,1 @@
+"""KnowIt default architectures."""
