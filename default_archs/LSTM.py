@@ -8,9 +8,7 @@ well-known Pytorch library.
 
 The example shows one way of constructing the MLP which can either be shallow
 or deep. The MLP is capable of handling regression or classification tasks.
-"""  # noqa: INP001, D400, D205
-
-# https://roderik.no/python-class-generation-from-yaml
+"""
 
 from __future__ import annotations
 
@@ -18,6 +16,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import torch
+import yaml
 from torch import Tensor, nn
 from torch.nn import LSTM, Linear, Module
 
@@ -40,20 +39,28 @@ HP_ranges_dict = {
 }
 
 
-@dataclass
-class ArchArgs:
+@dataclass(frozen=True)
+class ArchArgs(yaml.YAMLObject):
+    yaml_tag = "!arch_args"
+
     num_hidden_to_out: int
     width: int = 256
     depth: int = 1
     dropout: float = 0.5
     output_activation: None | str = None
     bidirectional: bool = False
+    path: str = __file__
 
-@dataclass
-class Internal:
+
+
+@dataclass(frozen=True)
+class Internal(yaml.YAMLObject):
+    yaml_tag = "!internal"
+
     init_hidden_state: None | str | Tensor=None
     init_cell_state: None | str | Tensor=None
     tracking: bool=False
+    path: str = __file__
 
 
 class Model(Module):
@@ -274,11 +281,11 @@ class InternalState:
             self,
             width: int,
             depth: int,
-            bidirect: bool,
             init_hidden_state: None | str | Tensor,
             init_cell_state: None | str | Tensor,
             *,
             track_hidden: bool,
+            bidirect: bool,
     ) -> None:
 
         self._current_batch: int=0
