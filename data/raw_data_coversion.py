@@ -1,52 +1,52 @@
+"""
+----------------
+RawDataConverter
+----------------
+
+This module takes a given dataframe and converts it to a known datastructure for KnowIt.
+The dataframe needs to comply with the following conditions to be properly converted:
+    1. Must be time indexed. (with a ``pandas.Timedelta`` or ``datetime.timedelta``, not strings)
+    2. Must contain the following metadata in the ``dataframe.attrs`` dictionary, or alternatively passed with the 'meta' argument.
+         - name (str): The name of the dataset to be constructed.
+         - components (list): The components to be stored in the datasets.
+         - time_delta (Timedelta, timedelta): The time difference between any two consecutive time points.
+    3. Must contain no all-NaN columns.
+    4. Must contain column headers corresponding to the components defined in the metadata.
+    5. If instances are desired, they must be defined in the metadata as follows, and a corresponding column header 'instance' must be present in the dataframe. This column cannot have any NaNs.
+        - instances (list): A list of the instances to be stored in the datasets.
+    
+The resulting datastructure can be returned with the ``RawDataConverter.get_new_data`` function.
+The format of the resulting data structure is defined at the top of the KnowIt.data.base_dataset.py script.
+
+-------------
+Handling NaNs
+-------------
+``RawDataConverter`` is instantiated with two special variables to handle possible NaNs:
+    - nan_filler (str, None): Defines what method to use for NaN filling.
+        - None: No NaNs will be filled.
+        - 'split': Slices will be split on NaNs.
+        - Any ``method`` value from ``pandas.DataFrame.interpolate``: used to interpolate NaNs in both directions.(see https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.interpolate.html)
+    - nan_filled_components (str, None): Defines what components should be checked for NaNs.
+        - None: All columns with float datatype will be flagged for NaN-handling.
+        - A list of column headers to flag for NaN-handling.
+    
+---------
+Take note
+---------
+    - Duplicate time steps within an instance are dropped after ordering chronologically.
+    - Time series are split into slices based on the time_delta presented in the metadata.
+
+"""
+
+from __future__ import annotations
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the RawDataConverter class for Knowit.'
-
-"""
---------------------
-RawDataConverter
---------------------
-This module takes a given dataframe and converts it to a known datastructure for Knowit.
-The dataframe needs to comply with a set of conditions to be properly converted:
-1. Must be time indexed. (with a pandas.Timedelta or datetime.timedelta, not strings)
-2. Must contain the required meta data (as defined in BaseDataset.__required_base_meta).
-    in the dataframe.attrs dictionary. Meta data can alternatively be passed with the 'meta' argument.
-     - name (str)
-     - components (list)
-     - time_delta (Timedelta, timedelta)
-3. Must contain no all-NaN columns.
-4. Must contain columns corresponding to the components defined in the meta data.
-5. If instances are desired, they must be defined in the meta data as instances(list)
-    And a corresponding column 'instance' must be present in the dataframe. 
-    This column cannot have any NaNs.
-    
-The resulting datastructure can be returned with the RawDataConverter.get_new_data function.
-The format of the resulting data structure is defined at the top of the base_dataset.py script.
-
---------------------
-Handling NaNs
---------------------
-RawDataConverter is instantiated with two special variables to handle possible NaNs:
- - nan_filler (str, None): 
-    - None (default): No NaNs will be filled. 
-    - split:          Slices will be split on NaNs.
-    - ''method'' from pandas.DataFrame.interpolate used to interpolate NaNs in both directions.
-        (https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.interpolate.html)
- - nan_filled_components (str, None)
-    - None (default): All columns with float datatype will be flagged for NaN-handling.
-    - A list of column headers to flag for NaN-handling.
-    
---------
-Note!
---------
-
-- Duplicate time steps within an instance are dropped after ordering chronologically.
-- Time series are split into slices based on the time_delta presented in the meta data.
-
-"""
 
 # external imports
 from pandas import DatetimeIndex, concat, DataFrame
 from numpy import array
+from datetime import timedelta
+from pandas import Timedelta
 
 # internal imports
 from helpers.logger import get_logger
@@ -55,43 +55,93 @@ logger = get_logger()
 
 
 class RawDataConverter:
+    """This module takes a given dataframe and converts it to a known datastructure for KnowIt.
+
+    This module first retrieves and checks the metadata and dataframe for correctness,
+    then it splits the dataframe according to instances (if defined).
+    It then compiles the datastructure on an instance by instance basis by:
+        1. Sorting timesteps by time index.
+        2. Dropping duplicate time steps (keeping the first of each duplicate).
+        3. Splitting data into contiguous blocks (slices).
+        4. Handling missing values.
+        5. Packaging data into known format as defined in ``BaseDataset``.
+
+    Parameters
+    ----------
+    df : DataFrame
+        The DataFrame containing the raw data to be processed.
+    required_meta : dict
+        A dictionary specifying the required metadata for processing, defined in ``BaseDataset``. Also, see heading.
+    nan_filler : str | None
+        A string representing how to handle missing values in the data. If None, no NaNs will be filled.
+        Options include 'split', and any method value from ``pandas.DataFrame.interpolate``.
+    nan_filled_components : list | None
+        A list of strings specifying which components to treat for missing values. If None, all float-valued components checked for NaNs.
+    meta : dict | None
+        Alternative metadata to be associated with the raw data. Overrides possible metadata in the ``dataframe.attrs`` dictionary.
+
+    Attributes
+    ----------
+    df : DataFrame
+        The DataFrame containing the raw data to be processed.
+    required_meta : dict
+        A dictionary specifying the required metadata for processing, defined in ``BaseDataset``. Also, see heading.
+    nan_filler : str | None
+        A string representing how to handle missing values in the data. If None, no NaNs will be filled.
+        Options include 'split', and any method value from ``pandas.DataFrame.interpolate``.
+    nan_filled_components : list | None
+        A list of strings specifying which components to treat for missing values. If None, all float-valued components checked for NaNs.
+    meta : dict | None, default=None
+        Alternative metadata to be associated with the raw data. Overrides possible metadata in the ``dataframe.attrs`` dictionary.
+
+    Notes
+    -----
+        - If no instances are defined, all slices are placed in a single instance called 'super_instance'.
+        - Duplicate time steps are dropped based on their time index, disregarding feature values.
+
+    """
+    df = None
+    required_meta = None
+    nan_filler = None
+    nan_filled_components = None
+    meta = None
+    the_data = None
+    instances = None
 
     def __init__(self, df: DataFrame, required_meta: dict,
-                 nan_filler: str = None,
-                 nan_filled_components: str = None,
-                 meta: dict = None):
-        """
-        Instantiate the RawDataConverter module with the given arguments.
-
-        Parameters:
-            df (DataFrame): The DataFrame containing the raw data to be processed.
-            required_meta (dict): A dictionary specifying the required metadata for processing.
-            nan_filler (str, optional): A string representing how to handle missing values
-                in the data (default is None).
-            nan_filled_components (str, optional): A string specifying which components to treat
-                for missing values (default is None).
-            meta (dict, optional): Alternative metadata to be associated
-                with the raw data (default is None).
-
-        Calls internal methods to check metadata, DataFrame, split data by instances, and compile the data.
-        """
+                 nan_filler: str, nan_filled_components: list, meta: dict = None) -> None:
 
         self.df = df
         self.required_meta = required_meta
         self.nan_filler = nan_filler
         self.nan_filled_components = nan_filled_components
         self.meta = meta
-        self.the_data = None
-        self.instances = None
 
-        self.__check_meta()
-        self.__check_df()
-        self.__split_by_instance()
-        self.__compile_data()
-        self.__summarize_data()
+        self._check_meta()
+        self._check_df()
+        self._split_by_instance()
+        self._compile_data()
+        self._summarize_data()
 
-    def get_new_data(self):
-        """ Return the converted data structure. """
+    def get_new_data(self) -> dict:
+        """Return the converted data structure.
+
+        This method returns a dictionary representing the converted data structure,
+        which includes metadata and other relevant components.
+
+        Returns
+        -------
+        new_data : dict
+            A dictionary containing the following keys:
+                - 'instances': The instances in the dataset.
+                - 'base_nan_filler': The method or value used to fill NaN values in the dataset.
+                - 'nan_filled_components': The components in the dataset where potential NaN values were filled.
+                - 'the_data': The main data structure.
+
+        Notes
+        -----
+            - The returned dictionary also contains the provided metadata (i.e. name, components, time_delta)
+        """
         new_data = {}
         new_data.update(self.meta)
         new_data['instances'] = self.instances
@@ -100,12 +150,13 @@ class RawDataConverter:
         new_data['the_data'] = self.the_data
         return new_data
 
-    def __summarize_data(self):
+    def _summarize_data(self) -> None:
+        """Displays a summary of the compiled dataset for debugging purposes."""
 
-        logger.info('- - - - - - - - - - NEW DATASET COMPILED - - - - - - - - - ')
+        logger.info('- - - - - - - - - - COMPILED DATASET - - - - - - - - - ')
         logger.info(' NAME: %s', self.meta['name'])
         logger.info(' COMPONENTS: %s', str(self.meta['components']))
-        # logger.info(' INSTANCES: %s', str(self.instances))
+        logger.info(' INSTANCES: %s', str(self.instances))
 
         summary = [[len(s['t']) for s in self.the_data[i]] for i in self.instances]
         num_slices = sum([len(i) for i in summary])
@@ -117,25 +168,43 @@ class RawDataConverter:
 
         logger.info('- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
 
-    def __compile_data(self):
-        """ For each instance and slice, drop duplicates, split on time delta,
-            and handling missing values"""
+    def _compile_data(self) -> None:
+        """Process and compile data for each instance and slice.
 
+        This method performs several data processing steps for each instance in the dataset:
+            - Drops duplicate entries.
+            - Splits data into contiguous blocks based on a specified time delta.
+            - Handles missing values.
+        After processing, it compiles the data into a known format and updates the dataset.
+
+        Steps
+        -----
+            1. Iterate through each instance in `self.the_data`.
+            2. Drop duplicate entries (after ordering chronologically).
+            3. Split data into contiguous blocks based on `self.meta['time_delta']`.
+            4. Handle missing values using the appropriate method.
+            5. Compile the processed data into the required format.
+            6. Update `self.the_data` with the processed data.
+
+        Notes
+        -----
+            - If no appropriate slices are found for an instance, log a warning and drop the instance.
+            - If no appropriate slices are found for any instance, log an error and abort.
+        """
         instance_to_keep = []
         for i in self.the_data:
-            i_slices = self.the_data[i][self.meta['components']]
 
             # drop duplicates
-            i_slices, num_dropped = self.__drop_duplicates(i_slices)
+            i_df, num_dropped = self._drop_duplicates(self.the_data[i][self.meta['components']])
             if num_dropped > 0:
                 logger.warning('Instance %s has ' + str(num_dropped) +
                                ' duplicates, dropping!', str(i))
 
             # split into contiguous blocks
-            i_slices = self.__split_on_timedelta(i_slices, self.meta['time_delta'])
+            i_slices = self._split_on_timedelta(i_df, self.meta['time_delta'])
 
             # handle missing values
-            i_slices = self.__handle_nans(i, i_slices)
+            i_slices = self._handle_nans(i, i_slices, self.nan_filler, self.nan_filled_components)
 
             if len(i_slices) > 0:
                 # compile into known format
@@ -155,8 +224,13 @@ class RawDataConverter:
             logger.error('Found no appropriate slices in any instance. Aborting.')
             exit(101)
 
-    def __split_by_instance(self):
-        """ Create a dictionary of instances for further processing. """
+    def _split_by_instance(self) -> None:
+        """Split the dataset into separate instances for further processing.
+
+        This method creates a dictionary (`self.the_data`) where each key is an instance identifier,
+        and the corresponding value is the data associated with that instance. If no instances are
+        specified, the entire dataset is treated as a single 'super_instance'.
+        """
         self.the_data = {}
         if self.instances:
             for i, df in self.df.groupby(self.df['instance']):
@@ -165,8 +239,15 @@ class RawDataConverter:
             self.the_data['super_instance'] = self.df
             self.instances = ['super_instance']
 
-    def __check_df(self):
-        """ Check that the dataframe meets the required conditions. """
+    def _check_df(self) -> None:
+        """Check that the dataframe meets the required conditions.
+
+        This method performs several checks to ensure that the dataframe (`self.df`)
+        is properly structured and contains all necessary components before further
+        processing. The checks include verifying the presence of required components,
+        ensuring the dataframe is time-indexed, checking for all-NaN columns, and
+        ensuring no NaN values in the 'instance' column if applicable.
+        """
 
         # check all required present components
         components = set(list(self.df.columns))
@@ -196,8 +277,15 @@ class RawDataConverter:
                 logger.error('Some instance IDs are NaN.')
                 exit(101)
 
-    def __check_meta(self):
-        """ Check that the metadata is correctly provided. """
+    def _check_meta(self) -> None:
+        """Check that the metadata is correctly provided.
+
+        This method ensures that the metadata (`self.meta`) required for processing
+        the dataframe (`self.df`) is present, correctly formatted, and complete.
+        The checks include verifying the existence of metadata, ensuring all required
+        metadata fields are present, checking the types of metadata fields, and storing
+        only the required metadata fields and optional instances.
+        """
 
         # find meta
         if not self.meta:
@@ -227,8 +315,35 @@ class RawDataConverter:
             self.instances = self.meta['instances']
         self.meta = new_meta
 
-    def __handle_nans(self, i: object, i_slices: list):
-        """ Handle missing values in the given slices. """
+    @staticmethod
+    def _handle_nans(i: any, i_slices: list, nan_filler: str | None,
+                     nan_filled_components: list | None) -> list:
+        """Handle missing values in the given slices.
+
+        This method checks for missing values (NaNs) in the provided slices and
+        handles them according to the specified `nan_filler` method. Depending on
+        the `nan_filler`, it either splits the slices at NaN values, fills NaNs with
+        a specified method, or leaves them as they are.
+
+        Parameters
+        ----------
+        i : any
+            The identifier for the current instance being processed.
+        i_slices : list
+            List of slices (dataframes) to be checked for missing values.
+        nan_filler : str | None
+            Method for handling NaNs. Possible values are 'split', a specific filler
+            method, or None. If 'split', slices are split at NaN values. If a specific
+            filler method, NaNs are filled using that method. If None, NaNs are left as is.
+        nan_filled_components : list | None
+            List of components to be filled when handling NaNs. If None, all components
+            are considered.
+
+        Returns
+        -------
+        i_slices : list
+            List of slices with NaNs handled according to the specified method.
+        """
 
         has_nans = False
         for s in i_slices:
@@ -237,23 +352,49 @@ class RawDataConverter:
                 break
 
         if has_nans:
-            if self.nan_filler == 'split':
+            if nan_filler == 'split':
                 logger.warning('Instance %s has NaN values. Splitting on NaNs.', str(i))
-                i_slices = self.__split_nans(i_slices, self.nan_filled_components)
-            elif self.nan_filler:
+                i_slices = RawDataConverter._split_nans(i_slices, nan_filled_components)
+            elif nan_filler:
                 logger.warning('Instance %s has NaN values. Filling with %s.', str(i),
-                               self.nan_filler)
-                i_slices = self.__fill_nans(i_slices,
-                                            self.nan_filler,
-                                            self.nan_filled_components)
+                               nan_filler)
+                i_slices = RawDataConverter._fill_nans(i_slices,
+                                                        nan_filler,
+                                                        nan_filled_components)
             else:
                 logger.warning('Instance %s has NaN values. Leaving as is.', str(i))
 
         return i_slices
 
     @staticmethod
-    def __split_nans(slices: list, nan_filled_components: str):
-        """ Split slices on NaN values. """
+    def _split_nans(slices: list, nan_filled_components: list) -> list:
+        """Split slices on NaN values.
+
+        This method processes a list of data slices (dataframes) and splits them
+        into new slices wherever NaN values are found in the specified components.
+        If no specific components are provided, it defaults to splitting on any
+        float-type columns containing NaNs.
+
+        Parameters
+        ----------
+        slices : list
+            List of data slices (dataframes) to be processed for NaN values.
+        nan_filled_components : list or None
+            List of specific components (column names) to check for NaNs. If None,
+            all float-type columns are considered for splitting.
+
+        Returns
+        -------
+        list
+            A list of new data slices with NaNs split out.
+
+        Notes
+        -----
+            - The method logs a warning if no non-NaN rows are found to split on,
+              indicating that the slice is ignored.
+            - The 'nan_group' column is added temporarily to identify contiguous blocks
+              of non-NaN values, and is removed before returning the final list of slices.
+        """
         new_slices = []
         for d in slices:
             if nan_filled_components:
@@ -282,8 +423,35 @@ class RawDataConverter:
         return new_slices
 
     @staticmethod
-    def __fill_nans(slices: list, nan_filler: str, nan_filled_components: str):
-        """ Fill NaNs in proved slices. """
+    def _fill_nans(slices: list, nan_filler: str, nan_filled_components: list) -> list:
+        """Fill NaNs in provided slices.
+
+        This method processes a list of data slices (dataframes) and fills NaN values
+        using the specified interpolation method for the given components. If no specific
+        components are provided, it defaults to interpolating any float-type columns
+        containing NaNs.
+
+        Parameters
+        ----------
+        slices : list
+            List of data slices (dataframes) to be processed for NaN values.
+        nan_filler : str
+            The interpolation method to be used for filling NaNs.
+        nan_filled_components : list or None
+            List of specific components (column names) to check for NaNs. If None,
+            all float-type columns are considered for filling.
+
+        Returns
+        -------
+        new_slices : list
+            A list of new data slices with NaNs filled according to the specified method.
+
+        Notes
+        -----
+            - The method logs a warning if no non-NaN values are available to interpolate with,
+              indicating that the slice is ignored.
+            - Only slices with successfully filled NaNs (or no NaNs to begin with) are included in the returned list.
+        """
         new_slices = []
         for s in slices:
             if nan_filled_components:
@@ -299,8 +467,26 @@ class RawDataConverter:
         return new_slices
 
     @staticmethod
-    def __split_on_timedelta(df: DataFrame, time_delta: object):
-        """ Split dataframe (df) based on time_delta. """
+    def _split_on_timedelta(df: DataFrame, time_delta: timedelta | Timedelta) -> list:
+        """Split a dataframe based on a given time delta.
+
+        This method splits a dataframe into multiple segments where each segment is separated
+        by a time difference greater than the specified `time_delta`. The segments are then
+        further checked and concatenated if the difference between the end of one segment
+        and the start of the next segment equals `time_delta`.
+
+        Parameters
+        ----------
+        df : DataFrame
+            The dataframe to be split. It is assumed to have a datetime index.
+        time_delta : timedelta | Timedelta
+            The time delta used to determine the points at which to split the dataframe.
+
+        Returns
+        -------
+        list
+            A list of dataframes, each representing a segment of the original dataframe.
+        """
         deltas = df.index.to_series().diff()
         mask = deltas > time_delta
         heads = list(df.columns)
@@ -323,8 +509,25 @@ class RawDataConverter:
         return d_slices
 
     @staticmethod
-    def __drop_duplicates(df: DataFrame):
-        """ Drop duplicates from dataframe (df). """
+    def _drop_duplicates(df: DataFrame) -> tuple:
+        """Drop duplicate entries from a dataframe based on its index.
+
+        This method sorts the dataframe by its index and removes duplicate entries,
+        keeping only the first occurrence of each index value. It also returns the
+        number of duplicates that were dropped.
+
+        Parameters
+        ----------
+        df : DataFrame
+            The dataframe from which to drop duplicate entries.
+
+        Returns
+        -------
+        DataFrame
+            The dataframe with duplicates removed.
+        int
+            The number of duplicate entries that were dropped.
+        """
         len_check = len(df)
         df = df.sort_index()
         df = df[~df.index.duplicated(keep='first')]
