@@ -10,11 +10,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime
 import pytz
+from networkx.algorithms.bipartite import color
 from sklearn.metrics import ConfusionMatrixDisplay
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.dates as mdates
 from PIL import Image
 import matplotlib.animation as animation
+from matplotlib.lines import Line2D
 
 # imports imports
 from env.env_paths import (learning_data_path, learning_curves_path,
@@ -44,11 +46,7 @@ matplotlib.rcParams['axes.prop_cycle'] = matplotlib.cycler(color=c_cycle)
 def feature_attribution(exp_output_dir, model_name, interpret_args):
 
     interpretation_dir = model_interpretations_dir(exp_output_dir, model_name)
-    predictions_dir = model_predictions_dir(exp_output_dir, model_name)
     model_args = yaml_to_dict(model_args_path(exp_output_dir, model_name))
-
-    file_name = '_' + interpret_args['interpretation_set'] + '-' + 'ist_inx_dict' + '.pickle'
-    ist_values, _ = load_from_path(os.path.join(predictions_dir, file_name))
 
     file_name = ''
     for a in interpret_args:
@@ -61,25 +59,125 @@ def feature_attribution(exp_output_dir, model_name, interpret_args):
     feat_att_dict = load_from_path(file_path)
 
     feat_att = feat_att_dict['results']
-    relevant_ist = {}
-    for x in range(feat_att_dict['i_inx'][0], feat_att_dict['i_inx'][1]):
-        relevant_ist[x] = ist_values[x]
+    input_features = feat_att_dict['input_features']
+    predictions = feat_att_dict['predictions']
+    targets = feat_att_dict['targets']
 
-    # wanted to incorporate input and output features to vizuals, but difficult and not enough time.
-    # feature_values = fetch_feature_values(predictions_dir,
-    #                                       interpret_args['interpretation_set'],
-    #                                       relevant_ist, model_args)
+    relevant_ist = {}
+    tick = 0
+    for t in range(feat_att_dict['i_inx'][0], feat_att_dict['i_inx'][1]):
+        relevant_ist[t] = feat_att_dict['timestamps'][tick]
+        tick += 1
 
     folder_name = file_name.split('.pickle')[0]
     save_dir = model_interpretations_output_dir(exp_output_dir, model_name, folder_name)
 
     if model_args['data']['task'] == 'regression':
+        # plot_big_composite_example(feat_att, relevant_ist, input_features, predictions, targets, save_dir, model_args)
         plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
         plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
 
     elif model_args['data']['task'] == 'classification':
         plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
         plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, interpret_args)
+
+
+def plot_big_composite_example(feat_att, relevant_ist, input_features, predictions, targets, save_dir, model_args):
+
+    # min_fa = min([feat_att[f]['attributions'].min().item() for f in feat_att])
+    # max_fa = max([feat_att[f]['attributions'].max().item() for f in feat_att])
+
+    keys = [k for k in relevant_ist.keys()]
+    keys.sort()
+    r_ist = []
+    for k in keys:
+        r_ist.append(relevant_ist[k])
+
+    t_delta = r_ist[1][2] - r_ist[0][2]
+
+    num_pps = len(r_ist)
+    logits = list(feat_att.keys())
+
+    in_components = model_args['data']['in_components']
+    out_components = model_args['data']['out_components']
+    in_chunk = model_args['data']['in_chunk']
+    out_chunk = model_args['data']['out_chunk']
+
+    in_scan = np.arange(in_chunk[0], in_chunk[-1]+1)
+
+    # now = np.argwhere(np.arange(in_chunk[0], in_chunk[1]+1) == 0)
+    colors = [[np.random.uniform(0., 1.),
+               np.random.uniform(0., 1.),
+               np.random.uniform(0., 1.)] for c in in_components]
+    colors = ['green', 'orange', 'purple', 'cyan', 'pink', 'yellow']
+    if len(colors) < len(in_components):
+        for c in range(len(in_components) - len(colors)):
+            colors.append([np.random.uniform(0., 1.),
+                           np.random.uniform(0., 1.),
+                           np.random.uniform(0., 1.)])
+
+    custom_lines = [Line2D([0], [0], color='blue', lw=4)]
+    custom_names = ['prediction']
+    custom_lines.append(Line2D([0], [0], color='red', lw=4))
+    custom_names.append('target')
+    for c in range(len(in_components)):
+        custom_lines.append(Line2D([0], [0], color=colors[c], lw=4))
+        custom_names.append(in_components[c])
+
+    plt.style.use('dark_background')
+    for l in logits:
+        image_paths = []
+        for pp in range(num_pps):
+            fig, axes = plt.subplots(1, 1, figsize=generic_figsize, dpi=generic_dpi)
+            plt.axvline(x=r_ist[pp][2], color="grey", linestyle='-', alpha=0.5)
+            for pp2 in range(num_pps):
+                ts = r_ist[pp2][2]
+                target = targets[pp2][l[0], l[1]]
+                prediction = predictions[pp2][l[0], l[1]]
+                plt.scatter(ts, target, c='red', marker='.')
+                plt.scatter(ts, prediction, c='blue', marker='.')
+                plt.title('Logit ' + str(l))
+
+            ts = r_ist[pp][2]
+            ti = r_ist[pp][0]
+            in_feats = input_features[pp, :, :].numpy()
+            for t in range(len(in_scan)):
+                for c in range(len(in_components)):
+                    new_color = colors[c]
+
+                    min_f = feat_att[l]['attributions'][pp, :, :].abs().min().item()
+                    max_f = feat_att[l]['attributions'][pp, :, :].abs().max().item()
+                    alpha = (feat_att[l]['attributions'][pp, t, c].abs().cpu().item() - min_f)/(max_f - min_f)
+
+                    # abs_feat_att = feat_att[l]['attributions'][pp, :, :].abs()
+                    # exp_fa = torch.exp(abs_feat_att)/2.
+                    # sm_abs_feat_att = exp_fa / torch.sum(exp_fa)
+                    # alpha = sm_abs_feat_att[t, c].cpu().item()
+
+
+
+                    plt.scatter(ts+ t_delta * in_scan[t], in_feats[t, c], c=new_color, marker='o', alpha=alpha)
+            plt.axvline(x=ts+ t_delta * in_scan[0], color="grey", linestyle='--', alpha=0.3)
+            plt.axvline(x=ts + t_delta * in_scan[-1], color="grey", linestyle='--', alpha=0.3)
+
+            plt.legend(custom_lines, custom_names)
+            plt.xlabel('Time (Prediction points)')
+            plt.ylabel('Feature values')
+
+            # plt.show()
+
+            save_path = os.path.join(save_dir, 'composite-' + str(ti) + '-' + str(ts) + '.png')
+            plt.savefig(save_path, dpi=quick_dpi)
+            image_paths.append(save_path)
+
+            plt.close()
+
+            ping = 0
+
+        create_gif(save_dir, image_paths, name='composite.gif')
+
+
+    exit(101)
 
 
 def plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args):
@@ -162,32 +260,6 @@ def plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, 
         save_path = os.path.join(save_dir, 'mean_abs_attribution_logit_' + str(logit) + '.png')
         plt.savefig(save_path, dpi=generic_dpi)
         plt.close()
-
-
-def fetch_feature_values(predictions_dir, data_tag, ist_values, model_args):
-
-
-
-
-    batches = []
-    for b in os.listdir(predictions_dir):
-        if b.startswith(data_tag + '-' + 'batch'):
-            batches.append(b)
-
-    output_values = {}
-    for b in batches:
-        batch = load_from_path(os.path.join(predictions_dir, b))
-        s_inx = batch[0]
-        batch_pred = batch[1]
-        batch_target = batch[2]
-        for p in range(len(s_inx)):
-            pp = s_inx[p].item()
-            if pp in ist_values.keys():
-                y_hat = batch_pred[p]
-                y = batch_target[p]
-                output_values[pp] = (y_hat, y)
-
-    return output_values
 
 
 def plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, interpret_args):
@@ -343,7 +415,7 @@ def plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, inter
     create_gif(save_dir, image_paths)
 
 
-def create_gif(save_dir, image_paths):
+def create_gif(save_dir, image_paths, name='animate.gif'):
 
     def update(i):
         im.set_array(img_arr[i])
@@ -373,7 +445,7 @@ def create_gif(save_dir, image_paths):
 
     # plt.show()
 
-    save_path = os.path.join(save_dir, "animate.gif")
+    save_path = os.path.join(save_dir, name)
 
     animation_fig.save(save_path, writer="pillow")
 
@@ -390,68 +462,6 @@ def set_predictions(exp_output_dir, model_name, data_tag):
 
     file_name = '_' + data_tag + '-' + 'ist_inx_dict' + '.pickle'
     ist_values, _ = load_from_path(os.path.join(predictions_dir, file_name))
-
-    # batches = []
-    # for b in os.listdir(predictions_dir):
-    #     if b.startswith(data_tag + '-' + 'batch'):
-    #         batches.append(b)
-    #
-    # predictions = defaultdict(list)
-    # targets = defaultdict(list)
-    # for b in batches:
-    #     batch = load_from_path(os.path.join(predictions_dir, b))
-    #     s_inx = batch[0]
-    #     batch_pred = batch[1]
-    #     batch_target = batch[2]
-    #     for p in range(len(s_inx)):
-    #         pp = s_inx[p].item()
-    #         i = ist_values[pp][0]
-    #         t = ist_values[pp][2]
-    #         y_hat = batch_pred[p]
-    #         y = batch_target[p]
-    #         predictions[i].append([t, y_hat.numpy()])
-    #         targets[i].append([t, y.numpy()])
-    # predictions = dict(predictions)
-    # targets = dict(targets)
-    #
-    # instances = targets.keys()
-    # for i in instances:
-    #     i_predictions = predictions[i]
-    #     i_targets = targets[i]
-    #     t = [x[0] for x in i_predictions]
-    #     order = sorted(range(len(t)), key=t.__getitem__)
-    #     t = np.array([t[x] for x in order])
-    #     y = np.array([i_targets[x][1] for x in order])
-    #     y_hat = np.array([i_predictions[x][1] for x in order])
-    #
-    #     deltas = np.diff(t)
-    #     delta = deltas.min()
-    #     if (deltas != delta).any():
-    #         # insert NaNs in gaps
-    #         a_nice_nan = np.empty_like(y[0])
-    #         a_nice_nan[:] = np.nan
-    #         here = np.argwhere(deltas != delta)
-    #         gaps = []
-    #         for h in range(len(here)):
-    #             to_insert_nan = here[h].item()
-    #             gap = np.arange(start=t[to_insert_nan] + delta,
-    #                             stop=t[to_insert_nan + 1],
-    #                             step=delta).astype(datetime)
-    #             gap = np.array([pytz.utc.localize(g) for g in gap])
-    #             gaps.append(gap)
-    #         for g in range(len(gaps)-1, 0, -1):
-    #             to_insert_nan = here[g].item() + 1
-    #             t = np.insert(t, to_insert_nan, gaps[g])
-    #             nan_stack = np.stack([a_nice_nan for x in range(len(gaps[g]))], axis=0)
-    #             y = np.insert(y, to_insert_nan, nan_stack, axis=0)
-    #             y_hat = np.insert(y_hat, to_insert_nan, nan_stack, axis=0)
-    #         deltas = np.diff(t)
-    #         if delta != deltas.min():
-    #             logger.error('Something went very wrong with growing gaps in prediction vizuals.')
-    #             exit(101)
-    #
-    #     predictions[i] = [t, y_hat]
-    #     targets[i] = [t, y]
 
     instances, predictions, targets = fetch_predictions(predictions_dir, data_tag, ist_values)
 
