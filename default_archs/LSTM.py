@@ -14,11 +14,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import sys
+
 import numpy as np
 import torch
 import yaml
 from torch import Tensor, nn
 from torch.nn import LSTM, Linear, Module
+
+from helpers.logger import get_logger
+
+logger = get_logger()
 
 available_tasks = ("regression", "classification")
 
@@ -26,7 +32,6 @@ HP_ranges_dict = {
     "arch_args": {
         "width": range(2, 1025, 1),
         "depth": range(2, 1025, 1),
-        "num_hidden_to_out": "varies according to width",
         "dropout": np.arange(0, 1.1, 0.1),
         "output_activation": (None, "Sigmoid", "Softmax"),
         "bidirectional": (False, True),
@@ -43,15 +48,11 @@ HP_ranges_dict = {
 class ArchArgs(yaml.YAMLObject):
     yaml_tag = "!arch_args"
 
-    num_hidden_to_out: int
     width: int = 256
     depth: int = 1
     dropout: float = 0.5
     output_activation: None | str = None
     bidirectional: bool = False
-    path: str = __file__
-
-
 
 @dataclass(frozen=True)
 class Internal(yaml.YAMLObject):
@@ -60,7 +61,6 @@ class Internal(yaml.YAMLObject):
     init_hidden_state: None | str | Tensor=None
     init_cell_state: None | str | Tensor=None
     tracking: bool=False
-    path: str = __file__
 
 
 class Model(Module):
@@ -77,13 +77,13 @@ class Model(Module):
         # incomponents and out_components
         self.input_size = input_dim[-1]
         self.model_out_dim = int(np.prod(output_dim))
-        self.final_out_dim = output_dim
+        self.final_out_shape = output_dim
 
         # remember to move h0 and c0 to device
 
         if not arch_args:
             # revert to default arg values in ArchArgs
-            arch_args = ArchArgs(num_hidden_to_out=1)
+            arch_args = ArchArgs()
 
         # input layer (input x will return three tensors: output, (hn, cn))
         self.lstm_layers = LSTM(
@@ -98,7 +98,7 @@ class Model(Module):
         output_layer: list[Module] = []
         output_layer.append(
             Linear(
-                in_features=arch_args.width,
+                in_features=arch_args.width * input_dim[-2],
                 out_features=self.model_out_dim,
                 bias=False,
             ),
@@ -140,7 +140,7 @@ class Model(Module):
         Args:
         ----
             x (Tensor):     An input tensor of shape
-                            (batch_size, in_chunk * in_components)
+                            (batch_size, in_chunk, in_components)
 
         Returns
         -------
@@ -216,9 +216,11 @@ class Model(Module):
         if self._internal.tracking:
             self._internal.update(hn=h, cn=c)
 
-        return self.model_output(
+        hidden = hidden.reshape(hidden.shape[0], hidden.shape[1] * hidden.shape[2])
+        out = self.model_output(
             hidden,
         )
+        return out.view(x.shape[0], self.final_out_shape[0], self.final_out_shape[1])
 
     def _classification(self, x: Tensor) -> Tensor:
         """Return model output for an input batch for a classification task.
@@ -288,28 +290,31 @@ class InternalState:
             bidirect: bool,
     ) -> None:
 
-        self._current_batch: int=0
         self.tracking: bool = track_hidden
+        if track_hidden:
+            logger.info("Tracking internal LSTM state set to True.")
         _d = 2 if bidirect else 1
 
         # initialize
-        if self._current_batch == 0:
-            if not init_hidden_state:
-                h0: Tensor = torch.zeros(size=(_d * depth, width))
-            elif init_hidden_state == "random":
-                h0: Tensor = torch.randn(size=(_d * depth, width))
-            elif isinstance(init_hidden_state, Tensor):
-                h0: Tensor = init_hidden_state
+        if not init_hidden_state or init_hidden_state == "zeros":
+            h0: Tensor = torch.zeros(size=(_d * depth, width))
+        elif init_hidden_state == "random":
+            h0: Tensor = torch.randn(size=(_d * depth, width))
+        else:
+            logger.error("Choice for initial state must be: zeros or random\
+                        (default: zeros).")
+            sys.exit()
 
-            if not init_cell_state:
-                c0: Tensor = torch.zeros(size=(_d * depth, width))
-            elif init_cell_state == "random":
-                c0: Tensor = torch.randn(size=(_d * depth, width))
-            elif isinstance(init_cell_state, Tensor):
-                c0: Tensor = init_cell_state
+        if not init_cell_state or init_cell_state == "zeros":
+            c0: Tensor = torch.zeros(size=(_d * depth, width))
+        elif init_cell_state == "random":
+            c0: Tensor = torch.randn(size=(_d * depth, width))
+        else:
+            logger.error("Choice for initial state must be: zeros or random\
+                        (default: zeros).")
+            sys.exit()
 
-            self.update(cn=c0, hn=h0)
-            self._current_batch += 1
+        self.update(cn=c0, hn=h0)
 
     def update(self, cn: Tensor, hn: Tensor) -> None:
         """Update init values for the cell and the hidden state."""
