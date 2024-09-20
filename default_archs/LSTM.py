@@ -85,33 +85,6 @@ class Model(Module):
             # revert to default arg values in ArchArgs
             arch_args = ArchArgs()
 
-        # input layer (input x will return three tensors: output, (hn, cn))
-        self.lstm_layers = LSTM(
-                input_size=self.input_size,
-                hidden_size=arch_args.width,
-                num_layers=arch_args.depth,
-                dropout=arch_args.dropout,
-                bidirectional=arch_args.bidirectional,
-                batch_first=True,
-            )
-
-        output_layer: list[Module] = []
-        output_layer.append(
-            Linear(
-                in_features=arch_args.width * input_dim[-2],
-                out_features=self.model_out_dim,
-                bias=False,
-            ),
-        )
-
-        self.task_name = task_name
-        if task_name == "classification":
-            output_layer.append(
-                get_output_activation(arch_args.output_activation),
-            )
-
-        self.model_output = nn.Sequential(*output_layer)
-
         # config for cell and hidden state initialization for each batch
         if internal_state:
             self._internal = InternalState(
@@ -134,6 +107,34 @@ class Model(Module):
                 track_hidden=internal_state.tracking,
             )
 
+        # rnn layer (input x will return three tensors: output, (hn, cn))
+        self.lstm_layers = LSTM(
+                input_size=self.input_size,
+                hidden_size=arch_args.width,
+                num_layers=arch_args.depth,
+                dropout=arch_args.dropout,
+                bidirectional=arch_args.bidirectional,
+                batch_first=True,
+            )
+
+        output_layer: list[Module] = []
+        output_layer.append(
+            Linear(
+                in_features=self._internal.d * arch_args.width * input_dim[-2],
+                out_features=self.model_out_dim,
+                bias=False,
+            ),
+        )
+
+        self.task_name = task_name
+        if task_name == "classification":
+            output_layer.append(
+                get_output_activation(arch_args.output_activation),
+            )
+
+        self.model_output = nn.Sequential(*output_layer)
+
+
     def _regression(self, x: Tensor) -> Tensor:
         """Return model output for an input batch for a regression task.
 
@@ -148,79 +149,28 @@ class Model(Module):
                             (batch_size, out_chunk, out_components)
 
         """
-        if len(self._internal.h0.shape) == 2:
-            # add batch dim
-            # bho & ch0 resulting shapes (depth, batch, width)
-            hn = torch.broadcast_to(
-                input=self._internal.h0,
-                size=(
-                    self._internal.h0.shape[0],
-                    x.shape[0],
-                    self._internal.h0.shape[1],
-                ),
-            )
-            cn = torch.broadcast_to(
-                input=self._internal.c0,
-                size=(
-                    self._internal.c0.shape[0],
-                    x.shape[0],
-                    self._internal.c0.shape[1],
-                ),
-            )
-            self._internal.update(hn=hn, cn=cn)
-        elif self._internal.h0.shape[1] > x.shape[0]:
-            # batch dim exists but needs to be modified according to x.
-            hn = torch.narrow(
-                input=self._internal.h0,
-                dim=1,
-                start=0,
-                length=int(x.shape[0]),
-            )
-            cn = torch.narrow(
-                input=self._internal.c0,
-                dim=1,
-                start=0,
-                length=int(x.shape[0]),
-            )
-            self._internal.update(hn=hn, cn=cn)
-        elif self._internal.h0.shape[1] < x.shape[0]:
-            # batch dim exists but needs to be modified according to x.
-            hn = self._internal.h0[:, 1, :]
-            hn = torch.unsqueeze(hn, -1)
-            hn = torch.transpose(hn, 1, 2)
-            hn = torch.broadcast_to(
-                input=hn,
-                size=(
-                    self._internal.h0.shape[0],
-                    x.shape[0],
-                    self._internal.h0.shape[2],
-                ),
-            )
-            cn = self._internal.c0[:, 1, :]
-            cn = torch.unsqueeze(cn, -1)
-            cn = torch.transpose(cn, 1, 2)
-            cn = torch.broadcast_to(
-                input=cn,
-                size=(
-                    self._internal.c0.shape[0],
-                    x.shape[0],
-                    self._internal.c0.shape[2],
-                ),
-            )
-            self._internal.update(hn=hn, cn=cn)
+        self._internal.initialize(batch_size=x.shape[0])
 
         hidden, (h, c) = self.lstm_layers(
             x,
             (self._internal.h0.to(x.device), self._internal.c0.to(x.device)),
         )
+
+        # TODO(randle): Tracking hidden states across batches is work in
+        # progress.
+        # https://github.com/MUST-Deep-Learning/KnowIt/issues/131
         if self._internal.tracking:
             self._internal.update(hn=h, cn=c)
 
-        hidden = hidden.reshape(hidden.shape[0], hidden.shape[1] * hidden.shape[2])
+        hidden = hidden.reshape(
+            hidden.shape[0], hidden.shape[1] * hidden.shape[2],
+        )
         out = self.model_output(
             hidden,
         )
-        return out.view(x.shape[0], self.final_out_shape[0], self.final_out_shape[1])
+        return out.view(
+            x.shape[0], self.final_out_shape[0], self.final_out_shape[1],
+        )
 
     def _classification(self, x: Tensor) -> Tensor:
         """Return model output for an input batch for a classification task.
@@ -289,26 +239,43 @@ class InternalState:
             track_hidden: bool,
             bidirect: bool,
     ) -> None:
+        self.width = width
+        self.depth = depth
+        self.init_hidden_state = init_hidden_state
+        self.init_cell_state = init_cell_state
 
-        self.tracking: bool = track_hidden
+        # TODO(randle): Tracking hidden states across batches is work in
+        # progress.
+        # https://github.com/MUST-Deep-Learning/KnowIt/issues/131
+        self.tracking = track_hidden
         if track_hidden:
             logger.info("Tracking internal LSTM state set to True.")
-        _d = 2 if bidirect else 1
+        self.d = 2 if bidirect else 1
 
-        # initialize
-        if not init_hidden_state or init_hidden_state == "zeros":
-            h0: Tensor = torch.zeros(size=(_d * depth, width))
-        elif init_hidden_state == "random":
-            h0: Tensor = torch.randn(size=(_d * depth, width))
+
+    def initialize(self, batch_size: int) -> None:
+        """Initialize hidden and cell states."""
+        if not self.init_hidden_state or self.init_hidden_state == "zeros":
+            h0 = torch.zeros(
+                size=(self.d * self.depth, batch_size, self.width),
+            )
+        elif self.init_hidden_state == "random":
+            h0 = torch.rand(
+                size=(self.d * self.depth, batch_size, self.width),
+            )
         else:
             logger.error("Choice for initial state must be: zeros or random\
                         (default: zeros).")
             sys.exit()
 
-        if not init_cell_state or init_cell_state == "zeros":
-            c0: Tensor = torch.zeros(size=(_d * depth, width))
-        elif init_cell_state == "random":
-            c0: Tensor = torch.randn(size=(_d * depth, width))
+        if not self.init_cell_state or self.init_cell_state == "zeros":
+            c0 = torch.zeros(
+                size=(self.d * self.depth, batch_size, self.width),
+            )
+        elif self.init_cell_state == "random":
+            c0 = torch.randn(
+                size=(self.d * self.depth, batch_size, self.width),
+            )
         else:
             logger.error("Choice for initial state must be: zeros or random\
                         (default: zeros).")
@@ -317,7 +284,7 @@ class InternalState:
         self.update(cn=c0, hn=h0)
 
     def update(self, cn: Tensor, hn: Tensor) -> None:
-        """Update init values for the cell and the hidden state."""
+        """Update values for the cell and the hidden state."""
         self.c0 = cn
         self.h0 = hn
 
