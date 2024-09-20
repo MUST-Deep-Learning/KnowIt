@@ -186,13 +186,21 @@ class Model(Module):
                             (batch_size, num_classes)
 
         """
-        if self.handc:
-            x_tuple = (x, (self.h_0, self.c_0))
-            hidden = self.lstm_layers(*x_tuple)[0]
-        else:
-            hidden = self.lstm_layers(x)[0]
-        hidden = torch.reshape(
-            hidden, (hidden.shape[0], hidden.shape[1] * hidden.shape[2]),
+        self._internal.initialize(batch_size=x.shape[0])
+
+        hidden, (h, c) = self.lstm_layers(
+            x,
+            (self._internal.h0.to(x.device), self._internal.c0.to(x.device)),
+        )
+
+        # TODO(randle): Tracking hidden states across batches is work in
+        # progress.
+        # https://github.com/MUST-Deep-Learning/KnowIt/issues/131
+        if self._internal.tracking:
+            self._internal.update(hn=h, cn=c)
+
+        hidden = hidden.reshape(
+            hidden.shape[0], hidden.shape[1] * hidden.shape[2],
         )
 
         return self.model_output(hidden)
