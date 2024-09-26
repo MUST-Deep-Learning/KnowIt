@@ -214,18 +214,15 @@ class Model(Module):
     ) -> None:
         super().__init__()
 
-        # incomponents and out_components
         self.input_size = input_dim[-1]
         self.model_out_dim = int(np.prod(output_dim))
         self.final_out_shape = output_dim
-
-        # remember to move h0 and c0 to device
 
         if not arch_args:
             # revert to default arg values in ArchArgs
             arch_args = ArchArgs()
 
-        # config for cell and hidden state initialization for each batch
+        # config for cell and hidden states
         if internal_state:
             self._internal = InternalState(
                 width=arch_args.width,
@@ -247,7 +244,7 @@ class Model(Module):
                 track_hidden=internal_state.tracking,
             )
 
-        # rnn layer (input x will return three tensors: output, (hn, cn))
+        # rnn layer (will return three tensors: output, (hn, cn))
         self.lstm_layers = LSTM(
             input_size=self.input_size,
             hidden_size=arch_args.width,
