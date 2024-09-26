@@ -60,6 +60,9 @@ KI.train_model(
 
 from __future__ import annotations
 
+__author__ = "randlerabe@gmail.com"
+__description__ = "Contains an example of a LSTM architecture."
+
 import sys
 from dataclasses import dataclass
 
@@ -93,6 +96,27 @@ HP_ranges_dict = {
 
 @dataclass
 class ArchArgs(yaml.YAMLObject):
+    """Container for architecture parameters.
+
+    Parameters
+    ----------
+    width : int, optional
+        The width of the architecture (default is 256).
+    depth : int, optional
+        The depth of the architecture (default is 1).
+    dropout : float, optional
+        The dropout rate (default is 0.5).
+    output_activation : None or str, optional
+        The activation function for the output layer (default is None).
+    bidirectional : bool, optional
+        Indicates whether the architecture is bidirectional (default is False).
+
+    Attributes
+    ----------
+    yaml_tag : str
+        A unique YAML tag for identifying the architecture parameters.
+    """
+
     yaml_tag = "!arch_args"
 
     width: int = 256
@@ -104,6 +128,23 @@ class ArchArgs(yaml.YAMLObject):
 
 @dataclass
 class Internal(yaml.YAMLObject):
+    """Container for internal states and configuration.
+
+    Parameters
+    ----------
+    init_hidden_state : None or str or Tensor, optional
+        The initial hidden state for the model (default is None).
+    init_cell_state : None or str or Tensor, optional
+        The initial cell state for the model (default is None).
+    tracking : bool, optional
+        Flag to indicate if tracking is enabled (default is False).
+
+    Attributes
+    ----------
+    yaml_tag : str
+        A unique YAML tag for identifying the internal configuration.
+    """
+
     yaml_tag = "!internal"
 
     init_hidden_state: None | str | Tensor = None
@@ -425,7 +466,7 @@ class InternalState:
         else:
             logger.error(
                 "Choice for initial state must be: zeros or random\
-                        (default: zeros)."
+                        (default: zeros).",
             )
             sys.exit()
 
@@ -440,7 +481,7 @@ class InternalState:
         else:
             logger.error(
                 "Choice for initial state must be: zeros or random\
-                        (default: zeros)."
+                        (default: zeros).",
             )
             sys.exit()
 
