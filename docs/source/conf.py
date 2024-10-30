@@ -56,7 +56,7 @@ html_theme = "pydata_sphinx_theme"
 
 html_theme_options = {
     "show_nav_level": 2,
-    "navigation_depth": 2,
+    "navigation_depth": 3,
     "show_toc_level": 2,
     "icon_links": [
         {
