@@ -18,8 +18,8 @@ A codebase to train and interpret ANNs performing time series modelling.
    :caption: User Guide:
 
    markdowns/datasets_readme
-   markdowns/archs_readme
    markdowns/data_readme
+   markdowns/archs_readme
    markdowns/trainer_readme
    markdowns/interpreter_readme
    markdowns/env_readme
