@@ -3,11 +3,11 @@
 BaseTrainer
 -----------
 
-The "BaseTrainer" is an abstract class that functions as the interface bet-
-ween the context class ``KITrainer'' and any of the concrete trainer state
+The ``BaseTrainer`` is an abstract class that functions as the interface
+between the context class ``KITrainer`` and any of the concrete trainer state
 objects.
 
-The "BaseTrainer" class stores the user's parameters and defines a set of
+The ``BaseTrainer`` class stores the user's parameters and defines a set of
 abstract methods to be inherited by the trainer state objects.
 
 Note that some kwargs in the constructor require additional parameters (for
@@ -15,7 +15,7 @@ example, the learning rate scheduler). In this case, the parameter is always
 provided as a dictionary with the keys as strings specifying the additional
 parameters.
 
-For example, if one wants to use the 'ReduceLROnPlateau' scheduler
+For example, if one wants to use the `ReduceLROnPlateau` scheduler
 from Pytorch, then one can specify it as a string::
 
     lr_scheduler = 'ReduceLROnPlateau'
@@ -60,10 +60,10 @@ logger = get_logger()
 
 
 class BaseTrainer(ABC):
-    """Abstract class to interface between the context class "KITrainer" and a
-    trainer state.
+    """Abstract class to interface between the context class ``KITrainer`` and
+    a trainer state.
 
-    "BaseTrainer" will initialize necessary and optional kwargs to be used by
+    ``BaseTrainer`` will initialize necessary and optional kwargs to be used by
     any of the KnowIt Trainer states. It also defines abstract methods that are
     to be defined in each state object.
 
