@@ -41,7 +41,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning import Trainer as PLTrainer
+from pytorch_lightning import Trainer as PLTrainer  
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -295,7 +295,7 @@ class ContinueTraining(BaseTrainer):
         if self.return_final:
             set_ckpt_path = self.out_dir + "/last.ckpt"
         else:
-            set_ckpt_path = "best"
+            set_ckpt_path = "best"  
 
         logger.info(
             "Testing model on the current training run's best checkpoint.",
