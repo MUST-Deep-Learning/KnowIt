@@ -243,10 +243,10 @@ class KnowIt:
         custom_archs = os.listdir(custom_arch_dir(self.exp_output_dir))
         arch_dict = {'defaults': [], 'custom': []}
         for d in default_archs:
-            if d.endswith('.py'):
+            if d.endswith('.py') and d != '__init__.py':
                 arch_dict['defaults'].append(d.split('.py')[0])
         for d in custom_archs:
-            if d.endswith('.py'):
+            if d.endswith('.py') and d != '__init__.py':
                 arch_dict['custom'].append(d.split('.py')[0])
         return arch_dict
 
