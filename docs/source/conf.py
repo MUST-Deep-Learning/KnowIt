@@ -22,7 +22,7 @@ copyright = "2024, Tian Theunissen, Randle Rabe"
 author = "Tian Theunissen, Randle Rabe"
 
 # The full version, including alpha/beta/rc tags
-release = "0.1"
+release = "0.0.1"
 
 
 # -- General configuration ---------------------------------------------------
@@ -34,7 +34,6 @@ extensions = [
     "sphinx.ext.autodoc",
     "myst_parser",
     "sphinx.ext.inheritance_diagram",
-    "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "autoapi.extension",
 ]
@@ -57,7 +56,7 @@ html_theme = "pydata_sphinx_theme"
 
 html_theme_options = {
     "show_nav_level": 2,
-    "navigation_depth": 2,
+    "navigation_depth": 3,
     "show_toc_level": 2,
     "icon_links": [
         {
@@ -67,7 +66,6 @@ html_theme_options = {
             "type": "fontawesome",
         },
     ],
-    
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
