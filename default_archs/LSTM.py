@@ -9,52 +9,50 @@ The LSTM consists of recurrent cells that contain hidden states and cell
 states. The hidden and cell states are initialized for each batch to a zero
 tensor or a random tensor. Additionally, the LSTM can be set to bidirectional.
 
-The example also shows how dataclasses can be used with KnowIt.
-
 Example usage:
 -------------
 
 from knowit import KnowIt
-from default_archs.LSTM import ArchArgs, Internal
 
 KI = KnowIt()
 
-model_name = "my_new_penguin_model"
-data_args = {'name': 'penguin_42_debug',
-             'task': 'classification',
-             'in_components': ['accX', 'accY', 'accZ'],
-             'out_components': ['PCE'],
-             'in_chunk': [-25, 25],
+model_name = "my_new_model"
+data_args = {'name': 'my_data',
+             'task': 'regression',
+             'in_components': ['x1', 'x2', 'x3', 'x4'],
+             'out_components': ['y1'],
+             'in_chunk': [-5, 5],
              'out_chunk': [0, 0],
              'split_portions': [0.6, 0.2, 0.2],
-             'batch_size': 256,
-             'split_method': 'chronological',
-             'scaling_tag': 'in_only',
-             'min_slice': 100}
-arch_args = {'task': 'classification',
+             'batch_size': 64,
+             'split_method': 'instance-random',
+             'scaling_tag': 'full'}
+arch_args = {'task': 'regression',
              'name': 'LSTM',
              'arch_hps': {
-                 'arch_args': ArchArgs(
-                    dropout=0.5,
-                    width=256,
-                    bidirectional=False,
-                 ),
-                'internal_state': Internal(
-                    init_cell_state='zeros',
-                    init_hidden_state='zeros',
-                ),
-             }}
-trainer_args = {'loss_fn': 'weighted_cross_entropy',
+                'arch_args': {
+                    'dropout': 0.6,
+                    'width': 512,
+                    'bidirectional': False,
+                },
+                'internal_state': {
+                    'init_cell_state': 'zeros',
+                    'init_hidden_state': 'zeros',
+                },
+             },
+             }
+trainer_args = {'loss_fn': 'mse_loss',
                 'optim': 'Adam',
                 'max_epochs': 30,
                 'learning_rate': 0.01,
-                'learning_rate_scheduler': {
-                    'ReduceLROnPlateau': {'mode': 'min', 'patience': 15},
-                },
-                'task': 'classification'}
+                'task': 'regression'
+                }
+
 KI.train_model(
     model_name=model_name,
     kwargs={'data': data_args, 'arch': arch_args, 'trainer': trainer_args},
+    safe_mode=False,
+    and_viz=True,
 )
 """
 
@@ -65,10 +63,10 @@ __description__ = "Contains an example of a LSTM architecture."
 
 import sys
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import torch
-import yaml
 from torch import Tensor, nn
 from torch.nn import LSTM, Linear, Module
 
@@ -87,15 +85,15 @@ HP_ranges_dict = {
         "bidirectional": (False, True),
     },
     "internal_state": {
-        "init_hidden_state": (None, "random", Tensor),
-        "init_cell_state": (None, "random", Tensor),
+        "init_hidden_state": ("zeros", "random", Tensor),
+        "init_cell_state": ("zeros", "random", Tensor),
         "tracking": (False, True),
     },
 }
 
 
 @dataclass
-class ArchArgs(yaml.YAMLObject):
+class ArchArgs:
     """Container for architecture parameters.
 
     Parameters
@@ -110,14 +108,7 @@ class ArchArgs(yaml.YAMLObject):
         The activation function for the output layer (default is None).
     bidirectional : bool, optional
         Indicates whether the architecture is bidirectional (default is False).
-
-    Attributes
-    ----------
-    yaml_tag : str
-        A unique YAML tag for identifying the architecture parameters.
     """
-
-    yaml_tag = "!arch_args"
 
     width: int = 256
     depth: int = 1
@@ -127,7 +118,7 @@ class ArchArgs(yaml.YAMLObject):
 
 
 @dataclass
-class Internal(yaml.YAMLObject):
+class Internal:
     """Container for internal states and configuration.
 
     Parameters
@@ -138,17 +129,10 @@ class Internal(yaml.YAMLObject):
         The initial cell state for the model (default is None).
     tracking : bool, optional
         Flag to indicate if tracking is enabled (default is False).
-
-    Attributes
-    ----------
-    yaml_tag : str
-        A unique YAML tag for identifying the internal configuration.
     """
 
-    yaml_tag = "!internal"
-
-    init_hidden_state: None | str | Tensor = None
-    init_cell_state: None | str | Tensor = None
+    init_hidden_state: str | Tensor = "zeros"
+    init_cell_state: str | Tensor = "zeros"
     tracking: bool = False
 
 
@@ -172,9 +156,9 @@ class Model(Module):
         dimension.
     task_name : str
         The type of task (classification or regression).
-    arch_args : None | ArchArgs, default=None
+    arch_args : None | dict[str, Any], default=None
         The parameters that define the architecture (see ArchArgs).
-    internal_state : None | Internal, default=None
+    internal_state : None | dict[str, Any], default=None
         The parameters that define the internal state of the LSTM
         (see Internal).
 
@@ -209,8 +193,8 @@ class Model(Module):
         input_dim: list[int],
         output_dim: list[int],
         task_name: str,
-        arch_args: None | ArchArgs = None,
-        internal_state: None | Internal = None,
+        arch_args: None | dict[str, Any] = None,
+        internal_state: None | dict[str, Any] = None,
     ) -> None:
         super().__init__()
 
@@ -218,31 +202,19 @@ class Model(Module):
         self.model_out_dim = int(np.prod(output_dim))
         self.final_out_shape = output_dim
 
-        if not arch_args:
-            # revert to default arg values in ArchArgs
-            arch_args = ArchArgs()
+        arch_args = ArchArgs() if not arch_args else ArchArgs(**arch_args)
+        internal_state = Internal() if not internal_state else Internal(
+            **internal_state,
+        )
 
-        # config for cell and hidden states
-        if internal_state:
-            self._internal = InternalState(
-                width=arch_args.width,
-                depth=arch_args.depth,
-                bidirect=arch_args.bidirectional,
-                init_hidden_state=internal_state.init_hidden_state,
-                init_cell_state=internal_state.init_cell_state,
-                track_hidden=internal_state.tracking,
-            )
-        else:
-            # revert to default vals if no internal args provided
-            internal_state = Internal()
-            self._internal = InternalState(
-                width=arch_args.width,
-                depth=arch_args.depth,
-                bidirect=arch_args.bidirectional,
-                init_hidden_state=internal_state.init_hidden_state,
-                init_cell_state=internal_state.init_cell_state,
-                track_hidden=internal_state.tracking,
-            )
+        self._internal = InternalState(
+            width=arch_args.width,
+            depth=arch_args.depth,
+            bidirect=arch_args.bidirectional,
+            init_hidden_state=internal_state.init_hidden_state,
+            init_cell_state=internal_state.init_cell_state,
+            track_hidden=internal_state.tracking,
+        )
 
         # rnn layer (will return three tensors: output, (hn, cn))
         self.lstm_layers = LSTM(
@@ -452,7 +424,7 @@ class InternalState:
         SystemExit
             If the initialization choice for hidden or cell states is invalid.
         """
-        if not self.init_hidden_state or self.init_hidden_state == "zeros":
+        if self.init_hidden_state == "zeros":
             h0 = torch.zeros(
                 size=(self.d * self.depth, batch_size, self.width),
             )
@@ -467,7 +439,7 @@ class InternalState:
             )
             sys.exit()
 
-        if not self.init_cell_state or self.init_cell_state == "zeros":
+        if self.init_cell_state == "zeros":
             c0 = torch.zeros(
                 size=(self.d * self.depth, batch_size, self.width),
             )
