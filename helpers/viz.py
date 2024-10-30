@@ -9,7 +9,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime
-import pytz
+# import pytz
 from networkx.algorithms.bipartite import color
 from sklearn.metrics import ConfusionMatrixDisplay
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -534,8 +534,7 @@ def fetch_predictions(predictions_dir, data_tag, ist_values):
                 to_insert_nan = here[h].item()
                 gap = np.arange(start=t[to_insert_nan] + delta,
                                 stop=t[to_insert_nan + 1],
-                                step=delta).astype(datetime)
-                gap = np.array([pytz.utc.localize(g) for g in gap])
+                                step=delta)
                 gaps.append(gap)
             for g in range(len(gaps) - 1, 0, -1):
                 to_insert_nan = here[g].item() + 1
