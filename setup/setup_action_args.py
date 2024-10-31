@@ -21,9 +21,11 @@ logger = get_logger()
 
 arg_dict = {'data_import_args':  {'required': ('path',),
                                   'optional': ('base_nan_filler',
-                                               'nan_filled_components'),
+                                               'nan_filled_components',
+                                               'meta'),
                                   'default': {'base_nan_filler': None,
-                                              'nan_filled_components': None}},
+                                              'nan_filled_components': None,
+                                              'meta': None}},
             'arch':      {'required': ('task', 'name'),
                           'optional': ('arch_hps',),
                           'default': {'arch_hps': {}}},
