@@ -2,17 +2,14 @@
 KnowIt (**Know**ledge discovery **I**n **T**ime series data) is a toolkit to train and interpret deep time series models.\
 It is developed in Python and uses [PyTorch Lightning](https://github.com/Lightning-AI/pytorch-lightning) for model building and [Captum](https://github.com/pytorch/captum) for model interpreting.
 
-**Installation**
+## Installation
 
  - Clone the KnowIt directory locally.
- - Create a conda environment with the provided *environment.yml* file.
+ - Create a conda environment with the provided ``KnowIt/environment.yml`` file.
 
-At a later time we will build an installer.
+## Usage
 
-
-**Usage**
-
-See the *dummy_runner_regression.py* and *dummy_runner_classification.py* scripts for full examples on usage.
+See the ``KnowIt/dummy_runner_regression.py`` and ``KnowIt/dummy_runner_classification.py`` scripts for full examples on usage.
 A brief summary follows:
 ```python
 # Import the KnowIt module
@@ -39,7 +36,7 @@ KI.interpret_model(model_name='new_model_name',
                    args={'interpreter': interpret_args})
 ```
 
-**Features**
+## Features
 
 KnowIt currently supports the following tasks on uni- or multivariate equidistantly spaced time series data:
  - Time series regression (uni- or multivariate, single- or multistep, autoregressive or not)
@@ -49,8 +46,15 @@ KnowIt currently supports the following tasks on uni- or multivariate equidistan
 KnowIt provides convenient entry points to import custom architectures (PyTorch based) 
 and custom dataset (Pandas based).
 
-**Contact**
+## Contact
 
  - Main author: tiantheunissen@gmail.com
  - Main author: randlerabe@gmail.com
+
+## Coming soon
+
+ - Package installation options
+ - Live API reference docs
+ - Tutorials
+ - Citation link
 
