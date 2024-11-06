@@ -195,20 +195,20 @@ def get_mae_performance(interpretation_args: dict, model_args: dict, predictions
     return performance
 
 
-def get_predictions(predictions_dir: str, interpretation_set: str, model_args: dict) -> tuple:
+def get_predictions(predictions_dir: str, data_tag: str, model_args: dict) -> tuple:
     """
     Retrieve model predictions, target values, and associated timestamps for a specified dataset portion.
 
     This function loads prediction data from a directory and organizes it based on batch files
-    corresponding to the specified `interpretation_set`. It also ensures that all expected prediction
-    points are available for further interpretation.
+    corresponding to the specified `data_tag`. It verifies that all expected prediction points
+    are available, ensuring complete data for interpretation or evaluation.
 
     Parameters
     ----------
     predictions_dir : str
         Directory containing saved prediction batch files and an index mapping file.
-    interpretation_set : str
-        Name of the dataset portion for which predictions are retrieved (e.g., 'train', 'valid', 'eval').
+    data_tag : str
+        Name of the dataset split for which predictions are retrieved (e.g., 'train', 'valid', 'eval').
     model_args : dict
         Model configuration and metadata, including dataset sizes and settings for the specified portion.
 
@@ -231,22 +231,21 @@ def get_predictions(predictions_dir: str, interpretation_set: str, model_args: d
     """
 
     if not os.path.exists(predictions_dir):
-        logger.error('Please generate prediction values if you want to interpret prediction points first.')
+        logger.error('No generated predictions to be found at at %s.', predictions_dir)
         exit(101)
 
-    batches = []
-    for b in os.listdir(predictions_dir):
-        if b.startswith(interpretation_set + '-' + 'batch'):
-            batches.append(b)
+    batch_paths = [os.path.join(predictions_dir, b) for b in os.listdir(predictions_dir) if
+                   b.startswith(f'{data_tag}-batch')]
 
-    inx_path = os.path.join(predictions_dir, '_' + interpretation_set + '-' + 'ist_inx_dict.pickle')
-    inx = load_from_path(inx_path)
+    ist_file_name = f'_{data_tag}-ist_inx_dict.pickle'
+    ist_path = os.path.join(predictions_dir, ist_file_name)
+    ist_values, _ = load_from_path(ist_path)
 
     predictions = {}
     targets = {}
     timestamps = {}
-    for b in batches:
-        batch = load_from_path(os.path.join(predictions_dir, b))
+    for b in batch_paths:
+        batch = load_from_path(b)
         s_inx = batch[0]
         for p in range(len(s_inx)):
             s = s_inx[p].item()
@@ -254,10 +253,10 @@ def get_predictions(predictions_dir: str, interpretation_set: str, model_args: d
             y = batch[2][p]
             predictions[s] = y_hat.detach().cpu().numpy()
             targets[s] = y.detach().cpu().numpy()
-            timestamps[s] = inx[0][s]
+            timestamps[s] = ist_values[s]
 
-    if len(predictions) != model_args['data_dynamics'][interpretation_set + '_size']:
-        logger.error('Could not find all prediction points for interpretation selection.')
+    if len(predictions) != model_args['data_dynamics'][data_tag + '_size']:
+        logger.error('Could not find all relevant prediction points for interpretation selection.')
         exit(101)
 
     points = np.array(list(predictions.keys()))
