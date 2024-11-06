@@ -1,3 +1,5 @@
+""" Defines many different directories based on experiment and KnowIt location. """
+
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains functions that dynamically return KnowIt environment paths.'
 

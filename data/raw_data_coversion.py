@@ -4,17 +4,7 @@ RawDataConverter
 ----------------
 
 This module takes a given dataframe and converts it to a known datastructure for KnowIt.
-The dataframe needs to comply with the following conditions to be properly converted:
-    1. Must be time indexed. (with a ``pandas.Timedelta`` or ``datetime.timedelta``, not strings)
-    2. Must contain the following metadata in the ``dataframe.attrs`` dictionary, or alternatively passed with the 'meta' argument.
-         - name (str): The name of the dataset to be constructed.
-         - components (list): The components to be stored in the datasets.
-         - time_delta (Timedelta, timedelta): The time difference between any two consecutive time points.
-    3. Must contain no all-NaN columns.
-    4. Must contain column headers corresponding to the components defined in the metadata.
-    5. If instances are desired, they must be defined in the metadata as follows, and a corresponding column header 'instance' must be present in the dataframe. This column cannot have any NaNs.
-        - instances (list): A list of the instances to be stored in the datasets.
-    
+See ``dataset_how_to.md`` for format details.
 The resulting datastructure can be returned with the ``RawDataConverter.get_new_data`` function.
 The format of the resulting data structure is defined at the top of the KnowIt.data.base_dataset.py script.
 

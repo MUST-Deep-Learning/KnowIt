@@ -1,6 +1,6 @@
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = ('Contains functions for loading, dumping, converting, '
-                   'or creating directories an files from local filesystem.')
+                   'or creating directories an files from local filesystems.')
 
 # external imports
 import os
@@ -11,7 +11,6 @@ import _pickle as cPickle
 import gzip
 import lzma
 import shutil
-import numpy as np
 import csv
 
 # internal imports
@@ -20,15 +19,38 @@ from helpers.logger import get_logger
 logger = get_logger()
 
 
-def proc_dir(new_dir: str, safe_mode: bool = True, overwrite: bool = False):
-
+def proc_dir(new_dir: str, safe_mode: bool = True, overwrite: bool = False) -> None:
     """
-    Ensures that a specified directory exists.
-        - safe_mode means 'Should I be prevented from overwriting any existing directory?'
-        - overwrite means 'Do I want to overwrite any existing directory?'
+    Ensures that a specified directory exists or is recreated based on the provided flags.
 
+    This function checks if the specified directory exists. If it does not exist,
+    the directory is created. If it exists, the behavior depends on the `overwrite`
+    and `safe_mode` parameters:
+
+    - If `safe_mode` is True and the directory exists, an error is logged, and
+      the operation is aborted.
+    - If `overwrite` is True and `safe_mode` is False, the existing directory is
+      deleted and recreated.
+
+    Parameters
+    ----------
+    new_dir : str
+        The path to the directory to check or create.
+    safe_mode : bool, optional
+        If True, prevents overwriting an existing directory (default is True).
+    overwrite : bool, optional
+        If True, allows the existing directory to be overwritten (default is False).
+
+    Raises
+    ------
+    SystemExit
+        If there is an error creating the directory or if safe mode prevents an overwrite.
+
+    Notes
+    -----
+    Consider prompting the user for confirmation if overwriting an existing directory,
+    especially in non-safe mode.
     """
-
     dir_exists = os.path.exists(new_dir)
     if not dir_exists:
         # create new dir
@@ -57,7 +79,30 @@ def proc_dir(new_dir: str, safe_mode: bool = True, overwrite: bool = False):
             exit(101)
 
 
-def safe_dump(data, path, safe_mode):
+def safe_dump(data: any, path: str, safe_mode: bool) -> None:
+    """
+    Safely dumps data to a specified file path with an option to protect existing files.
+
+    This function checks if a file already exists at the given path and, if `safe_mode` is enabled,
+    logs an error and exits to prevent overwriting. If `safe_mode` is not enabled or the file does not exist,
+    the function proceeds to write data to the specified path.
+
+    Parameters
+    ----------
+    data : any
+        The data to be written to the file.
+    path : str
+        The target file path for saving data.
+    safe_mode : bool
+        If True, prevents overwriting an existing file by checking if the path exists.
+        If False, allows overwriting any existing file at the specified path.
+
+    Raises
+    ------
+    SystemExit
+        If `safe_mode` is True and a file already exists at the given path, exits with code 101.
+
+    """
     if os.path.exists(path) and safe_mode:
         logger.error('File already exists: %s.',
                      path)
@@ -66,7 +111,30 @@ def safe_dump(data, path, safe_mode):
         dump_at_path(data, path)
 
 
-def safe_copy(path, new_path, safe_mode):
+def safe_copy(path: str, new_path: str, safe_mode: bool) -> None:
+    """
+    Copies a file to a new location with optional overwrite protection.
+
+    This function attempts to copy a file from `path` to `new_path`. If `safe_mode` is enabled and
+    a file already exists at `new_path`, an error is logged, and the function exits to prevent overwriting.
+    Otherwise, it proceeds with the copy operation.
+
+    Parameters
+    ----------
+    path : str
+        The path to the source file to be copied.
+    new_path : str
+        The destination path where the file should be copied.
+    safe_mode : bool
+        If True, prevents overwriting an existing file at `new_path`.
+        If False, allows overwriting any existing file at the specified path.
+
+    Raises
+    ------
+    SystemExit
+        If `safe_mode` is True and a file already exists at `new_path`, exits with code 101.
+
+    """
     if os.path.exists(new_path) and safe_mode:
         logger.error('File already exists: %s.',
                      path)
@@ -75,37 +143,76 @@ def safe_copy(path, new_path, safe_mode):
         shutil.copyfile(path, new_path)
 
 
-def yaml_to_dict(config_path):
+def yaml_to_dict(config_path: str) -> dict:
+    """
+    Loads a YAML configuration file and returns its contents as a dictionary.
 
-    f = open(config_path, 'r')
-    cfg_yaml = None
+    This function opens a specified YAML file, attempts to parse its contents, and returns
+    the resulting dictionary. If an error occurs during loading, it logs the error and exits
+    with code 101.
+
+    Parameters
+    ----------
+    config_path : str
+        Path to the YAML configuration file.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the configuration data loaded from the YAML file.
+
+    Raises
+    ------
+    SystemExit
+        If an error occurs during file reading or parsing, exits with code 101.
+
+    """
     try:
-        cfg_yaml = yaml.full_load(f)
+        with open(config_path, 'r') as f:
+            cfg_yaml = yaml.full_load(f)
     except Exception as e:
         logger.error('Error loading config %s:\n%s' % (config_path, str(e)))
         exit(101)
-    finally:
-        f.close()
-
-    # cfg = dict()
-    # for key in cfg_yaml.keys():
-    #     if cfg_yaml[key]['value'] == 'None':
-    #         cfg[key] = None
-    #     else:
-    #         cfg[key] = cfg_yaml[key]['value']
 
     return cfg_yaml
 
 
-def dump_at_path(data, path):
-    """Dump (and possibly compress) the given data at the given path.
-    File extension is inferred from path.
-
-    Args:
-        data (Variable):              data to be dumped
-        path (str):                   the path (including file extension)
-
+def dump_at_path(data: any, path: str) -> None:
     """
+    Dumps (and optionally compresses) data to a specified path based on the file extension.
+
+    This function writes the provided `data` to the specified `path` in a format inferred
+    from the file extension. Supported formats include `.pbz2`, `.pickle`, `.gz`, `.xz`,
+    `.yaml`, and `.yml`. If an unrecognized file extension is provided, the data is stored
+    as an uncompressed pickle file by default.
+
+    Parameters
+    ----------
+    data : Any
+        The data to be saved. Data should match the format expected by the file extension:
+        - `.yaml` and `.yml` assume data is a dictionary (for YAML serialization).
+        - All other extensions allow serialized Python objects.
+    path : str
+        The full path (including file extension) where data should be saved.
+
+    Raises
+    ------
+    SystemExit
+        If there is an error during saving,
+        the function logs an error and exits with code 101.
+
+    Notes
+    -----
+    The function supports the following file extensions:
+    - `.pbz2` : BZ2 compressed pickle
+    - `.pickle` : Standard pickle
+    - `.gz` : GZIP compressed pickle
+    - `.xz` : LZMA compressed pickle
+    - `.yaml` / `.yml` : YAML format (expects a dictionary)
+    - Unknown extensions will trigger a warning and default to an uncompressed pickle format.
+    """
+
+    # TODO: Can be made more robust
 
     logger = get_logger()
     file_ext = '.pickle'
@@ -143,30 +250,31 @@ def dump_at_path(data, path):
         exit(101)
 
 
-def load_from_path(path):
-    """Load (and possibly uncompress) the data at the given path.
-    File extension is inferred from path.
+def load_from_path(path: str) -> any:
+    """
+    Load data from a specified file path, with optional decompression based on file extension.
+
+    This function infers the file format from the file extension and loads data accordingly.
+    Supported formats include `.pbz2`, `.pickle` (or `.pkl`), `.gz`, `.xz`, and `.csv`.
 
     Args:
-        path (str):         the path (including file extension)
+        path (str): Path to the file (including the extension).
 
     Returns:
-        data (Variable):   data found at path
+        Any: Loaded data from the specified path.
+
+    Raises:
+        SystemExit: If the file extension is unrecognized or an error occurs during loading,
+                    the function logs an error and exits with code 101.
     """
     logger = get_logger()
-    file_ext = '.pickle'
-    try:
-        file_ext = '.' + path.split('.')[-1]
-    except:
-        logger.error('Could not determine file extension from path %s. '
-                     'Aborting', path)
-        exit(101)
-    # logger.info('Loading file %s.', path)
+    file_ext = os.path.splitext(path)[1]
+
     try:
         if file_ext == '.pbz2':
-            result = bz2.BZ2File(path, 'rb')
-            result = cPickle.load(result)
-        elif file_ext == '.pickle' or file_ext == '.pkl':
+            with bz2.BZ2File(path, 'rb') as f:
+                result = pickle.load(f)
+        elif file_ext in ('.pickle', '.pkl'):
             with open(path, 'rb') as handle:
                 result = pickle.load(handle)
         elif file_ext == '.gz':
@@ -176,48 +284,15 @@ def load_from_path(path):
             with lzma.open(path, 'rb') as handle:
                 result = pickle.load(handle)
         elif file_ext == '.csv':
-            with open(path, 'rb') as handle:
-                result = pickle.load(handle)
+            result = []
+            with open(path, 'r') as handle:
+                reader = csv.DictReader(handle)
+                result.extend(reader)  # Adds each line in reader as a dict to the result list
         else:
-            logger.error('Unknown file extension, %s, '
-                         'could not load. Aborting.', file_ext)
+            logger.error('Unknown file extension: %s. Unable to load file. Aborting.', file_ext)
             exit(101)
-    except:
-        logger.error('Error loading file %s.', path)
+    except Exception as e:
+        logger.error('Error loading file %s: %s', path, e)
         exit(101)
 
     return result
-
-
-def save_to_csv(data, path_name, data_format):
-    """
-    Save data in a humanly readable form to a specified file.
-    """
-    logger = get_logger()
-
-    logger.info('Saving data to file: %s', path_name)
-    try:
-        np.savetxt(path_name, data, fmt=data_format)
-    except:
-        logger.error('Could not write file %s', path_name)
-        exit(101)
-    logger.info('Values saved as %s', path_name)
-
-
-def load_from_csv(path):
-    """
-    Load humanly readable data from a given path.
-    """
-
-    logger.info('Loading data from file: %s', path)
-    data_item = []
-    try:
-        with open(path, 'r') as theFile:
-            reader = csv.DictReader(theFile)
-            for line in reader:
-                data_item.append(line)
-    except:
-        logger.error('Could not read file %s', path)
-        exit(101)
-    logger.info('Values loaded from %s', path)
-    return data_item

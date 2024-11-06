@@ -22,7 +22,7 @@ from matplotlib.lines import Line2D
 from env.env_paths import (learning_data_path, learning_curves_path,
                            model_args_path, model_predictions_dir,
                            model_interpretations_dir, model_interpretations_output_dir)
-from helpers.file_dir_procs import load_from_csv, yaml_to_dict, load_from_path
+from helpers.file_dir_procs import yaml_to_dict, load_from_path
 from helpers.logger import get_logger
 
 logger = get_logger()
@@ -691,7 +691,7 @@ def learning_curves(exp_output_dir, model_name):
 
     def get_curves(exp_output_dir, model_name):
         csv_path = learning_data_path(exp_output_dir, model_name)
-        curve_data = load_from_csv(csv_path)
+        curve_data = load_from_path(csv_path)
         curves = defaultdict(dict)
         for row in curve_data:
             for c in row:

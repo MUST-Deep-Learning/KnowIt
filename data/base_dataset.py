@@ -158,7 +158,7 @@ class BaseDataset:
     @classmethod
     def from_path(cls, path: str, safe_mode: bool,
                   base_nan_filler: str,
-                  nan_filled_components: list, exp_output_dir: str) -> data.BaseDataset:
+                  nan_filled_components: list, meta: dict | None, exp_output_dir: str) -> data.BaseDataset:
         """Instantiate a BaseDataset object by first creating the dataset option from a given path
         to a file containing a dataframe with raw data.
 
@@ -175,6 +175,8 @@ class BaseDataset:
             The method used to fill NaNs in the base dataset.
         nan_filled_components : list
             A list of components in the dataset that should have NaNs filled.
+        meta: dict | None
+            A dictionary containing the required metadata or None. If none, expected file at path.
         exp_output_dir : str
             The directory path for experiment output.
 
@@ -184,12 +186,12 @@ class BaseDataset:
             An instance of the BaseDataset class, initialized with the loaded data and specified parameters.
         """
         return cls.from_df(load_from_path(path), safe_mode, base_nan_filler,
-                           nan_filled_components, exp_output_dir)
+                           nan_filled_components, meta, exp_output_dir)
 
     @classmethod
     def from_df(cls, df: DataFrame, safe_mode: bool,
                 base_nan_filler: str | None,
-                nan_filled_components: list | None, exp_output_dir: str) -> data.BaseDataset:
+                nan_filled_components: list | None, meta: dict | None, exp_output_dir: str) -> data.BaseDataset:
         """Instantiate a BaseDataset object by first creating the dataset option from a given dataframe with raw data.
 
         This method converts the provided dataframe into the necessary format and saves it,
@@ -205,6 +207,8 @@ class BaseDataset:
             The method used to fill NaNs in the base dataset.
         nan_filled_components : list | None
             A list of components in the dataset that should have NaNs filled.
+        meta: dict | None
+            A dictionary containing the required metadata or None. If none, expected to be in df.attrs.
         exp_output_dir : str
             The directory path for experiment output.
 
@@ -218,7 +222,7 @@ class BaseDataset:
         See KnowIt.raw_data_conversion for details on base_nan_filler.
         """
         args = RawDataConverter(df, cls._required_base_meta(),
-                                base_nan_filler, nan_filled_components).get_new_data()
+                                base_nan_filler, nan_filled_components, meta).get_new_data()
         data_path = custom_dataset_path(args['name'], exp_output_dir)
         safe_dump(args, data_path, safe_mode)
         return cls(data_path)
