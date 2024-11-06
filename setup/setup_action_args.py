@@ -1,15 +1,20 @@
-__author__ = 'tiantheunissen@gmail.com'
-__description__ = 'Checks, filters, and adjusts user arguments for various actions in KnowIt.'
-
 """
-------------------
+----------------
 Action arguments
-------------------
+----------------
 
 The user interacts with KnowIt by sending arguments or paths to external files.
 This script contains a function ``setup_relevant_args`` that checks arguments.
 
+ - The presence of required arguments are ensured.
+ - Irrelevant arguments are ignored.
+ - Default values for optional arguments, that are not given, are provided here.
+
 """
+
+from __future__ import annotations
+__author__ = 'tiantheunissen@gmail.com'
+__description__ = 'Checks, filters, and adjusts user arguments for various actions in KnowIt.'
 
 # 'required' arguments need to be provided
 # 'optional' arguments can be omitted
@@ -21,9 +26,11 @@ logger = get_logger()
 
 arg_dict = {'data_import_args':  {'required': ('path',),
                                   'optional': ('base_nan_filler',
-                                               'nan_filled_components'),
+                                               'nan_filled_components',
+                                               'meta'),
                                   'default': {'base_nan_filler': None,
-                                              'nan_filled_components': None}},
+                                              'nan_filled_components': None,
+                                              'meta': None}},
             'arch':      {'required': ('task', 'name'),
                           'optional': ('arch_hps',),
                           'default': {'arch_hps': {}}},
@@ -82,8 +89,37 @@ arg_dict = {'data_import_args':  {'required': ('path',),
             }
 
 
-def setup_relevant_args(experiment_dict, required_types=None):
+def setup_relevant_args(experiment_dict: dict, required_types: tuple | None = None) -> dict:
+    """
+    Set up relevant arguments from `experiment_dict` based on specified types.
 
+    This function verifies that `experiment_dict` includes required argument types, if provided.
+    It then initializes and returns a dictionary of arguments only for valid types by calling
+    `setup_type_args`. If an argument type in `experiment_dict` is not recognized, a warning is
+    issued.
+
+    Parameters
+    ----------
+    experiment_dict : dict
+        Dictionary containing experimental argument configurations by type.
+    required_types : tuple, optional
+        Tuple of argument types that must be present in `experiment_dict`. If any required types
+        are missing, an error is logged, and execution is stopped.
+
+    Returns
+    -------
+    dict
+        Dictionary of argument configurations for valid types in `experiment_dict`.
+
+    Raises
+    ------
+    SystemExit
+        If required types are specified but not all are found in `experiment_dict`.
+
+    Warnings
+    --------
+    Logs a warning for any unrecognized argument types in `experiment_dict`.
+    """
     if required_types:
         missing_keys = set(required_types) - set(list(experiment_dict.keys()))
         if len(missing_keys) > 0:
@@ -103,7 +139,38 @@ def setup_relevant_args(experiment_dict, required_types=None):
     return ret_args
 
 
-def setup_type_args(experiment_dict, arg_type):
+def setup_type_args(experiment_dict: dict, arg_type: str) -> dict:
+    """
+    Compiles relevant arguments for a given argument type from `experiment_dict`.
+
+    This function retrieves required and optional arguments for the specified `arg_type` from
+    `experiment_dict`, utilizing `arg_dict` as a reference for expected arguments. If a required
+    argument is missing, an error is logged, and execution is stopped. Optional arguments are added
+    if present, and default values are assigned for any optional arguments not specified. Irrelevant
+    arguments are logged as warnings.
+
+    Parameters
+    ----------
+    experiment_dict : dict
+        Dictionary containing configurations for different argument types.
+    arg_type : str
+        The specific type of arguments to compile from `experiment_dict`.
+
+    Returns
+    -------
+    dict
+        Dictionary of relevant arguments for `arg_type`, including required arguments, optional
+        arguments (if available), and defaults where applicable.
+
+    Raises
+    ------
+    SystemExit
+        If any required arguments are missing from `experiment_dict` for the specified `arg_type`.
+
+    Warnings
+    --------
+    Logs a warning for any unrecognized arguments in `experiment_dict` that do not match `arg_dict`.
+    """
     ret_args = {}
 
     # keep all required arguments

@@ -1,3 +1,5 @@
+""" Defines static KnowIt internal directories. """
+
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains user-specific environment settings.'
 
@@ -6,7 +8,7 @@ import os
 
 # where to find KnowIt scripts
 
-# repo_dir = os.path.expanduser('~/g_repos/KnowIt')
+# Core KnowIt directory is found wherever this file is, but one up.
 repo_dir = os.path.dirname(os.path.realpath(__file__)).split('/env')[0]
 
 # directories containing defaults
