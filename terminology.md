@@ -2,6 +2,8 @@
 
 This is a list of terms used in the KnowIt framework. To be updated as needed.
 
+---
+
 ## Time series
 
 > **Component**: A real value that changes over time. Sometimes called a sequence, series, or covariate. 
@@ -24,6 +26,11 @@ The main practical consideration is that KnowIt considers two values occurring a
 time step to be two separate, usable events, i.e. belonging to different instances. 
 Defining instances can be useful when trying to split your data based on subjects without test set leakage.
 
+> **IST index**: A prediction point specific 3-valued tuple where the first value indicates the instance to which the prediction point belongs, 
+the second value indicates the slice to which the prediction point belongs, and the last value indicates the exact time step.
+
+---
+
 ## Model construction
 
 > **Architecture**: An untrained neural network.
@@ -38,6 +45,8 @@ For example: Regression produces a real value as output and classification produ
 > **Tune**: Find the hyperparameters that result in a better performing model.
 
 > **Sweep**: Iterative runs of different hyperparameter combinations to move towards an optimal set.
+
+---
 
 ## Model predictions
 
@@ -55,9 +64,13 @@ For example: [-5, -4, -3, -2, -1] is a chunk defining the five time steps preced
 
 > **Delay**: A position in a chunk. It is a position relative to a prediction point (i.e. zero).
 
+---
+
 ## Data processing
 
 > **Split**: A particular partitioning of a dataset. Defined as a train, validation, and evaluation set.
+
+---
 
 ## Interpretation
 
