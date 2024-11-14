@@ -10,6 +10,8 @@ This page provides a summary of the main four functions used to interact with Kn
  - See ``KnowIt.setup.setup_action_args.arg_dict`` for required, optional, and default argument values 
 for each kwarg key.
 
+---
+
 ## 1. Importing a new dataset
 
  - **relevant functions**: ``KnowIt.import_dataset``
@@ -30,6 +32,8 @@ import_args = {'path': '/my_new_raw_data.pickle',
 KI.import_dataset(kwargs={'data_import_args': import_args})
 ```
 
+---
+
 ## 2. Importing a new architecture
 
  - **relevant functions**: ``KnowIt.import_arch``
@@ -46,6 +50,8 @@ from knowit import KnowIt
 KI = KnowIt('/my_experiment_dir')
 KI.import_arch('/my_new_arch.py')
 ```
+
+---
 
 ## 3. Training a model
 
@@ -83,6 +89,8 @@ trainer_args = {'loss_fn': 'mse_loss',
 KI.train_model(model_name=model_name, kwargs={'data': data_args, 'arch': arch_args, 'trainer': trainer_args})
 ```
 
+---
+
 ## 3. Generate model predictions (to interpret)
 
  - **relevant functions**: ``KnowIt.generate_predictions``
@@ -100,6 +108,8 @@ KI = KnowIt('/my_experiment_dir')
 model_name = "my_mlp"
 KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction_set': 'eval'}})
 ```
+
+---
 
 ## 4. Interpret predictions
 
