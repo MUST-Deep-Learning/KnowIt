@@ -6,28 +6,28 @@ TrainerStates
 There are three states that a user can initialize KnowIt's Trainer in. They are
 as follows:
 
-    STATE 1 (NEW): Train a new model from scratch.
+STATE 1 (NEW): Train a new model from scratch.
 
-        Class: TrainNew
-            Fits a model to a training set and evaluates the model on a valid-
-            ation set and evaluation set. During training, metrics are logged
-            and a checkpoint file is saved (only if 'mute_logger' is False) in
-            the user's model output directory.
+    Class: TrainNew
+        Fits a model to a training set and evaluates the model on a valid-
+        ation set and evaluation set. During training, metrics are logged
+        and a checkpoint file is saved (only if 'mute_logger' is False) in
+        the user's model output directory.
 
-    STATE 2 (CONTINUE): Continue training an existing model from checkpoint.
+STATE 2 (CONTINUE): Continue training an existing model from checkpoint.
 
-        Class: ContinueTraining
-            Initializes a pretrained model from a checkpoint file. Fits the
-            initialized model to a training set and evaluates the model on a
-            validation set and evaluation set. During training, metrics are
-            logged and a checkpoint file is saved (only if 'mute_logger' is
-            False) in the user's model output directory.
+    Class: ContinueTraining
+        Initializes a pretrained model from a checkpoint file. Fits the
+        initialized model to a training set and evaluates the model on a
+        validation set and evaluation set. During training, metrics are
+        logged and a checkpoint file is saved (only if 'mute_logger' is
+        False) in the user's model output directory.
 
-    STATE 3 (EVAL): Continue training an existing model from checkpoint.
+STATE 3 (EVAL): Continue training an existing model from checkpoint.
 
-        Class: EvaluateOnly
-            Initializes a pretrained model from a checkpoint file. Evaluates
-            the model on a validation set and evaluation set.
+    Class: EvaluateOnly
+        Initializes a pretrained model from a checkpoint file. Evaluates
+        the model on a validation set and evaluation set.
 
 In the case that the above states are inadequate for a user's task, the module
 also contains an example template class "CustomTrainer" that a user can edit.
@@ -41,7 +41,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning import Trainer as PLTrainer
+from pytorch_lightning import Trainer as PLTrainer  
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -295,7 +295,7 @@ class ContinueTraining(BaseTrainer):
         if self.return_final:
             set_ckpt_path = self.out_dir + "/last.ckpt"
         else:
-            set_ckpt_path = "best"
+            set_ckpt_path = "best"  
 
         logger.info(
             "Testing model on the current training run's best checkpoint.",

@@ -1,3 +1,5 @@
+""" Defines many different directories based on experiment and KnowIt location. """
+
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains functions that dynamically return KnowIt environment paths.'
 
@@ -99,23 +101,6 @@ def model_args_path(exp_output_dir: str, name: str):
     return os.path.join(model_output_dir(exp_output_dir, name), 'model_args.yaml')
 
 
-def model_interpretations_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
-    """ Returns the interpretations directory for the given model name from the given experiment path."""
-    proc_dir(os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'interpretations'),
-               safe_mode=safe_mode, overwrite=overwrite)
-    return os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'interpretations')
-
-
-def model_interpretations_output_dir(exp_output_dir: str, model_name: str, interpretation_name: str,
-                                     safe_mode: bool = True, overwrite: bool = False):
-    """ Returns the interpretation output directory for the given model and interpretation name
-        from the given experiment path."""
-    proc_dir(os.path.join(model_interpretations_dir(exp_output_dir, model_name, safe_mode=True, overwrite=False),
-                            interpretation_name), safe_mode=safe_mode, overwrite=overwrite)
-    return os.path.join(model_interpretations_dir(exp_output_dir, model_name, safe_mode=True, overwrite=False),
-                        interpretation_name)
-
-
 def model_predictions_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
     """ Returns the predictions directory for the given model name from the given experiment path."""
     proc_dir(os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'predictions'),
@@ -139,9 +124,33 @@ def ckpt_path(exp_output_dir: str, name: str):
         exit(101)
     return os.path.join(path, ckpt_list[0])
 
+# ----------------------------------------------------------------------------------------------------------------------
+#   INTERPRETATION
+# ----------------------------------------------------------------------------------------------------------------------
+
+def model_interpretations_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the interpretations directory for the given model name from the given experiment path."""
+    proc_dir(os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'interpretations'),
+               safe_mode=safe_mode, overwrite=overwrite)
+    return os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'interpretations')
+
+
+def interpretation_name(interpret_args: dict):
+    """ Construct an interpretation name from interpretation arguments. """
+    i_name = ''
+    for a in ('interpretation_method', 'interpretation_set', 'selection',
+              'size', 'multiply_by_inputs', 'seed', 'i_inx'):
+        try:
+            i_name += str(interpret_args[a]) + '-'
+        except:
+            pass
+    i_name = i_name[:-1] + '.pickle'
+
+    return i_name
+
 
 # ----------------------------------------------------------------------------------------------------------------------
-#   LEARNING CURVES
+#   LEARNING PERFORMANCE DATA
 # ----------------------------------------------------------------------------------------------------------------------
 
 
@@ -153,12 +162,15 @@ def learning_data_path(exp_output_dir: str, name: str):
     path = os.path.join(path, 'metrics.csv')
     return path
 
+# ----------------------------------------------------------------------------------------------------------------------
+#   VISUALIZATIONS
+# ----------------------------------------------------------------------------------------------------------------------
 
-def learning_curves_path(exp_output_dir: str, name: str):
-    """ Returns the learning curves path for the given model name from the given experiment path."""
-    path = model_output_dir(exp_output_dir, name)
-    path = os.path.join(path, 'learning_curves.png')
-    return path
+def model_viz_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the visualization directory for the given model name from the given experiment path."""
+    proc_dir(os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'visualizations'),
+               safe_mode=safe_mode, overwrite=overwrite)
+    return os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'visualizations')
 
 
 # ----------------------------------------------------------------------------------------------------------------------

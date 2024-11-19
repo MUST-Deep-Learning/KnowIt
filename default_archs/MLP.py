@@ -30,7 +30,7 @@ Notes
 from __future__ import annotations
 
 __author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com"
-__description__ = "Example of MLP model architecture."
+__description__ = "Example of an MLP model architecture."
 
 from typing import TYPE_CHECKING
 

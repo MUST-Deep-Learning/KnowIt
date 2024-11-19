@@ -11,6 +11,7 @@ import copy
 import torch
 import tempfile
 import sys
+import numpy as np
 
 # internal imports
 from env.env_user import temp_exp_dir
@@ -19,12 +20,12 @@ from env.env_paths import (ckpt_path, model_output_dir, model_args_path,
                            model_predictions_dir, default_dataset_dir,
                            custom_dataset_dir, default_archs_dir, custom_arch_dir,
                            custom_dataset_path, dataset_path, arch_path,
-                           custom_arch_path, root_exp_dir, arch_name)
+                           custom_arch_path, root_exp_dir, arch_name, interpretation_name)
 from helpers.logger import get_logger
 from helpers.file_dir_procs import (yaml_to_dict, safe_dump)
-from helpers.viz import (learning_curves, set_predictions, feature_attribution)
+from helpers.viz import (plot_learning_curves, plot_set_predictions, plot_feature_attribution)
 from setup.setup_action_args import setup_relevant_args
-from setup.select_interpretation_points import get_interpretation_inx
+from setup.select_interpretation_points import get_interpretation_inx, get_predictions
 from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
 from setup.import_custom_arch import import_custom_arch, complies
 from data.base_dataset import BaseDataset
@@ -242,10 +243,10 @@ class KnowIt:
         custom_archs = os.listdir(custom_arch_dir(self.exp_output_dir))
         arch_dict = {'defaults': [], 'custom': []}
         for d in default_archs:
-            if d.endswith('.py'):
+            if d.endswith('.py') and d != '__init__.py':
                 arch_dict['defaults'].append(d.split('.py')[0])
         for d in custom_archs:
-            if d.endswith('.py'):
+            if d.endswith('.py') and d != '__init__.py':
                 arch_dict['custom'].append(d.split('.py')[0])
         return arch_dict
 
@@ -350,7 +351,7 @@ class KnowIt:
                                           datamodule.get_dataloader('eval')))
 
         if and_viz and not trainer_args['mute_logger']:
-            learning_curves(self.exp_output_dir, model_name)
+            plot_learning_curves(self.exp_output_dir, model_name)
 
     def train_model_further(self, model_name: str, max_epochs: int, *, device: str | None = None,
                             safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
@@ -439,7 +440,7 @@ class KnowIt:
         safe_dump((ist_values, inx_dict), os.path.join(save_dir, file_name), safe_mode)
 
         if and_viz:
-            set_predictions(self.exp_output_dir, model_name, relevant_args['predictor']['prediction_set'])
+            plot_set_predictions(self.exp_output_dir, model_name, relevant_args['predictor']['prediction_set'])
 
     def interpret_model(self, model_name: str, kwargs: dict, *, device: str | None = None,
                         safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
@@ -504,19 +505,31 @@ class KnowIt:
 
         i_inx = get_interpretation_inx(relevant_args['interpreter'], trained_model_dict['model_args'],
                                        model_predictions_dir(self.exp_output_dir, model_name))
-        attributions = interpreter.interpret(pred_point_id=i_inx)
+
+        interpret_args['results'] = interpreter.interpret(pred_point_id=i_inx)
         interpret_args['i_inx'] = i_inx
 
-        save_name = ''
-        for a in interpret_args:
-            save_name += str(interpret_args[a]) + '-'
-        save_name = save_name[:-1] + '.pickle'
-        interpret_args['results'] = attributions
+        # TODO: Make _fetch_points_from_datamodule non-private with RR permission
+        interpret_args['input_features'] = interpreter._fetch_points_from_datamodule(i_inx)
 
+        points, predictions, targets, timestamps = get_predictions(model_predictions_dir(self.exp_output_dir, model_name),
+                                                       relevant_args['interpreter']['interpretation_set'],
+                                                       trained_model_dict['model_args'])
+        if isinstance(i_inx, int):
+            interpret_args['targets'] = targets[i_inx]
+            interpret_args['predictions'] = predictions[i_inx]
+            interpret_args['timestamps'] = timestamps[i_inx]
+        else:
+            interpret_args['targets'] = [targets[i] for i in range(i_inx[0], i_inx[1])]
+            interpret_args['predictions'] = [predictions[i] for i in range(i_inx[0], i_inx[1])]
+            interpret_args['timestamps'] = [timestamps[i] for i in range(i_inx[0], i_inx[1])]
+
+
+        save_name = interpretation_name(interpret_args)
         safe_dump(interpret_args, os.path.join(save_dir, save_name), safe_mode)
 
         if and_viz:
-            feature_attribution(self.exp_output_dir, model_name, relevant_args['interpreter'])
+            plot_feature_attribution(self.exp_output_dir, model_name, save_name)
 
     @staticmethod
     def _load_trained_model(exp_output_dir: str, available_datasets: dict, available_archs: dict,

@@ -1,34 +1,44 @@
+"""This script contains example visualizations. These serve to illustrate how the outputs of KnowIt can be visualized."""
+
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains various functions to visualize KnowIt data structures.'
 
 # external imports
 import os
-import torch
 from collections import defaultdict
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime
-import pytz
 from sklearn.metrics import ConfusionMatrixDisplay
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import matplotlib.dates as mdates
 from PIL import Image
 import matplotlib.animation as animation
+from matplotlib.lines import Line2D
+import pandas as pd
 
 # imports imports
-from env.env_paths import (learning_data_path, learning_curves_path,
+from env.env_paths import (learning_data_path,
                            model_args_path, model_predictions_dir,
-                           model_interpretations_dir, model_interpretations_output_dir)
-from helpers.file_dir_procs import load_from_csv, yaml_to_dict, load_from_path
+                           model_interpretations_dir, model_viz_dir, interpretation_name)
+from data.base_dataset import BaseDataset
+from setup.select_interpretation_points import get_predictions
+from helpers.file_dir_procs import yaml_to_dict, load_from_path
 from helpers.logger import get_logger
-
 logger = get_logger()
 
-train_color = 'rebeccapurple'
-valid_color = 'deeppink'
+# ----------------------------------------------------------------------------------------------------------------------
+# Global style settings
+# ----------------------------------------------------------------------------------------------------------------------
+
+plt.style.use('dark_background')
+
+train_color = 'slategrey'
+valid_color = 'rebeccapurple'
 eval_color = 'crimson'
-back_color = 'black'
+
+predicted_color = 'dodgerblue'
+target_color = 'orangered'
+
 grid_color = 'dimgray'
 generic_figsize = (10, 6)
 large_figsize = (20, 11.25)
@@ -37,313 +47,1276 @@ TALL_figsize = (20, 24)
 generic_dpi = 200
 quick_dpi = 100
 generic_cmap = 'plasma'
-c_cycle = [train_color, valid_color, eval_color, 'darkorange', 'mediumblue']
-matplotlib.rcParams['axes.prop_cycle'] = matplotlib.cycler(color=c_cycle)
+color_cycle = ['green', 'orange', 'purple', 'cyan', 'pink', 'yellow']
 
+def get_color(tag: str) -> str:
+    """ Returns a color based on a given string tag. """
+    if 'train' in tag.lower():
+        return train_color
+    elif 'valid' in tag.lower():
+        return valid_color
+    elif 'eval' in tag.lower():
+        return eval_color
+    elif 'target' in tag.lower():
+        return target_color
+    elif 'predicted' in tag.lower():
+        return predicted_color
+    else:
+        return 'yellow'
 
-def feature_attribution(exp_output_dir, model_name, interpret_args):
+# ----------------------------------------------------------------------------------------------------------------------
+# Visualize learning curves
+# ----------------------------------------------------------------------------------------------------------------------
 
-    interpretation_dir = model_interpretations_dir(exp_output_dir, model_name)
-    predictions_dir = model_predictions_dir(exp_output_dir, model_name)
+def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
+    """
+    Plots the learning curves for the given model based on the experiment output directory.
+
+    Parameters
+    ----------
+    exp_output_dir : str
+        The directory containing experiment outputs.
+    model_name : str
+        The name of the model for which to plot the learning curves.
+
+    Returns
+    -------
+    None
+    """
+    curves, num_epochs = get_learning_curves(exp_output_dir, model_name)
+    curves, result, result_epoch = get_result_epoch(curves)
+
+    loss_curves = [key for key in curves.keys() if 'perf' not in key]
+    perf_curves = [key for key in curves.keys() if 'perf' in key]
+    epochs = [e + 1 for e in range(num_epochs)]
+
+    fig, axes = plt.subplots(2 if perf_curves else 1, 1, figsize=generic_figsize)
+    ax = axes if isinstance(axes, np.ndarray) else [axes]
+
+    def plot_curves(ax: plt.Axes, curves: dict, epoch: list, result_epoch: int, result: dict, ylabel: str) -> None:
+        """Helper function to plot curves."""
+        for c in curves:
+            ax.plot(epoch, curves[c], label=c, marker='.', color=get_color(c))
+        ax.axvline(x=result_epoch, linestyle='--', c='white')
+        check = 0.5 * (ax.get_ylim()[1] - ax.get_ylim()[0]) + ax.get_ylim()[0]
+        ax.text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
+        for r in result:
+            if ylabel.lower() in r:
+                ax.plot(result_epoch, result[r], 'o', label=r, marker='*', color=get_color(r), markersize=20)
+
+        ax.set_xlabel('Epochs')
+        ax.set_ylabel(ylabel)
+        ax.grid(color=grid_color, alpha=0.5)
+        ax.legend()
+
+    # Plot loss curves
+    plot_curves(ax[0], {k: curves[k] for k in loss_curves}, epochs, result_epoch, result, 'Loss')
+
+    # Plot performance curves if they exist
+    if perf_curves:
+        plot_curves(ax[1], {k: curves[k] for k in perf_curves}, epochs, result_epoch, result, 'Perf')
+
+    # Save the figure
+    save_path = os.path.join(model_viz_dir(exp_output_dir, model_name), 'learning_curves.png')
+    plt.savefig(save_path, dpi=generic_dpi)
+    plt.close()
+
+def get_learning_curves(exp_output_dir: str, model_name: str) -> tuple:
+    """
+    Extract and compile learning curves from experiment logs for a specified model.
+
+    Parameters
+    ----------
+    exp_output_dir : str
+        Directory where experiment output is stored.
+    model_name : str
+        Name of the model to retrieve learning curves for.
+
+    Returns
+    -------
+    curves : dict of str -> list of float or None
+        A dictionary where each key represents a metric, and the corresponding value is a list
+        of floats representing the metric values for each epoch.
+    num_epochs : int
+        Number of epochs trained for.
+    """
+
+    # get raw curve data from lightning logs
+    curve_data = load_from_path(learning_data_path(exp_output_dir, model_name))
+
+    # compile curve data into metric-wise dictionary
+    curves = defaultdict(dict)
+    for row in curve_data:
+        for c in row:
+            if row['epoch'] not in curves[c] or curves[c][row['epoch']] == '':
+                curves[c][row['epoch']] = row[c]
+    curves = dict(curves)
+
+    # determine number of epochs trained for, and drop irrelevant metrics
+    num_epochs = len(curves['epoch']) - 1
+    curves.pop('step')
+    curves.pop('epoch')
+
+    # For each metric, make a list of float values in order of epochs
+    for c in curves:
+        new_curve = []
+        for val in curves[c]:
+            try:
+                new_curve.append(float(curves[c][val]))
+            except:
+                new_curve.append(None)
+        curves[c] = new_curve
+
+    return curves, num_epochs
+
+def get_result_epoch(curves: dict) -> tuple:
+    """
+    Identify the epoch at which the resulting model was obtained based on validation loss.
+    Also, extract metrics containing 'result' in their names.
+
+    Parameters
+    ----------
+    curves : dict of str -> list
+        Dictionary where each key represents a metric name and the corresponding list contains values per epoch.
+
+    Returns
+    -------
+    curves : dict of str -> list
+        Modified `curves` dictionary with 'result' metrics removed and truncated to the epoch where results were obtained.
+    result : dict of str -> float
+        Dictionary containing 'result' metrics, rounded to 3 decimals.
+    result_epoch : int
+        The 1-based epoch index at which the result model was determined.
+    """
+
+    # Find the epoch at which the resulting model was obtained
+    # TODO: This is wonky. Need to rather save the actual epoch in the lightning logs and then reference here.
+    check = []
+    for x in np.array(curves['valid_loss']):
+        if x is not None:
+            check.append(np.abs(x - curves['result_valid_loss'][-1]))
+        else:
+            check.append(np.NaN)
+    check = np.array(check)
+    result_epoch = np.nanargmin(check)
+
+    result_keys = [key for key in curves.keys() if 'result' in key]
+    result = {}
+    for r in result_keys:
+        result[r] = np.round(curves[r][-1], 3)
+        curves.pop(r)
+
+    for c in curves:
+        curves[c] = curves[c][:-1]
+
+    return curves, result, result_epoch+1
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Visualize predictions
+# ----------------------------------------------------------------------------------------------------------------------
+
+def plot_set_predictions(exp_output_dir: str, model_name: str, data_tag: str) -> None:
+    """
+    Generates and saves prediction plots for a specific dataset and model output.
+
+    This function fetches predictions and target values for each instance in a dataset,
+    applies a visualization based on the model's task type (either regression or classification),
+    and saves these plots to the designated visualization directory. For classification tasks,
+    only a single output time step is currently supported.
+
+    Parameters
+    ----------
+    exp_output_dir : str
+        Path to the main experiment output directory where model results are stored.
+    model_name : str
+        Identifier for the specific model from which predictions are generated.
+    data_tag : str
+        A tag specifying the data subset (e.g., 'train', 'val', 'test') for which predictions
+        are visualized.
+
+    Notes
+    -----
+    - The function expects model arguments, including task type and output configurations,
+      to be stored in a YAML file within the experiment output directory.
+    - If the task type is 'classification' and more than one output time step is specified,
+      an error is raised, as multiple output steps are unsupported in this mode.
+    - Plots are saved in a dedicated directory within the experiment output structure.
+
+    Raises
+    ------
+    SystemExit
+        If the specified task type is unrecognized or if multiple output time steps
+        are requested for a classification task.
+    """
+
+    # get model_args dictionary
     model_args = yaml_to_dict(model_args_path(exp_output_dir, model_name))
 
-    file_name = '_' + interpret_args['interpretation_set'] + '-' + 'ist_inx_dict' + '.pickle'
-    ist_values, _ = load_from_path(os.path.join(predictions_dir, file_name))
+    # only single output timestep currently supported for classification
+    out_range = model_args['data']['out_chunk'][1] - model_args['data']['out_chunk'][0]
+    if out_range > 0 and model_args['data']['task'] == 'classification':
+        logger.error('Cannot predict multiple output time steps if classification.')
+        exit(101)
 
-    file_name = ''
-    for a in interpret_args:
-        file_name += str(interpret_args[a]) + '-'
-    for f in os.listdir(interpretation_dir):
-        if file_name in f and '.pickle' in f:
-            file_name = f
-            break
-    file_path = os.path.join(interpretation_dir, file_name)
-    feat_att_dict = load_from_path(file_path)
+    # look up prediction directory for current experiment
+    predictions_dir = model_predictions_dir(exp_output_dir, model_name)
 
-    feat_att = feat_att_dict['results']
-    relevant_ist = {}
-    for x in range(feat_att_dict['i_inx'][0], feat_att_dict['i_inx'][1]):
-        relevant_ist[x] = ist_values[x]
+    # find prediction and target values
+    _, predictions, targets, timestamps  = get_predictions(predictions_dir, data_tag, model_args)
+    instances = list(set([timestamps[i][0] for i in timestamps]))
 
-    # wanted to incorporate input and output features to vizuals, but difficult and not enough time.
-    # feature_values = fetch_feature_values(predictions_dir,
-    #                                       interpret_args['interpretation_set'],
-    #                                       relevant_ist, model_args)
+    # fill gaps where necessary
+    predictions, targets = compile_predictions_for_plot(predictions, targets, timestamps, instances)
 
-    folder_name = file_name.split('.pickle')[0]
-    save_dir = model_interpretations_output_dir(exp_output_dir, model_name, folder_name)
-
-    if model_args['data']['task'] == 'regression':
-        plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
-        plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
-
-    elif model_args['data']['task'] == 'classification':
-        plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args)
-        plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, interpret_args)
+    # call the relevant plot function for each instance separately
+    save_dir = model_viz_dir(exp_output_dir, model_name)
+    for i in instances:
+        if model_args['data']['task'] == 'regression':
+            plot_regression_set_prediction(i, predictions, targets, data_tag,
+                                      model_args['data']['out_components'], save_dir)
+        elif model_args['data']['task'] == 'classification':
+            plot_classification_set_prediction(i, predictions, targets, data_tag,
+                                          save_dir, model_args['data_dynamics']['class_set'])
+        else:
+            logger.error('Unknown task type %s.', model_args['data']['task'])
+            exit(101)
 
 
-def plot_mean_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args):
-    
-    full_fa = defaultdict(list)
-    
-    logits = list(feat_att.keys())
-    
-    if len(feat_att[logits[0]]['attributions'].shape) < 3:
-        logger.info("Skipping mean feature attribution plots since prediction point is of size 1.")
-        return
-    
-    for logit in logits:
-        full_fa[logit].append(feat_att[logit]['attributions'].cpu().detach().numpy())
-    full_fa = dict(full_fa)
+def compile_predictions_for_plot(predictions: dict, targets: dict, timestamps: dict, instances: list) -> tuple:
+    """
+    Organize predictions, targets, and timestamps for plotting, ensuring a consistent time axis with no gaps.
 
-    mean_over_pp = {}
-    mean_over_time = {}
-    mean_over_components = {}
+    This function takes in predictions, targets, and timestamps for multiple instances and returns
+    structured dictionaries for plotting. It verifies that all time steps are consistent; if gaps
+    are found, they are filled with NaN values to maintain continuity in the plot.
 
-    for logit in logits:
-        full_fa[logit] = np.abs(full_fa[logit])
-        # full_fa[logit] = np.stack(full_fa[logit], axis=0)
-        full_fa[logit] = np.squeeze(full_fa[logit], axis=0)
-        mean_over_pp[logit] = np.mean(full_fa[logit], axis=0)
-        mean_over_time[logit] = np.mean(full_fa[logit], axis=1)
-        mean_over_components[logit] = np.mean(full_fa[logit], axis=2)
+    Parameters
+    ----------
+    predictions : dict
+        Dictionary mapping indices to predicted values for each instance.
+    targets : dict
+        Dictionary mapping indices to actual target values for each instance.
+    timestamps : dict
+        Dictionary mapping indices to corresponding timestamps for each instance.
+    instances : list
+        List of unique identifiers for instances to process.
 
-    in_chunk = np.arange(model_args['data']['in_chunk'][0], model_args['data']['in_chunk'][1]+1)
-    in_components = model_args['data']['in_components']
+    Returns
+    -------
+    tuple
+        - ret_predictions : dict
+            Dictionary where keys are instances, and values are lists containing arrays of sorted
+            timestamps and corresponding predictions (with NaNs for any gaps).
+        - ret_targets : dict
+            Dictionary where keys are instances, and values are lists containing arrays of sorted
+            timestamps and corresponding target values (with NaNs for any gaps).
 
-    for logit in logits:
-        fig, axes = plt.subplots(1, 3, figsize=large_figsize)
+    Raises
+    ------
+    SystemExit
+        If unexpected time deltas cannot be resolved, logging an error and exiting with code 101.
 
-        ax = axes[0]
-        im = ax.imshow(mean_over_pp[logit], cmap=generic_cmap, aspect='auto')
-        ax.set_ylabel('(Input) Time')
-        ax.set_yticks([x for x in range(len(in_chunk))])
-        ax.set_yticklabels(in_chunk)
-        ax.set_xlabel('Components')
-        ax.set_xticks([x for x in range(len(in_components))])
-        ax.set_xticklabels(in_components, rotation=90)
-        # ax.set_title('Mean over prediction points')
+    Notes
+    -----
+    - Ensures that any gaps in time steps are filled with NaNs to provide a continuous time series for plotting.
+    - Identifies and sorts the relevant prediction points for each instance by timestamp.
+    - Converts timezoned timestamps to UTC and removes timezones if detected, for uniform plotting.
+    """
+    ret_predictions = {}
+    ret_targets = {}
+    for i in instances:
 
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes('right', size='5%', pad=0.05)
-        fig.colorbar(im, cax=cax, orientation='vertical')
+        # find relevant prediction points and sort
+        i_inx = [p for p in timestamps if timestamps[p][0] == i]
+        t = [timestamps[p][2] for p in i_inx]
+        y = [targets[p] for p in i_inx]
+        y_hat = [predictions[p] for p in i_inx]
+        order  = sorted(range(len(t)), key=t.__getitem__)
+        t = np.array([t[x] for x in order])
+        y = np.array([y[x] for x in order])
+        y_hat = np.array([y_hat[x] for x in order])
 
-        ax = axes[1]
-        im = ax.imshow(mean_over_time[logit], cmap=generic_cmap, aspect='auto')
-        ax.set_ylabel('Prediction point')
-        ax.set_yticks([])
-        ax.set_xlabel('(Input) Components')
-        ax.set_xticks([x for x in range(len(in_components))])
-        ax.set_xticklabels(in_components, rotation=90)
-        # ax.set_title('Mean over (input) time')
+        # check timezones
+        if t.dtype == pd.Timestamp or t.dtype == datetime:
+            timezones = np.array([ts.tz for ts in t])
+            has_some_timezones = (timezones != None).any()
+            has_some_nontimezones = (timezones == None).any()
+            if has_some_timezones and has_some_nontimezones:
+                logger.error('Instance time indices contains both timezoned and non-timezoned timestamps. This should not be possible at this point.')
+                exit(101)
+            if has_some_timezones:
+                logger.warning('Instance has timezones, all timezones converted to UTC and dropped for plotting.')
+                t = np.array([ts.tz_convert('UTC') for ts in t])
+                t = np.array([ts.tz_localize(None) for ts in t])
 
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes('right', size='5%', pad=0.05)
-        fig.colorbar(im, cax=cax, orientation='vertical')
+        # check time deltas
+        deltas = np.diff(t)
+        delta = deltas.min()
+        # if gaps exists, fill with nans
+        if (deltas != delta).any():
+            # prep a nan
+            a_nice_nan = np.empty_like(y[0])
+            a_nice_nan[:] = np.nan
+            # find gaps
+            gaps = []
+            here = np.argwhere(deltas != delta)
+            for h in range(len(here)):
+                to_insert_nan = here[h].item()
+                gap = np.arange(start=t[to_insert_nan] + delta,
+                                stop=t[to_insert_nan + 1],
+                                step=delta)
+                gaps.append(gap)
+            # fill gaps
+            for g in range(len(gaps) - 1, 0, -1):
+                to_insert_nan = here[g].item() + 1
+                t = np.insert(t, to_insert_nan, gaps[g])
+                nan_stack = np.stack([a_nice_nan for x in range(len(gaps[g]))], axis=0)
+                y = np.insert(y, to_insert_nan, nan_stack, axis=0)
+                y_hat = np.insert(y_hat, to_insert_nan, nan_stack, axis=0)
+            if delta != np.diff(t).min():
+                logger.error('Something went horribly wrong with growing gaps in prediction visuals.')
+                exit(101)
 
-        ax = axes[2]
-        im = ax.imshow(mean_over_components[logit], cmap=generic_cmap, aspect='auto')
-        ax.set_ylabel('Prediction point')
-        ax.set_yticks([])
-        ax.set_xlabel('(Input) Time')
-        ax.set_xticks([x for x in range(len(in_chunk))])
-        ax.set_xticklabels(in_chunk, rotation=90)
-        # ax.set_title('Mean over (input) components')
+        ret_predictions[i] = [t, y_hat]
+        ret_targets[i] = [t, y]
 
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes('right', size='5%', pad=0.05)
-        fig.colorbar(im, cax=cax, orientation='vertical')
+    return ret_predictions, ret_targets
 
-        plt.suptitle('Mean absolute attribution plots for logit ' + str(logit))
 
+def plot_regression_set_prediction(i: any, predictions: dict, targets: dict, data_tag: str,
+                              out_components: list, save_dir: str) -> None:
+    """
+    Plot regression predictions against target values for a specified instance across output components.
+
+    This function generates and saves a plot for each output component, comparing the model's
+    predictions with the target values over time. It includes Mean Absolute Error (MAE) for each
+    time step, helping assess prediction accuracy visually.
+
+    Parameters
+    ----------
+    i : any
+        Unique identifier for the instance being plotted.
+    predictions : dict
+        Dictionary containing predictions for each instance, with keys representing indices.
+    targets : dict
+        Dictionary containing target values for each instance, with keys representing indices.
+    data_tag : str
+        Label for the dataset split being plotted (e.g., 'train', 'valid', 'eval').
+    out_components : list
+        List of output component names, used to label each component's plot.
+    save_dir : str
+        Directory where plots will be saved.
+
+    Returns
+    -------
+    None
+        Saves the generated plots directly to the specified directory.
+
+    Notes
+    -----
+    - The function plots each output component of predictions and targets over time, including a
+      calculated Mean Absolute Error (MAE) for each time step.
+    - The plots are saved as PNG files with unique filenames incorporating the data tag and instance ID.
+    """
+
+    x = predictions[i][0]
+    y_hat = predictions[i][1]
+    y = targets[i][1]
+    y_time = y_hat.shape[1]
+    y_components = y_hat.shape[2]
+
+    for c in range(y_components):
+        fig, ax = plt.subplots(1, 1, figsize=large_figsize)
+        for t in range(y_time):
+            map = ax.plot(x, y[:, t, c],
+                          label='Target ' + out_components[c] + ' step ' + str(t), color=target_color)
+            mae = np.nanmean(np.abs(y[:, t, c] - y_hat[:, t, c]))
+            ax.plot(x, y_hat[:, t, c],
+                    label='Predicted ' + out_components[c] + ' step ' + str(t) + ' (mae=' + str(mae) + ')', color=predicted_color)
+        ax.set_title(data_tag + ' instance: ' + str(i), fontsize=20)
+        ax.set_xlabel('t', fontsize=20)
+        ax.set_ylabel(str(out_components[c]) + '(t)', fontsize=20)
+        ax.grid(color=grid_color, alpha=0.5)
+        plt.legend(fontsize=10)
         plt.tight_layout()
-        # plt.show()
-
-        save_path = os.path.join(save_dir, 'mean_abs_attribution_logit_' + str(logit) + '.png')
+        save_path = os.path.join(save_dir, data_tag + '-prediction-' + str(i) + '-' + str(out_components[c]) + '.png')
         plt.savefig(save_path, dpi=generic_dpi)
         plt.close()
 
+def plot_classification_set_prediction(i: any, predictions: dict, targets: dict, data_tag: str, save_dir: str,
+                                       class_set: dict) -> None:
+    """
+    Generate and save a confusion matrix plot for predictions versus targets in a classification task.
 
-def fetch_feature_values(predictions_dir, data_tag, ist_values, model_args):
+    This function creates a confusion matrix for a single instance's predictions and targets, calculates the
+    instance's classification accuracy, and displays class labels from the provided class set. The plot is then
+    saved to the specified directory.
 
+    Parameters
+    ----------
+    i : any
+        Identifier for the instance being plotted.
+    predictions : dict
+        Dictionary containing prediction arrays for each instance. Each array is expected to have shape [timesteps, classes].
+    targets : dict
+        Dictionary containing target arrays for each instance. Each array is expected to have shape [timesteps, classes].
+    data_tag : str
+        Identifier tag for the dataset or task, used in the plot title and file name.
+    save_dir : str
+        Directory path where the generated plot will be saved.
+    class_set : dict
+        Dictionary mapping class labels to class names or descriptions.
 
+    Returns
+    -------
+    None
+        Saves the plot to the specified directory as a PNG file. No output is returned.
 
+    Notes
+    -----
+    - Computes the instance's accuracy, excluding any NaN values in the targets.
+    - Handles NaNs in predictions and targets using `special_nanargmax`, which computes the argmax while ignoring NaNs.
+    - Displays a confusion matrix with class labels for visual comparison of predicted and target classes.
 
-    batches = []
-    for b in os.listdir(predictions_dir):
-        if b.startswith(data_tag + '-' + 'batch'):
-            batches.append(b)
+    Raises
+    ------
+    FileNotFoundError
+        If the save directory does not exist or cannot be accessed.
+    """
+    def special_nanargmax(arr, axis):
+        new_arr = np.zeros(arr.shape[0]) + np.nan
+        d0 = np.isnan(arr).all(axis=axis)
+        new_arr[~d0] = np.nanargmax(arr[~d0], axis=1)
+        return new_arr
 
-    output_values = {}
-    for b in batches:
-        batch = load_from_path(os.path.join(predictions_dir, b))
-        s_inx = batch[0]
-        batch_pred = batch[1]
-        batch_target = batch[2]
-        for p in range(len(s_inx)):
-            pp = s_inx[p].item()
-            if pp in ist_values.keys():
-                y_hat = batch_pred[p]
-                y = batch_target[p]
-                output_values[pp] = (y_hat, y)
+    fig, ax = plt.subplots(1, 1, figsize=generic_figsize)
+    y_hat = special_nanargmax(predictions[i][1], axis=1)
+    y = special_nanargmax(targets[i][1], axis=1)
+    class_labels = [c for c in class_set.keys()]
+    num_classes = len(class_labels)
 
-    return output_values
+    correct = y == y_hat
+    correct = 1. * correct
+    nan_mask = np.isnan(y)
+    correct[nan_mask] = np.nan
+    accuracy = np.count_nonzero(correct[~nan_mask]) / float(len(correct[~nan_mask]))
+    title = data_tag + ' instance: ' + str(i) + '; accuracy = ' + str(accuracy)
 
+    conf_mat = np.zeros(shape=(num_classes, num_classes))
+    for c_predicted in range(num_classes):
+        for c_target in range(num_classes):
+            t_hits = y == c_target
+            p_hits = y_hat == c_predicted
+            val = np.count_nonzero(np.logical_and(t_hits, p_hits))
+            conf_mat[c_target, c_predicted] = val
 
-def plot_feat_att_classification(feat_att, relevant_ist, model_args, save_dir, interpret_args):
+    ConfusionMatrixDisplay(confusion_matrix=conf_mat,
+                           display_labels=class_labels).plot(ax=ax, cmap=generic_cmap, im_kw={'aspect': 'auto'})
 
-    in_components = model_args['data']['in_components']
-    out_components = list(model_args['data_dynamics']['class_set'].keys())
+    plt.title(title)
+    plt.tight_layout()
+    save_path = os.path.join(save_dir, data_tag + '-prediction-' + str(i) + '.png')
+    plt.savefig(save_path, dpi=generic_dpi)
+    plt.close()
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Visualize interpretations
+# TODO: Lots of opportunity for refactoring here
+# ----------------------------------------------------------------------------------------------------------------------
+
+def plot_feature_attribution(exp_output_dir: str, model_name: str, interpretation_file_name: str) -> None:
+    """
+    Generates and saves visualizations for feature attribution analysis based on model type.
+
+    Parameters:
+    -----------
+    exp_output_dir : str
+        The directory path to the experiment output containing model configurations and results.
+    model_name : str
+        The name of the model for which feature attributions are visualized.
+    interpretation_file_name : str
+        The file name of the interpretation data to be loaded and visualized.
+
+    Returns:
+    --------
+    None
+        The function generates and saves various feature attribution visualizations (animations
+        and heatmaps) based on the model's task (regression or classification).
+
+    Notes:
+    ------
+    - This function reads model arguments and feature attribution data, then creates visualizations
+      according to the task type (either 'regression' or 'classification').
+    - Visualizations include mean feature attributions, running animations, and classic
+      animations for either regression or classification tasks.
+    - Visualizations are saved in the specified model's visualization directory.
+
+    """
+    interpretation_dir = model_interpretations_dir(exp_output_dir, model_name)
+    model_args = yaml_to_dict(model_args_path(exp_output_dir, model_name))
+    file_path = os.path.join(interpretation_dir, interpretation_file_name)
+    feat_att_dict = load_from_path(file_path)
+    save_dir = model_viz_dir(exp_output_dir, model_name)
+
+    if model_args['data']['task'] == 'regression':
+        running_animation_regression(feat_att_dict, save_dir, model_args, interpretation_file_name)
+        mean_feat_att_regression(feat_att_dict, save_dir, model_args, interpretation_file_name)
+        running_animation_regression(feat_att_dict, save_dir, model_args, interpretation_file_name, classic=True)
+
+    elif model_args['data']['task'] == 'classification':
+        running_animation_classification(feat_att_dict, save_dir, model_args, interpretation_file_name)
+        mean_feat_att_classification(feat_att_dict, save_dir, model_args, interpretation_file_name)
+        running_animation_classification(feat_att_dict, save_dir, model_args, interpretation_file_name, classic=True)
+
+def running_animation_classification(feat_att_dict: dict, save_dir: str, model_args: dict,
+                                     interpretation_file_name: str, classic: bool = False) -> None:
+    """
+    Generates animated visualizations for classification model interpretations and saves them as .gif files.
+
+    This function creates animations to show the time series evolution of predictions, targets, and feature
+    attributions for each class label over specified instances. The animations are saved in .gif format for
+    visualizing model behavior across time or sequential steps.
+
+    Parameters
+    ----------
+    feat_att_dict : dict
+        A dictionary containing model interpretation details, including:
+            - 'results': Dictionary of feature attributions, indexed by each class label.
+            - 'timestamps': List of timestamps relevant to each feature attribution entry.
+            - 'predictions': Array of model predictions for each timestamp.
+            - 'targets': Array of true target values for each timestamp.
+            - 'input_features': Array of input features for each timestamp.
+    save_dir : str
+        The directory path where the animated .gif files will be saved.
+    model_args : dict
+        Dictionary of model and dataset metadata, specifically:
+            - 'data': A dictionary with keys 'in_components', 'in_chunk', and 'data_path' to retrieve time delta.
+            - 'data_dynamics': A dictionary containing 'class_set' which maps each class to its corresponding index.
+    interpretation_file_name : str
+        The filename of the interpretation data, used as the base name for saving .gif files.
+    classic : bool, default = False
+        Whether to use the old animation style.
+
+    Returns
+    -------
+    None
+        The function saves the generated animations as .gif files in the specified directory.
+
+    Notes
+    -----
+    - Each animation illustrates the evolution of predictions and targets for a given class label and highlights
+      input feature attributions that exceed a 95th percentile threshold.
+    - The function requires `compile_running_plot_animation` to compile and save animations.
+    """
+
+    def scale_alpha(min_val, max_val, val):
+        def lin_scale(f, target_min, target_max, native_min, native_max):
+            return (target_max - target_min) * (f - native_min) / (native_max - native_min) + target_min
+        alpha = lin_scale(val, 0, 1, min_val, max_val)
+        return alpha
+
+    interpretation_name = os.path.splitext(interpretation_file_name)[0]
+
+    # get meta info about dataset that was interpreted on
+    in_comps = model_args['data']['in_components']
+    in_chunk = model_args['data']['in_chunk']
+    in_scan = np.arange(in_chunk[0], in_chunk[-1] + 1)
+    t_delta = BaseDataset(model_args['data']['data_path']).time_delta
+    t_delta = np.timedelta64(t_delta)
+
+    class_set = model_args['data_dynamics']['class_set']
+
+    # find instances relevant to current interpretation
+    i = np.array([feat_att_dict['timestamps'][t][0] for t in range(len(feat_att_dict['timestamps']))])
+    instances = list(set(i))
+
+    # for every output class
+    for c in class_set:
+        logit = class_set[c]
+        # for every relevant instance
+        for instance in instances:
+            relevant_to_i = np.argwhere(i == instance).squeeze()
+            s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
+            slices = list(set(s))
+            # for every relevant (to current instance) slice
+            for slice in slices:
+                relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+                y = np.array(feat_att_dict['targets'])[relevant_to_s]
+                y_hat = np.array(feat_att_dict['predictions'])[relevant_to_s]
+                t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
+                t = [c for c in t]
+                plot_data = []
+                for ts in relevant_to_s:
+                    new_plot_data = {}
+                    new_plot_data['prediction_curve'] = (t, y_hat[:, logit])
+                    new_plot_data['target_curve'] = (t, y[:, logit])
+                    new_plot_data['pp_tick'] = t[ts]
+                    new_plot_data['chunk_0_tick'] = t[ts] + t_delta * in_scan[0]
+                    new_plot_data['chunk_1_tick'] = t[ts] + t_delta * in_scan[-1]
+                    min_f = feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().min().item()
+                    max_f = feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().max().item()
+                    upper_threshold = np.percentile(feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().detach().cpu().numpy(), 95)
+                    ic_curves = defaultdict(list)
+                    new_plot_data['ic_curve_attributions'] = defaultdict(list)
+                    for ic in range(len(in_comps)):
+                        for in_delay in range(1 + in_chunk[1] - in_chunk[0]):
+                            feature_attribution_val = feat_att_dict['results'][logit]['attributions'][ts, in_delay, ic].abs().cpu().item()
+                            alpha = scale_alpha(min_f, max_f, feature_attribution_val)
+                            if feature_attribution_val > upper_threshold:
+                                alpha=2.
+                            if not classic:
+                                new_plot_data['ic_curve_attributions'][ic].append(alpha)
+                            else:
+                                new_plot_data['in_scan'] = in_scan
+                                new_plot_data['ic_curve_attributions'][ic].append(feature_attribution_val)
+                            ic_curves[ic].append([t[ts] + t_delta * in_scan[in_delay], feat_att_dict['input_features'][ts, in_delay, ic].item()])
+                    new_plot_data['ic_curves'] = ic_curves
+                    plot_data.append(new_plot_data)
+                if not classic:
+                    file_name = interpretation_name + '_running-i=' + str(instance) + '-s=' + str(
+                        slice) + '-class=' + str(c) + '.gif'
+                    plot_save_path = os.path.join(save_dir, file_name)
+                    compile_running_plot_animation(plot_data, plot_save_path, in_comps)
+                else:
+                    file_name = interpretation_name + '_classic-i=' + str(instance) + '-s=' + str(
+                        slice) + '-class=' + str(c) + '.gif'
+                    plot_save_path = os.path.join(save_dir, file_name)
+                    compile_classic_plot_animation(plot_data, plot_save_path, in_comps)
+
+def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args: dict,
+                                 interpretation_file_name: str, classic: bool = False) -> None:
+    """
+    Generates animated visualizations for model interpretations and saves them as .gif files.
+
+    This function takes feature attributions, prediction and target curves, timestamps, and model
+    meta information to generate and save animated plots illustrating running predictions over time.
+    Each output component's temporal behavior is animated based on the provided time series data.
+
+    Parameters
+    ----------
+    feat_att_dict : dict
+        Dictionary containing feature attributions, predictions, targets, and timestamps for
+        model interpretations. The expected keys include:
+            - 'results': Dictionary with attribution data, indexed by tuples `(output_delay, component)`.
+            - 'timestamps': List of timestamps for each feature attribution entry.
+            - 'predictions': Array of model predictions.
+            - 'targets': Array of true target values.
+            - 'input_features': Array of input feature values.
+    save_dir : str
+        Directory path where the animated .gif files will be saved.
+    model_args : dict
+        Dictionary containing metadata about the dataset and model parameters, specifically:
+            - 'data': A dictionary with keys 'in_components', 'out_components', 'in_chunk', 'out_chunk',
+              and 'data_path' for loading time delta and related settings.
+    interpretation_file_name : str
+        The filename of the interpretation data, used to generate the .gif filenames.
+    classic : bool, default = False
+        Whether to use the old animation style.
+
+    Returns
+    -------
+    None
+        The function saves the generated animations as .gif files in the specified directory.
+
+    Notes
+    -----
+    - Each animation visualizes predictions, targets, and input component attributions for a specified
+      output component and delay, highlighting absolute feature attributions that exceed the 95th percentile.
+    - The visibility of the markers are based on their absolute feature attributions.
+        There is a linear scaling from least important (invisible) to most important (completely visible).
+    - Markers that marked with a star are those whose absolute feature attribution is above the 95th percentile of
+        all feature attributions at that point in time.
+    - The helper function `compile_running_plot_animation` is required to compile and save the animations.
+    """
+
+    def scale_alpha(min_val, max_val, val):
+        def lin_scale(f, target_min, target_max, native_min, native_max):
+            return (target_max - target_min) * (f - native_min) / (native_max - native_min) + target_min
+        alpha = lin_scale(val, 0, 1, min_val, max_val)
+        return alpha
+
+    interpretation_name = os.path.splitext(interpretation_file_name)[0]
+
+    # get meta info about dataset that was interpreted on
+    in_comps = model_args['data']['in_components']
+    out_comps = model_args['data']['out_components']
     in_chunk = model_args['data']['in_chunk']
     out_chunk = model_args['data']['out_chunk']
+    in_scan = np.arange(in_chunk[0], in_chunk[-1] + 1)
+    t_delta = BaseDataset(model_args['data']['data_path']).time_delta
+    t_delta = np.timedelta64(t_delta)
 
-    in_time = np.arange(in_chunk[0], in_chunk[1]+1)
+    # find instances relevant to current interpretation
+    i = np.array([feat_att_dict['timestamps'][t][0] for t in range(len(feat_att_dict['timestamps']))])
+    instances = list(set(i))
 
-    prefix = interpret_args['interpretation_method'] + '-' + interpret_args['interpretation_set']
+    # for every output component
+    for oc in range(len(out_comps)):
+        # for every output delay
+        for out_delay in range(1 + out_chunk[1] - out_chunk[0]):
+            logit = (out_delay, oc)
+            # for every relevant instance
+            for instance in instances:
+                relevant_to_i = np.argwhere(i == instance).squeeze()
+                s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
+                slices = list(set(s))
+                # for every relevant (to current instance) slice
+                for slice in slices:
+                    relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+                    y = np.array(feat_att_dict['targets'])[relevant_to_s]
+                    y_hat = np.array(feat_att_dict['predictions'])[relevant_to_s]
+                    t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
+                    t = [c for c in t]
+                    plot_data = []
+                    for ts in relevant_to_s:
+                        new_plot_data = {}
+                        new_plot_data['prediction_curve'] = (t, y_hat[:, out_delay, oc])
+                        new_plot_data['target_curve'] = (t, y[:, out_delay, oc])
+                        new_plot_data['pp_tick'] = t[ts]
+                        new_plot_data['chunk_0_tick'] = t[ts] + t_delta * in_scan[0]
+                        new_plot_data['chunk_1_tick'] = t[ts] + t_delta * in_scan[-1]
+                        min_f = feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().min().item()
+                        max_f = feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().max().item()
+                        upper_threshold = np.percentile(feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().detach().cpu().numpy(), 95)
+                        ic_curves = defaultdict(list)
+                        new_plot_data['ic_curve_attributions'] = defaultdict(list)
+                        for ic in range(len(in_comps)):
+                            for in_delay in range(1 + in_chunk[1] - in_chunk[0]):
+                                feature_attribution_val = feat_att_dict['results'][logit]['attributions'][ts, in_delay, ic].abs().cpu().item()
+                                alpha = scale_alpha(min_f, max_f, feature_attribution_val)
+                                if feature_attribution_val > upper_threshold:
+                                    alpha=2.
+                                if not classic:
+                                    new_plot_data['ic_curve_attributions'][ic].append(alpha)
+                                else:
+                                    new_plot_data['in_scan'] = in_scan
+                                    new_plot_data['ic_curve_attributions'][ic].append(feature_attribution_val)
+                                ic_curves[ic].append([t[ts] + t_delta * in_scan[in_delay], feat_att_dict['input_features'][ts, in_delay, ic].item()])
+                        new_plot_data['ic_curves'] = ic_curves
+                        plot_data.append(new_plot_data)
+                    if not classic:
+                        file_name = interpretation_name + '_running-i=' + str(instance) + '-s=' + str(
+                            slice) + '-logit=' + str(logit) + '.gif'
+                        plot_save_path = os.path.join(save_dir, file_name)
+                        compile_running_plot_animation(plot_data, plot_save_path, in_comps)
+                    else:
+                        file_name = interpretation_name + '_classic-i=' + str(instance) + '-s=' + str(
+                            slice) + '-logit=' + str(logit) + '.gif'
+                        plot_save_path = os.path.join(save_dir, file_name)
+                        compile_classic_plot_animation(plot_data, plot_save_path, in_comps)
 
-    image_paths = []
-    
-    output_logits = list(feat_att.keys())
-    all_pred_points = list(relevant_ist.keys())
-    
-    for i, pp in enumerate(all_pred_points):
+def compile_running_plot_animation(plot_data: list, save_path: str, in_comps: list) -> None:
+    """
+    Creates and saves an animated plot showing predictions, targets, and input feature contributions over time.
 
-        prediction_point = relevant_ist[pp]
-        instance = prediction_point[0]
-        time_point = prediction_point[2]
+    This function generates an animated plot that visualizes model predictions and target values, with
+    additional markers highlighting input feature attributions over a time series. The resulting animation
+    is saved as a .gif file, providing insight into model behavior across sequential time steps.
 
+    Parameters
+    ----------
+    plot_data : list of dict
+        A list of dictionaries containing plotting data for each time step. Each dictionary includes:
+            - 'prediction_curve': Tuple of (time, prediction values).
+            - 'target_curve': Tuple of (time, target values).
+            - 'pp_tick': Scalar, timestamp for the prediction point.
+            - 'chunk_0_tick' and 'chunk_1_tick': Scalars, timestamps defining input chunk range.
+            - 'ic_curves': Dictionary of input component time series (one list per component).
+            - 'ic_curve_attributions': Dictionary of transparency levels for each component at each time step.
+    save_path : str
+        Path where the animated .gif file will be saved.
+    in_comps : list of str
+        List of names or identifiers for each input component, used for labeling in the legend.
 
-        fig, axes = plt.subplots(len(output_logits), 1, figsize=generic_figsize)
-        plot_num = 0
-        for logit in output_logits:
+    Returns
+    -------
+    None
+        Saves an animation to the specified `save_path`.
 
-            if len(output_logits) > 1:
-                ax = axes[plot_num]
+    Notes
+    -----
+    - Each input feature component curve is represented with varying opacity to indicate feature importance.
+    - Only updates specific plot elements on each animation frame for efficient rendering.
+    - The function requires `pillow` for .gif saving.
+    """
+
+    def get_full_color_cycle(options):
+        """"Generates a color cycle list for input components based on the given color options."""
+        colors = []
+        c_tick = 0
+        for c in range(len(options)):
+            colors.append(color_cycle[c_tick])
+            c_tick += 1
+            if c_tick == len(color_cycle) - 1:
+                c_tick = 0
+        return colors
+
+    def construct_custom_legend(in_comps, colors):
+        """Creates a custom legend with prediction, target, and input component labels."""
+        custom_lines = [Line2D([0], [0], color=get_color('predicted'), lw=4)]
+        custom_names = ['prediction']
+        custom_lines.append(Line2D([0], [0], color=get_color('target'), lw=4))
+        custom_names.append('target')
+        for c in range(len(in_comps)):
+            custom_lines.append(Line2D([0], [0], color=colors[c], lw=4))
+            custom_names.append(in_comps[c])
+        return custom_lines, custom_names
+
+    def update(step):
+        """Updates plot elements to animate each frame based on current time step data."""
+        p = plot_data[step]
+        prediction_curve.set_xdata(p['prediction_curve'][0])
+        prediction_curve.set_ydata(p['prediction_curve'][1])
+        target_curve.set_xdata(p['target_curve'][0])
+        target_curve.set_ydata(p['target_curve'][1])
+        pp_tick.set_xdata(p['pp_tick'])
+        chunk_0_tick.set_xdata(p['chunk_0_tick'])
+        chunk_1_tick.set_xdata(p['chunk_1_tick'])
+        ticker = 0
+        for ic in range(len(ic_curves)):
+            t = [a[0] for a in p['ic_curves'][ic]]
+            f = [b[1] for b in p['ic_curves'][ic]]
+            ic_curves[ic].set_xdata(t)
+            ic_curves[ic].set_ydata(f)
+            for ts in range(len(t)):
+                ic_dots[ticker].set_xdata(t[ts])
+                ic_dots[ticker].set_ydata(f[ts])
+                alpha = p['ic_curve_attributions'][ic][ts]
+                if alpha <= 1.0:
+                    ic_dots[ticker].set(alpha=alpha, marker='o', markersize=10.)
+                else:
+                    ic_dots[ticker].set(alpha=1.0, marker='*', markersize=20.)
+                ticker += 1
+
+        return_val = [prediction_curve, target_curve, pp_tick, chunk_0_tick, chunk_1_tick]
+        for ic in range(len(ic_curves)):
+            return_val.append(ic_curves[ic])
+        for d in range(len(ic_dots)):
+            return_val.append(ic_dots[d])
+
+        return return_val
+
+    colors = get_full_color_cycle(in_comps)
+    custom_lines, custom_names = construct_custom_legend(in_comps, colors)
+
+    # create initial plot
+    fig, ax = plt.subplots(1, 1, figsize=generic_figsize, dpi=generic_dpi)
+    p = plot_data[0]
+
+    prediction_curve = ax.plot(p['prediction_curve'][0], p['prediction_curve'][1], c=get_color('predicted'),)[0]
+    target_curve = ax.plot(p['target_curve'][0], p['target_curve'][1], c=get_color('target'))[0]
+    pp_tick = ax.axvline(x=p['pp_tick'], color="grey", linestyle='-', alpha=0.5)
+    chunk_0_tick = ax.axvline(x=p['chunk_0_tick'], color="grey", linestyle='--', alpha=0.5)
+    chunk_1_tick = ax.axvline(x=p['chunk_1_tick'], color="grey", linestyle='--', alpha=0.5)
+    ax.legend(custom_lines, custom_names)
+    ic_curves = []
+    ic_dots = []
+    for ic in p['ic_curves']:
+        t = [a[0] for a in p['ic_curves'][ic]]
+        f = [b[1] for b in p['ic_curves'][ic]]
+        ic_curves.append(ax.plot(t, f, c=colors[ic], alpha=0.3)[0])
+        for ts in range(len(t)):
+            alpha = p['ic_curve_attributions'][ic][ts]
+            if alpha <= 1.0:
+                ic_dots.append(ax.plot(t[ts], f[ts], c=colors[ic])[0])
+                ic_dots[-1].set(alpha=alpha, marker='o', markersize=10.)
             else:
-                ax = axes
+                ic_dots.append(ax.plot(t[ts], f[ts], c=colors[ic])[0])
+                ic_dots[-1].set(alpha=1.0, marker='*', markersize=20.)
 
-            if len(feat_att[logit]['attributions'].shape) == 3:
-                fa = torch.index_select(feat_att[logit]['attributions'].cpu(), 0, torch.tensor([i]))
-                fa = torch.squeeze(fa, 0)
-            else:
-                fa = feat_att[logit]['attributions'].cpu()
-            fa = fa.detach().numpy()
-            fa = fa.transpose()
-            im = ax.imshow(fa, aspect='auto', cmap=generic_cmap)
-            # axes[plot_num].set_title(out_components[plot_num])
-            # ax.set_title('Output logit: ' + str(logit) + ' / output component: ' + str(out_components[logit[1]]))
-            ax.set_title('Predicting ' + str(out_components[logit]) + ' at time position ' + str(out_chunk[logit]))
-            ax.set_yticks([t for t in range(len(in_components))])
-            ax.set_yticklabels(in_components)
+    ax.set_xlabel('prediction points')
+    ax.set_ylabel('feature value')
+    animation_fig = animation.FuncAnimation(fig, update,
+                                            frames=len(plot_data),
+                                            interval=200,
+                                            blit=True,
+                                            repeat_delay=10,
+                                            repeat=True, )
 
-            ax.set_xticks([t for t in range(len(in_time))])
-            ax.set_xticklabels(in_time)
+    animation_fig.save(save_path, writer="pillow")
+    plt.close()
 
-            divider = make_axes_locatable(ax)
-            cax = divider.append_axes('right', size='5%', pad=0.05)
-            fig.colorbar(im, cax=cax, orientation='vertical')
+def compile_classic_plot_animation(plot_data: list, save_path: str, in_comps: list) -> None:
+    """
+    Creates and saves an animated plot of feature attributions and input component curves over time.
 
-            # center = np.floor(fa.shape[1]/2)
-            # ax.axvline(center, linestyle='--', color='black')
-            # check = 0.1 * (ax.get_ylim()[1] - ax.get_ylim()[0]) + ax.get_ylim()[0]
-            # ax.text(center + 0.1, check, str(prediction_point[2]), rotation=90, color='black')
+    Parameters:
+    -----------
+    plot_data : list
+        A list of dictionaries containing the data for each frame of the animation, including
+        prediction curves, target curves, input component curves, and feature attribution values.
+    save_path : str
+        The file path where the animation will be saved, usually with a `.gif` or `.mp4` extension.
+    in_comps : list
+        List of input component names used for labelling and color-coding input component curves.
 
-            plot_num += 1
+    Returns:
+    --------
+    None
+        The function saves an animation file at `save_path`.
 
-        plt.suptitle('Prediction point: [' + str(time_point) + '] \n Instance: [' + str(instance) + ']')
+    Notes:
+    ------
+    - This function generates an animation where each frame is updated with new prediction, target,
+      and input component data.
+    - The function customizes the plot legend, color-coding each input component curve distinctly.
+    - Uses `update` as an animation function to update each frame, iterating through data in `plot_data`.
+    - A color bar indicating feature attribution intensity is displayed alongside the animation.
 
-        # plt.show()
+    """
+    def get_full_color_cycle(options):
+        """"Generates a color cycle list for input components based on the given color options."""
+        colors = []
+        c_tick = 0
+        for c in range(len(options)):
+            colors.append(color_cycle[c_tick])
+            c_tick += 1
+            if c_tick == len(color_cycle) - 1:
+                c_tick = 0
+        return colors
 
-        save_path = os.path.join(save_dir, prefix + '-' + str(instance) + '-' + str(time_point) + '.png')
-        plt.savefig(save_path, dpi=quick_dpi)
-        plt.close()
+    def construct_custom_legend(in_comps, colors):
+        """Creates a custom legend with prediction, target, and input component labels."""
+        custom_lines = [Line2D([0], [0], color=get_color('predicted'), lw=4)]
+        custom_names = ['prediction']
+        custom_lines.append(Line2D([0], [0], color=get_color('target'), lw=4))
+        custom_names.append('target')
+        for c in range(len(in_comps)):
+            custom_lines.append(Line2D([0], [0], color=colors[c], lw=4))
+            custom_names.append(in_comps[c])
+        return custom_lines, custom_names
 
-        image_paths.append(save_path)
+    def update(step):
+        """Updates plot elements to animate each frame based on current time step data."""
+        p = plot_data[step]
+        prediction_curve.set_xdata(p['prediction_curve'][0])
+        prediction_curve.set_ydata(p['prediction_curve'][1])
+        target_curve.set_xdata(p['target_curve'][0])
+        target_curve.set_ydata(p['target_curve'][1])
+        pp_tick.set_xdata(p['pp_tick'])
+        chunk_0_tick.set_xdata(p['chunk_0_tick'])
+        chunk_1_tick.set_xdata(p['chunk_1_tick'])
+        h_map = []
+        for ic in range(len(ic_curves)):
+            t = [a[0] for a in p['ic_curves'][ic]]
+            f = [b[1] for b in p['ic_curves'][ic]]
+            ic_curves[ic].set_xdata(t)
+            ic_curves[ic].set_ydata(f)
+            h_map.append(p['ic_curve_attributions'][ic])
+        h_map = np.array(h_map)
+        feat_att_map.set_data(h_map)
 
-        plt.close()
+        return_val = [prediction_curve, target_curve, pp_tick, chunk_0_tick, chunk_1_tick]
+        for ic in range(len(ic_curves)):
+            return_val.append(ic_curves[ic])
+        return_val.append(feat_att_map)
 
-    create_gif(save_dir, image_paths)
+        return return_val
 
+    colors = get_full_color_cycle(in_comps)
+    custom_lines, custom_names = construct_custom_legend(in_comps, colors)
 
-def plot_feat_att_regression(feat_att, relevant_ist, model_args, save_dir, interpret_args):
+    # create initial plot
+    fig, axes = plt.subplots(2, 1, figsize=generic_figsize, dpi=generic_dpi)
+    p = plot_data[0]
+    ax = axes[0]
+    fax = axes[1]
+    prediction_curve = ax.plot(p['prediction_curve'][0], p['prediction_curve'][1], c=get_color('predicted'),)[0]
+    target_curve = ax.plot(p['target_curve'][0], p['target_curve'][1], c=get_color('target'))[0]
+    pp_tick = ax.axvline(x=p['pp_tick'], color="grey", linestyle='-', alpha=0.5)
+    chunk_0_tick = ax.axvline(x=p['chunk_0_tick'], color="grey", linestyle='--', alpha=0.5)
+    chunk_1_tick = ax.axvline(x=p['chunk_1_tick'], color="grey", linestyle='--', alpha=0.5)
+    ax.legend(custom_lines, custom_names)
+    ic_curves = []
+    h_map = []
+    for ic in p['ic_curves']:
+        t = [a[0] for a in p['ic_curves'][ic]]
+        f = [b[1] for b in p['ic_curves'][ic]]
+        ic_curves.append(ax.plot(t, f, c=colors[ic], alpha=0.9)[0])
+        h_map.append(p['ic_curve_attributions'][ic])
+    h_map = np.array(h_map)
+    feat_att_map = fax.imshow(h_map, cmap=generic_cmap, aspect='auto')
+    fax.set_xlabel('input delay')
+    id_ticks, id_ticklabels = get_tick_params(p['in_scan'])
+    fax.set_xticks(id_ticks)
+    fax.set_xticklabels(id_ticklabels)
+    fax.set_yticks([x for x in range(len(in_comps))])
+    fax.set_yticklabels(in_comps)
+    divider = make_axes_locatable(fax)
+    cax = divider.append_axes('right', size='5%', pad=0.05)
+    cbar = fig.colorbar(feat_att_map, cax=cax, orientation='vertical')
+    cbar.set_label('feature attribution')
+    ax.set_xlabel('prediction points')
+    ax.set_ylabel('feature value')
+    animation_fig = animation.FuncAnimation(fig, update,
+                                            frames=len(plot_data),
+                                            interval=200,
+                                            blit=True,
+                                            repeat_delay=10,
+                                            repeat=True, )
 
-    in_components = model_args['data']['in_components']
-    out_components = model_args['data']['out_components']
+    animation_fig.save(save_path, writer="pillow")
+    plt.close()
+
+def mean_feat_att_regression(feat_att_dict: dict, save_dir: str, model_args: dict, interpretation_file_name: str) -> None:
+    """
+    Processes feature attributions for a regression model and generates mean attribution heatmaps for each
+    output component and delay.
+
+    Parameters:
+    -----------
+    feat_att_dict : dict
+        Dictionary containing feature attribution data, including timestamps and attributions for specific instances.
+    save_dir : str
+        Directory path where the generated mean attribution plot images will be saved.
+    model_args : dict
+        Dictionary of model parameters and metadata, containing keys for input and output components,
+        chunk ranges, and data paths.
+    interpretation_file_name : str
+        Name of the interpretation file, used to label the generated images.
+
+    Returns:
+    --------
+    None
+        The function saves mean feature attribution plots as PNG files in `save_dir`.
+
+    Notes:
+    ------
+    This function:
+      - Extracts metadata from `model_args` to identify input components, chunks, and temporal deltas.
+      - Loops through each output component and delay to compute relevant feature attributions.
+      - Generates mean feature attribution heatmaps for each output component-delay-instance combination.
+      - Uses the `plot_mean` function to create and save each plot.
+
+    """
+    interpretation_name = os.path.splitext(interpretation_file_name)[0]
+
+    # get meta info about dataset that was interpreted on
+    in_comps = model_args['data']['in_components']
+    out_comps = model_args['data']['out_components']
     in_chunk = model_args['data']['in_chunk']
     out_chunk = model_args['data']['out_chunk']
+    in_scan = np.arange(in_chunk[0], in_chunk[-1] + 1)
 
-    in_time = np.arange(in_chunk[0], in_chunk[1]+1)
-    out_time = np.arange(out_chunk[0], out_chunk[1] + 1)
+    # find instances relevant to current interpretation
+    i = np.array([feat_att_dict['timestamps'][t][0] for t in range(len(feat_att_dict['timestamps']))])
+    instances = list(set(i))
 
-    prefix = interpret_args['interpretation_method'] + '-' + interpret_args['interpretation_set']
+    # for every output component
+    for oc in range(len(out_comps)):
+        # for every output delay
+        for out_delay in range(1 + out_chunk[1] - out_chunk[0]):
+            logit = (out_delay, oc)
+            # for every relevant instance
+            for instance in instances:
+                relevant_to_i = np.argwhere(i == instance).squeeze()
+                s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
+                slices = list(set(s))
+                # for every relevant (to current instance) slice
+                for slice in slices:
+                    relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+                    t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
+                    t = [c for c in t]
+                    feature_attributions = feat_att_dict['results'][logit]['attributions'][relevant_to_s, :, :].abs().detach().cpu().numpy()
+                    file_name = interpretation_name + '_simple_mean-i=' + str(instance) + '-s=' + str(
+                        slice) + '-logit=' + str(logit) + '.png'
+                    plot_save_path = os.path.join(save_dir, file_name)
+                    plot_mean(t, feature_attributions, plot_save_path, in_comps, in_scan)
 
-    image_paths = []
+def mean_feat_att_classification(feat_att_dict: dict, save_dir: str, model_args: dict, interpretation_file_name: str) -> None:
+    """
+    Generates mean feature attribution heatmaps for each output class in a classification model.
 
-    output_logits = list(feat_att.keys())
-    all_pred_points = list(relevant_ist.keys())
-    
-    for i, pp in enumerate(all_pred_points):
+    Parameters:
+    -----------
+    feat_att_dict : dict
+        Dictionary containing feature attribution data, including timestamps, targets, and attributions for each instance.
+    save_dir : str
+        Directory path where the generated mean attribution plot images will be saved.
+    model_args : dict
+        Dictionary of model parameters and metadata, containing information on input and output components,
+        chunk ranges, and data dynamics (such as class mappings).
+    interpretation_file_name : str
+        Name of the interpretation file, used to label the generated images.
 
-        prediction_point = relevant_ist[pp]
-        instance = prediction_point[0]
-        time_point = prediction_point[2]
+    Returns:
+    --------
+    None
+        The function saves mean feature attribution plots as PNG files in `save_dir`.
 
+    Notes:
+    ------
+    - This function loops through each class and instance, generating mean feature attribution plots
+      for each class-instance-slice combination.
+    - Uses metadata from `model_args` to configure input components, chunks, and class mappings.
+    - Calls the `plot_mean` function to create and save each heatmap plot based on the calculated mean
+      feature attributions.
 
-        fig, axes = plt.subplots(len(output_logits), 1, figsize=generic_figsize)
-        plot_num = 0
-        for logit in output_logits:
+    """
+    interpretation_name = os.path.splitext(interpretation_file_name)[0]
 
-            if len(output_logits) > 1:
-                ax = axes[plot_num]
-            else:
-                ax = axes
-                
-            if len(feat_att[logit]['attributions'].shape) == 3:
-                fa = torch.index_select(feat_att[logit]['attributions'].cpu(), 0, torch.tensor([i]))
-                fa = torch.squeeze(fa, 0)
-            else:
-                fa = feat_att[logit]['attributions'].cpu()
-            fa = fa.detach().numpy()
-            fa = fa.transpose()
-            im = ax.imshow(fa, aspect='auto', cmap=generic_cmap)
-            # axes[plot_num].set_title(out_components[plot_num])
-            # ax.set_title('Output logit: ' + str(logit) + ' / output component: ' + str(out_components[logit[1]]))
-            ax.set_title('Predicting ' + str(out_components[logit[1]]) + ' at time position ' + str(out_time[logit[0]]))
-            ax.set_yticks([t for t in range(len(in_components))])
-            ax.set_yticklabels(in_components)
+    # get meta info about dataset that was interpreted on
+    in_comps = model_args['data']['in_components']
+    out_comps = model_args['data']['out_components']
+    in_chunk = model_args['data']['in_chunk']
+    out_chunk = model_args['data']['out_chunk']
+    in_scan = np.arange(in_chunk[0], in_chunk[-1] + 1)
 
-            ax.set_xticks([t for t in range(len(in_time))])
-            ax.set_xticklabels(in_time)
+    class_set = model_args['data_dynamics']['class_set']
 
-            divider = make_axes_locatable(ax)
-            cax = divider.append_axes('right', size='5%', pad=0.05)
-            fig.colorbar(im, cax=cax, orientation='vertical')
+    # find instances relevant to current interpretation
+    i = np.array([feat_att_dict['timestamps'][t][0] for t in range(len(feat_att_dict['timestamps']))])
+    instances = list(set(i))
 
-            # center = np.floor(fa.shape[1]/2)
-            # ax.axvline(center, linestyle='--', color='black')
-            # check = 0.1 * (ax.get_ylim()[1] - ax.get_ylim()[0]) + ax.get_ylim()[0]
-            # ax.text(center + 0.1, check, str(prediction_point[2]), rotation=90, color='black')
+    # for every output class
+    for c in class_set:
+        logit = class_set[c]
+        # for every relevant instance
+        for instance in instances:
+            relevant_to_i = np.argwhere(i == instance).squeeze()
+            s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
+            slices = list(set(s))
+            # for every relevant (to current instance) slice
+            for slice in slices:
+                relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+                t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
+                t = [c for c in t]
+                feature_attributions = feat_att_dict['results'][logit]['attributions'][relevant_to_s, :, :].abs().detach().cpu().numpy()
+                file_name = interpretation_name + '_simple_mean-i=' + str(instance) + '-s=' + str(
+                    slice) + '-logit=' + str(logit) + '.png'
+                plot_save_path = os.path.join(save_dir, file_name)
+                plot_mean(t, feature_attributions, plot_save_path, in_comps, in_scan)
 
-            plot_num += 1
+def plot_mean(t: list, feature_attributions: np.array, save_path: str, in_comps: list, in_scan: list) -> None:
+    """
+    Generates and saves a multi-panel heatmap plot to visualize the mean feature attributions
+    across prediction points, input delays, and input components.
 
-        plt.suptitle('Prediction point: [' + str(time_point) + '] \n Instance: [' + str(instance) + ']')
-        plt.tight_layout()
+    Parameters:
+    -----------
+    t : array-like
+        Array of time steps or prediction points.
+    feature_attributions : ndarray
+        3D array of feature attributions with dimensions (prediction points, input delays, input components).
+    save_path : str
+        Path where the generated plot image will be saved.
+    in_comps : list
+        List of input component names to label the y-axis of heatmaps.
+    in_scan : array-like
+        Array of input delay values corresponding to each input delay axis tick.
 
-        # plt.show()
+    Returns:
+    --------
+    None
+        The function saves the generated plot as an image file at the specified `save_path`.
 
-        save_path = os.path.join(save_dir, prefix + '-' + str(instance) + '-' + str(time_point) + '.png')
-        plt.savefig(save_path, dpi=quick_dpi)
-        image_paths.append(save_path)
+    Notes:
+    ------
+    This function performs the following steps:
+      - Calculates mean values of `feature_attributions` across prediction points, input delays, and components.
+      - Creates three heatmaps representing:
+          1. Mean feature attribution across prediction points (top-left).
+          2. Mean feature attribution across input delays (top-right).
+          3. Mean feature attribution across input components (bottom-left).
+      - Sets custom tick labels for each subplot.
+      - Adds a shared color bar at the bottom of the plot to represent absolute attribution values.
+      - Adjusts x and y labels to be positioned midway between subplots.
 
-        # plt.show()
+    """
 
-        plt.close()
+    # collect relevant heatmap grids and feature ranges
+    mean_across_pp = np.mean(feature_attributions, axis=0)
+    mean_across_delays = np.mean(feature_attributions, axis=1)
+    mean_across_comp = np.mean(feature_attributions, axis=2)
+    max_mean = max(np.max(mean_across_pp), np.max(mean_across_delays), np.max(mean_across_comp))
+    min_mean = min(np.min(mean_across_pp), np.min(mean_across_delays), np.min(mean_across_comp))
 
-    create_gif(save_dir, image_paths)
+    # determine prediction point and input delay ticks
+    t = np.array(t)
+    pp_ticks, pp_ticklabels = get_tick_params(t)
+    id_ticks, id_ticklabels = get_tick_params(in_scan)
 
+    # initialize figure
+    fig, ax = plt.subplots(2, 2, figsize=large_figsize, dpi=generic_dpi)
 
-def create_gif(save_dir, image_paths):
+    # plot cross prediction point heatmap and set visual parameters
+    map1 = ax[0, 0].imshow(mean_across_pp.transpose(),
+                           aspect='auto', cmap=generic_cmap,
+                           vmax=max_mean, vmin=min_mean)
+    ax[0, 0].set_yticks([y for y in range(len(in_comps))])
+    ax[0, 0].set_yticklabels(in_comps)
+    ax[0, 0].set_xticks(id_ticks)
+    ax[0, 0].set_xticklabels(id_ticklabels)
+    ax[0, 0].yaxis.set_label_position('right')
+    ax[0, 0].set_xlabel('input delay', fontsize='x-large')
+    ax[0, 0].set_ylabel('input component', fontsize='x-large')
+    ax[0, 0].tick_params(right=False, labelright=False,
+                         top=True, labeltop=True,
+                         bottom=False, labelbottom=False)
+
+    # plot cross input delay heatmap and set visual parameters
+    ax[0, 1].imshow(mean_across_delays.transpose(),
+                           aspect='auto', cmap=generic_cmap,
+                           vmax=max_mean, vmin=min_mean)
+    ax[0, 1].set_yticks([y for y in range(len(in_comps))])
+    ax[0, 1].set_yticklabels(in_comps)
+    ax[0, 1].set_xticks(pp_ticks)
+    ax[0, 1].set_xticklabels(pp_ticklabels, rotation=90)
+    ax[0, 1].xaxis.set_label_position('top')
+    ax[0, 1].set_xlabel('prediction point', fontsize='x-large')
+    ax[0, 1].tick_params(right=True, labelright=True,
+                         left=False, labelleft=False)
+
+    # plot cross input component heatmap and set visual parameters
+    ax[1, 0].imshow(mean_across_comp,
+                           aspect='auto', cmap=generic_cmap,
+                           vmax=max_mean, vmin=min_mean)
+    ax[1, 0].set_yticks(pp_ticks)
+    ax[1, 0].set_yticklabels(pp_ticklabels)
+    ax[1, 0].set_xticks(id_ticks)
+    ax[1, 0].set_xticklabels(id_ticklabels)
+    ax[1, 0].set_ylabel('prediction point', fontsize='x-large')
+    ax[1, 0].tick_params(right=True, labelright=True,
+                         left=False, labelleft=False,
+                         bottom=True, labelbottom=True)
+
+    # delete fourth subplot and replace with global color bar
+    fig.delaxes(ax[1, 1])
+    divider = make_axes_locatable(ax[1, 1])
+    cax = divider.append_axes('bottom', size='5%', pad=0.05)
+    cbar = fig.colorbar(map1, cax=cax, orientation='horizontal')
+    cbar.set_label('absolute feature attribution')
+
+    # move shared x and y labels to midpoint between plots
+    pos1 = ax[0, 0].get_position()
+    pos2 = ax[0, 1].get_position()
+    pos3 = ax[1, 0].get_position()
+    midpoint_x = (pos1.x1 + pos2.x0) / 2
+    midpoint_y = (pos1.y1 + pos2.y0) / 2
+    ax[0, 0].yaxis.set_label_coords(midpoint_x, midpoint_y, transform=fig.transFigure)
+    midpoint_x = (pos1.x1 + pos3.x0) / 2
+    midpoint_y = (pos1.y1 + pos3.y0) / 2
+    ax[0, 0].xaxis.set_label_coords(midpoint_x, midpoint_y, transform=fig.transFigure)
+
+    # save figure
+    plt.savefig(save_path, dpi=generic_dpi)
+    plt.close()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# MISC
+# ----------------------------------------------------------------------------------------------------------------------
+
+def get_tick_params(points, num_ticks=5):
+    if len(points) > 10:
+        step = int(len(points) / num_ticks)
+        ticks = np.array([x for x in range(step, len(points), step)])
+        ticklabels = points[ticks]
+    else:
+        ticks = [tick for tick in range(len(points))]
+        ticklabels = ticks
+    return ticks, ticklabels
+
+def create_gif(save_dir, image_paths, name='animate.gif'):
 
     def update(i):
         im.set_array(img_arr[i])
@@ -373,422 +1346,10 @@ def create_gif(save_dir, image_paths):
 
     # plt.show()
 
-    save_path = os.path.join(save_dir, "animate.gif")
+    save_path = os.path.join(save_dir, name)
 
     animation_fig.save(save_path, writer="pillow")
 
     # plt.save(save_path, animation_fig)
 
     plt.close()
-
-
-def set_predictions(exp_output_dir, model_name, data_tag):
-
-    model_args = yaml_to_dict(model_args_path(exp_output_dir, model_name))
-
-    predictions_dir = model_predictions_dir(exp_output_dir, model_name)
-
-    file_name = '_' + data_tag + '-' + 'ist_inx_dict' + '.pickle'
-    ist_values, _ = load_from_path(os.path.join(predictions_dir, file_name))
-
-    # batches = []
-    # for b in os.listdir(predictions_dir):
-    #     if b.startswith(data_tag + '-' + 'batch'):
-    #         batches.append(b)
-    #
-    # predictions = defaultdict(list)
-    # targets = defaultdict(list)
-    # for b in batches:
-    #     batch = load_from_path(os.path.join(predictions_dir, b))
-    #     s_inx = batch[0]
-    #     batch_pred = batch[1]
-    #     batch_target = batch[2]
-    #     for p in range(len(s_inx)):
-    #         pp = s_inx[p].item()
-    #         i = ist_values[pp][0]
-    #         t = ist_values[pp][2]
-    #         y_hat = batch_pred[p]
-    #         y = batch_target[p]
-    #         predictions[i].append([t, y_hat.numpy()])
-    #         targets[i].append([t, y.numpy()])
-    # predictions = dict(predictions)
-    # targets = dict(targets)
-    #
-    # instances = targets.keys()
-    # for i in instances:
-    #     i_predictions = predictions[i]
-    #     i_targets = targets[i]
-    #     t = [x[0] for x in i_predictions]
-    #     order = sorted(range(len(t)), key=t.__getitem__)
-    #     t = np.array([t[x] for x in order])
-    #     y = np.array([i_targets[x][1] for x in order])
-    #     y_hat = np.array([i_predictions[x][1] for x in order])
-    #
-    #     deltas = np.diff(t)
-    #     delta = deltas.min()
-    #     if (deltas != delta).any():
-    #         # insert NaNs in gaps
-    #         a_nice_nan = np.empty_like(y[0])
-    #         a_nice_nan[:] = np.nan
-    #         here = np.argwhere(deltas != delta)
-    #         gaps = []
-    #         for h in range(len(here)):
-    #             to_insert_nan = here[h].item()
-    #             gap = np.arange(start=t[to_insert_nan] + delta,
-    #                             stop=t[to_insert_nan + 1],
-    #                             step=delta).astype(datetime)
-    #             gap = np.array([pytz.utc.localize(g) for g in gap])
-    #             gaps.append(gap)
-    #         for g in range(len(gaps)-1, 0, -1):
-    #             to_insert_nan = here[g].item() + 1
-    #             t = np.insert(t, to_insert_nan, gaps[g])
-    #             nan_stack = np.stack([a_nice_nan for x in range(len(gaps[g]))], axis=0)
-    #             y = np.insert(y, to_insert_nan, nan_stack, axis=0)
-    #             y_hat = np.insert(y_hat, to_insert_nan, nan_stack, axis=0)
-    #         deltas = np.diff(t)
-    #         if delta != deltas.min():
-    #             logger.error('Something went very wrong with growing gaps in prediction vizuals.')
-    #             exit(101)
-    #
-    #     predictions[i] = [t, y_hat]
-    #     targets[i] = [t, y]
-
-    instances, predictions, targets = fetch_predictions(predictions_dir, data_tag, ist_values)
-
-    out_components = model_args['data']['out_components']
-    out_chunk = model_args['data']['out_chunk']
-    task = model_args['data']['task']
-
-    out_range = out_chunk[1] - out_chunk[0]
-    if out_range > 0 and task == 'classification':
-        logger.error('Cannot predict multiple output time steps if classification.')
-        exit(101)
-
-    for i in instances:
-
-        if model_args['data']['task'] == 'regression':
-            regression_set_prediction(i, predictions, targets, data_tag,
-                                      out_components, predictions_dir)
-        elif model_args['data']['task'] == 'classification':
-            classification_set_prediction(i, predictions, targets, data_tag,
-                                          out_components, predictions_dir, model_args)
-        else:
-            logger.error('Unknown task type %s.', model_args['data']['task'])
-            exit(101)
-
-
-def fetch_predictions(predictions_dir, data_tag, ist_values):
-
-    batches = []
-    for b in os.listdir(predictions_dir):
-        if b.startswith(data_tag + '-' + 'batch'):
-            batches.append(b)
-
-    predictions = defaultdict(list)
-    targets = defaultdict(list)
-    for b in batches:
-        batch = load_from_path(os.path.join(predictions_dir, b))
-        s_inx = batch[0]
-        batch_pred = batch[1]
-        batch_target = batch[2]
-        for p in range(len(s_inx)):
-            pp = s_inx[p].item()
-            i = ist_values[pp][0]
-            t = ist_values[pp][2]
-            y_hat = batch_pred[p]
-            y = batch_target[p]
-            predictions[i].append([t, y_hat.cpu().numpy()])
-            targets[i].append([t, y.cpu().numpy()])
-    predictions = dict(predictions)
-    targets = dict(targets)
-
-    instances = targets.keys()
-    for i in instances:
-        i_predictions = predictions[i]
-        i_targets = targets[i]
-        t = [x[0] for x in i_predictions]
-        order = sorted(range(len(t)), key=t.__getitem__)
-        t = np.array([t[x] for x in order])
-        y = np.array([i_targets[x][1] for x in order])
-        y_hat = np.array([i_predictions[x][1] for x in order])
-
-        deltas = np.diff(t)
-        delta = deltas.min()
-        if (deltas != delta).any():
-            # insert NaNs in gaps
-            a_nice_nan = np.empty_like(y[0])
-            a_nice_nan[:] = np.nan
-            here = np.argwhere(deltas != delta)
-            gaps = []
-            for h in range(len(here)):
-                to_insert_nan = here[h].item()
-                gap = np.arange(start=t[to_insert_nan] + delta,
-                                stop=t[to_insert_nan + 1],
-                                step=delta).astype(datetime)
-                gap = np.array([pytz.utc.localize(g) for g in gap])
-                gaps.append(gap)
-            for g in range(len(gaps) - 1, 0, -1):
-                to_insert_nan = here[g].item() + 1
-                t = np.insert(t, to_insert_nan, gaps[g])
-                nan_stack = np.stack([a_nice_nan for x in range(len(gaps[g]))], axis=0)
-                y = np.insert(y, to_insert_nan, nan_stack, axis=0)
-                y_hat = np.insert(y_hat, to_insert_nan, nan_stack, axis=0)
-            deltas = np.diff(t)
-            if delta != deltas.min():
-                logger.error('Something went very wrong with growing gaps in prediction vizuals.')
-                exit(101)
-
-        predictions[i] = [t, y_hat]
-        targets[i] = [t, y]
-
-    return instances, predictions, targets
-
-
-def regression_set_prediction(i, predictions, targets, data_tag, out_components, predictions_dir):
-
-    fig, ax = plt.subplots(1, 1, figsize=large_figsize)
-    x = predictions[i][0]
-    y_hat = predictions[i][1]
-    y = targets[i][1]
-
-    y_time = y_hat.shape[1]
-    y_components = y_hat.shape[2]
-
-    for t in range(y_time):
-        for c in range(y_components):
-            map = ax.plot(x, y[:, t, c],
-                          label='Target ' + out_components[c] + ' step ' + str(t))
-            mae = np.mean(np.abs(y[:, t, c] - y_hat[:, t, c]))
-            ax.plot(x, y_hat[:, t, c],
-                    label='Predicted ' + out_components[c] + ' step ' + str(t) + ' (mae=' + str(mae) + ')',
-                    linestyle='--', color=map[-1].get_color())
-    ax.set_title(data_tag + ' Instance: ' + str(i))
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Feature value')
-    ax.set_facecolor(back_color)
-    ax.grid(color=grid_color, alpha=0.5)
-    plt.legend()
-    save_path = os.path.join(predictions_dir, data_tag + '-prediction-' + str(i) + '.png')
-    plt.savefig(save_path, dpi=generic_dpi)
-    # plt.show()
-    plt.close()
-
-    for c in range(y_components):
-        fig, ax = plt.subplots(1, 1, figsize=large_figsize)
-        for t in range(y_time):
-            map = ax.plot(x, y[:, t, c],
-                          label='Target ' + out_components[c] + ' step ' + str(t))
-            mae = np.mean(np.abs(y[:, t, c] - y_hat[:, t, c]))
-            ax.plot(x, y_hat[:, t, c],
-                    label='Predicted ' + out_components[c] + ' step ' + str(t) + ' (mae=' + str(mae) + ')',
-                    linestyle='--', color=map[-1].get_color())
-        ax.set_title(data_tag + ' Instance: ' + str(i))
-        ax.set_xlabel('Time')
-        ax.set_ylabel('Feature value')
-        ax.set_facecolor(back_color)
-        ax.grid(color=grid_color, alpha=0.5)
-        plt.legend()
-        save_path = os.path.join(predictions_dir, data_tag + '-prediction-' + str(i) + '-' + str(out_components[c]) + '.png')
-        plt.savefig(save_path, dpi=generic_dpi)
-        # plt.show()
-        plt.close()
-
-
-def classification_set_prediction(i, predictions, targets, data_tag,
-                                  out_components, predictions_dir, model_args):
-
-    def special_nanargmax(arr, axis):
-        new_arr = np.zeros(arr.shape[0]) + np.nan
-        d0 = np.isnan(arr).all(axis=axis)
-        new_arr[~d0] = np.nanargmax(arr[~d0], axis=1)
-        return new_arr
-
-    fig, axes = plt.subplots(2, 1, figsize=large_figsize)
-    x = predictions[i][0]
-    y_hat = special_nanargmax(predictions[i][1], axis=1)
-    y = special_nanargmax(targets[i][1], axis=1)
-    class_set = model_args['data_dynamics']['class_set']
-    class_labels = [c for c in class_set.keys()]
-    correct = y == y_hat
-    correct = 1. * correct
-    nan_mask = np.isnan(y)
-    correct[nan_mask] = np.nan
-    accuracy = np.count_nonzero(correct[~nan_mask]) / float(len(correct[~nan_mask]))
-
-    conf_over_time_mat = np.zeros(shape=(len(class_set) * len(class_set), len(x)))
-    conf_over_time_keys = [] # (predicted, target)
-    row = 0
-    for c_predicted in range(len(class_set)):
-        for c_target in range(len(class_set)):
-            t_hits = y == c_target
-            p_hits = y_hat == c_predicted
-            new_row = np.logical_and(t_hits, p_hits)
-            new_row = 1 * new_row
-            conf_over_time_mat[row, :] = new_row
-            row += 1
-            conf_over_time_keys.append((class_labels[c_predicted], class_labels[c_target]))
-
-
-    conf_over_time_mat[:, np.isnan(y)] = np.nan
-
-    x_lims = (x.min(), x.max())
-    x_lims = mdates.date2num(x_lims)
-    y_lims = [0, len(conf_over_time_keys)]
-
-    ax = axes[0]
-    # ax.set_anchor('W')
-    # ax.plot(x, y, label='Target class')
-    # ax.plot(x, y_hat, label='Predicted class')
-
-    # ax.imshow(conf_over_time_mat, cmap=generic_cmap, aspect='auto', interpolation='None')
-
-    ax.imshow(conf_over_time_mat, cmap=generic_cmap, aspect='auto',
-              interpolation='None', extent=[x_lims[0], x_lims[1],  y_lims[0], y_lims[1]], origin='bottom')
-    ax.xaxis_date()
-
-    # ax.imshow(conf_over_time_mat, cmap=generic_cmap, aspect='auto')
-    # ax.set_xlim(x.min(), x.max())
-    ax.set_title('(' + data_tag + ') (instance): ' + str(i) + ' (accuracy) ' + str(accuracy))
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Class confusion (predicted, target)')
-    ax.set_facecolor(back_color)
-    ax.set_yticks([c+0.5 for c in range(len(conf_over_time_keys))])
-    ax.set_yticklabels(conf_over_time_keys)
-    # ax.grid(color=grid_color, alpha=0.5)
-    # ax.legend()
-    ax = axes[1]
-    # ax.set_anchor('NE')
-    num_classes = len(class_set)
-    conf_mat = np.zeros(shape=(num_classes, num_classes))
-    for c_predicted in range(num_classes):
-        for c_target in range(num_classes):
-            t_hits = y == c_target
-            p_hits = y_hat == c_predicted
-            val = np.count_nonzero(np.logical_and(t_hits, p_hits))
-            conf_mat[c_target, c_predicted] = val
-
-    ConfusionMatrixDisplay(confusion_matrix=conf_mat,
-                           display_labels=[c for c in class_set.keys()]).plot(ax=ax, cmap=generic_cmap, im_kw={'aspect': 'auto'})
-    plt.tight_layout()
-    save_path = os.path.join(predictions_dir, data_tag + '-prediction-' + str(i) + '.png')
-    plt.savefig(save_path, dpi=generic_dpi)
-
-    # plt.show()
-
-    plt.close()
-
-
-def learning_curves(exp_output_dir, model_name):
-
-    def get_curves(exp_output_dir, model_name):
-        csv_path = learning_data_path(exp_output_dir, model_name)
-        curve_data = load_from_csv(csv_path)
-        curves = defaultdict(dict)
-        for row in curve_data:
-            for c in row:
-                if row['epoch'] not in curves[c] or curves[c][row['epoch']] == '':
-                    curves[c][row['epoch']] = row[c]
-        curves = dict(curves)
-
-        num_epochs = len(curves['epoch']) - 1
-        curves.pop('step')
-        curves.pop('epoch')
-        # curves.pop('train_loss')
-
-        for c in curves:
-            new_curve = []
-            for val in curves[c]:
-                try:
-                    new_curve.append(float(curves[c][val]))
-                except:
-                    new_curve.append(None)
-            curves[c] = new_curve
-
-
-        return curves, num_epochs
-
-    def get_result_epoch(curves):
-        check = []
-        for x in np.array(curves['valid_loss']):
-            if x is not None:
-                check.append(np.abs(x - curves['result_valid_loss'][-1]))
-            else:
-                check.append(np.NaN)
-        check = np.array(check)
-        result_epoch = np.nanargmin(check)
-
-        result_keys = [key for key in curves.keys() if 'result' in key]
-        result = {}
-        for r in result_keys:
-            result[r] = np.round(curves[r][-1], 3)
-            curves.pop(r)
-
-        for c in curves:
-            curves[c] = curves[c][:-1]
-
-        return result, result_epoch+1
-
-    curves, num_epochs = get_curves(exp_output_dir, model_name)
-    result, result_epoch = get_result_epoch(curves)
-
-    loss_curves = [key for key in curves.keys() if 'perf' not in key]
-    perf_curves = [key for key in curves.keys() if 'perf' in key]
-
-    epochs = [e+1 for e in range(num_epochs)]
-
-    if len(perf_curves) > 0:
-        fig, axes = plt.subplots(2, 1, figsize=generic_figsize)
-        ax = axes[0]
-    else:
-        fig, axes = plt.subplots(1, 1, figsize=generic_figsize)
-        ax = axes
-
-    for c in loss_curves:
-        ax.plot(epochs, curves[c], label=c, marker='.', color=get_color(c))
-    ax.axvline(x=result_epoch, linestyle='--', c='white')
-    check = 0.5 * (ax.get_ylim()[1] - ax.get_ylim()[0]) + ax.get_ylim()[0]
-    ax.text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
-    # axes[0].set_xticks([x for x in range(num_epochs)])
-    # axes[0].set_xticklabels([x + 1 for x in range(num_epochs)])
-
-    ax.set_xlabel('Epochs')
-    ax.set_ylabel('Loss')
-    ax.set_facecolor(back_color)
-    ax.grid(color=grid_color, alpha=0.5)
-    ax.legend()
-
-    if len(perf_curves) > 0:
-        ax = axes[1]
-        for c in perf_curves:
-            ax.plot(epochs, curves[c], label=c, marker='.', color=get_color(c))
-        ax.axvline(x=result_epoch, linestyle='--', c='white')
-        check = 0.5 * (ax.get_ylim()[1] - ax.get_ylim()[0]) + ax.get_ylim()[0]
-        ax.text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
-        ax.set_xlabel('Epochs')
-        ax.set_ylabel('Performance metric')
-        ax.set_facecolor(back_color)
-        ax.grid(color=grid_color, alpha=0.5)
-        ax.legend()
-
-
-    plt.suptitle(str(result), wrap=True)
-    # plt.tight_layout()
-    # plt.show()
-
-    save_path = learning_curves_path(exp_output_dir, model_name)
-    plt.savefig(save_path, dpi=generic_dpi)
-
-
-    plt.close()
-
-
-def get_color(tag):
-
-    if 'train' in tag or 'Train' in tag:
-        return train_color
-    elif 'valid' in tag or 'Valid' in tag:
-        return valid_color
-    elif 'eval' in tag or 'Eval' in tag:
-        return eval_color
-    else:
-        return 'yellow'

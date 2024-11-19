@@ -5,15 +5,25 @@
 
 KnowIt: Knowledge Discovery in Time Series Data
 ===============================================
+A codebase to train and interpret ANNs performing time series modelling. 
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: Quick Start:
 
    markdowns/quickstart_readme
+
+.. toctree::
+   :maxdepth: 1
+   :caption: User Guide:
+
    markdowns/datasets_readme
-   markdowns/archs_readme
    markdowns/data_readme
+   markdowns/archs_readme
    markdowns/trainer_readme
    markdowns/interpreter_readme
    markdowns/env_readme
+
+.. toctree::
+   :maxdepth: 1
+   :caption: API:
