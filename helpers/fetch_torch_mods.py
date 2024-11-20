@@ -1,4 +1,4 @@
-from __future__ import annotations  # noqa: INP001, D100
+from __future__ import annotations  # noqa: D100
 
 __author__ = "randlerabe@gmail.com"
 __description__ = "Helper functions used in KnowIt's trainer module."
@@ -10,6 +10,9 @@ from typing import TYPE_CHECKING, Any, Callable, Iterator
 if TYPE_CHECKING:
     from torch import Tensor
 
+import os
+
+import torch
 from torch import optim
 from torch.nn import functional as f
 from torch.optim import lr_scheduler
@@ -28,7 +31,7 @@ def get_loss_function(loss: str) -> Callable[..., float | Tensor]:
         loss (str):         The loss function as specified in
                             torch.nn.functional.
 
-    Returns:
+    Returns
     -------
         (Callable):         A Pytorch loss function. Takes as input either
                             two integers/floats and an optional dictionary of
@@ -49,7 +52,7 @@ def get_performance_metric(metric: str) -> Callable[..., float | Tensor]:
         metric (str):       The metric as specified in Torchmetrics. The metric
                             name must be the functional version.
 
-    Returns:
+    Returns
     -------
         (Callable):         A Torchmetrics metric function. Takes as input
                             either two integers/floats and an optional
@@ -71,7 +74,7 @@ def get_optim(
     ----
         optimizer (str):    The optimizer as specified in torch.optim.
 
-    Returns:
+    Returns
     -------
         (type):             An uninitialized Pytorch optimizer. Takes as input
                             the model class' parameters method, the learning
@@ -92,7 +95,7 @@ def get_lr_scheduler(
     ----
         scheduler (str):    The scheduler as specified in torch.optim.
 
-    Returns:
+    Returns
     -------
         (type):             An uninitialized Pytorch learning rate scheduler.
                             Takes as input a Pytorch optimizer object and an
@@ -141,3 +144,22 @@ def prepare_function(user_args: str | dict[str, Any], *, is_loss: bool) -> (
                 function[user_args] = perf_f
 
         return function
+
+def get_model_score(path: str) -> Tensor:
+    """Return model's best score from checkpoint file.
+
+    Returns
+    -------
+    Tensor
+        The model score.
+    """
+    ckpt_name = [
+        f for f in os.listdir(path) if "ckpt" in f
+    ]
+    ckpt_name = next(iter(ckpt_name))
+    ckpt_path = os.path.join(path, ckpt_name)
+
+    ckpt = torch.load(f=ckpt_path)
+    keys = list(ckpt["callbacks"].keys())[0]
+
+    return ckpt["callbacks"][keys]["best_model_score"]
