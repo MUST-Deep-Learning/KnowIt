@@ -198,11 +198,11 @@ class BaseTrainer(ABC):
         ckpt_mode: str = "min",
         *,
         return_final: bool = False,
-        mute_logger: bool = False,
+        logger_status: bool = False,
         seed: None | int = 123,
     ) -> None:
         self.out_dir = out_dir
-        self.mute_logger = mute_logger
+        self.logger_status = logger_status
         self.seed = seed
         self.early_stopping_args = early_stopping_args
         self.return_final = return_final
