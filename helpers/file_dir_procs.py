@@ -140,7 +140,10 @@ def safe_copy(path: str, new_path: str, safe_mode: bool) -> None:
                      path)
         exit(101)
     else:
-        shutil.copyfile(path, new_path)
+        if os.path.isfile(path):
+            shutil.copyfile(path, new_path)
+        elif os.path.isdir(path):
+            shutil.copytree(path, new_path)
 
 
 def yaml_to_dict(config_path: str) -> dict:
