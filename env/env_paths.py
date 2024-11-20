@@ -1,5 +1,7 @@
 """ Defines many different directories based on experiment and KnowIt location. """
 
+from __future__ import annotations
+
 __author__ = 'tiantheunissen@gmail.com, randlerabe@gmail.com'
 __description__ = 'Contains functions that dynamically return KnowIt environment paths.'
 
@@ -177,48 +179,32 @@ def model_viz_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwr
 #   SWEEPS
 # ----------------------------------------------------------------------------------------------------------------------
 
-def model_sweep_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
-    """ Returns the sweep directory for the given model name from the given experiment path."""
-    proc_dir(
-        os.path.join(
-            exp_output_dir + "/sweeps",
-            name,
-        ),
-        safe_mode=safe_mode,
-        overwrite=overwrite,
-    )
-    return os.path.join(
-        exp_output_dir + "/sweeps",
-        name,
-    )
+def model_sweep_dir(exp_output_dir: str, name: None|str, sweep_mode: str, safe_mode: bool = True, overwrite: bool = False):
+    """Create and return the sweep directory(ies) based on the sweep mode."""
+    if sweep_mode == "all":
+        proc_dir(
+            os.path.join(
+                exp_output_dir + "/sweeps", name),
+            safe_mode=safe_mode,
+            overwrite=overwrite,
+        )
+        return os.path.join(
+            exp_output_dir + "/sweeps", name)
 
-def sweep_best_current(sweep_dir: str, safe_mode: bool = True, overwrite: bool = False):
-    """ Returns the current and best directory from the given experiment path."""
     proc_dir(
-        os.path.join(
-            sweep_dir,
-            "sweeps/best",
-        ),
+        os.path.join(exp_output_dir,"sweeps/best"),
         safe_mode=safe_mode,
         overwrite=overwrite,
-    )
+        )
     proc_dir(
-        os.path.join(
-            sweep_dir,
-            "sweeps/current",
-        ),
+        os.path.join(exp_output_dir, "sweeps/current"),
         safe_mode=False,
         overwrite=True,
     )
     return (
         os.path.join(
-            sweep_dir,
-            "sweeps/best",
-        ),
-        os.path.join(
-            sweep_dir,
-            "sweeps/current",
-        ),
+            exp_output_dir, "sweeps/best"),
+        os.path.join(exp_output_dir, "sweeps/current"),
     )
 
 
