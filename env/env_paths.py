@@ -178,7 +178,7 @@ def model_viz_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwr
 # ----------------------------------------------------------------------------------------------------------------------
 
 def model_sweep_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
-    """ Returns the visualization directory for the given model name from the given experiment path."""
+    """ Returns the sweep directory for the given model name from the given experiment path."""
     proc_dir(
         os.path.join(
             exp_output_dir + "/sweeps",
@@ -190,6 +190,35 @@ def model_sweep_dir(exp_output_dir: str, name: str, safe_mode: bool = True, over
     return os.path.join(
         exp_output_dir + "/sweeps",
         name,
+    )
+
+def sweep_best_current(sweep_dir: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the current and best directory from the given experiment path."""
+    proc_dir(
+        os.path.join(
+            sweep_dir,
+            "sweeps/best",
+        ),
+        safe_mode=safe_mode,
+        overwrite=overwrite,
+    )
+    proc_dir(
+        os.path.join(
+            sweep_dir,
+            "sweeps/current",
+        ),
+        safe_mode=False,
+        overwrite=True,
+    )
+    return (
+        os.path.join(
+            sweep_dir,
+            "sweeps/best",
+        ),
+        os.path.join(
+            sweep_dir,
+            "sweeps/current",
+        ),
     )
 
 
