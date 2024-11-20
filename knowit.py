@@ -349,10 +349,13 @@ class KnowIt:
         trainer_args = KnowIt._get_trainer_setup(relevant_args['trainer'], device, class_counts,
                                                  model, model_params, save_dir)
         if sweep:
+            logger.info("Sweep arguments have been provided.")
             if sweep['save_mode'] == 'none':
+                logger.warning("Sweep save mode has been set to none.")
                 trainer_args['logger_status'] = 'w&b_only'
             elif sweep['save_mode'] == 'all':
                 # model_sweep_dir is a subdir of model_output_dir
+                logger.info("Creating a sweep directory.")
                 sw_dir = model_sweep_dir(
                 exp_output_dir=save_dir,
                 name=sweep['name'],
@@ -362,6 +365,7 @@ class KnowIt:
                 trainer_args['out_dir'] = sw_dir
                 safe_dump(relevant_args, sw_dir + '/model_args.yaml', safe_mode)
             elif sweep['save_mode'] == 'best':
+                logger.info("Creating a best and current sweep directory.")
                 best, current = sweep_best_current(
                     sweep_dir=save_dir,
                     safe_mode=True,
@@ -381,7 +385,9 @@ class KnowIt:
                                           datamodule.get_dataloader('eval')))
 
         # if performing a sweep for best model, perform checks and writes
+        # after training is done.
         if sweep and sweep['save_mode'] == 'best':
+            logger.info("Comparing current and best model.")
             if not os.listdir(best):
                 for f in os.listdir(current):
                     safe_copy(
