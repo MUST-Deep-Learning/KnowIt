@@ -174,6 +174,26 @@ def model_viz_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwr
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+#   SWEEPS
+# ----------------------------------------------------------------------------------------------------------------------
+
+def model_sweep_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the visualization directory for the given model name from the given experiment path."""
+    proc_dir(
+        os.path.join(
+            exp_output_dir + "/sweeps",
+            name,
+        ),
+        safe_mode=safe_mode,
+        overwrite=overwrite,
+    )
+    return os.path.join(
+        exp_output_dir + "/sweeps",
+        name,
+    )
+
+
+# ----------------------------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     pass
