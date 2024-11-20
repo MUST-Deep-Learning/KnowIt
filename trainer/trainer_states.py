@@ -153,7 +153,7 @@ class TrainNew(BaseTrainer):
             self.trainer_kwargs["default_root_dir"] = None
             ckpt_callback = None
         elif self.logger_status == "w&b_only":
-            self.trainer_kwargs["logger"] = WandbLogger()
+            self.trainer_kwargs["logger"] = WandbLogger(log_model=False)
             self.trainer_kwargs["default_root_dir"] = None
             ckpt_callback = None
         elif self.logger_status == "w&b_on":
@@ -161,7 +161,7 @@ class TrainNew(BaseTrainer):
             self.trainer_kwargs["default_root_dir"] = self.out_dir
             self.trainer_kwargs["logger"] = [
                 pl_loggers.CSVLogger(save_dir=self.out_dir),
-                WandbLogger(),
+                WandbLogger(log_model=False),
             ]
         elif not self.logger_status:
             ckpt_callback = self._save_model_state()
