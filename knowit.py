@@ -1,7 +1,7 @@
 """ This module contains the main class of the toolkit: KnowIt."""
 
 from __future__ import annotations
-__author__ = 'tiantheunissen@gmail.com'
+__author__ = 'tiantheunissen@gmail.com, randlerabe@gmail.com'
 __description__ = 'Contains the main KnowIt module.'
 
 # external imports
