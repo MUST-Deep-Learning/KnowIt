@@ -17,6 +17,7 @@ import numpy as np
 from env.env_user import temp_exp_dir
 from env.env_paths import (ckpt_path, model_output_dir, model_args_path,
                            model_interpretations_dir,
+                           model_sweep_dir,
                            model_predictions_dir, default_dataset_dir,
                            custom_dataset_dir, default_archs_dir, custom_arch_dir,
                            custom_dataset_path, dataset_path, arch_path,
@@ -290,7 +291,7 @@ class KnowIt:
         return BaseDataset.from_path(**data_import_args)
 
     def train_model(self, model_name: str, kwargs: dict, *, device: str | None = None,
-                    safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
+                    safe_mode: bool | None = None, and_viz: bool | None = None, sweep: str | None=None) -> None:
         """Trains a model given user arguments.
 
         This function sets up and trains a model using the provided arguments and configurations.
@@ -327,20 +328,43 @@ class KnowIt:
         # check that all relevant args are provided
         relevant_args = setup_relevant_args(kwargs, required_types=('data', 'arch', 'trainer', ))
 
-        save_dir = model_output_dir(self.exp_output_dir, model_name, safe_mode, overwrite=True)
-
         # Set up required data modules, Models, and trainner arguments
         datamodule, class_counts = KnowIt._get_datamodule(self.exp_output_dir, self.available_datasets(),
                                                           relevant_args['data'])
         model, model_params = KnowIt._get_arch_setup(self.exp_output_dir, self.available_archs(),
                                                      relevant_args['arch'], datamodule.in_shape,
                                                      datamodule.out_shape)
-        trainer_args = KnowIt._get_trainer_setup(relevant_args['trainer'], device, class_counts,
-                                                 model, model_params, save_dir)
 
         # Add dynamically generated data characteristics to relevant args for model_args storage
         relevant_args['data_dynamics'] = KnowIt._get_data_dynamics(relevant_args['data'], datamodule)
-        safe_dump(relevant_args, model_args_path(self.exp_output_dir, model_name), safe_mode)
+
+        if sweep:
+            save_dir = model_output_dir(self.exp_output_dir, model_name, safe_mode, overwrite=False)
+        else:
+            save_dir = model_output_dir(self.exp_output_dir, model_name, safe_mode, overwrite=True)
+        trainer_args = KnowIt._get_trainer_setup(relevant_args['trainer'], device, class_counts,
+                                                 model, model_params, save_dir)
+        if sweep:
+            if sweep['save_mode'] == 'none':
+                trainer_args['logger_status'] = 'w&b_only'
+            elif sweep['save_mode'] == 'all':
+                save_dir = model_sweep_dir(
+                exp_output_dir=save_dir,
+                name=sweep['name'],
+                safe_mode=True,
+                overwrite=False,
+            )
+                trainer_args['out_dir'] = save_dir
+                safe_dump(relevant_args, save_dir + '/model_args.yaml', safe_mode)
+            elif sweep['save_mode'] == 'best':
+                # make a 'best' folder
+                # make a 'current' folder
+                # at the end of current:
+                #   if: currents score better than best, then overwrite
+                #   else: continue
+                pass
+        else:
+            safe_dump(relevant_args, model_args_path(self.exp_output_dir, model_name), safe_mode)
 
         # Instantiate trainer and begin training
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
@@ -350,7 +374,7 @@ class KnowIt:
                                           datamodule.get_dataloader('valid'),
                                           datamodule.get_dataloader('eval')))
 
-        if and_viz and not trainer_args['mute_logger']:
+        if and_viz and not trainer_args['logger_status']:
             plot_learning_curves(self.exp_output_dir, model_name)
 
     def train_model_further(self, model_name: str, max_epochs: int, *, device: str | None = None,
