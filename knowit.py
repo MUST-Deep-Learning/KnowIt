@@ -373,6 +373,10 @@ class KnowIt:
                 )
                 trainer_args['out_dir'] = current
                 safe_dump(relevant_args, current + '/model_args.yaml', safe_mode)
+            else:
+                logger.error("Sweep save mode not recognized. Valid options\
+                             are: none, all, best.")
+                sys.exit()
         else:
             safe_dump(relevant_args, model_args_path(self.exp_output_dir, model_name), safe_mode)
 
