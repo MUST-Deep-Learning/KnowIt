@@ -12,19 +12,22 @@ import torch
 import tempfile
 import sys
 import numpy as np
+import shutil
 
 # internal imports
 from env.env_user import temp_exp_dir
 from env.env_paths import (ckpt_path, model_output_dir, model_args_path,
                            model_interpretations_dir,
                            model_sweep_dir,
+                           sweep_best_current,
                            model_predictions_dir, default_dataset_dir,
                            custom_dataset_dir, default_archs_dir, custom_arch_dir,
                            custom_dataset_path, dataset_path, arch_path,
                            custom_arch_path, root_exp_dir, arch_name, interpretation_name)
 from helpers.logger import get_logger
-from helpers.file_dir_procs import (yaml_to_dict, safe_dump)
+from helpers.file_dir_procs import (yaml_to_dict, safe_dump, safe_copy)
 from helpers.viz import (plot_learning_curves, plot_set_predictions, plot_feature_attribution)
+from helpers.fetch_torch_mods import get_model_score
 from setup.setup_action_args import setup_relevant_args
 from setup.select_interpretation_points import get_interpretation_inx, get_predictions
 from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
@@ -342,27 +345,30 @@ class KnowIt:
             save_dir = model_output_dir(self.exp_output_dir, model_name, safe_mode, overwrite=False)
         else:
             save_dir = model_output_dir(self.exp_output_dir, model_name, safe_mode, overwrite=True)
+
         trainer_args = KnowIt._get_trainer_setup(relevant_args['trainer'], device, class_counts,
                                                  model, model_params, save_dir)
         if sweep:
             if sweep['save_mode'] == 'none':
                 trainer_args['logger_status'] = 'w&b_only'
             elif sweep['save_mode'] == 'all':
-                save_dir = model_sweep_dir(
+                # model_sweep_dir is a subdir of model_output_dir
+                sw_dir = model_sweep_dir(
                 exp_output_dir=save_dir,
                 name=sweep['name'],
                 safe_mode=True,
                 overwrite=False,
             )
-                trainer_args['out_dir'] = save_dir
-                safe_dump(relevant_args, save_dir + '/model_args.yaml', safe_mode)
+                trainer_args['out_dir'] = sw_dir
+                safe_dump(relevant_args, sw_dir + '/model_args.yaml', safe_mode)
             elif sweep['save_mode'] == 'best':
-                # make a 'best' folder
-                # make a 'current' folder
-                # at the end of current:
-                #   if: currents score better than best, then overwrite
-                #   else: continue
-                pass
+                best, current = sweep_best_current(
+                    sweep_dir=save_dir,
+                    safe_mode=True,
+                    overwrite=False,
+                )
+                trainer_args['out_dir'] = current
+                safe_dump(relevant_args, current + '/model_args.yaml', safe_mode)
         else:
             safe_dump(relevant_args, model_args_path(self.exp_output_dir, model_name), safe_mode)
 
@@ -373,6 +379,32 @@ class KnowIt:
         trainer.fit_and_eval(dataloaders=(datamodule.get_dataloader('train'),
                                           datamodule.get_dataloader('valid'),
                                           datamodule.get_dataloader('eval')))
+
+        # if performing a sweep for best model, perform checks and writes
+        if sweep and sweep['save_mode'] == 'best':
+            if not os.listdir(best):
+                for f in os.listdir(current):
+                    safe_copy(
+                        path=os.path.join(current, f),
+                        new_path=os.path.join(best, f),
+                        safe_mode=False,
+                    )
+            else:
+                # check if current is better than best, then save appropriately
+                score_b = get_model_score(path=best)
+                score_c = get_model_score(path=current)
+
+                if torch.gt(score_b, score_c):
+                    # replace the contents of best with current
+                    shutil.rmtree(best)
+                    os.makedirs(best)
+
+                    for f in os.listdir(current):
+                        safe_copy(
+                            path=os.path.join(current, f),
+                            new_path=os.path.join(best, f),
+                            safe_mode=False,
+                        )
 
         if and_viz and not trainer_args['logger_status']:
             plot_learning_curves(self.exp_output_dir, model_name)
