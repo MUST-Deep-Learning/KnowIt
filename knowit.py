@@ -357,17 +357,20 @@ class KnowIt:
                 # model_sweep_dir is a subdir of model_output_dir
                 logger.info("Creating a sweep directory.")
                 sw_dir = model_sweep_dir(
-                exp_output_dir=save_dir,
-                name=sweep['name'],
-                safe_mode=True,
-                overwrite=False,
-            )
+                    exp_output_dir=save_dir,
+                    name=sweep['name'],
+                    sweep_mode="all",
+                    safe_mode=True,
+                    overwrite=False,
+                )
                 trainer_args['out_dir'] = sw_dir
                 safe_dump(relevant_args, sw_dir + '/model_args.yaml', safe_mode)
             elif sweep['save_mode'] == 'best':
                 logger.info("Creating a best and current sweep directory.")
-                best, current = sweep_best_current(
-                    sweep_dir=save_dir,
+                best, current = model_sweep_dir(
+                    exp_output_dir=save_dir,
+                    name=None,
+                    sweep_mode="best",
                     safe_mode=True,
                     overwrite=False,
                 )
@@ -405,7 +408,7 @@ class KnowIt:
                 score_c = get_model_score(path=current)
 
                 if torch.gt(score_b, score_c):
-                    # replace the contents of best with current
+                    # overwrite the contents of best with current
                     shutil.rmtree(best)
                     os.makedirs(best)
 
