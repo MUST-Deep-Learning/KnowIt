@@ -19,7 +19,6 @@ from env.env_user import temp_exp_dir
 from env.env_paths import (ckpt_path, model_output_dir, model_args_path,
                            model_interpretations_dir,
                            model_sweep_dir,
-                           sweep_best_current,
                            model_predictions_dir, default_dataset_dir,
                            custom_dataset_dir, default_archs_dir, custom_arch_dir,
                            custom_dataset_path, dataset_path, arch_path,
@@ -347,7 +346,10 @@ class KnowIt:
             save_dir = model_output_dir(self.exp_output_dir, model_name, safe_mode, overwrite=True)
 
         trainer_args = KnowIt._get_trainer_setup(relevant_args['trainer'], device, class_counts,
-                                                 model, model_params, save_dir)
+                                             model, model_params, save_dir)
+
+        # if sweep, configure save directory.
+        # Todo: clean this code block.  
         if sweep:
             logger.info("Sweep arguments have been provided.")
             if sweep['save_mode'] == 'none':
@@ -364,6 +366,7 @@ class KnowIt:
                     overwrite=False,
                 )
                 trainer_args['out_dir'] = sw_dir
+                trainer_args['logger_status'] = 'w&b_on'
                 safe_dump(relevant_args, sw_dir + '/model_args.yaml', safe_mode)
             elif sweep['save_mode'] == 'best':
                 logger.info("Creating a best and current sweep directory.")
@@ -375,6 +378,7 @@ class KnowIt:
                     overwrite=False,
                 )
                 trainer_args['out_dir'] = current
+                trainer_args['logger_status'] = 'w&b_on'
                 safe_dump(relevant_args, current + '/model_args.yaml', safe_mode)
             else:
                 logger.error("Sweep save mode not recognized. Valid options\
