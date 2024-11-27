@@ -349,7 +349,7 @@ class KnowIt:
                                              model, model_params, save_dir)
 
         # if sweep, configure save directory.
-        # Todo: clean this code block.  
+        # TODO: clean code block.
         if sweep:
             logger.info("Sweep arguments have been provided.")
             if sweep['save_mode'] == 'none':
@@ -434,6 +434,55 @@ class KnowIt:
         #  overwriting old learning metrics. See train_model() for reference.
 
         logger.warning('KnowIt.train_model_further not implemented yet.')
+
+    def consolidate_sweep(self, path: str) -> None:
+        """Consolidate and clean the sweep folder.
+
+        Parameters
+        ----------
+        path : str
+            The path to a user's model folder.
+        """
+        logger.info("Consolidating sweep files.")
+
+        to_sweeps_path = path + "/sweeps"
+        if not os.path.exists(to_sweeps_path):
+            logger.warning("Path to project does not contain a sweeps folder.")
+            return
+
+        parent_content = [f for f in os.listdir(path) if 'sweeps' not in f]
+        for f in parent_content:
+            if os.path.isfile(os.path.join(path, f)):
+                os.remove(os.path.join(path, f))
+                continue
+            shutil.rmtree(os.path.join(path, f))
+
+        sw_files_list = os.listdir(to_sweeps_path)
+
+        if 'best' in sw_files_list:
+            logger.info("Found a 'best' folder.")
+            best_files_path = to_sweeps_path + '/best'
+            child_content = os.listdir(best_files_path)
+            # clean parent folder
+            # copy over content from child folder
+            for f in child_content:
+                safe_copy(path=os.path.join(best_files_path, f), new_path=os.path.join(path, f), safe_mode=False)
+            # clean current folders
+            shutil.rmtree(os.path.join(to_sweeps_path, 'current'))
+            return
+
+        logger.info("Searching for best sweep model.")
+        score_best = torch.tensor(10**5)
+        for f in sw_files_list:
+            score_current = get_model_score(path=os.path.join(to_sweeps_path, f))
+            if torch.gt(score_best, score_current):
+                score_best = score_current
+                f_path_best = os.path.join(to_sweeps_path, f)
+        child_content = os.listdir(f_path_best)
+        # copy over content from _content
+        for f in child_content:
+            safe_copy(path=os.path.join(f_path_best, f), new_path=os.path.join(path, f), safe_mode=False)
+
 
     def generate_predictions(self, model_name: str, kwargs: dict, *, device: str | None = None,
                              safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
