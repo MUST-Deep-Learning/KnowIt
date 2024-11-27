@@ -294,7 +294,7 @@ class KnowIt:
         return BaseDataset.from_path(**data_import_args)
 
     def train_model(self, model_name: str, kwargs: dict, *, device: str | None = None,
-                    safe_mode: bool | None = None, and_viz: bool | None = None, sweep: str | None=None) -> None:
+                    safe_mode: bool | None = None, and_viz: bool | None = None, sweep: dict[str, Any] | None=None) -> None:
         """Trains a model given user arguments.
 
         This function sets up and trains a model using the provided arguments and configurations.
