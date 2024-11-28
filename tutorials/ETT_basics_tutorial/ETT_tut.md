@@ -73,7 +73,7 @@ conditions defined in ``KnowIt.default_datasets.dataset_how_to.md``.
 In this section we adjust the data to meet those conditions.
 
 We do this with the following steps:
- - We check that the dataframe does not contain any NaN values (no all-NaN columns are allowed).
+ - We check that the dataframe does not contain any NaN values (note, NaNs are allowed, just no all-NaN columns).
  - We ensure that the date column is time indexed.
  - We index the dataframe by the date column.
  - We add meta data to the "attrs" dictionary.
@@ -207,7 +207,7 @@ We briefly summarize the kwargs used here, see ``KnowIt.user_options.md`` for in
 **data** &#8594;
 
 The first kwarg dictionary (data) defines how the base dataset should be preprocessed and what task we want to build a model of. 
-For simplicity, we will train a model to perform autoregressive univariate time series forcasting on the 
+For simplicity, we will train a model to perform autoregressive univariate time series forecasting on the 
 'OT' (Oil temperature) component. Specifically, we want a model that looks at the oil temperature for the previous 24 time steps (6 hours) 
 to predict the oil temperature at the 24th time step from the current point in time (6 hours from now). This can be represented as:
 
@@ -368,14 +368,14 @@ predicted by the model (blue), at the current prediction point.
 Notice that if we look at the overall predictions (top visualization) it appears that the model, 
 is making very accurate predictions in general. However, if we look at the zoomed in visualization (bottom), 
 we see that the model tends to output a near copy of the OT, only delayed by some constant number of 
-time steps. From this we suspect that the model is performing a naive forcast, where the forecasted value is 
+time steps. From this we suspect that the model is performing a naive forecast, where the forecasted value is 
 just the most recently available value in the input chunk.
 
 ---
 
 ## 7. Interpret model predictions <div id="7">
 
-In order to investigate our suspicion that the model is performing a naive forcast, we can interpret its predictions 
+In order to investigate our suspicion that the model is performing a naive forecast, we can interpret its predictions 
 with a feature attribution method. If the feature corresponding to the most recent time step in the input chunk is 
 regarded as overwhelmingly more important than the others, it would be a strong indication that we are correct.
 
