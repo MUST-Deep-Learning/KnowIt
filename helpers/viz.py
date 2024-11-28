@@ -646,13 +646,14 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
                 t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
                 t = [c for c in t]
                 plot_data = []
+                ts_tick = 0
                 for ts in relevant_to_s:
                     new_plot_data = {}
                     new_plot_data['prediction_curve'] = (t, y_hat[:, logit])
                     new_plot_data['target_curve'] = (t, y[:, logit])
-                    new_plot_data['pp_tick'] = t[ts]
-                    new_plot_data['chunk_0_tick'] = t[ts] + t_delta * in_scan[0]
-                    new_plot_data['chunk_1_tick'] = t[ts] + t_delta * in_scan[-1]
+                    new_plot_data['pp_tick'] = t[ts_tick]
+                    new_plot_data['chunk_0_tick'] = t[ts_tick] + t_delta * in_scan[0]
+                    new_plot_data['chunk_1_tick'] = t[ts_tick] + t_delta * in_scan[-1]
                     min_f = feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().min().item()
                     max_f = feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().max().item()
                     upper_threshold = np.percentile(feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().detach().cpu().numpy(), 95)
@@ -669,9 +670,10 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
                             else:
                                 new_plot_data['in_scan'] = in_scan
                                 new_plot_data['ic_curve_attributions'][ic].append(feature_attribution_val)
-                            ic_curves[ic].append([t[ts] + t_delta * in_scan[in_delay], feat_att_dict['input_features'][ts, in_delay, ic].item()])
+                            ic_curves[ic].append([t[ts_tick] + t_delta * in_scan[in_delay], feat_att_dict['input_features'][ts, in_delay, ic].item()])
                     new_plot_data['ic_curves'] = ic_curves
                     plot_data.append(new_plot_data)
+                    ts_tick += 1
                 if not classic:
                     file_name = interpretation_name + '_running-i=' + str(instance) + '-s=' + str(
                         slice) + '-class=' + str(c) + '.gif'
@@ -768,13 +770,14 @@ def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args:
                     t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
                     t = [c for c in t]
                     plot_data = []
+                    ts_tick = 0
                     for ts in relevant_to_s:
                         new_plot_data = {}
                         new_plot_data['prediction_curve'] = (t, y_hat[:, out_delay, oc])
                         new_plot_data['target_curve'] = (t, y[:, out_delay, oc])
-                        new_plot_data['pp_tick'] = t[ts]
-                        new_plot_data['chunk_0_tick'] = t[ts] + t_delta * in_scan[0]
-                        new_plot_data['chunk_1_tick'] = t[ts] + t_delta * in_scan[-1]
+                        new_plot_data['pp_tick'] = t[ts_tick]
+                        new_plot_data['chunk_0_tick'] = t[ts_tick] + t_delta * in_scan[0]
+                        new_plot_data['chunk_1_tick'] = t[ts_tick] + t_delta * in_scan[-1]
                         min_f = feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().min().item()
                         max_f = feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().max().item()
                         upper_threshold = np.percentile(feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().detach().cpu().numpy(), 95)
@@ -791,9 +794,10 @@ def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args:
                                 else:
                                     new_plot_data['in_scan'] = in_scan
                                     new_plot_data['ic_curve_attributions'][ic].append(feature_attribution_val)
-                                ic_curves[ic].append([t[ts] + t_delta * in_scan[in_delay], feat_att_dict['input_features'][ts, in_delay, ic].item()])
+                                ic_curves[ic].append([t[ts_tick] + t_delta * in_scan[in_delay], feat_att_dict['input_features'][ts, in_delay, ic].item()])
                         new_plot_data['ic_curves'] = ic_curves
                         plot_data.append(new_plot_data)
+                        ts_tick += 1
                     if not classic:
                         file_name = interpretation_name + '_running-i=' + str(instance) + '-s=' + str(
                             slice) + '-logit=' + str(logit) + '.gif'
@@ -1313,7 +1317,7 @@ def get_tick_params(points, num_ticks=5):
         ticklabels = points[ticks]
     else:
         ticks = [tick for tick in range(len(points))]
-        ticklabels = ticks
+        ticklabels = points
     return ticks, ticklabels
 
 def create_gif(save_dir, image_paths, name='animate.gif'):
