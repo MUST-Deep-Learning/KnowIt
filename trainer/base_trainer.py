@@ -227,6 +227,7 @@ class BaseTrainer(ABC):
         self.trainer_kwargs: dict[str, Any] = {
             "max_epochs": max_epochs,
             "detect_anomaly": True,
+            "deterministic": True,
         }
 
         # device(s) to use
