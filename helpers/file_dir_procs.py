@@ -113,7 +113,7 @@ def safe_dump(data: any, path: str, safe_mode: bool) -> None:
 
 def safe_copy(path: str, new_path: str, safe_mode: bool) -> None:
     """
-    Copies a file to a new location with optional overwrite protection.
+    Copies a file (or directory) to a new location with optional overwrite protection.
 
     This function attempts to copy a file from `path` to `new_path`. If `safe_mode` is enabled and
     a file already exists at `new_path`, an error is logged, and the function exits to prevent overwriting.
@@ -140,7 +140,10 @@ def safe_copy(path: str, new_path: str, safe_mode: bool) -> None:
                      path)
         exit(101)
     else:
-        shutil.copyfile(path, new_path)
+        if os.path.isfile(path):
+            shutil.copyfile(path, new_path)
+        elif os.path.isdir(path):
+            shutil.copytree(path, new_path)
 
 
 def yaml_to_dict(config_path: str) -> dict:

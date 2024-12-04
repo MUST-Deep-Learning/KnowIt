@@ -1,7 +1,7 @@
 """ This module contains the main class of the toolkit: KnowIt."""
 
 from __future__ import annotations
-__author__ = 'tiantheunissen@gmail.com'
+__author__ = 'tiantheunissen@gmail.com, randlerabe@gmail.com'
 __description__ = 'Contains the main KnowIt module.'
 
 # external imports
@@ -12,6 +12,9 @@ import torch
 import tempfile
 import sys
 import numpy as np
+import shutil
+
+from wandb.cli.cli import sweep
 
 # internal imports
 from env.env_user import temp_exp_dir
@@ -20,10 +23,12 @@ from env.env_paths import (ckpt_path, model_output_dir, model_args_path,
                            model_predictions_dir, default_dataset_dir,
                            custom_dataset_dir, default_archs_dir, custom_arch_dir,
                            custom_dataset_path, dataset_path, arch_path,
-                           custom_arch_path, root_exp_dir, arch_name, interpretation_name)
+                           custom_arch_path, root_exp_dir, arch_name,
+                           interpretation_name, model_run_dir, model_sweep_dir)
 from helpers.logger import get_logger
-from helpers.file_dir_procs import (yaml_to_dict, safe_dump)
+from helpers.file_dir_procs import (yaml_to_dict, safe_dump, safe_copy)
 from helpers.viz import (plot_learning_curves, plot_set_predictions, plot_feature_attribution)
+from helpers.fetch_torch_mods import get_model_score
 from setup.setup_action_args import setup_relevant_args
 from setup.select_interpretation_points import get_interpretation_inx, get_predictions
 from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
@@ -290,7 +295,8 @@ class KnowIt:
         return BaseDataset.from_path(**data_import_args)
 
     def train_model(self, model_name: str, kwargs: dict, *, device: str | None = None,
-                    safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
+                    safe_mode: bool | None = None, and_viz: bool | None = None,
+                    sweep_kwargs: dict | None) -> None:
         """Trains a model given user arguments.
 
         This function sets up and trains a model using the provided arguments and configurations.
@@ -312,10 +318,16 @@ class KnowIt:
         and_viz : bool | None, default=None
             If provided, sets the visualization setting for this operation. Defaults to the global
             visualization setting if not provided.
+        sweep_kwargs : dict | None, default=None
+            Optional kwargs if a hyperparameter sweep is being performed.
+            If provided, must contain kwargs (sweep_name: str, run_name: str, and log_to_local: bool).
 
         Notes
         -----
         See setup.setup_action_args.py for details on the arguments required in args.
+
+        Optional visualization is not done if busy with sweep.
+
         """
         if device is None:
             device = self.global_device
@@ -327,8 +339,6 @@ class KnowIt:
         # check that all relevant args are provided
         relevant_args = setup_relevant_args(kwargs, required_types=('data', 'arch', 'trainer', ))
 
-        save_dir = model_output_dir(self.exp_output_dir, model_name, safe_mode, overwrite=True)
-
         # Set up required data modules, Models, and trainner arguments
         datamodule, class_counts = KnowIt._get_datamodule(self.exp_output_dir, self.available_datasets(),
                                                           relevant_args['data'])
@@ -336,11 +346,13 @@ class KnowIt:
                                                      relevant_args['arch'], datamodule.in_shape,
                                                      datamodule.out_shape)
         trainer_args = KnowIt._get_trainer_setup(relevant_args['trainer'], device, class_counts,
-                                                 model, model_params, save_dir)
+                                                 model, model_params, sweep_kwargs,
+                                                 self.exp_output_dir, model_name, safe_mode)
 
         # Add dynamically generated data characteristics to relevant args for model_args storage
         relevant_args['data_dynamics'] = KnowIt._get_data_dynamics(relevant_args['data'], datamodule)
-        safe_dump(relevant_args, model_args_path(self.exp_output_dir, model_name), safe_mode)
+        if trainer_args['out_dir'] is not None:
+            safe_dump(relevant_args, os.path.join(trainer_args['out_dir'], 'model_args.yaml'), safe_mode)
 
         # Instantiate trainer and begin training
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
@@ -350,8 +362,75 @@ class KnowIt:
                                           datamodule.get_dataloader('valid'),
                                           datamodule.get_dataloader('eval')))
 
-        if and_viz and not trainer_args['mute_logger']:
+        if and_viz and not trainer_args['mute_logger'] and sweep_kwargs is None:
             plot_learning_curves(self.exp_output_dir, model_name)
+
+    def consolidate_sweep(self, model_name: str, sweep_name: str,
+                          selection_by_min: bool = True, safe_mode: bool | None = None,
+                          wipe_after: bool = False) -> None:
+        """
+        Consolidates the results of a hyperparameter sweep by selecting the best run
+        and copying its artifacts into the model's main directory.
+
+        This method evaluates all runs within the specified sweep directory, selects the best run based
+        on the scoring metric, and safely transfers the relevant files to the model's main directory.
+        Optionally, it can wipe the sweep directory after consolidation.
+
+        Parameters
+        ----------
+            model_name (str): Name of the model associated with the sweep.
+            sweep_name (str): Name of the hyperparameter sweep to consolidate.
+            selection_by_min (bool, optional): If True, selects the run with the minimum score;
+                otherwise, selects the run with the maximum score. Defaults to True.
+            safe_mode (bool | None, optional): If True, prevents deletion of files during consolidation.
+                If None, defaults to `self.global_safe_mode`. Defaults to None.
+            wipe_after (bool, optional): If True, deletes the sweep directory after consolidation.
+                Ignored if `safe_mode` is True. Defaults to False.
+
+        Notes
+        -----
+            - The function assumes the model's output directory structure follows specific conventions.
+            - Uses `get_model_score` to evaluate the performance of each run.
+            - Safe copy ensures overwriting is controlled by the `safe_mode` flag.
+        """
+
+        if safe_mode is None:
+            safe_mode = self.global_safe_mode
+
+        logger.info("Consolidating sweep: %s.", sweep_name)
+        sweep_dir = model_sweep_dir(self.exp_output_dir, model_name, sweep_name)
+        model_dir = model_output_dir(self.exp_output_dir, model_name)
+
+        runs = [r for r in os.listdir(sweep_dir)]
+        if len(runs) == 0:
+            logger.error("No runs found in sweep: %s.", sweep_name)
+            exit(101)
+
+        selected_run = None
+        best_score = None
+        for r in runs:
+            run_score, metric = get_model_score(os.path.join(sweep_dir, r))
+            if (best_score is None or (run_score < best_score and selection_by_min) or
+                    (run_score > best_score and not selection_by_min)):
+                selected_run = r
+                best_score = run_score
+        selected_run_dir = os.path.join(sweep_dir, selected_run)
+        child_content = os.listdir(selected_run_dir)
+
+        for f in os.listdir(model_dir):
+            if f.endswith('.ckpt') and not safe_mode:
+                os.remove(os.path.join(model_dir, f))
+            if f.endswith('.yaml') and not safe_mode:
+                os.remove(os.path.join(model_dir, f))
+            if f == 'lightning_logs' and not safe_mode:
+                shutil.rmtree(os.path.join(model_dir, f))
+
+        for f in child_content:
+            safe_copy(path=os.path.join(selected_run_dir, f),
+                      new_path=os.path.join(model_dir, f), safe_mode=safe_mode)
+
+        if wipe_after and not safe_mode:
+            shutil.rmtree(sweep_dir)
 
     def train_model_further(self, model_name: str, max_epochs: int, *, device: str | None = None,
                             safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
@@ -757,7 +836,8 @@ class KnowIt:
 
     @staticmethod
     def _get_trainer_setup(trainer_args: dict, device: str, class_counts: list, model: type,
-                           model_params: dict, save_dir: str) -> dict:
+                           model_params: dict, sweep_kwargs: dict | None,
+                           exp_output_dir: str, model_name: str, safe_mode: bool) -> dict:
         """Process and return the trainer arguments with dynamically generated parameters.
 
         This function takes in the initial trainer arguments and modifies them based on
@@ -776,8 +856,15 @@ class KnowIt:
             The model class to be trained.
         model_params : dict
             The parameters required to initialize the model.
-        save_dir : str
-            The directory where the training outputs will be saved.
+        sweep_kwargs : dict | None, default=None
+            Optional kwargs if a hyperparameter sweep is being performed.
+            If provided, must contain kwargs (sweep_name: str, run_name: str, and log_to_local: bool).
+        exp_output_dir : str
+            Path to the current experiment output directory.
+        model_name : str
+            The name of the model to be trained.
+        safe_mode : bool,
+            Safe mode value for this operation.
 
         Returns
         -------
@@ -800,8 +887,21 @@ class KnowIt:
         ret_trainer_args['model'] = model
         ret_trainer_args['model_params'] = model_params
         ret_trainer_args['device'] = device
-        ret_trainer_args['out_dir'] = save_dir
         _ = ret_trainer_args.pop('task')
+
+
+        if sweep_kwargs is not None and KnowIt._check_sweep_kwargs(sweep_kwargs):
+            if sweep_kwargs['log_to_local']:
+                ret_trainer_args['logger_status'] = 'w&b_on'
+                ret_trainer_args['out_dir'] = model_run_dir(exp_output_dir, model_name,
+                                                            sweep_kwargs['sweep_name'], sweep_kwargs['run_name'],
+                                                            safe_mode, overwrite=True)
+            else:
+                ret_trainer_args['logger_status'] = 'w&b_only'
+                ret_trainer_args['out_dir'] = None
+        else:
+            ret_trainer_args['out_dir'] = model_output_dir(exp_output_dir, model_name, safe_mode, overwrite=True)
+
 
         return ret_trainer_args
 
@@ -876,3 +976,20 @@ class KnowIt:
             data_dynamics['class_count'] = datamodule.class_counts
 
         return data_dynamics
+
+    @staticmethod
+    def _check_sweep_kwargs(sweep_kwargs: dict) -> bool:
+        for key in ('sweep_name', 'run_name', 'log_to_local'):
+            if key not in sweep_kwargs.keys():
+                logger.error('Sweep kwarg dictionary must contain %s', key)
+                exit(101)
+        if type(sweep_kwargs['sweep_name']) != str:
+            logger.error('Sweep name must be a string.')
+            exit(101)
+        if type(sweep_kwargs['run_name']) != str:
+            logger.error('Run name must be a string.')
+            exit(101)
+        if type(sweep_kwargs['log_to_local']) != bool:
+            logger.error('Log to local sweep variable must be a boolean.')
+            exit(101)
+        return True
