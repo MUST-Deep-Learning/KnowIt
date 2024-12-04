@@ -172,6 +172,27 @@ def model_viz_dir(exp_output_dir: str, name: str, safe_mode: bool = True, overwr
                safe_mode=safe_mode, overwrite=overwrite)
     return os.path.join(model_output_dir(exp_output_dir, name, safe_mode=True, overwrite=False), 'visualizations')
 
+# ----------------------------------------------------------------------------------------------------------------------
+#   SWEEPS
+# ----------------------------------------------------------------------------------------------------------------------
+
+def model_sweeps_dir(exp_output_dir: str, model_name: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the sweeps directory for the given model name from the given experiment path."""
+    proc_dir(os.path.join(model_output_dir(exp_output_dir, model_name, safe_mode=True, overwrite=False), 'sweeps'),
+             safe_mode=safe_mode, overwrite=overwrite)
+    return os.path.join(model_output_dir(exp_output_dir, model_name, safe_mode=True, overwrite=False), 'sweeps')
+
+def model_sweep_dir(exp_output_dir: str, model_name: str, sweep_name: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the specific sweep directory for the given model name, and sweep name, from the given experiment path."""
+    proc_dir(os.path.join(model_sweeps_dir(exp_output_dir, model_name, safe_mode=True, overwrite=False), sweep_name),
+             safe_mode=safe_mode, overwrite=overwrite)
+    return os.path.join(model_sweeps_dir(exp_output_dir, model_name, safe_mode=True, overwrite=False), sweep_name)
+
+def model_run_dir(exp_output_dir: str, model_name: str, sweep_name: str, run_name: str, safe_mode: bool = True, overwrite: bool = False):
+    """ Returns the specific run directory for the given model name, sweep name, and run name, from the given experiment path."""
+    proc_dir(os.path.join(model_sweep_dir(exp_output_dir, model_name, sweep_name, safe_mode=True, overwrite=False), run_name),
+             safe_mode=safe_mode, overwrite=overwrite)
+    return os.path.join(model_sweep_dir(exp_output_dir, model_name, sweep_name, safe_mode=True, overwrite=False), run_name)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
