@@ -296,7 +296,7 @@ class KnowIt:
 
     def train_model(self, model_name: str, kwargs: dict, *, device: str | None = None,
                     safe_mode: bool | None = None, and_viz: bool | None = None,
-                    sweep_kwargs: dict | None) -> None:
+                    sweep_kwargs: dict | None = None) -> None:
         """Trains a model given user arguments.
 
         This function sets up and trains a model using the provided arguments and configurations.
@@ -362,7 +362,7 @@ class KnowIt:
                                           datamodule.get_dataloader('valid'),
                                           datamodule.get_dataloader('eval')))
 
-        if and_viz and not trainer_args['mute_logger'] and sweep_kwargs is None:
+        if and_viz and not trainer_args['logger_status'] and sweep_kwargs is None:
             plot_learning_curves(self.exp_output_dir, model_name)
 
     def consolidate_sweep(self, model_name: str, sweep_name: str,
