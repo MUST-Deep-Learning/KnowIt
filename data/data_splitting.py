@@ -121,7 +121,7 @@ class DataSplitter:
     def __init__(self, the_data: dict, method: str, portions: tuple,
                  instances: list, limit: int, y_map: array, out_chunk: list, min_slice: int) -> None:
         # check that defined portions are valid
-        if sum(portions) != 1.0:
+        if abs(1.0 - sum(portions)) > 1e-6:
             logger.error('Split portions do not add up to one.')
             exit(101)
 
