@@ -19,10 +19,11 @@ import pandas as pd
 # imports imports
 from env.env_paths import (learning_data_path,
                            model_args_path, model_predictions_dir,
-                           model_interpretations_dir, model_viz_dir, interpretation_name)
+                           model_interpretations_dir, model_viz_dir, model_output_dir)
 from data.base_dataset import BaseDataset
 from setup.select_interpretation_points import get_predictions
 from helpers.file_dir_procs import yaml_to_dict, load_from_path
+from helpers.fetch_torch_mods import get_model_score
 from helpers.logger import get_logger
 logger = get_logger()
 
@@ -84,7 +85,7 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     None
     """
     curves, num_epochs = get_learning_curves(exp_output_dir, model_name)
-    curves, result, result_epoch = get_result_epoch(curves)
+    score, metric, result_epoch = get_model_score(model_output_dir(exp_output_dir, model_name))
 
     loss_curves = [key for key in curves.keys() if 'perf' not in key]
     perf_curves = [key for key in curves.keys() if 'perf' in key]
@@ -93,28 +94,24 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     fig, axes = plt.subplots(2 if perf_curves else 1, 1, figsize=generic_figsize)
     ax = axes if isinstance(axes, np.ndarray) else [axes]
 
-    def plot_curves(ax: plt.Axes, curves: dict, epoch: list, result_epoch: int, result: dict, ylabel: str) -> None:
+    def plot_curves(ax: plt.Axes, curves: dict, epoch: list, result_epoch: int, ylabel: str) -> None:
         """Helper function to plot curves."""
         for c in curves:
             ax.plot(epoch, curves[c], label=c, marker='.', color=get_color(c))
         ax.axvline(x=result_epoch, linestyle='--', c='white')
         check = 0.5 * (ax.get_ylim()[1] - ax.get_ylim()[0]) + ax.get_ylim()[0]
         ax.text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
-        for r in result:
-            if ylabel.lower() in r:
-                ax.plot(result_epoch, result[r], 'o', label=r, marker='*', color=get_color(r), markersize=20)
-
         ax.set_xlabel('Epochs')
         ax.set_ylabel(ylabel)
         ax.grid(color=grid_color, alpha=0.5)
         ax.legend()
 
     # Plot loss curves
-    plot_curves(ax[0], {k: curves[k] for k in loss_curves}, epochs, result_epoch, result, 'Loss')
+    plot_curves(ax[0], {k: curves[k] for k in loss_curves}, epochs, result_epoch, 'Loss')
 
     # Plot performance curves if they exist
     if perf_curves:
-        plot_curves(ax[1], {k: curves[k] for k in perf_curves}, epochs, result_epoch, result, 'Perf')
+        plot_curves(ax[1], {k: curves[k] for k in perf_curves}, epochs, result_epoch, 'Perf')
 
     # Save the figure
     save_path = os.path.join(model_viz_dir(exp_output_dir, model_name), 'learning_curves.png')
@@ -153,9 +150,13 @@ def get_learning_curves(exp_output_dir: str, model_name: str) -> tuple:
     curves = dict(curves)
 
     # determine number of epochs trained for, and drop irrelevant metrics
-    num_epochs = len(curves['epoch']) - 1
+    num_epochs = len(curves['epoch'])
     curves.pop('step')
     curves.pop('epoch')
+    curve_names = list(curves.keys())
+    for c in curve_names:
+        if 'result' in c:
+            curves.pop(c)
 
     # For each metric, make a list of float values in order of epochs
     for c in curves:
@@ -168,48 +169,6 @@ def get_learning_curves(exp_output_dir: str, model_name: str) -> tuple:
         curves[c] = new_curve
 
     return curves, num_epochs
-
-def get_result_epoch(curves: dict) -> tuple:
-    """
-    Identify the epoch at which the resulting model was obtained based on validation loss.
-    Also, extract metrics containing 'result' in their names.
-
-    Parameters
-    ----------
-    curves : dict of str -> list
-        Dictionary where each key represents a metric name and the corresponding list contains values per epoch.
-
-    Returns
-    -------
-    curves : dict of str -> list
-        Modified `curves` dictionary with 'result' metrics removed and truncated to the epoch where results were obtained.
-    result : dict of str -> float
-        Dictionary containing 'result' metrics, rounded to 3 decimals.
-    result_epoch : int
-        The 1-based epoch index at which the result model was determined.
-    """
-
-    # Find the epoch at which the resulting model was obtained
-    # TODO: This is wonky. Need to rather save the actual epoch in the lightning logs and then reference here.
-    check = []
-    for x in np.array(curves['valid_loss']):
-        if x is not None:
-            check.append(np.abs(x - curves['result_valid_loss'][-1]))
-        else:
-            check.append(np.NaN)
-    check = np.array(check)
-    result_epoch = np.nanargmin(check)
-
-    result_keys = [key for key in curves.keys() if 'result' in key]
-    result = {}
-    for r in result_keys:
-        result[r] = np.round(curves[r][-1], 3)
-        curves.pop(r)
-
-    for c in curves:
-        curves[c] = curves[c][:-1]
-
-    return curves, result, result_epoch+1
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Visualize predictions
