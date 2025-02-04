@@ -357,9 +357,9 @@ class KnowIt:
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
         trainer = KITrainer(state=TrainNew, base_trainer_kwargs=trainer_args,
                             optional_pl_kwargs=optional_pl_kwargs)
-        trainer.fit_and_eval(dataloaders=(datamodule.get_dataloader('train'),
-                                          datamodule.get_dataloader('valid'),
-                                          datamodule.get_dataloader('eval')))
+        trainer.fit(dataloaders=(datamodule.get_dataloader('train'),
+                                 datamodule.get_dataloader('valid'),
+                                 datamodule.get_dataloader('eval')))
 
         if and_viz and not trainer_args['logger_status'] and sweep_kwargs is None:
             plot_learning_curves(self.exp_output_dir, model_name)
