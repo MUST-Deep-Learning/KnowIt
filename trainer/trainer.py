@@ -145,6 +145,12 @@ class KITrainer:
             dataloaders.
 
         """
+
+        # TODO: We might want to rename this function to something else.
+        # There are two locations in knowit.py and interpreter.py where ".eval()" is called on the model
+        # I think the only reason that this one is not called is because no dataloaders are sent at those points.
+        # It would be safer to call this function something else like "evaluate_fitted_model".
+
         if self._state is None:
             emsg = "Trainer state cannot be set to None."
             raise TypeError(emsg)
