@@ -11,7 +11,6 @@ import copy
 import torch
 import tempfile
 import sys
-import numpy as np
 import shutil
 
 from wandb.cli.cli import sweep
@@ -409,7 +408,7 @@ class KnowIt:
         selected_run = None
         best_score = None
         for r in runs:
-            run_score, metric = get_model_score(os.path.join(sweep_dir, r))
+            run_score, metric, _ = get_model_score(os.path.join(sweep_dir, r))
             if (best_score is None or (run_score < best_score and selection_by_min) or
                     (run_score > best_score and not selection_by_min)):
                 selected_run = r
