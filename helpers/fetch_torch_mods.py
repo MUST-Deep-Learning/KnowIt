@@ -147,10 +147,8 @@ def prepare_function(user_args: str | dict[str, Any], *, is_loss: bool) -> (
 
 def get_model_score(model_dir: str) -> tuple:
     """
-    Retrieve the best model score and the monitored metric from a trained model's checkpoint file.
-
     This function scans the specified directory for a checkpoint file (indicated by "ckpt" in the filename),
-    loads the checkpoint, and extracts the best score and the corresponding monitored metric
+    loads the checkpoint, and extracts the best score, the corresponding monitored metric, and epoch number,
     from the callbacks section.
 
     Parameters
@@ -162,6 +160,7 @@ def get_model_score(model_dir: str) -> tuple:
         tuple: A tuple containing:
             - best_model_score (float): The best score achieved by the model.
             - monitor (str): The name of the metric being monitored (e.g., 'val_loss').
+            - epoch (int): The epoch number at which the best score was achieved.
 
     Notes:
         - Assumes only one checkpoint file exists in the directory.
@@ -174,4 +173,4 @@ def get_model_score(model_dir: str) -> tuple:
     keys = list(ckpt["callbacks"].keys())[0]
 
     return (ckpt["callbacks"][keys]["best_model_score"].item(),
-            ckpt["callbacks"][keys]["monitor"])
+            ckpt["callbacks"][keys]["monitor"], ckpt["epoch"])

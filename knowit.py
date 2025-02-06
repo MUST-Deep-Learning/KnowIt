@@ -11,7 +11,6 @@ import copy
 import torch
 import tempfile
 import sys
-import numpy as np
 import shutil
 
 from wandb.cli.cli import sweep
@@ -296,7 +295,7 @@ class KnowIt:
 
     def train_model(self, model_name: str, kwargs: dict, *, device: str | None = None,
                     safe_mode: bool | None = None, and_viz: bool | None = None,
-                    sweep_kwargs: dict | None) -> None:
+                    sweep_kwargs: dict | None = None) -> None:
         """Trains a model given user arguments.
 
         This function sets up and trains a model using the provided arguments and configurations.
@@ -358,11 +357,11 @@ class KnowIt:
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
         trainer = KITrainer(state=TrainNew, base_trainer_kwargs=trainer_args,
                             optional_pl_kwargs=optional_pl_kwargs)
-        trainer.fit_and_eval(dataloaders=(datamodule.get_dataloader('train'),
-                                          datamodule.get_dataloader('valid'),
-                                          datamodule.get_dataloader('eval')))
+        trainer.fit(dataloaders=(datamodule.get_dataloader('train'),
+                                 datamodule.get_dataloader('valid'),
+                                 datamodule.get_dataloader('eval')))
 
-        if and_viz and not trainer_args['mute_logger'] and sweep_kwargs is None:
+        if and_viz and not trainer_args['logger_status'] and sweep_kwargs is None:
             plot_learning_curves(self.exp_output_dir, model_name)
 
     def consolidate_sweep(self, model_name: str, sweep_name: str,
@@ -409,7 +408,7 @@ class KnowIt:
         selected_run = None
         best_score = None
         for r in runs:
-            run_score, metric = get_model_score(os.path.join(sweep_dir, r))
+            run_score, metric, _ = get_model_score(os.path.join(sweep_dir, r))
             if (best_score is None or (run_score < best_score and selection_by_min) or
                     (run_score > best_score and not selection_by_min)):
                 selected_run = r
