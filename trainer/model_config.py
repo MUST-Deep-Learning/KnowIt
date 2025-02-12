@@ -138,7 +138,7 @@ class PLModel(pl.LightningModule):
 
         self.model = self._build_model(model, model_params)
 
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=['model'])
 
     def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
         """Compute loss and optional metrics, log metrics, and return the loss.
