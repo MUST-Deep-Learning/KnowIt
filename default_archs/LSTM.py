@@ -111,7 +111,7 @@ class ArchArgs:
     """
 
     width: int = 256
-    depth: int = 1
+    depth: int = 2
     dropout: float = 0.5
     output_activation: None | str = None
     bidirectional: bool = False
