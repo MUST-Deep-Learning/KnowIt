@@ -77,12 +77,15 @@ class KITrainer:
         base_trainer_kwargs: dict[str, Any],
         optional_pl_kwargs: dict[str, Any],
         ckpt_file: None | str = None,
+        *,
+        train_flag: str = 'train',
     ) -> None:
         self._set_state(
             state=state,
             base_trainer_kwargs=base_trainer_kwargs,
             optional_pl_kwargs=optional_pl_kwargs,
             ckpt_file=ckpt_file,
+            train_flag=train_flag,
         )
 
     def _set_state(
@@ -91,22 +94,27 @@ class KITrainer:
         base_trainer_kwargs: dict[str, Any],
         ckpt_file: None | str,
         optional_pl_kwargs: dict[str, Any],
+        *,
+        train_flag: str,
     ) -> None:
-        if ckpt_file and base_trainer_kwargs and optional_pl_kwargs:
+        if train_flag == "train":
+            # train from scratch
+            self._state = state(
+                base_kwargs=base_trainer_kwargs,
+                optional_pl_kwargs=optional_pl_kwargs,
+            )
+        elif train_flag == "train_from_ckpt":
+            # train from checkpoint
             self._state = state(
                 to_ckpt=ckpt_file,
                 base_kwargs=base_trainer_kwargs,
                 optional_pl_kwargs=optional_pl_kwargs,
             )
-        elif ckpt_file and base_trainer_kwargs and not optional_pl_kwargs:
+        elif train_flag == "evaluate_only":
+            # evaluate model
             self._state = state(
                 to_ckpt=ckpt_file,
                 base_trainer_kwargs=base_trainer_kwargs,
-            )
-        else:
-            self._state = state(
-                base_kwargs=base_trainer_kwargs,
-                optional_pl_kwargs=optional_pl_kwargs,
             )
 
         if not self._state:
@@ -135,26 +143,26 @@ class KITrainer:
 
         self._state.fit_model(dataloaders=dataloaders)
 
-    def fit_and_eval(
-        self,
-        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
-    ) -> None:
-        """Fit model to training data and evaluate on all dataloaders.
+    # def fit_and_eval(
+    #     self,
+    #     dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+    # ) -> None:
+    #     """Fit model to training data and evaluate on all dataloaders.
 
-        Parameters
-        ----------
-        dataloaders tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
-            The Pytorch dataloaders that has been set up in KnowIt's
-            datamodule. The triplet corresponds to the train, val, and eval
-            dataloaders.
+    #     Parameters
+    #     ----------
+    #     dataloaders tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
+    #         The Pytorch dataloaders that has been set up in KnowIt's
+    #         datamodule. The triplet corresponds to the train, val, and eval
+    #         dataloaders.
 
-        """
-        if self._state is None:
-            emsg = "Trainer state cannot be set to None."
-            raise TypeError(emsg)
+    #     """
+    #     if self._state is None:
+    #         emsg = "Trainer state cannot be set to None."
+    #         raise TypeError(emsg)
 
-        self._state.fit_model(dataloaders=dataloaders)
-        self._state.evaluate_model(dataloaders=dataloaders)
+    #     self._state.fit_model(dataloaders=dataloaders)
+    #     self._state.evaluate_model(dataloaders=dataloaders)
 
     def eval(
         self,
