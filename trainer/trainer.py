@@ -65,7 +65,8 @@ class KITrainer:
 
     train_flag: str, default='train'
         An additional flag to indicate whether the Trainer is in a train
-        state or an evaluate only state.
+        state or an evaluate only state. Options= "train", "train_from_ckpt",
+        or "evaluate_only".
 
     Attributes
     ----------
