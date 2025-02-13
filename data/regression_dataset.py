@@ -47,7 +47,7 @@ class RegressionDataset(PreparedDataset):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def get_dataloader(self, set_tag, analysis: bool = False) -> DataLoader:
+    def get_dataloader(self, set_tag, analysis: bool = False, num_workers: int = 4) -> DataLoader:
         """Creates and returns a PyTorch DataLoader for a specified dataset split.
 
         This method generates a DataLoader for a given dataset split (e.g., train, valid, or eval).
@@ -60,7 +60,9 @@ class RegressionDataset(PreparedDataset):
             A string indicating the dataset split to load ('train', 'valid', 'eval').
         analysis : bool, default = False
             A flag indicating whether the dataloader is being used for analysis purposes. If set to True,
-            the `drop_last` parameter of the DataLoader will be set to False.
+            the `drop_last` and `shuffle` parameters of the DataLoader will be set to False.
+        num_workers : int, default = 4
+            Sets the number of workers to use for loading the dataset.
 
         Returns
         -------
@@ -69,23 +71,19 @@ class RegressionDataset(PreparedDataset):
 
         Notes
         -----
-        The method uses the following steps.
-            1. The method calls `extract_dataset` with the `set_tag` to get the dataset parameters.
-            2. It creates a `CustomRegressionDataset` instance using the extracted parameters.
-            3. Depending on the `set_tag` and `analysis` flag, it sets the `drop_last` parameter:
-               - If `set_tag` is 'train' and `analysis` is False,
-               `drop_last` is set to True to drop the last incomplete batch. Otherwise, `drop_last` is set to False.
-            4. It initializes a DataLoader with the specified batch size, shuffle option, and `drop_last` parameter.
-            5. The method returns the created DataLoader.
+        If `set_tag` is set to `valid` or `eval` then the `drop_last` and `shuffle` parameters of the DataLoader will
+        be set to False.
         """
         dataset = CustomRegressionDataset(**self.extract_dataset(set_tag))
 
         drop_last = False
+        shuffle = False
         if set_tag == 'train' and not analysis:
             drop_last = True
+            shuffle = self.shuffle_train
 
         dataloader = DataLoader(dataset, batch_size=self.batch_size,
-                                shuffle=self.shuffle_train, drop_last=drop_last)
+                                shuffle=shuffle, drop_last=drop_last, num_workers=num_workers)
         return dataloader
 
 

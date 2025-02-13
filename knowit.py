@@ -43,7 +43,7 @@ from interpret.DL_Captum import DeepL
 from interpret.IntegratedGrad_Captum import IntegratedGrad
 
 logger = get_logger()
-logger.setLevel(20)
+logger.setLevel('WARNING')
 
 
 class KnowIt:
@@ -82,6 +82,7 @@ class KnowIt:
     global_safe_mode = True
     global_device = 'gpu'
     global_and_viz = False
+    global_verbose = False
 
     def __init__(self, custom_exp_dir: str | None = None, *, safe_mode: bool = True, overwrite: bool = False) -> None:
         if custom_exp_dir:
@@ -93,7 +94,7 @@ class KnowIt:
             logger.info('Temporary experiment dir: %s', self.exp_output_dir)
 
     def global_args(self, *, device: str | None = None, safe_mode: bool | None = None,
-                    and_viz: bool | None = None) -> dict:
+                    and_viz: bool | None = None, verbose: bool = False) -> dict:
         """Modifies and/or return global arguments according to user arguments.
 
         This function allows the modification of global settings such as the device,
@@ -107,6 +108,8 @@ class KnowIt:
             If provided, sets the global safe mode value, which determines whether existing files should be protected.
         and_viz : bool | None, default=None
             If provided, sets the global visualization setting, determining whether results should also be visualized.
+        verbose : bool, default=False
+            If provided, sets the global verbose setting, determining whether messages below warnings should be logged.
 
         Returns
         -------
@@ -116,6 +119,7 @@ class KnowIt:
                 - 'global_device' (str): The current device setting for global operations.
                 - 'global_and_viz' (bool): The current setting for global visualization.
                 - 'global_safe_mode' (bool): The current setting for global safe mode.
+                - 'global_verbose' (bool): The current setting for global verbose.
         """
         if device is not None:
             self.global_device = device
@@ -123,6 +127,12 @@ class KnowIt:
             self.global_safe_mode = safe_mode
         if and_viz is not None:
             self.global_and_viz = and_viz
+        if verbose is not None:
+            self.global_verbose = verbose
+            if self.global_verbose:
+                logger.setLevel('INFO')
+            else:
+                logger.setLevel('WARNING')
 
         global_args_dict = {'global_device': self.global_device,
                             'global_and_viz': self.global_and_viz,
@@ -351,8 +361,6 @@ class KnowIt:
 
         # Add dynamically generated data characteristics to relevant args for model_args storage
         relevant_args['data_dynamics'] = KnowIt._get_data_dynamics(relevant_args['data'], datamodule)
-        if trainer_args['out_dir'] is not None:
-            safe_dump(relevant_args, os.path.join(trainer_args['out_dir'], 'model_args.yaml'), safe_mode)
 
         # Instantiate trainer and begin training
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
@@ -361,6 +369,9 @@ class KnowIt:
         trainer.fit(dataloaders=(datamodule.get_dataloader('train'),
                                  datamodule.get_dataloader('valid'),
                                  datamodule.get_dataloader('eval')))
+
+        if trainer_args['out_dir'] is not None:
+            safe_dump(relevant_args, os.path.join(trainer_args['out_dir'], 'model_args.yaml'), safe_mode)
 
         if and_viz and not trainer_args['logger_status'] and sweep_kwargs is None:
             plot_learning_curves(self.exp_output_dir, model_name)
