@@ -411,12 +411,16 @@ class EvaluateOnly(BaseTrainer):
     def __init__(
         self,
         to_ckpt: str,
+        base_trainer_kwargs: type,
     ) -> None:
         self.ckpt_file = to_ckpt
+        self.model = {'model': base_trainer_kwargs}
 
         self._prepare_pl_model()
 
         self._prepare_pl_trainer(optional_pl_kwargs={})
+
+        self.evaluate_model
 
     def fit_model(  # noqa: D102
         self,
@@ -447,8 +451,8 @@ class EvaluateOnly(BaseTrainer):
 
     def _prepare_pl_model(self) -> None:
         self.pl_model = PLModel.load_from_checkpoint(  # type: ignore  # noqa: PGH003
-            **self.pl_model_kwargs,
             checkpoint_path=self.ckpt_file,
+            **self.model,
         )
 
     def _prepare_pl_trainer(
