@@ -50,6 +50,8 @@ from helpers.logger import get_logger
 from trainer.base_trainer import BaseTrainer
 from trainer.model_config import PLModel
 
+from pytorch_lightning.loggers import WandbLogger
+
 logger = get_logger()
 
 
@@ -146,16 +148,27 @@ class TrainNew(BaseTrainer):
         optional_pl_kwargs: dict[str, Any],
     ) -> None:
         # training logger - save results in current model's folder
-        if self.mute_logger:
+        if self.logger_status == "off":
             self.trainer_kwargs["logger"] = None
             self.trainer_kwargs["default_root_dir"] = None
             ckpt_callback = None
-        else:
+        elif self.logger_status == "w&b_only":
+            self.trainer_kwargs["logger"] = WandbLogger(log_model=False)
+            self.trainer_kwargs["default_root_dir"] = None
+            ckpt_callback = None
+        elif self.logger_status == "w&b_on":
             ckpt_callback = self._save_model_state()
             self.trainer_kwargs["default_root_dir"] = self.out_dir
-            self.trainer_kwargs["logger"] = pl_loggers.CSVLogger(
-                save_dir=self.out_dir,
-            )
+            self.trainer_kwargs["logger"] = [
+                pl_loggers.CSVLogger(save_dir=self.out_dir),
+                WandbLogger(log_model=False),
+            ]
+        elif not self.logger_status:
+            ckpt_callback = self._save_model_state()
+            self.trainer_kwargs["default_root_dir"] = self.out_dir
+            self.trainer_kwargs["logger"] = [
+                pl_loggers.CSVLogger(save_dir=self.out_dir),
+            ]
 
         # set up EarlyStopping if enabled
         if isinstance(self.early_stopping_args, dict):
@@ -295,7 +308,7 @@ class ContinueTraining(BaseTrainer):
         if self.return_final:
             set_ckpt_path = self.out_dir + "/last.ckpt"
         else:
-            set_ckpt_path = "best"  
+            set_ckpt_path = "best"
 
         logger.info(
             "Testing model on the current training run's best checkpoint.",
@@ -312,16 +325,17 @@ class ContinueTraining(BaseTrainer):
         optional_pl_kwargs: dict[str, Any],
     ) -> None:
         # training logger - save results in current model's folder
-        if self.mute_logger:
+        if self.logger_status:
             self.trainer_kwargs["logger"] = None
             self.trainer_kwargs["default_root_dir"] = None
             ckpt_callback = None
         else:
             ckpt_callback = self._save_model_state()
             self.trainer_kwargs["default_root_dir"] = self.out_dir
-            self.trainer_kwargs["logger"] = pl_loggers.CSVLogger(
-                save_dir=self.out_dir,
-            )
+            self.trainer_kwargs["logger"] = [
+                pl_loggers.CSVLogger(save_dir=self.out_dir),
+                WandbLogger(),
+            ]
 
         # set up EarlyStopping if enabled
         if isinstance(self.early_stopping_args, dict):
