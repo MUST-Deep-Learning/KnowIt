@@ -455,7 +455,9 @@ class KnowIt:
         """Run model evaluation over dataloaders.
 
         Given a trained model name, evaluates the model on the train, valid-
-        ation, and evaluation dataloaders.
+        ation, and evaluation dataloaders. Prints the evaluation metrics to the
+        terminal and saves the metrics in the metrics.csv file in the lightning
+        _logs folder.
 
         Parameters
         ----------
@@ -498,6 +500,21 @@ class KnowIt:
         trainer.evaluate_fitted_model(dataloaders=(datamodule.get_dataloader('train'),
                                  datamodule.get_dataloader('valid'),
                                  datamodule.get_dataloader('eval')))
+
+        output_dir = model_output_dir(self.exp_output_dir, model_name)
+        original_metrics_file = output_dir + "/lightning_logs/version_0/metrics.csv"
+        eval_metrics_file = output_dir + "/lightning_logs/evaluation/metrics.csv"
+
+        # concatenate the two csv metric files and overwrite original
+        import pandas as pd
+        df_original = pd.read_csv(original_metrics_file)
+        df_eval = pd.read_csv(eval_metrics_file)
+
+        df = pd.concat([df_original, df_eval], ignore_index=True, sort=False)
+        df.to_csv(original_metrics_file, index=False)
+
+        # clean up directory
+        shutil.rmtree(output_dir + "/lightning_logs/evaluation")
 
 
     def generate_predictions(self, model_name: str, kwargs: dict, *, device: str | None = None,
