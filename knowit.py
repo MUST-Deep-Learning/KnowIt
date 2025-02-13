@@ -480,7 +480,11 @@ class KnowIt:
 
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs') # empty dictionary
 
+        trainer_args.pop('task')
         trainer_args['model'] = trained_model_dict['model']
+        trainer_args['device'] = device
+        trainer_args['model_params'] = trained_model_dict['model_params']
+        trainer_args['out_dir'] = model_output_dir(self.exp_output_dir, model_name)
         trainer_args['device'] = device
 
         trainer = KITrainer(
