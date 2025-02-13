@@ -497,25 +497,9 @@ class KnowIt:
             train_flag='evaluate_only',
         )
 
-        trainer.evaluate_fitted_model(dataloaders=(datamodule.get_dataloader('train'),
-                                 datamodule.get_dataloader('valid'),
-                                 datamodule.get_dataloader('eval')))
-
-        output_dir = model_output_dir(self.exp_output_dir, model_name)
-        original_metrics_file = output_dir + "/lightning_logs/version_0/metrics.csv"
-        eval_metrics_file = output_dir + "/lightning_logs/evaluation/metrics.csv"
-
-        # concatenate the two csv metric files and overwrite original
-        import pandas as pd
-        df_original = pd.read_csv(original_metrics_file)
-        df_eval = pd.read_csv(eval_metrics_file)
-
-        df = pd.concat([df_original, df_eval], ignore_index=True, sort=False)
-        df.to_csv(original_metrics_file, index=False)
-
-        # clean up directory
-        shutil.rmtree(output_dir + "/lightning_logs/evaluation")
-
+        trainer.evaluate_fitted_model(dataloaders=(datamodule.get_dataloader('train', analysis=True),
+                                 datamodule.get_dataloader('valid', analysis=True),
+                                 datamodule.get_dataloader('eval', analysis=True)))
 
     def generate_predictions(self, model_name: str, kwargs: dict, *, device: str | None = None,
                              safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
