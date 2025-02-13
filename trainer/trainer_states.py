@@ -406,9 +406,6 @@ class EvaluateOnly(BaseTrainer):
     ckpt_file: str
         Path to model checkpoint file.
 
-    base_trainer_kwargs: dict
-        A dictionary to initialize Pytorch Lightning's Trainer module.
-
     pl_model : type
         The Pytorch Lightning model initialized with a user's Pytorch model.
 
