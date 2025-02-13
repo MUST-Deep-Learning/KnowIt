@@ -23,7 +23,7 @@ The three possible concrete states are:
 
 KnowIt's Trainer module is built using Pytorch Lightning. See here:
 https://lightning.ai/pytorch-lightning
-"""  # noqa: D205, D400
+"""
 
 from __future__ import annotations
 
@@ -63,6 +63,10 @@ class KITrainer:
         A string that points to a Pytorch checkpoint file. Required for
         certain trainer states.
 
+    train_flag: str, default='train'
+        An additional flag to indicate whether the Trainer is in a train
+        state or an evaluate only state.
+
     Attributes
     ----------
     _state: None | type[Any], default=None
@@ -78,7 +82,7 @@ class KITrainer:
         optional_pl_kwargs: dict[str, Any],
         ckpt_file: None | str = None,
         *,
-        train_flag: str = 'train',
+        train_flag: str = "train",
     ) -> None:
         self._set_state(
             state=state,
