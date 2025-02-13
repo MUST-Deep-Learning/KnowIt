@@ -12,7 +12,6 @@ import torch
 import tempfile
 import sys
 import shutil
-import yaml
 
 from wandb.cli.cli import sweep
 
