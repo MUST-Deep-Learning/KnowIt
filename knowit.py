@@ -452,7 +452,12 @@ class KnowIt:
 
         logger.warning('KnowIt.train_model_further not implemented yet.')
 
-    def evaluate(self, model_name: str, device: str|None=None, safe_mode: bool|None=None, and_viz: bool|None=None):
+    def run_model_eval(self, model_name: str, device: str|None=None) -> None:
+        """Run model evaluation over dataloaders."""
+        if device is None:
+            device = self.global_device
+
+        ckpt_file = ckpt_path(exp_output_dir=self.exp_output_dir, name=model_name)
 
         model_args = yaml_to_dict(model_args_path(self.exp_output_dir, model_name))
         trainer_args = model_args['trainer']
@@ -462,21 +467,23 @@ class KnowIt:
 
         trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir, self.available_datasets(), self.available_archs(), model_name=model_name, w_pt_model=True)
 
-        optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
+        optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs') # empty dictionary
 
-        trainer_args.pop('task')
         trainer_args['model'] = trained_model_dict['model']
-        trainer_args['model_params'] = trained_model_dict['model_params']
-        trainer_args['out_dir'] = model_output_dir(self.exp_output_dir, model_name)
         trainer_args['device'] = device
 
-        KITrainer(
+        trainer = KITrainer(
             state=EvaluateOnly,
-            ckpt_file='/home/randler/projects/KnowIt/models/my_new_model/bestmodel-epoch=1-valid_loss=0.01.ckpt',
-            base_trainer_kwargs=trainer_args['model'],
-            optional_pl_kwargs={},
+            ckpt_file=ckpt_file,
+            base_trainer_kwargs=trainer_args,
+            optional_pl_kwargs=optional_pl_kwargs,
+            train_flag='evaluate_only',
         )
-        pass
+
+        trainer.eval(dataloaders=(datamodule.get_dataloader('train'),
+                                 datamodule.get_dataloader('valid'),
+                                 datamodule.get_dataloader('eval')))
+
 
     def generate_predictions(self, model_name: str, kwargs: dict, *, device: str | None = None,
                              safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
