@@ -12,6 +12,7 @@ import torch
 import tempfile
 import sys
 import shutil
+import yaml
 
 from wandb.cli.cli import sweep
 
@@ -36,7 +37,7 @@ from data.base_dataset import BaseDataset
 from data.classification_dataset import ClassificationDataset
 from data.regression_dataset import RegressionDataset
 from trainer.trainer import KITrainer
-from trainer.trainer_states import TrainNew
+from trainer.trainer_states import TrainNew, EvaluateOnly
 from interpret.DLS_Captum import DLS
 from interpret.DL_Captum import DeepL
 from interpret.IntegratedGrad_Captum import IntegratedGrad
@@ -439,6 +440,32 @@ class KnowIt:
         #  overwriting old learning metrics. See train_model() for reference.
 
         logger.warning('KnowIt.train_model_further not implemented yet.')
+
+    def evaluate(self, model_name: str, device: str|None=None, safe_mode: bool|None=None, and_viz: bool|None=None):
+
+        model_args = yaml_to_dict(model_args_path(self.exp_output_dir, model_name))
+        trainer_args = model_args['trainer']
+        data_args = model_args['data']
+
+        datamodule, class_counts = KnowIt._get_datamodule(self.exp_output_dir, self.available_datasets(), data_args=data_args)
+
+        trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir, self.available_datasets(), self.available_archs(), model_name=model_name, w_pt_model=True)
+
+        optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
+
+        trainer_args.pop('task')
+        trainer_args['model'] = trained_model_dict['model']
+        trainer_args['model_params'] = trained_model_dict['model_params']
+        trainer_args['out_dir'] = model_output_dir(self.exp_output_dir, model_name)
+        trainer_args['device'] = device
+
+        KITrainer(
+            state=EvaluateOnly,
+            ckpt_file='/home/randler/projects/KnowIt/models/my_new_model/bestmodel-epoch=1-valid_loss=0.01.ckpt',
+            base_trainer_kwargs=trainer_args['model'],
+            optional_pl_kwargs={},
+        )
+        pass
 
     def generate_predictions(self, model_name: str, kwargs: dict, *, device: str | None = None,
                              safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
