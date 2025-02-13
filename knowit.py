@@ -480,7 +480,7 @@ class KnowIt:
             train_flag='evaluate_only',
         )
 
-        trainer.eval(dataloaders=(datamodule.get_dataloader('train'),
+        trainer.evaluate_fitted_model(dataloaders=(datamodule.get_dataloader('train'),
                                  datamodule.get_dataloader('valid'),
                                  datamodule.get_dataloader('eval')))
 

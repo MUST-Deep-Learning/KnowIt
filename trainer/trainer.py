@@ -143,7 +143,7 @@ class KITrainer:
 
         self._state.fit_model(dataloaders=dataloaders)
 
-    def eval(
+    def evaluate_fitted_model(
         self,
         dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
     ) -> None:
