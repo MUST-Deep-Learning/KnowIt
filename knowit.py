@@ -36,7 +36,7 @@ from data.base_dataset import BaseDataset
 from data.classification_dataset import ClassificationDataset
 from data.regression_dataset import RegressionDataset
 from trainer.trainer import KITrainer
-from trainer.trainer_states import TrainNew
+from trainer.trainer_states import TrainNew, EvaluateOnly
 from interpret.DLS_Captum import DLS
 from interpret.DL_Captum import DeepL
 from interpret.IntegratedGrad_Captum import IntegratedGrad
@@ -450,6 +450,55 @@ class KnowIt:
         #  overwriting old learning metrics. See train_model() for reference.
 
         logger.warning('KnowIt.train_model_further not implemented yet.')
+
+    def run_model_eval(self, model_name: str, device: str|None=None) -> None:
+        """Run model evaluation over dataloaders.
+
+        Given a trained model name, evaluates the model on the train, valid-
+        ation, and evaluation dataloaders.
+
+        Parameters
+        ----------
+        model_name : str
+            The names of the trained model.
+
+        device : str|None
+            The device to use for the evaluation (cpu or gpu).
+        """
+        if device is None:
+            device = self.global_device
+
+        ckpt_file = ckpt_path(exp_output_dir=self.exp_output_dir, name=model_name)
+
+        model_args = yaml_to_dict(model_args_path(self.exp_output_dir, model_name))
+        trainer_args = model_args['trainer']
+        data_args = model_args['data']
+
+        datamodule, class_counts = KnowIt._get_datamodule(self.exp_output_dir, self.available_datasets(), data_args=data_args)
+
+        trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir, self.available_datasets(), self.available_archs(), model_name=model_name, w_pt_model=True)
+
+        optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs') # empty dictionary
+
+        trainer_args.pop('task')
+        trainer_args['model'] = trained_model_dict['model']
+        trainer_args['device'] = device
+        trainer_args['model_params'] = trained_model_dict['model_params']
+        trainer_args['out_dir'] = model_output_dir(self.exp_output_dir, model_name)
+        trainer_args['device'] = device
+
+        trainer = KITrainer(
+            state=EvaluateOnly,
+            ckpt_file=ckpt_file,
+            base_trainer_kwargs=trainer_args,
+            optional_pl_kwargs=optional_pl_kwargs,
+            train_flag='evaluate_only',
+        )
+
+        trainer.evaluate_fitted_model(dataloaders=(datamodule.get_dataloader('train'),
+                                 datamodule.get_dataloader('valid'),
+                                 datamodule.get_dataloader('eval')))
+
 
     def generate_predictions(self, model_name: str, kwargs: dict, *, device: str | None = None,
                              safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
