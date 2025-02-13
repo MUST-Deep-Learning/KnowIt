@@ -143,27 +143,6 @@ class KITrainer:
 
         self._state.fit_model(dataloaders=dataloaders)
 
-    # def fit_and_eval(
-    #     self,
-    #     dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
-    # ) -> None:
-    #     """Fit model to training data and evaluate on all dataloaders.
-
-    #     Parameters
-    #     ----------
-    #     dataloaders tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
-    #         The Pytorch dataloaders that has been set up in KnowIt's
-    #         datamodule. The triplet corresponds to the train, val, and eval
-    #         dataloaders.
-
-    #     """
-    #     if self._state is None:
-    #         emsg = "Trainer state cannot be set to None."
-    #         raise TypeError(emsg)
-
-    #     self._state.fit_model(dataloaders=dataloaders)
-    #     self._state.evaluate_model(dataloaders=dataloaders)
-
     def eval(
         self,
         dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
