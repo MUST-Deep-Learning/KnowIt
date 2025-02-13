@@ -453,7 +453,19 @@ class KnowIt:
         logger.warning('KnowIt.train_model_further not implemented yet.')
 
     def run_model_eval(self, model_name: str, device: str|None=None) -> None:
-        """Run model evaluation over dataloaders."""
+        """Run model evaluation over dataloaders.
+
+        Given a trained model name, evaluates the model on the train, valid-
+        ation, and evaluation dataloaders.
+
+        Parameters
+        ----------
+        model_name : str
+            The names of the trained model.
+
+        device : str|None
+            The device to use for the evaluation (cpu or gpu).
+        """
         if device is None:
             device = self.global_device
 
