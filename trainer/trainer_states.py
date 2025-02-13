@@ -422,6 +422,7 @@ class EvaluateOnly(BaseTrainer):
         to_ckpt: str,
         base_trainer_kwargs: dict[str, Any],
     ) -> None:
+        super().__init__(**base_trainer_kwargs)
         self.ckpt_file = to_ckpt
         self.base_trainer_kwargs = base_trainer_kwargs
 
