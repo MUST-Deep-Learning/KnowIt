@@ -92,11 +92,16 @@ class KITrainer:
         ckpt_file: None | str,
         optional_pl_kwargs: dict[str, Any],
     ) -> None:
-        if ckpt_file:
+        if ckpt_file and base_trainer_kwargs and optional_pl_kwargs:
             self._state = state(
                 to_ckpt=ckpt_file,
                 base_kwargs=base_trainer_kwargs,
                 optional_pl_kwargs=optional_pl_kwargs,
+            )
+        elif ckpt_file and base_trainer_kwargs and not optional_pl_kwargs:
+            self._state = state(
+                to_ckpt=ckpt_file,
+                base_trainer_kwargs=base_trainer_kwargs,
             )
         else:
             self._state = state(
