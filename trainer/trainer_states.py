@@ -398,20 +398,29 @@ class EvaluateOnly(BaseTrainer):
      to_ckpt : None | str
         Path to the model checkpoint file.
 
+    base_trainer_kwargs: dict
+        A dictionary to initialize Pytorch Lightning's Trainer module.
+
     Attributes
     ----------
+    ckpt_file: str
+        Path to model checkpoint file.
+
+    base_trainer_kwargs: dict
+        A dictionary to initialize Pytorch Lightning's Trainer module.
+
     pl_model : type
         The Pytorch Lightning model initialized with a user's Pytorch model.
 
     trainer : type
-        The Pytorch Lightning trainer initialized with pl_model and any
-        additional user kwargs (see optional_pl_kwargs).
+        The Pytorch Lightning trainer initialized with pl_model and any addit-
+        ional kwargs.
     """
 
     def __init__(
         self,
         to_ckpt: str,
-        base_trainer_kwargs: type,
+        base_trainer_kwargs: dict[str, Any],
     ) -> None:
         self.ckpt_file = to_ckpt
         self.base_trainer_kwargs = base_trainer_kwargs
