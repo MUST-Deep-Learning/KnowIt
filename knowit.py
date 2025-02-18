@@ -640,7 +640,8 @@ class KnowIt:
                                         device=device,
                                         i_data=relevant_args['interpreter']['interpretation_set'],
                                         multiply_by_inputs=relevant_args['interpreter']['multiply_by_inputs'],
-                                        seed=relevant_args['interpreter']['seed'])
+                                        seed=relevant_args['interpreter']['seed'],
+                                        batch_size=relevant_args['interpreter']['batch_size'])
 
         i_inx = get_interpretation_inx(relevant_args['interpreter'], trained_model_dict['model_args'],
                                        model_predictions_dir(self.exp_output_dir, model_name))
