@@ -567,8 +567,15 @@ class KnowIt:
 
             prediction = trained_model_dict['pt_model'](x)
 
+            prediction = prediction.detach().cpu().numpy()
+            y = y.detach().cpu().numpy()
+            if relevant_args['predictor']['rescale_outputs']:
+                if trained_model_dict['datamodule'].scaling_tag == 'full':
+                    prediction = trained_model_dict['datamodule'].y_scaler.inverse_transform(prediction)
+                    y = trained_model_dict['datamodule'].y_scaler.inverse_transform(y)
+
             file_name = relevant_args['predictor']['prediction_set'] + '-' + 'batch_' + str(batch[0]) + '.pickle'
-            safe_dump((s_id, prediction.detach(), y), os.path.join(save_dir, file_name), safe_mode)
+            safe_dump((s_id, prediction, y), os.path.join(save_dir, file_name), safe_mode)
             for s in s_id:
                 inx_dict[s.item()] = batch[0]
 
@@ -651,6 +658,12 @@ class KnowIt:
 
         # TODO: Make _fetch_points_from_datamodule non-private with RR permission
         interpret_args['input_features'] = interpreter._fetch_points_from_datamodule(i_inx)
+
+        interpret_args['input_features'] = interpret_args['input_features'].detach().cpu().numpy()
+        if interpret_args['rescale_inputs']:
+            if trained_model_dict['datamodule'].scaling_tag in ('full', 'in_only'):
+                interpret_args['input_features'] = trained_model_dict['datamodule'].x_scaler.inverse_transform(
+                    interpret_args['input_features'])
 
         points, predictions, targets, timestamps = get_predictions(model_predictions_dir(self.exp_output_dir, model_name),
                                                        relevant_args['interpreter']['interpretation_set'],
