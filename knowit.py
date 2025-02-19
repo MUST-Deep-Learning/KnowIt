@@ -497,25 +497,9 @@ class KnowIt:
             train_flag='evaluate_only',
         )
 
-        trainer.evaluate_fitted_model(dataloaders=(datamodule.get_dataloader('train'),
-                                 datamodule.get_dataloader('valid'),
-                                 datamodule.get_dataloader('eval')))
-
-        output_dir = model_output_dir(self.exp_output_dir, model_name)
-        original_metrics_file = output_dir + "/lightning_logs/version_0/metrics.csv"
-        eval_metrics_file = output_dir + "/lightning_logs/evaluation/metrics.csv"
-
-        # concatenate the two csv metric files and overwrite original
-        import pandas as pd
-        df_original = pd.read_csv(original_metrics_file)
-        df_eval = pd.read_csv(eval_metrics_file)
-
-        df = pd.concat([df_original, df_eval], ignore_index=True, sort=False)
-        df.to_csv(original_metrics_file, index=False)
-
-        # clean up directory
-        shutil.rmtree(output_dir + "/lightning_logs/evaluation")
-
+        trainer.evaluate_fitted_model(dataloaders=(datamodule.get_dataloader('train', analysis=True),
+                                 datamodule.get_dataloader('valid', analysis=True),
+                                 datamodule.get_dataloader('eval', analysis=True)))
 
     def generate_predictions(self, model_name: str, kwargs: dict, *, device: str | None = None,
                              safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
@@ -583,8 +567,15 @@ class KnowIt:
 
             prediction = trained_model_dict['pt_model'](x)
 
+            prediction = prediction.detach().cpu().numpy()
+            y = y.detach().cpu().numpy()
+            if relevant_args['predictor']['rescale_outputs']:
+                if trained_model_dict['datamodule'].scaling_tag == 'full':
+                    prediction = trained_model_dict['datamodule'].y_scaler.inverse_transform(prediction)
+                    y = trained_model_dict['datamodule'].y_scaler.inverse_transform(y)
+
             file_name = relevant_args['predictor']['prediction_set'] + '-' + 'batch_' + str(batch[0]) + '.pickle'
-            safe_dump((s_id, prediction.detach(), y), os.path.join(save_dir, file_name), safe_mode)
+            safe_dump((s_id, prediction, y), os.path.join(save_dir, file_name), safe_mode)
             for s in s_id:
                 inx_dict[s.item()] = batch[0]
 
@@ -656,7 +647,8 @@ class KnowIt:
                                         device=device,
                                         i_data=relevant_args['interpreter']['interpretation_set'],
                                         multiply_by_inputs=relevant_args['interpreter']['multiply_by_inputs'],
-                                        seed=relevant_args['interpreter']['seed'])
+                                        seed=relevant_args['interpreter']['seed'],
+                                        batch_size=relevant_args['interpreter']['batch_size'])
 
         i_inx = get_interpretation_inx(relevant_args['interpreter'], trained_model_dict['model_args'],
                                        model_predictions_dir(self.exp_output_dir, model_name))
@@ -666,6 +658,12 @@ class KnowIt:
 
         # TODO: Make _fetch_points_from_datamodule non-private with RR permission
         interpret_args['input_features'] = interpreter._fetch_points_from_datamodule(i_inx)
+
+        interpret_args['input_features'] = interpret_args['input_features'].detach().cpu().numpy()
+        if interpret_args['rescale_inputs']:
+            if trained_model_dict['datamodule'].scaling_tag in ('full', 'in_only'):
+                interpret_args['input_features'] = trained_model_dict['datamodule'].x_scaler.inverse_transform(
+                    interpret_args['input_features'])
 
         points, predictions, targets, timestamps = get_predictions(model_predictions_dir(self.exp_output_dir, model_name),
                                                        relevant_args['interpreter']['interpretation_set'],
