@@ -444,7 +444,27 @@ class KnowIt:
 
     def train_model_further(self, model_name: str, max_epochs: int, *, device: str | None = None,
                             safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
-        """Train an existing model further. Not implemented yet. Does nothing.
+        """Train an existing model further from checkpoint.
+
+        The trainer will continue training from the previous epoch up to the
+        new max_epoch. For example, if previously trained from epoch 0 to epoch
+        4 and max_epoch = 5, then the trainer will continue training from epoch
+        5 to epoch 9.
+
+        Parameters
+        ----------
+        model_name : str
+            The name of the trained model.
+        max_epochs : int
+            The maximum number of epochs for which to train the model.
+        device : str|None
+            The device to use for the training (cpu or gpu).
+        safe_mode : bool | None, default=None
+            If provided, sets the safe mode value for this operation.
+            Defaults to the global safe mode setting if not provided.
+        and_viz : bool | None, default=None
+            If provided, sets the visualization setting for this operation. Defaults to the global
+            visualization setting if not provided.
         """
         if device is None:
             device = self.global_device
@@ -506,7 +526,7 @@ class KnowIt:
         Parameters
         ----------
         model_name : str
-            The names of the trained model.
+            The name of the trained model.
 
         device : str|None
             The device to use for the evaluation (cpu or gpu).
