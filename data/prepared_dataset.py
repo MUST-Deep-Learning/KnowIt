@@ -103,7 +103,7 @@ __description__ = 'Contains the PreparedDataset class for Knowit.'
 
 # external imports
 from numpy import (array, random, unique, arange,
-                   expand_dims, repeat, pad)
+                   expand_dims, repeat, pad, zeros)
 
 # internal imports
 from data.base_dataset import BaseDataset
@@ -319,6 +319,7 @@ class PreparedDataset(BaseDataset):
         # TODO: This method is very heavy on memory if the dataset is large.
         #  Will need to find alternative where we do not put the entire dataset in memory.
 
+        logger.info('Extracting %s set.', set_tag)
         x_vals, y_vals = self._fast_extract(self.get_the_data(), self.selection[set_tag],
                                             self.in_chunk, self.out_chunk,
                                             self.instances, self.x_map, self.y_map,
@@ -392,11 +393,8 @@ class PreparedDataset(BaseDataset):
     @staticmethod
     def _fast_extract(the_data: dict, selection: array, in_chunk: list, out_chunk: list,
                       instances: list, x_map: array, y_map: array, padding_method: str) -> tuple:
-        """Extracts the relevant input values (padded) and output values (not padded) for prediction points defined
+        """Pads the data structure and initiates the extraction of input and output values for prediction points defined
         in the provided selection matrix.
-
-        This function collects the relevant slices, creates padded versions of the corresponding input components,
-        and then initiates a parallel sampling of blocks of input and output values.
 
         Parameters
         ----------
@@ -436,30 +434,28 @@ class PreparedDataset(BaseDataset):
         # calculates the maximum padding that could be required
         max_pad = max(abs(array(in_chunk))) + 1
 
-        # extract the input feature values for the relevant slices and pad them in both directions
-        padded_slices = {}
+        # pad the dataset before sampling
         for r in relevant_slice_indx:
             i = instances[r[0]]
             s = r[1]
-            padded_slices[tuple(r)] = the_data[i][s]['d'][:, x_map]
-            padded_slices[tuple(r)] = PreparedDataset._do_padding(padded_slices[tuple(r)],
+            the_data[i][s]['d'] = PreparedDataset._do_padding(the_data[i][s]['d'],
                                                                   'backward',
                                                                   padding_method,
-                                                                  len(padded_slices[tuple(r)]) + max_pad)
-            padded_slices[tuple(r)] = PreparedDataset._do_padding(padded_slices[tuple(r)],
+                                                                  len(the_data[i][s]['d']) + max_pad)
+            the_data[i][s]['d'] = PreparedDataset._do_padding(the_data[i][s]['d'],
                                                                   'forward',
                                                                   padding_method,
-                                                                  len(padded_slices[tuple(r)]) + max_pad)
+                                                                  len(the_data[i][s]['d']) + max_pad)
         # sample input and output values
         x_vals, y_vals = PreparedDataset._parr_sample(selection, in_chunk, out_chunk,
-                                                      max_pad, padded_slices, the_data,
-                                                      instances, y_map)
+                                                      max_pad, the_data,
+                                                      instances, y_map, x_map)
 
         return x_vals, y_vals
 
     @staticmethod
     def _parr_sample(selection: array, in_chunk: list, out_chunk: list, max_pad: int,
-                     padded_slices: dict, the_data: dict, instances: list, y_map: array) -> tuple:
+                     the_data: dict, instances: list, y_map: array, x_map: array) -> tuple:
         """Sample per prediction point data blocks,
         retrieves the corresponding feature values and package as two arrays.
 
@@ -476,14 +472,14 @@ class PreparedDataset(BaseDataset):
             defining the time steps of out_components for each prediction point.
         max_pad : int
             The maximum padding that could be required.
-        padded_slices : dict
-            A dictionary with slice ind
         the_data : dict
             The 'the_data' dictionary as stored on disk.
         instances : list
             A list of instances in the dataset.
         y_map : array, shape=[n_out_components,]
             An array that contains the indices of BaseDataset.components that correspond to output components.
+        x_map : array, shape=[n_in_components,]
+            An array that contains the indices of BaseDataset.components that correspond to input components.
 
         Returns
         -------
@@ -533,16 +529,15 @@ class PreparedDataset(BaseDataset):
 
         x_blocks = _sample_blocks(selection[:, 2], in_chunk, max_pad)
         y_blocks = _sample_blocks(selection[:, 2], out_chunk, 0)
-        x_vals = []
-        y_vals = []
+        x_vals = zeros(shape=(selection.shape[0], in_chunk[1]-in_chunk[0]+1, x_map.size))
+        y_vals = zeros(shape=(selection.shape[0], out_chunk[1]-out_chunk[0]+1, y_map.size))
         s_indx = 0
         # TODO: Here is still a bottleneck. But at least it is just sampling now.
         for s in selection:
-            x_vals.append(padded_slices[(s[0], s[1])][x_blocks[s_indx]])
-            y_vals.append(the_data[instances[s[0]]][s[1]]['d'][y_blocks[s_indx]][:, y_map])
+            x_vals[s_indx, :, :] = the_data[instances[s[0]]][s[1]]['d'][x_blocks[s_indx]][:, x_map]
+            y_vals[s_indx, :, :] = the_data[instances[s[0]]][s[1]]['d'][y_blocks[s_indx]][:, y_map]
             s_indx += 1
-        x_vals = array(x_vals)
-        y_vals = array(y_vals)
+        del the_data
         return x_vals, y_vals
 
     @staticmethod
