@@ -72,6 +72,10 @@ class DLS(FeatureAttribution):
         If True, perform local attributions. If False, perform global
         attributions. For more information, see Captum's documentation.
 
+    batch_size : int | None, default=None
+        How many prediction points should be attributed at once.
+        Default is None, which means all at once.
+
     Attributes
     ----------
     model : Module
@@ -104,6 +108,7 @@ class DLS(FeatureAttribution):
         seed: int,
         *,
         multiply_by_inputs: bool = True,
+        batch_size: int | None = None,
     ) -> None:
 
         super().__init__(
@@ -117,9 +122,10 @@ class DLS(FeatureAttribution):
 
         self.dls = DeepLiftShap(
             self.model,
-            multiply_by_inputs=multiply_by_inputs,
+            multiply_by_inputs=multiply_by_inputs
         )
         self.seed = seed
+        self.batch_size = batch_size
 
     def generate_baseline_from_data(self, num_baselines: int) -> Tensor:
         """Return baseline sample.
@@ -207,6 +213,34 @@ class DLS(FeatureAttribution):
         inside a dictionary data structure. For time series data, this can grow
         rapidly, which may therefore obscure model interpretability.
         """
+
+        def _batch_attributions(input_tensor, baselines, target, batch_size):
+            """ Batch the attribution calculations if an appropriate batch size is provided. """
+            n = input_tensor.shape[0]
+            if batch_size is None or n < batch_size:
+                attributions, delta = self.dls.attribute(
+                    inputs=input_tensor,
+                    baselines=baselines,
+                    target=target,
+                    return_convergence_delta=True,
+                )
+            else:
+                full_attributions = []
+                full_delta = []
+                batches = np.arange(0, n, batch_size)
+                for b in batches:
+                    attributions, delta = self.dls.attribute(
+                        inputs=input_tensor[b:b+batch_size],
+                        baselines=baselines,
+                        target=target,
+                        return_convergence_delta=True,
+                    )
+                    full_attributions.append(attributions)
+                    full_delta.append(delta)
+                attributions = torch.cat(full_attributions)
+                delta = torch.cat(full_delta)
+            return attributions, delta
+
         # extract explicands using ids
         input_tensor = super()._fetch_points_from_datamodule(pred_point_id)
 
@@ -243,12 +277,8 @@ class DLS(FeatureAttribution):
         if is_classification:
             for key in self.datamodule.class_set:
                 target = self.datamodule.class_set[key]
-                attributions, delta = self.dls.attribute(
-                    inputs=input_tensor,
-                    baselines=baselines,
-                    target=target,
-                    return_convergence_delta=True,
-                )
+                attributions, delta = _batch_attributions(input_tensor, baselines,
+                                                          target, self.batch_size)
                 attributions = torch.squeeze(attributions, 0)
 
                 results[target] = {
@@ -259,12 +289,8 @@ class DLS(FeatureAttribution):
             for out_chunk in range(out_shape[0]):
                 for out_component in range(out_shape[1]):
                     target = (out_chunk, out_component)
-                    attributions, delta = self.dls.attribute(
-                        inputs=input_tensor,
-                        baselines=baselines,
-                        target=target,
-                        return_convergence_delta=True,
-                    )
+                    attributions, delta = _batch_attributions(input_tensor, baselines,
+                                                              target, self.batch_size)
                     attributions = torch.squeeze(attributions, 0)
 
                     results[target] = {

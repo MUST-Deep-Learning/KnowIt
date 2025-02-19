@@ -90,6 +90,7 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     loss_curves = [key for key in curves.keys() if 'perf' not in key]
     perf_curves = [key for key in curves.keys() if 'perf' in key]
     epochs = [e + 1 for e in range(num_epochs)]
+    result_epoch += 1
 
     fig, axes = plt.subplots(2 if perf_curves else 1, 1, figsize=generic_figsize)
     ax = axes if isinstance(axes, np.ndarray) else [axes]
@@ -719,11 +720,15 @@ def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args:
             # for every relevant instance
             for instance in instances:
                 relevant_to_i = np.argwhere(i == instance).squeeze()
+                if relevant_to_i.size == 1:
+                    relevant_to_i = np.array([relevant_to_i])
                 s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
                 slices = list(set(s))
                 # for every relevant (to current instance) slice
                 for slice in slices:
                     relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+                    if relevant_to_s.size == 1:
+                        relevant_to_s = np.array([relevant_to_s])
                     y = np.array(feat_att_dict['targets'])[relevant_to_s]
                     y_hat = np.array(feat_att_dict['predictions'])[relevant_to_s]
                     t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
@@ -1073,11 +1078,15 @@ def mean_feat_att_regression(feat_att_dict: dict, save_dir: str, model_args: dic
             # for every relevant instance
             for instance in instances:
                 relevant_to_i = np.argwhere(i == instance).squeeze()
+                if relevant_to_i.size == 1:
+                    relevant_to_i = np.array([relevant_to_i])
                 s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
                 slices = list(set(s))
                 # for every relevant (to current instance) slice
                 for slice in slices:
                     relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+                    if relevant_to_s.size == 1:
+                        relevant_to_s = np.array([relevant_to_s])
                     t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
                     t = [c for c in t]
                     feature_attributions = feat_att_dict['results'][logit]['attributions'][relevant_to_s, :, :].abs().detach().cpu().numpy()

@@ -68,24 +68,34 @@ arg_dict = {'data_import_args':  {'required': ('path',),
                                           'early_stopping_args',
                                           'seed',
                                           'return_final',
-                                          'model_selection_mode',
+                                          'ckpt_mode',  # requires default (and use?)
                                           'logger_status',
                                           'optional_pl_kwargs'),
                              'default': {'seed': 123,
-                                         'logger_status': None,
+                                         'logger_status': False,
+                                         'lr_scheduler': None,
+                                         'performance_metrics': None,
+                                         'early_stopping_args': None,
+                                         'return_final': False,
+                                         'ckpt_mode': 'min',
                                          'optional_pl_kwargs': {}}},
             'interpreter':    {'required': ('interpretation_method',),
                                'optional': ('interpretation_set',
                                             'selection',
                                             'size',
-                                            'multiply_by_inputs'),
+                                            'multiply_by_inputs',
+                                            'batch_size',
+                                            'rescale_inputs'),  # whether the inputs are rescaled before storage (when applicable)
                              'default': {'interpretation_set': 'eval',
                                          'selection': 'random',
                                          'size': 1,
                                          'multiply_by_inputs': True,
-                                         'seed': 123}},
+                                         'seed': 123,
+                                         'batch_size': None,
+                                         'rescale_inputs': True}},
             'predictor':      {'required': ('prediction_set',),
-                               'optional': ()}
+                               'optional': ('rescale_outputs', ), # whether the outputs and targets are rescaled before storage (when applicable)
+                               'default': {'rescale_outputs': True}}
             }
 
 
