@@ -90,6 +90,7 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     loss_curves = [key for key in curves.keys() if 'perf' not in key]
     perf_curves = [key for key in curves.keys() if 'perf' in key]
     epochs = [e + 1 for e in range(num_epochs)]
+    result_epoch += 1
 
     fig, axes = plt.subplots(2 if perf_curves else 1, 1, figsize=generic_figsize)
     ax = axes if isinstance(axes, np.ndarray) else [axes]
