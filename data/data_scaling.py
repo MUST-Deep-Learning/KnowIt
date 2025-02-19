@@ -223,7 +223,7 @@ class ZScale:
         data : array, shape=[n_prediction points, n_time_delays, n_components]
             The data to be inversely transformed with Z-Normalization.
         """
-        if not self.native_mean or not self.native_std:
+        if self.native_mean is None or self.native_std is None:
             logger.error('ZScale transform not fitted yet.')
             exit(101)
 
@@ -301,7 +301,7 @@ class LinScale:
         data : array, shape=[n_prediction points, n_time_delays, n_components]
             The data to be inversely transformed with Linear scaling.
         """
-        if not self.native_min or not self.native_max:
+        if self.native_min is None or self.native_max is None:
             logger.error('LinScale transform not fitted yet.')
             exit(101)
 
