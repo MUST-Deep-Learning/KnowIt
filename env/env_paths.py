@@ -35,9 +35,13 @@ def root_exp_dir(exp_output_dir: str, safe_mode: bool = True, overwrite: bool = 
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def dataset_path(name: str):
-    """ Returns the dataset path for the given dataset name from the default datasets directory."""
-    return os.path.join(default_dataset_dir, name + '.pickle')
+def dataset_meta_path(name: str):
+    """ Returns the dataset meta path for the given dataset name from the default datasets directory."""
+    return os.path.join(default_dataset_dir, name + '_meta.pickle')
+
+def dataset_package_path(name: str):
+    """ Returns the dataset package path for the given dataset name from the default datasets directory."""
+    return os.path.join(default_dataset_dir, name)
 
 
 def custom_dataset_dir(exp_output_dir: str, safe_mode: bool = True, overwrite: bool = False):
@@ -47,9 +51,14 @@ def custom_dataset_dir(exp_output_dir: str, safe_mode: bool = True, overwrite: b
     return os.path.join(exp_output_dir, 'custom_datasets')
 
 
-def custom_dataset_path(name: str, exp_output_dir: str):
-    """ Returns the dataset path for the given dataset name from the given experiment path."""
-    return os.path.join(custom_dataset_dir(exp_output_dir), name + '.pickle')
+def custom_dataset_meta_path(name: str, exp_output_dir: str):
+    """ Returns the dataset meta path for the given dataset name from the given experiment path."""
+    return os.path.join(custom_dataset_dir(exp_output_dir), name + '_meta.pickle')
+
+def custom_dataset_package_path(name: str, exp_output_dir: str):
+    """ Returns the dataset package path for the given dataset name from the given experiment path."""
+    # return os.path.join(custom_dataset_dir(exp_output_dir), name + '_package.parquet')
+    return os.path.join(custom_dataset_dir(exp_output_dir), name)
 
 # ----------------------------------------------------------------------------------------------------------------------
 #   ARCHITECTURES

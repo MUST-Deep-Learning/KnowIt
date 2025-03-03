@@ -1,11 +1,9 @@
 """KnowIt data framework."""
 
 from data.base_dataset import BaseDataset
-from data.classification_dataset import ClassificationDataset, CustomClassificationDataset
-from data.regression_dataset import RegressionDataset, CustomRegressionDataset
 from data.data_scaling import DataScaler, ZScale, LinScale, NoScale
 from data.data_splitting import DataSplitter
-from data.prepared_dataset import PreparedDataset
+from data.prepared_dataset import PreparedDataset, CustomDataset, CustomClassificationDataset
 from data.raw_data_coversion import RawDataConverter
 
 __all__ = [

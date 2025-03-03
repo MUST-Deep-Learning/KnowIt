@@ -28,7 +28,7 @@ __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the DataScaler class for KnowIt.'
 
 # external imports
-from numpy import (mean, std, min, max, array)
+from numpy import (nanmean, nanvar, nanmin, nanmax, array, unique, sqrt, minimum, maximum, logical_and)
 
 # internal imports
 from helpers.logger import get_logger
@@ -77,6 +77,10 @@ class DataScaler:
         - 'full': Scale both input features and output features using the specified method.
         - None: No scaling is applied to either input features or output features.
         - Any other value will result in an error.
+    load_level : str, default='instance'
+            What level to load values from disc with.
+            If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
+            If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
 
     Attributes
     ----------
@@ -93,20 +97,23 @@ class DataScaler:
     x_scaler = NoScale()
     y_scaler = NoScale()
 
-    def __init__(self, train_set: dict, method: str | None, tag: str | None) -> None:
+    def __init__(self, data: dict, train_selection: array, method: str | None, tag: str | None,
+                 x_map: array, y_map: array, load_level: str = 'instance') -> None:
+
         if tag:
+            # required_lookups = unique(train_selection[:, :2], axis=0)
             if tag == 'in_only':
-                self.x_scaler = self._fit_scaler(train_set['x'], method)
-                self.y_scaler = self._fit_scaler(train_set['y'], None)
+                self.x_scaler = self._fit_scaler(data, train_selection, x_map, method, load_level)
+                self.y_scaler = self._fit_scaler(data, train_selection, y_map, None, load_level)
             elif tag == 'full':
-                self.x_scaler = self._fit_scaler(train_set['x'], method)
-                self.y_scaler = self._fit_scaler(train_set['y'], method)
+                self.x_scaler = self._fit_scaler(data, train_selection, x_map, method, load_level)
+                self.y_scaler = self._fit_scaler(data, train_selection, y_map, method, load_level)
             else:
                 logger.error('Unknown scaling tag %s', tag)
                 exit(101)
         else:
-            self.x_scaler = self._fit_scaler(None, None)
-            self.y_scaler = self._fit_scaler(None, None)
+            self.x_scaler = self._fit_scaler(None, None, None, None, load_level)
+            self.y_scaler = self._fit_scaler(None, None, None, None, load_level)
 
     def get_scalers(self) -> tuple:
         """Returns the fitted scalers.
@@ -125,7 +132,7 @@ class DataScaler:
         return self.x_scaler, self.y_scaler
 
     @staticmethod
-    def _fit_scaler(data: array, method: str | None) -> ZScale | LinScale | NoScale:
+    def _fit_scaler(data: dict, train_selection: array, s_map: array, method: str | None, load_level: str = 'instance') -> ZScale | LinScale | NoScale:
         """Fit the appropriate scaler based on the specified method.
 
         This method selects and fits a scaler to the provided data based on the chosen scaling method.
@@ -156,10 +163,10 @@ class DataScaler:
         # expects data[sample][feature1]...[featureN]
         if method == 'z-norm':
             scaler = ZScale()
-            scaler.fit(data)
+            scaler.fit(data, train_selection, s_map, load_level)
         elif method == 'zero-one':
             scaler = LinScale()
-            scaler.fit(data)
+            scaler.fit(data, train_selection, s_map, load_level)
         elif method is None:
             scaler = NoScale()
             scaler.fit(data)
@@ -190,7 +197,7 @@ class ZScale:
     def __init__(self) -> None:
         pass
 
-    def fit(self, data: array) -> None:
+    def fit(self, data: dict, train_selection: array, s_map: array, load_level: str = 'slice') -> None:
         """Records the mean and std across prediction points.
 
         Parameters
@@ -198,8 +205,46 @@ class ZScale:
         data : array, shape=[n_prediction points, n_time_delays, n_components]
             The data for which the mean and std across prediction points are recorded.
         """
-        self.native_mean = mean(data, axis=0)
-        self.native_std = std(data, axis=0)
+
+        def _rec_mean_std(vals, mu_m, v_m, m):
+            """ Recursively update the mean and std across prediction points.
+            See: http://notmatthancock.github.io/2017/03/23/simple-batch-stat-updates.html"""
+            mu_n = nanmean(vals, axis=0)
+            n = vals.shape[0]
+            v_n = nanvar(vals, axis=0)
+            if mu_m is None:
+                return mu_n, n, v_n
+            else:
+                mean = (m / (m + n)) * mu_m + (n / (m + n)) * mu_n
+                variance = ((m / (m + n)) * v_m +
+                            (n / (m + n)) * v_n +
+                            ((m * n) / ((m + n) * (m + n))) * (mu_m - mu_n) * (mu_m - mu_n))
+                count = m + n
+                return mean, variance, count
+
+        mean = None
+        count = None
+        variance = None
+        instances = unique(train_selection[:, 0], axis=0)
+        for i in instances:
+            slices = unique(train_selection[train_selection[:, 0] == i, 1])
+            if load_level == 'instance':
+                instance_vals = data.instance(i)
+            for s in slices:
+                t = train_selection[logical_and(train_selection[:, 0] == i, train_selection[:, 1] == s), 2]
+                if load_level == 'instance':
+                    vals = instance_vals[instance_vals['slice'] == s]
+                    vals = vals.drop(columns=['slice'])
+                    vals = vals.to_numpy()
+                else:
+                    vals = data.slice(i, s).to_numpy()
+                vals = vals[t, :]
+                vals = vals[:, s_map]
+                mean, variance, count = _rec_mean_std(vals, mean, variance, count)
+
+
+        self.native_mean = mean
+        self.native_std = sqrt(variance)
 
     def transform(self, data: array) -> array:
         """ Performs Z-Normalization.
@@ -266,7 +311,7 @@ class LinScale:
         self.target_min = target_min
         self.target_max = target_max
 
-    def fit(self, data: array) -> None:
+    def fit(self, data: dict, train_selection: array, s_map: array, load_level: str = 'instance') -> None:
         """ Records the max and min across prediction points.
 
         Parameters
@@ -274,8 +319,33 @@ class LinScale:
         data : array, shape=[n_prediction points, n_time_delays, n_components]
             The data for which the max and min across prediction points are recorded.
         """
-        self.native_min = min(data, axis=0)
-        self.native_max = max(data, axis=0)
+
+        min = None
+        max = None
+        instances = unique(train_selection[:, 0], axis=0)
+        for i in instances:
+            slices = unique(train_selection[train_selection[:, 0] == i, 1])
+            if load_level == 'instance':
+                instance_vals = data.instance(i)
+            for s in slices:
+                t = train_selection[logical_and(train_selection[:, 0] == i, train_selection[:, 1] == s), 2]
+                if load_level == 'instance':
+                    vals = instance_vals[instance_vals['slice'] == s]
+                    vals = vals.drop(columns=['slice'])
+                    vals = vals.to_numpy()
+                else:
+                    vals = data.slice(i, s).to_numpy()
+                vals = vals[t, :]
+                vals = vals[:, s_map]
+                if min is None:
+                    min = nanmin(vals, axis=0)
+                    max = nanmax(vals, axis=0)
+                else:
+                    min = minimum(min, nanmin(vals, axis=0))
+                    max = maximum(max, nanmax(vals, axis=0))
+
+        self.native_min = min
+        self.native_max = max
 
     def transform(self, data: array) -> array:
         """Tranforms features, linearly, from expected ranges to desired range.

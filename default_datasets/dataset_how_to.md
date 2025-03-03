@@ -37,20 +37,4 @@ Use ``KI.summarize_dataset('synth_2')`` to see a summary of your new dataset as 
 ## 3. Default datasets
 
 While newly imported datasets are stored under ``/custom_datasets`` in the relevant custom experiment output directory, 
-default datasets are stored under ``KnowIt/default_datasets``. There are currently two default datasets. 
-They are meant for debugging purposes.
-
-### 3.1. synth_1
-
-This is intended to be a regression dataset with four independant components and one dependant component.
-It is summarized as follows:
-
-{'dataset_name': 'synth_1', 'components': ['x1', 'x2', 'x3', 'x4', 'y1'], 'instances': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0], 'time_delta': datetime.timedelta(seconds=1)}
-
-### 3.2. penguin_42_debug
-
-This is intended to be a classification dataset with three independant components and one dependant component.
-It is summarized as follows:
-
-
-{'dataset_name': 'penguin_42_debug', 'components': ['accX', 'accY', 'accZ', 'PCE'], 'instances': ['2022_42'], 'time_delta': Timedelta('0 days 00:00:00.040000')}
+default datasets are stored under ``KnowIt/default_datasets``.

@@ -126,7 +126,7 @@ class DataSplitter:
             exit(101)
 
         # 1. Find all appropriate prediction points
-        prediction_points, times = self._select_prediction_points(the_data, instances, y_map, out_chunk, min_slice)
+        prediction_points, times = self._select_prediction_points(the_data, y_map, out_chunk, min_slice)
 
         # [instance, slice, relative position]
 
@@ -344,7 +344,8 @@ class DataSplitter:
         return train_points, valid_points, eval_points
 
     @staticmethod
-    def _select_prediction_points(data: dict, instances: list, y: array, out_chunk: list, min_slice: int) -> tuple:
+    def _select_prediction_points(data: dict, y: array, out_chunk: list,
+                                  min_slice: int, load_level: str = 'instance') -> tuple:
         """Construct the full selection matrix for all appropriate prediction points.
 
         Parameters
@@ -352,9 +353,6 @@ class DataSplitter:
         data : dict
             A dictionary where keys are instance identifiers and values are lists of slices. Each slice is
             a dictionary containing 'd' (data array) and 't' (time array).
-
-        instances : list
-            A list of instance identifiers to process.
 
         y : array
             An array of column indices specifying which columns in 'd' to check for NaN values.
@@ -365,6 +363,11 @@ class DataSplitter:
 
         min_slice : int
             The minimum size a slice must have to be considered. Slices smaller than this value are ignored.
+
+        load_level : str, default='instance'
+            What level to load values from disc with.
+            If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
+            If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
 
         Returns
         -------
@@ -459,25 +462,33 @@ class DataSplitter:
             vals = argwhere(mask)
             return vals.squeeze()
 
+        logger.info('Gathering all appropriate prediction points from base dataset.')
+
         times = []
         prediction_points = []
         ignored_slices = 0
-        for i in range(len(instances)):
-            s = 0
-            for slice in data[instances[i]]:
-                if min_slice is None or min_slice < slice['d'].shape[0]:
-                    slice_mask = no_nan_mask(slice['d'][:, y], out_chunk)
-
-                    # slice_mask = slice_mask * no_nan_mask(slice['d'][:, x], out_chunk)
-
-                    times.append(slice['t'][slice_mask])
+        for i in data.data_structure:
+            if load_level == 'instance':
+                instance = data.instance(i)
+                slices = {category: group for category, group in instance.groupby("slice")}
+                del instance
+            num_slices = len(data.data_structure[i])
+            for s in range(num_slices):
+                if load_level == 'instance':
+                    slice = slices[s]
+                else:
+                    slice = data.slice(i, s)
+                if min_slice is None or min_slice < slice.shape[0]:
+                    slice_d = slice.to_numpy()
+                    slice_t = slice.index.to_numpy()
+                    slice_mask = no_nan_mask(slice_d[:, y], out_chunk)
+                    times.append(slice_t[slice_mask])
                     nn_count = count_nonzero(slice_mask)
                     prediction_points.append(vstack((constant_col(nn_count, i),
                                                      constant_col(nn_count, s),
                                                      relative_col(slice_mask))))
                 else:
                     ignored_slices += 1
-                s += 1
 
         if min_slice and ignored_slices > 0:
             logger.warning(str(ignored_slices) + ' slices ignored because they were smaller than min_slice=%s.',

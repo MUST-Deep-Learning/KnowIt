@@ -4,9 +4,9 @@ RawDataConverter
 ----------------
 
 This module takes a given dataframe and converts it to a known datastructure for KnowIt.
-See ``dataset_how_to.md`` for format details.
+See ``KnowIt.default_datasets.dataset_how_to.md`` for format details.
 The resulting datastructure can be returned with the ``RawDataConverter.get_new_data`` function.
-The format of the resulting data structure is defined at the top of the KnowIt.data.base_dataset.py script.
+The format of the resulting data structure is defined at the top of the ``KnowIt.data.base_dataset.py`` script.
 
 -------------
 Handling NaNs
@@ -15,7 +15,8 @@ Handling NaNs
     - nan_filler (str, None): Defines what method to use for NaN filling.
         - None: No NaNs will be filled.
         - 'split': Slices will be split on NaNs.
-        - Any ``method`` value from ``pandas.DataFrame.interpolate``: used to interpolate NaNs in both directions.(see https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.interpolate.html)
+        - Any ``method`` value from ``pandas.DataFrame.interpolate``: used to interpolate NaNs in both directions.
+        (see https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.interpolate.html)
     - nan_filled_components (str, None): Defines what components should be checked for NaNs.
         - None: All columns with float datatype will be flagged for NaN-handling.
         - A list of column headers to flag for NaN-handling.
@@ -33,10 +34,9 @@ __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the RawDataConverter class for Knowit.'
 
 # external imports
-from pandas import DatetimeIndex, concat, DataFrame
+from pandas import DatetimeIndex, concat, DataFrame, Timedelta
 from numpy import array
 from datetime import timedelta
-from pandas import Timedelta
 
 # internal imports
 from helpers.logger import get_logger
@@ -97,6 +97,7 @@ class RawDataConverter:
     meta = None
     the_data = None
     instances = None
+    instance_names = None
 
     def __init__(self, df: DataFrame, required_meta: dict,
                  nan_filler: str, nan_filled_components: list, meta: dict = None) -> None:
@@ -112,33 +113,63 @@ class RawDataConverter:
         self._split_by_instance()
         self._compile_data()
         self._summarize_data()
+        self._recompile_data_package()
 
-    def get_new_data(self) -> dict:
-        """Return the converted data structure.
+    def get_new_data(self) -> tuple:
+        """Return the converted data structure along with metadata.
 
-        This method returns a dictionary representing the converted data structure,
-        which includes metadata and other relevant components.
+        This method returns a tuple containing a metadata dictionary and the main data structure.
+        The metadata dictionary includes information about instances, NaN filling methods, and other
+        relevant components.
 
         Returns
         -------
-        new_data : dict
+        meta_data : dict
             A dictionary containing the following keys:
-                - 'instances': The instances in the dataset.
+                - 'instance_names': List of instance names in the dataset.
                 - 'base_nan_filler': The method or value used to fill NaN values in the dataset.
-                - 'nan_filled_components': The components in the dataset where potential NaN values were filled.
-                - 'the_data': The main data structure.
+                - 'nan_filled_components': The components where potential NaN values were filled.
+                - 'data_structure': The structure of the dataset.
+                - Additional metadata (e.g., name, components, time_delta).
 
-        Notes
-        -----
-            - The returned dictionary also contains the provided metadata (i.e. name, components, time_delta)
+        the_data : DataFrame
+            The main data structure containing the converted dataset.
+
         """
-        new_data = {}
-        new_data.update(self.meta)
-        new_data['instances'] = self.instances
-        new_data['base_nan_filler'] = self.nan_filler
-        new_data['nan_filled_components'] = self.nan_filled_components
-        new_data['the_data'] = self.the_data
-        return new_data
+        meta_data = {}
+        meta_data.update(self.meta)
+        meta_data['instance_names'] = self.instance_names
+        meta_data['base_nan_filler'] = self.nan_filler
+        meta_data['nan_filled_components'] = self.nan_filled_components
+        meta_data['data_structure'] = self.data_structure
+        return meta_data, self.the_data
+
+    def _recompile_data_package(self) -> None:
+        """
+        Recompiles the_data into a single large dataframe to be stored as a parquet later.
+        """
+        data_package = []
+        data_structure = {}
+        instance_names = {}
+        i_tick = 0
+        for i in self.instances:
+            data_structure[i_tick] = {}
+            instance_names[i_tick] = i
+            for s in range(len(self.the_data[i])):
+                new_df = DataFrame(self.the_data[i][s]['d'],
+                                   index=self.the_data[i][s]['t'],
+                                   columns=self.meta['components'])
+                new_df['instance'] = i_tick
+                new_df['slice'] = s
+                data_package.append(new_df)
+                data_structure[i_tick][s] = new_df.shape[0]
+            self.the_data.pop(i)
+            i_tick += 1
+        data_package = concat(data_package)
+        self.the_data = data_package
+        self.data_structure = data_structure
+        self.instance_names = instance_names
+        delattr(self, 'instances')
 
     def _summarize_data(self) -> None:
         """Displays a summary of the compiled dataset for debugging purposes."""
@@ -278,9 +309,9 @@ class RawDataConverter:
         """
 
         # find meta
-        if not self.meta:
+        if self.meta is None:
             self.meta = self.df.attrs
-            if not self.meta:
+            if self.meta is None:
                 logger.error('Error obtaining meta data for raw data.')
                 exit(101)
 
