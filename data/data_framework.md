@@ -38,6 +38,8 @@ Depending on the task, the dataloader uses one of the following datasets:
 - DataSplitter: Used by PreparedDataset to split the raw data into train/valid/eval sets. 
   This is defined with a set of three "selection matrices".
 - DataScaler: Used by PreparedDataset to scale the raw data for model training.
+- DataExtractor: Produced by BaseDataset and used throughout KnowIt to efficiently read data values from disk.
+- CustomSample: Used by PreparedDataset to create dataloaders with specific batch sampling and construction.
 
 See the corresponding scripts for details.
 

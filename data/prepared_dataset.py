@@ -458,9 +458,11 @@ class PreparedDataset(BaseDataset):
 
         # split the dataset
         logger.info('Preparing data splits (selection).')
-        self.selection = DataSplitter(self.get_extractor(), self.split_method,
-                                      self.split_portions, self.instance_names,
-                                      self.limit, self.y_map, self.out_chunk,
+        self.selection = DataSplitter(self.get_extractor(),
+                                      self.split_method,
+                                      self.split_portions,
+                                      self.limit, self.x_map, self.y_map,
+                                      self.in_chunk, self.out_chunk,
                                       self.min_slice).get_selection()
         self.train_set_size = len(self.selection['train'])
         self.valid_set_size = len(self.selection['valid'])
@@ -899,7 +901,7 @@ class CustomDataset(Dataset):
     Parameters
     ----------
     data_extractor : DataExtractor
-        Object responsible for extracting data from disc.
+        Object responsible for extracting data from disk.
     selection_matrix : array
         Matrix defining the selection of instances, slices, and time steps.
     x_map : array, shape=[n_in_components,]

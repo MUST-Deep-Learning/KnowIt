@@ -35,7 +35,6 @@ from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
 from setup.import_custom_arch import import_custom_arch, complies
 from data.base_dataset import BaseDataset
 from data.prepared_dataset import PreparedDataset
-# from data.import_data import import_from_path
 from trainer.trainer import KITrainer
 from trainer.trainer_states import TrainNew, EvaluateOnly
 from interpret.DLS_Captum import DLS
@@ -444,15 +443,6 @@ class KnowIt:
 
         if wipe_after and not safe_mode:
             shutil.rmtree(sweep_dir)
-
-    def train_model_further(self, model_name: str, max_epochs: int, *, device: str | None = None,
-                            safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
-        """Train an existing model further. Not implemented yet. Does nothing.
-        """
-        # TODO: This function should train the desired model to the desired max_epochs without
-        #  overwriting old learning metrics. See train_model() for reference.
-
-        logger.warning('KnowIt.train_model_further not implemented yet.')
 
     def run_model_eval(self, model_name: str, device: str|None=None) -> None:
         """Run model evaluation over dataloaders.

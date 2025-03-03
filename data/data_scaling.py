@@ -2,10 +2,12 @@
 ----------
 DataScaler
 ----------
-This module takes the extracted training set from ``PreparedDataset`` and fits two scalers to the data,
-one for the input of the model and one for the output. This is done based on the criteria presented by the
-'method' and 'tag' arguments. These scalers are used in PreparedDataset to scale the features upon further
-extractions of the datasets.
+
+This module takes a provided ``DataExtractor`` object (see ``KnowIt.Basedataset``) and train selection matrix
+and fits two scalers to the data, one for the input of the model and one for the output.
+This is done based on the criteria presented by the 'method' and 'tag' arguments.
+These scalers are used in ``CustomDataset`` to scale the features when examples
+are sampled from the dataloader.
 
 The 'tag' argument defines what features will be scaled.
     -   if tag='in_only' then only input features to the model are scaled.
@@ -21,16 +23,21 @@ In practice, when either tag=None or method=None, a ``NoScale`` scaler is used, 
 does not change any feature values.
 
 Scalers are returned with the ``DataScaler.get_scalers`` function.
+
+A scaler always expects their inputs to be an array of shape=[n_time_delays, n_components].
+This applies to both inputs and outputs.
+
 """
 
 from __future__ import annotations
 __author__ = 'tiantheunissen@gmail.com'
-__description__ = 'Contains the DataScaler class for KnowIt.'
+__description__ = 'Contains the DataScaler, ZScale, LinScale, and NoScale classes for KnowIt.'
 
 # external imports
 from numpy import (nanmean, nanvar, nanmin, nanmax, array, unique, sqrt, minimum, maximum, logical_and)
 
 # internal imports
+from data.base_dataset import DataExtractor
 from helpers.logger import get_logger
 
 logger = get_logger()
@@ -49,7 +56,7 @@ class NoScale:
         pass
 
     def transform(self, data: array) -> array:
-        """ Performs nothing. Just returns the provided parameters."""
+        """ Transforms nothing. Just returns the provided parameters."""
         return data
 
     def inverse_transform(self, data: array) -> array:
@@ -58,17 +65,18 @@ class NoScale:
 
 
 class DataScaler:
-    """The DataScaler module is used by PreparedDataset to scale the raw data for model training.
+    """The DataScaler module is used by CustomDataset to scale the raw data for model training.
 
-    This method initializes the DataScaler object and fits the scalers for the input ('x') and output ('y')
-    data based on the provided scaling method and tag. The tag determines whether the scaler should be applied
-    to input only, or to both input and output data.
+    This method initializes the DataScaler object and fits the scalers to the train set data,
+    as defined by the train selection matrix, based on the provided scaling method and tag.
+    The tag determines whether the scaler should be applied to input only, or to both input and output data.
 
     Parameters
     ----------
-    train_set : dict
-        A dictionary containing the training set data with keys 'x' for input features
-        and 'y' for output features.
+    data_extractor : DataExtractor
+        The data extractor object to read data from disk.
+    train_selection : array, shape=[n_train_prediction_points, 3]
+        The selection matrix corresponding to the train set.
     method : str | None
         The scaling method to use for fitting the scalers. Currently, supports 'z-norm', 'zero-one', or None.
     tag : str | None
@@ -78,9 +86,9 @@ class DataScaler:
         - None: No scaling is applied to either input features or output features.
         - Any other value will result in an error.
     load_level : str, default='instance'
-            What level to load values from disc with.
-            If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
-            If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
+        What level to load values from disk with.
+        If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
+        If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
 
     Attributes
     ----------
@@ -97,17 +105,16 @@ class DataScaler:
     x_scaler = NoScale()
     y_scaler = NoScale()
 
-    def __init__(self, data: dict, train_selection: array, method: str | None, tag: str | None,
+    def __init__(self, data_extractor: DataExtractor, train_selection: array, method: str | None, tag: str | None,
                  x_map: array, y_map: array, load_level: str = 'instance') -> None:
 
-        if tag:
-            # required_lookups = unique(train_selection[:, :2], axis=0)
+        if tag is not None:
             if tag == 'in_only':
-                self.x_scaler = self._fit_scaler(data, train_selection, x_map, method, load_level)
-                self.y_scaler = self._fit_scaler(data, train_selection, y_map, None, load_level)
+                self.x_scaler = self._fit_scaler(data_extractor, train_selection, x_map, method, load_level)
+                self.y_scaler = self._fit_scaler(None, None, None, None, load_level)
             elif tag == 'full':
-                self.x_scaler = self._fit_scaler(data, train_selection, x_map, method, load_level)
-                self.y_scaler = self._fit_scaler(data, train_selection, y_map, method, load_level)
+                self.x_scaler = self._fit_scaler(data_extractor, train_selection, x_map, method, load_level)
+                self.y_scaler = self._fit_scaler(data_extractor, train_selection, y_map, method, load_level)
             else:
                 logger.error('Unknown scaling tag %s', tag)
                 exit(101)
@@ -132,22 +139,27 @@ class DataScaler:
         return self.x_scaler, self.y_scaler
 
     @staticmethod
-    def _fit_scaler(data: dict, train_selection: array, s_map: array, method: str | None, load_level: str = 'instance') -> ZScale | LinScale | NoScale:
+    def _fit_scaler(data_extractor: DataExtractor | None, train_selection: array | None,
+                    s_map: array | None, method: str | None, load_level: str = 'instance') -> ZScale | LinScale | NoScale:
         """Fit the appropriate scaler based on the specified method.
-
-        This method selects and fits a scaler to the provided data based on the chosen scaling method.
-        The method expects the data to be in the format data[sample][feature1]...[featureN].
 
         Parameters
         ----------
-        data : array, shape=[n_prediction points, n_time_delays, n_components]
-            The data to fit the scaler on. It should be an array where the first dimension
-            refers to samples (i.e. prediction points).
+        data_extractor : DataExtractor | None
+            The data extractor object to read data from disk.
+        train_selection : array | None, shape=[n_train_prediction_points, 3]
+            The selection matrix corresponding to the train set.
+        s_map : array
+            Mapping for relevant components. This could be the x_map, or y_map found in PreparedDataset.
         method : str
             The scaling method to use. Options include:
             - 'z-norm': Standardizes data to have zero mean and unit variance using ZScale.
             - 'zero-one': Scales data to the range [0, 1] using LinScale.
             - None: No scaling is applied using NoScale.
+        load_level : str, default='instance'
+            What level to load values from disk with.
+            If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
+            If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
 
         Returns
         -------
@@ -160,16 +172,16 @@ class DataScaler:
             If an unknown scaler method is provided.
 
         """
-        # expects data[sample][feature1]...[featureN]
+
         if method == 'z-norm':
             scaler = ZScale()
-            scaler.fit(data, train_selection, s_map, load_level)
+            scaler.fit(data_extractor, train_selection, s_map, load_level)
         elif method == 'zero-one':
             scaler = LinScale()
-            scaler.fit(data, train_selection, s_map, load_level)
+            scaler.fit(data_extractor, train_selection, s_map, load_level)
         elif method is None:
             scaler = NoScale()
-            scaler.fit(data)
+            scaler.fit(data_extractor)
         else:
             logger.error('Unknown scaler method %s.', method)
             exit(101)
@@ -178,18 +190,19 @@ class DataScaler:
 
 
 class ZScale:
-    """Performs a basic per feature standardization across samples (i.e. prediction points)
-    assuming the first axis in the data represents samples.
+    """Performs a basic per component standardization.
 
-    For each feature f the transformation is defined as:
-        (f - native_mean) / native_std
+    For each component value c, the transformation is defined as:
+        (c - native_mean) / native_std
+
+    where native_mean and native_std are the mean and std of the corresponding component as measured on the train set.
 
     Attributes
     ----------
-    native_mean : array, shape=[n_time_delays, n_components]
-        The mean feature value across prediction points.
-    native_std : array, shape=[n_time_delays, n_components]
-        The standard deviation of feature values across prediction points.
+    native_mean : array, shape=[n_components,]
+        The mean component value across prediction points in the train set.
+    native_std : array, shape=[n_components,]
+        The standard deviation of values across prediction points in the train set.
     """
     native_mean = None
     native_std = None
@@ -197,18 +210,30 @@ class ZScale:
     def __init__(self) -> None:
         pass
 
-    def fit(self, data: dict, train_selection: array, s_map: array, load_level: str = 'slice') -> None:
-        """Records the mean and std across prediction points.
+    def fit(self, data_extractor: DataExtractor, train_selection: array,
+            s_map: array, load_level: str = 'instance') -> None:
+        """Records the mean and std across prediction points in the train set.
 
         Parameters
         ----------
-        data : array, shape=[n_prediction points, n_time_delays, n_components]
-            The data for which the mean and std across prediction points are recorded.
+        data_extractor : DataExtractor
+            The data extractor object to read data from disk.
+        train_selection : array, shape=[n_train_prediction_points, 3]
+            The selection matrix corresponding to the train set.
+        s_map : array
+            Mapping for relevant components. This could be the x_map, or y_map found in PreparedDataset.
+        load_level : str, default='instance'
+            What level to load values from disk with.
+            If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
+            If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
         """
 
         def _rec_mean_std(vals, mu_m, v_m, m):
-            """ Recursively update the mean and std across prediction points.
-            See: http://notmatthancock.github.io/2017/03/23/simple-batch-stat-updates.html"""
+            """
+            Recursively update the mean and std across prediction points.
+            We use the method described here http://notmatthancock.github.io/2017/03/23/simple-batch-stat-updates.html
+            by Matt Hancock.
+            """
             mu_n = nanmean(vals, axis=0)
             n = vals.shape[0]
             v_n = nanvar(vals, axis=0)
@@ -229,7 +254,7 @@ class ZScale:
         for i in instances:
             slices = unique(train_selection[train_selection[:, 0] == i, 1])
             if load_level == 'instance':
-                instance_vals = data.instance(i)
+                instance_vals = data_extractor.instance(i)
             for s in slices:
                 t = train_selection[logical_and(train_selection[:, 0] == i, train_selection[:, 1] == s), 2]
                 if load_level == 'instance':
@@ -237,11 +262,10 @@ class ZScale:
                     vals = vals.drop(columns=['slice'])
                     vals = vals.to_numpy()
                 else:
-                    vals = data.slice(i, s).to_numpy()
+                    vals = data_extractor.slice(i, s).to_numpy()
                 vals = vals[t, :]
                 vals = vals[:, s_map]
                 mean, variance, count = _rec_mean_std(vals, mean, variance, count)
-
 
         self.native_mean = mean
         self.native_std = sqrt(variance)
@@ -251,7 +275,7 @@ class ZScale:
 
         Parameters
         ----------
-        data : array, shape=[n_prediction points, n_time_delays, n_components]
+        data : array, shape=[n_components,]
             The data to be transformed with Z-Normalization.
         """
         if self.native_mean is None or self.native_std is None:
@@ -265,7 +289,7 @@ class ZScale:
 
         Parameters
         ----------
-        data : array, shape=[n_prediction points, n_time_delays, n_components]
+        data : array, shape=[n_components,]
             The data to be inversely transformed with Z-Normalization.
         """
         if self.native_mean is None or self.native_std is None:
@@ -276,12 +300,14 @@ class ZScale:
 
 
 class LinScale:
-    """Performs a basic per feature linear scaling across samples assuming the
-    first axis in the data represents samples. Can be scaled to any range,
-    but default is (0, 1).
+    """Performs a basic per component linear scaling.
+    Can be scaled to any range, but default is (0, 1).
 
-    For each feature f the transformation is defined as:
-        (target_max - target_min) * (f - native_min) / (native_max - native_min) + target_min
+    For each component value c the transformation is defined as:
+        (target_max - target_min) * (c - native_min) / (native_max - native_min) + target_min
+
+    where native_min and native_mix are the min and max values of the corresponding component
+    as measured on the train set, and target_min and target_max is 0 and 1 respectively.
 
     Parameters
     ----------
@@ -292,9 +318,9 @@ class LinScale:
 
     Attributes
     ----------
-    native_min : array, shape=[n_time_delays, n_components]
+    native_min : array, shape=[n_components,]
         The minimum native feature values across prediction points.
-    native_max : array, shape=[n_time_delays, n_components]
+    native_max : array, shape=[n_components,]
         The maximum native feature values across prediction points.
     target_min : float, default=0
         The transformed minimum feature values.
@@ -311,13 +337,22 @@ class LinScale:
         self.target_min = target_min
         self.target_max = target_max
 
-    def fit(self, data: dict, train_selection: array, s_map: array, load_level: str = 'instance') -> None:
-        """ Records the max and min across prediction points.
+    def fit(self, data_extractor: DataExtractor, train_selection: array,
+            s_map: array, load_level: str = 'instance') -> None:
+        """Records the min and max across prediction points in the train set.
 
         Parameters
         ----------
-        data : array, shape=[n_prediction points, n_time_delays, n_components]
-            The data for which the max and min across prediction points are recorded.
+        data_extractor : DataExtractor
+            The data extractor object to read data from disk.
+        train_selection : array, shape=[n_train_prediction_points, 3]
+            The selection matrix corresponding to the train set.
+        s_map : array
+            Mapping for relevant components. This could be the x_map, or y_map found in PreparedDataset.
+        load_level : str, default='instance'
+            What level to load values from disk with.
+            If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
+            If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
         """
 
         min = None
@@ -326,7 +361,7 @@ class LinScale:
         for i in instances:
             slices = unique(train_selection[train_selection[:, 0] == i, 1])
             if load_level == 'instance':
-                instance_vals = data.instance(i)
+                instance_vals = data_extractor.instance(i)
             for s in slices:
                 t = train_selection[logical_and(train_selection[:, 0] == i, train_selection[:, 1] == s), 2]
                 if load_level == 'instance':
@@ -334,7 +369,7 @@ class LinScale:
                     vals = vals.drop(columns=['slice'])
                     vals = vals.to_numpy()
                 else:
-                    vals = data.slice(i, s).to_numpy()
+                    vals = data_extractor.slice(i, s).to_numpy()
                 vals = vals[t, :]
                 vals = vals[:, s_map]
                 if min is None:
@@ -348,11 +383,11 @@ class LinScale:
         self.native_max = max
 
     def transform(self, data: array) -> array:
-        """Tranforms features, linearly, from expected ranges to desired range.
+        """Transforms features, linearly, from expected ranges to desired range.
 
         Parameters
         ----------
-        data : array, shape=[n_prediction points, n_time_delays, n_components]
+        data : array, shape=[n_components,]
             The data to be transformed with Linear scaling.
         """
         if not self.native_min or not self.native_max:
@@ -364,11 +399,11 @@ class LinScale:
                  (self.native_max - self.native_min)) + self.target_min)
 
     def inverse_transform(self, data: array) -> array:
-        """Inversely tranforms features, linearly, back to native ranges.
+        """Inversely transforms features, linearly, back to native ranges.
 
         Parameters
         ----------
-        data : array, shape=[n_prediction points, n_time_delays, n_components]
+        data : array, shape=[n_components,]
             The data to be inversely transformed with Linear scaling.
         """
         if self.native_min is None or self.native_max is None:

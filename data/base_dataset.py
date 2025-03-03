@@ -23,7 +23,7 @@ An instance, therefore, consists of a variable number of slices.
 Date storage
 ------------
 
-The `BaseDataset` is stored on disc as a partitioned parquet dataset (package)
+The `BaseDataset` is stored on disk as a partitioned parquet dataset (package)
 along with a pickled dictionary of metadata. The stored metadata includes the name
 and structure of the dataset along with other characteristics like the
 time delta.
@@ -149,7 +149,7 @@ class BaseDataset:
     def get_extractor(self) -> DataExtractor:
         """Return a DataExtractor object corresponding to the current BaseDataset.
 
-        This object can be used to extract particular portions of the BaseDataset from disc.
+        This object can be used to extract particular portions of the BaseDataset from disk.
 
         Returns
         -------
