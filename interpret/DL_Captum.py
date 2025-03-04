@@ -261,7 +261,7 @@ class DeepL(FeatureAttribution):
         baseline = baseline.to(self.device)
 
         # determine model output type
-        if hasattr(self.datamodule, "class_set"):
+        if hasattr(self.datamodule, "class_set") and self.datamodule.class_set is not None:
             logger.info(
                 "Preparing attribution matrices for classification task.",
             )
