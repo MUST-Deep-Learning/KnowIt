@@ -11,7 +11,7 @@ from helpers.logger import get_logger
 logger = get_logger()
 
 
-def proc_weighted_cross_entropy(task: str, device: str, class_counts: dict) -> dict:
+def proc_weighted_cross_entropy(class_counts: dict, device: str) -> dict:
     """
     Configure a weighted cross-entropy loss function for classification tasks based on class counts.
 
@@ -22,12 +22,10 @@ def proc_weighted_cross_entropy(task: str, device: str, class_counts: dict) -> d
 
     Parameters
     ----------
-    task : str
-        The task type, expected to be 'classification' to support weighted loss.
+    class_counts : dict
+        A dictionary mapping class IDs to counts.
     device : str
         Device on which the weights will be used ('gpu' for CUDA compatibility, otherwise CPU).
-    class_counts : dict
-        Dictionary where keys are class labels and values are counts of samples in each class.
 
     Returns
     -------
@@ -39,10 +37,6 @@ def proc_weighted_cross_entropy(task: str, device: str, class_counts: dict) -> d
     SystemExit
         If the task is not 'classification' or if `class_counts` is empty.
     """
-
-    if task != 'classification' or not class_counts:
-        logger.error('Weighted loss function only supported for classification tasks.')
-        exit(101)
 
     cc = torch.tensor([class_counts[c] for c in class_counts])
     weights = torch.sum(cc) / cc

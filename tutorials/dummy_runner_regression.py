@@ -18,8 +18,8 @@ from knowit import KnowIt
 # of KnowIt is removed by the garbage collector. This is useful for debugging or when KnowIt is
 # used as a submodule of a larger codebase.
 
-# KI = KnowIt('/home/tian/postdoc_work/KnowIt_debugging/new_exp_train_cpu_pred_gpu')
-KI = KnowIt()
+KI = KnowIt('/home/tian/postdoc_work/KnowIt_debugging/unit_test_1')
+# KI = KnowIt()
 
 # Providing a custom_exp_dir path means that the constructed instance of KnowIt will be
 # associated with a static (potentially pre-existing) experiment output directory.
@@ -47,7 +47,7 @@ KI = KnowIt()
 # In order to handle external data you can import it into your experiment output directory as follows.
 # See the default_datasets.dataset_how_to.md file for more details.
 
-# import_args = {'path': '/home/tian/postdoc_work/LEAH_SYNTH_DATA/synth_1/synth_1.pickle',
+# import_args = {'path': '/home/tian/postdoc_work/XXX',
 #                'base_nan_filler': 'linear',
 #                'nan_filled_components': ['x1', 'x2', 'x3', 'x4', 'y1']}
 # KI.import_dataset({'data_import_args': import_args})
@@ -56,18 +56,18 @@ KI = KnowIt()
 # CHECK AVAILABLE DATASETS & ARCHITECTURES
 # ----------------------------------------------------------------------------------------------------------------------
 
-# check the state of global arguments for current instance of KnowIt
-print('CURRENT GLOBAL ARGUMENTS:')
-print(KI.global_args())
-# check the available datasets for current instance of KnowIt
-print('CURRENT AVAILABLE DATASETS:')
-print(KI.available_datasets())
-# check the available architectures for current instance of KnowIt
-print('CURRENT GLOBAL ARCHITECTURES:')
-print(KI.available_archs())
-# check the metadata of a particular dataset for current instance of KnowIt
-print('SUMMARY OF SOME DATASET:')
-print(KI.summarize_dataset('synth_1'))
+# # check the state of global arguments for current instance of KnowIt
+# print('CURRENT GLOBAL ARGUMENTS:')
+# print(KI.global_args())
+# # check the available datasets for current instance of KnowIt
+# print('CURRENT AVAILABLE DATASETS:')
+# print(KI.available_datasets())
+# # check the available architectures for current instance of KnowIt
+# print('CURRENT GLOBAL ARCHITECTURES:')
+# print(KI.available_archs())
+# # check the metadata of a particular dataset for current instance of KnowIt
+# print('SUMMARY OF SOME DATASET:')
+# print(KI.summarize_dataset('synth_1'))
 
 # ----------------------------------------------------------------------------------------------------------------------
 # TRAINING A MODEL
@@ -79,7 +79,7 @@ print(KI.summarize_dataset('synth_1'))
 # - 'trainer' arguments relate to what methods should be used to train the model.
 # see the setup.setup_action_args.py scripts for some options and default values.
 
-model_name = "my_new_model"
+model_name = "my_dummy_model"
 data_args = {'name': 'synth_1',
              'task': 'regression',
              'in_components': ['x1', 'x2', 'x3', 'x4'],
@@ -92,8 +92,9 @@ data_args = {'name': 'synth_1',
              'scaling_tag': 'full'}
 arch_args = {'task': 'regression',
              'name': 'MLP',
-             'arch_hps': {'dropout': 0.0,
-                          'width': 512}}
+             'arch_hps': {'dropout': None,
+                          'width': 512,
+                          'batchnorm': False}}
 trainer_args = {'loss_fn': 'mse_loss',
                 'optim': 'Adam',
                 'max_epochs': 3,
@@ -101,7 +102,11 @@ trainer_args = {'loss_fn': 'mse_loss',
                 'task': 'regression'
                 }
 
-KI.train_model(model_name=model_name, kwargs={'data': data_args, 'arch': arch_args, 'trainer': trainer_args})
+# KI.train_model(model_name=model_name, kwargs={'data': data_args, 'arch': arch_args, 'trainer': trainer_args},
+#                and_viz=True, safe_mode=False)q
+
+# from helpers.viz import plot_learning_curves
+# plot_learning_curves(exp_output_dir='/home/tian/postdoc_work/KnowIt_debugging/unit_test_1', model_name=model_name)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -112,8 +117,9 @@ KI.train_model(model_name=model_name, kwargs={'data': data_args, 'arch': arch_ar
 # - 'predictor' arguments relate to what prediction points to predict on.
 
 # KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction_set': 'train'}})
-# KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction_set': 'valid'}})
-KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction_set': 'eval'}})
+# KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction_set': 'valid'}},
+#                         and_viz=True, safe_mode=False)
+# KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction_set': 'eval'}})
 
 # ----------------------------------------------------------------------------------------------------------------------
 # INTERPRET MODEL PREDICTIONS
@@ -124,9 +130,9 @@ KI.generate_predictions(model_name=model_name, kwargs={'predictor': {'prediction
 # NOTE: In order to visualize feature attributions, the corresponding predictions must have been generated.
 
 # interpret_args = {'interpretation_method': 'DeepLift',
-#                   'interpretation_set': 'eval',
+#                   'interpretation_set': 'valid',
 #                   'selection': 'random',
 #                   'size': 100}
-# KI.interpret_model(model_name=model_name, kwargs={'interpreter': interpret_args})
+# KI.interpret_model(model_name=model_name, kwargs={'interpreter': interpret_args}, and_viz=True, safe_mode=False)
 
 exit(101)
