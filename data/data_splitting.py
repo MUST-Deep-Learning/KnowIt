@@ -534,14 +534,17 @@ class DataSplitter:
                     slice_mask = _appropriate_mask(slice_d, in_chunk, out_chunk, x_map, y_map, in_portion)
                     times.append(slice_t[slice_mask])
                     nn_count = count_nonzero(slice_mask)
-                    prediction_points.append(vstack((_constant_col(nn_count, i),
-                                                     _constant_col(nn_count, s),
-                                                     _relative_col(slice_mask))))
+                    if nn_count > 0:
+                        prediction_points.append(vstack((_constant_col(nn_count, i),
+                                                         _constant_col(nn_count, s),
+                                                         _relative_col(slice_mask))))
+                    else:
+                        ignored_slices += 1
                 else:
                     ignored_slices += 1
 
-        if min_slice is not None and ignored_slices > 0:
-            logger.warning(str(ignored_slices) + ' slices ignored because they were smaller than min_slice=%s.',
+        if ignored_slices > 0:
+            logger.warning(str(ignored_slices) + ' slices ignored because they were smaller than min_slice=%s or contained no appropriate prediction points.',
                            str(min_slice))
 
         prediction_points = concatenate(prediction_points, axis=1)

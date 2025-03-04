@@ -125,6 +125,7 @@ This class supports three different modes of temporal contiguity. See the module
 
 """
 
+from __future__ import annotations
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = ('Contains the PreparedDataset, CustomDataset, and CustomClassificationDataset, '
                    'and CustomSampler class for Knowit.')
@@ -134,7 +135,7 @@ from numpy import (array, random, unique, pad, isnan, arange, expand_dims, conca
                    diff, where, split)
 from numpy.random import Generator
 from torch.utils.data import Dataset, DataLoader, Sampler
-from torch import from_numpy
+from torch import from_numpy, is_tensor, Tensor
 from torch import zeros as zeros_tensor
 
 # internal imports
@@ -226,6 +227,12 @@ class PreparedDataset(BaseDataset):
         A list that represents the shape of the inputs to the model.
     out_shape : list, shape=[n_output_time_delays, n_output_components]
         A list that represents the shape of the outputs to the model. Is modified for classification tasks.
+    class_set : dict
+        A dictionary that maps each class name to an integer class ID.
+        Only created if task='classification'.
+    class_counts : dict
+        A dictionary that maps each class ID to its size.
+        Only created if task='classification'.
 
     Notes
     -----
@@ -262,6 +269,8 @@ class PreparedDataset(BaseDataset):
     y_scaler = None
     in_shape = None
     out_shape = None
+    class_set = None # only filled if task='classification'
+    class_counts = None  # only filled if task='classification'
 
     def __init__(self, **kwargs) -> None:
 
@@ -309,15 +318,25 @@ class PreparedDataset(BaseDataset):
         Object
             A PyTorch derived Dataset for the specified dataset split.
         """
-        dsc = CustomDataset
-        if self.task == 'classification':
-            dsc = CustomClassificationDataset
-        return dsc(self.get_extractor(), self.selection[set_tag],
-                   self.x_map, self.y_map,
-                   self.x_scaler, self.y_scaler,
-                   self.in_chunk, self.out_chunk,
-                   self.padding_method,
-                   preload=preload)
+        if self.task == 'regression':
+            dataset = CustomDataset(self.get_extractor(), self.selection[set_tag],
+                          self.x_map, self.y_map,
+                          self.x_scaler, self.y_scaler,
+                          self.in_chunk, self.out_chunk,
+                          self.padding_method,
+                          preload=preload)
+        elif self.task == 'classification':
+            dataset = CustomClassificationDataset(self.get_extractor(), self.selection[set_tag],
+                                                  self.x_map, self.y_map,
+                                                  self.x_scaler, self.y_scaler,
+                                                  self.in_chunk, self.out_chunk,
+                                                  self.class_set, self.padding_method,
+                                                  preload=preload)
+        else:
+            logger.error('Unknown task: %s', self.task)
+            exit(101)
+
+        return dataset
 
 
     def get_dataloader(self, set_tag: str,
@@ -420,7 +439,6 @@ class PreparedDataset(BaseDataset):
 
         return ist_values
 
-
     def _prepare(self) -> None:
         """Prepare the dataset by splitting and scaling the data.
 
@@ -455,6 +473,10 @@ class PreparedDataset(BaseDataset):
         # infer model input and output shapes
         self.in_shape = [self.in_chunk[1] - self.in_chunk[0] + 1, len(self.in_components)]
         self.out_shape = [self.out_chunk[1] - self.out_chunk[0] + 1, len(self.out_components)]
+        if self.task == 'classification':
+            self._get_classes()
+            self._count_classes()
+            self.out_shape = [1, len(self.class_set)]
 
         # split the dataset
         logger.info('Preparing data splits (selection).')
@@ -479,6 +501,58 @@ class PreparedDataset(BaseDataset):
                                                   self.scaling_tag,
                                                   self.x_map,
                                                   self.y_map).get_scalers()
+
+    def _get_classes(self) -> None:
+        """Identify unique classes in the dataset.
+
+        This method processes the dataset to determine the unique classes present in the data.
+        The unique classes are stored in the `class_set` attribute.
+        """
+
+        if self.task != 'classification':
+            logger.error('Task must be classification to determine classes.')
+            exit(101)
+
+        data_extractor = self.get_extractor()
+        found_class_set = set()
+        for i in data_extractor.data_structure:
+            vals = data_extractor.instance(i).to_numpy()
+            vals = vals[:, self.y_map][~isnan(vals[:, self.y_map]).any(axis=1)]
+            unique_entries = unique(vals, axis=0)
+            unique_entries_list = []
+            for u in unique_entries:
+                if len(u) > 1:
+                    unique_entries_list.append(tuple(u))
+                else:
+                    unique_entries_list.append(u.item())
+            unique_entries = unique_entries_list
+            found_class_set.update(set(unique_entries))
+
+        self.class_set = {}
+        tick = 0
+        for c in found_class_set:
+            self.class_set[c] = tick
+            tick += 1
+
+        logger.info('Found %s unique classes.',
+                    str(len(self.class_set)))
+        logger.info(self.class_set)
+
+    def _count_classes(self) -> None:
+        """ Count the number of instances of each class and store in a dictionary as attribute."""
+
+        if self.task != 'classification' or not hasattr(self, 'class_set'):
+            logger.error('Task must be classification and classes must have been determined to count classes.')
+            exit(101)
+
+        data_extractor = self.get_extractor()
+        self.class_counts = {}
+        for c in self.class_set:
+            class_count = 0
+            for i in data_extractor.data_structure:
+                instance = data_extractor.instance(i).to_numpy()[:, self.y_map]
+                class_count += len(where(instance == c)[0])
+            self.class_counts[self.class_set[c]] = class_count
 
 
 class CustomSampler(Sampler):
@@ -946,6 +1020,7 @@ class CustomDataset(Dataset):
 
         self.preloaded_slices = {}
         if preload:
+            logger.info("Preloading relevant slices into memory. This could take a while, but spead up actual training.")
             instances = unique(self.selection_matrix[:, 0], axis=0)
             for i in instances:
                 slices = unique(self.selection_matrix[self.selection_matrix[:, 0] == i, 1])
@@ -962,13 +1037,13 @@ class CustomDataset(Dataset):
         """
         return self.selection_matrix.shape[0]
 
-    def __getitem__(self, idx: int) -> dict:
+    def __getitem__(self, idx: int | list | Tensor) -> dict:
         """Return a single sample from the dataset at the given index.
 
         Parameters
         ----------
-        idx : int
-            The index of the sample to retrieve.
+        idx : int | list | Tensor
+            The index of the sample to retrieve or list of indices.
 
         Returns
         -------
@@ -979,24 +1054,42 @@ class CustomDataset(Dataset):
                 -   's_id' (int): the sample ID 's_id'.
         """
 
-        # get sample selection
-        selection = self.selection_matrix[idx]
-
-        # get relevant slice information
-        if self.preload:
-            slice_vals = self.preloaded_slices[(selection[0], selection[1])].to_numpy()
+        if type(idx) is list:
+            idx_list = idx
+        elif is_tensor(idx):
+            idx_list = idx.tolist()
         else:
-            slice_vals = self.data_extractor.slice(selection[0], selection[1]).to_numpy()
+            # assumes idx is an integer
+            idx_list = [idx]
 
-        # get input values and pad if necessary
-        x_vals = self._sample_and_pad(slice_vals, selection, self.in_chunk, self.x_map, self.padding_method)
+        input_x = []
+        output_y = []
+        for pp in idx_list:
+            # get sample selection
+            selection = self.selection_matrix[pp]
 
-        # get output values (no padding allowed)
-        y_vals = slice_vals[selection[2] + self.out_chunk[0]: selection[2] + self.out_chunk[1] + 1, self.y_map]
+            # get relevant slice information
+            if self.preload:
+                slice_vals = self.preloaded_slices[(selection[0], selection[1])].to_numpy()
+            else:
+                slice_vals = self.data_extractor.slice(selection[0], selection[1]).to_numpy()
 
-        # scale inputs and outputs if applicable
-        input_x = self.x_scaler.transform(x_vals)
-        output_y = self.y_scaler.transform(y_vals)
+            # get input values and pad if necessary
+            x_vals = self._sample_and_pad(slice_vals, selection, self.in_chunk, self.x_map, self.padding_method)
+
+            # get output values (no padding allowed)
+            y_vals = slice_vals[selection[2] + self.out_chunk[0]: selection[2] + self.out_chunk[1] + 1, self.y_map]
+
+            # scale inputs and outputs if applicable
+            input_x.append(self.x_scaler.transform(x_vals))
+            output_y.append(self.y_scaler.transform(y_vals))
+
+        if type(idx) is list or is_tensor(idx):
+            input_x = array(input_x)
+            output_y = array(output_y)
+        else:
+            input_x = input_x[0]
+            output_y = output_y[0]
 
         return self._package_output(input_x, output_y, idx)
 
@@ -1013,16 +1106,17 @@ class CustomDataset(Dataset):
         if left < far_left:
             pw = ((far_left - left, 0), (0, 0))
             vals = pad(vals, pad_width=pw, mode=pad_mode)
-        if right > far_right:
+        if right >= far_right:
             pw = ((0, right - far_right + 1), (0, 0))
             vals = pad(vals, pad_width=pw, mode=pad_mode)
+
+        # vals = random.rand(49, 3)
 
         return vals
 
     @staticmethod
     def _package_output(input_x, output_y, idx):
         """ Package the sample values for a basic regression problem. """
-        input_x = input_x.astype('float')
         sample = {'x': from_numpy(input_x).float(),
                   'y': from_numpy(output_y).float(), 's_id': idx}
         return sample
@@ -1039,7 +1133,7 @@ class CustomClassificationDataset(CustomDataset):
                  x_map, y_map,
                  x_scaler, y_scaler,
                  in_chunk, out_chunk,
-                 padding_method,
+                 class_set, padding_method,
                  preload: bool = False) -> None:
 
         if out_chunk[0] != out_chunk[1]:
@@ -1052,57 +1146,22 @@ class CustomClassificationDataset(CustomDataset):
                          x_scaler, y_scaler,
                          in_chunk, out_chunk,
                          padding_method, preload)
-        self._get_classes()
-        self.out_shape = [1, len(self.class_set)]
-
-    def _get_classes(self) -> None:
-        """Identify unique classes in the dataset.
-
-        This method processes the dataset to determine the unique classes present in the data.
-        The unique classes are stored in the `class_set` and attributes.
-        """
-        found_class_set = set()
-        for i in self.data_extractor.data_structure:
-            vals = self.data_extractor.instance(i).to_numpy()
-            vals = vals[:, self.y_map][~isnan(vals[:, self.y_map]).any(axis=1)]
-            unique_entries = unique(vals, axis=0)
-            unique_entries_list = []
-            for u in unique_entries:
-                if len(u) > 1:
-                    unique_entries_list.append(tuple(u))
-                else:
-                    unique_entries_list.append(u.item())
-            unique_entries = unique_entries_list
-            found_class_set.update(set(unique_entries))
-
-        self.class_set = {}
-        tick = 0
-        for c in found_class_set:
-            self.class_set[c] = tick
-            tick += 1
-
-        logger.info('Found %s unique classes.',
-                    str(len(self.class_set)))
-        logger.info(self.class_set)
-
-    def count_classes(self) -> dict:
-        """ Count the number of instances of each class and store in a dictionary."""
-        self.class_counts = {}
-        for c in self.class_set:
-            class_count = 0
-            for i in self.data_extractor.data_structure:
-                instance = self.data_extractor.instance(i).to_numpy()[:, self.y_map]
-                class_count += len(where(instance == c)[0])
-            self.class_counts[self.class_set[c]] = class_count
-        return self.class_counts
+        self.class_set = class_set
 
     def _package_output(self, input_x, output_y, idx):
         """ Package the sample values for a basic classification problem. """
-        new_output_y = zeros_tensor(len(self.class_set))
-        new_output_y[output_y] = 1
-        output_y = new_output_y
-        input_x = input_x.astype('float')
+
+        if len(output_y.shape) == 2:
+            new_output_y = zeros_tensor(len(self.class_set))
+            new_output_y[self.class_set[output_y.item()]] = 1
+            output_y = new_output_y
+        elif len(output_y.shape) == 3:
+            new_output_y = zeros_tensor(size=(output_y.shape[0], len(self.class_set)))
+            new_output_y[:, output_y] = 1
+            output_y = new_output_y
+
         sample = {'x': from_numpy(input_x).float(),
                   'y': output_y, 's_id': idx}
+
         return sample
 

@@ -74,7 +74,7 @@ arg_dict = {'data_import_args':  {'required': ('path',),
                                           'early_stopping_args',
                                           'seed',
                                           'return_final',
-                                          'ckpt_mode',  # requires default (and use?)
+                                          'ckpt_mode',
                                           'logger_status',
                                           'optional_pl_kwargs'),
                              'default': {'seed': 123,
