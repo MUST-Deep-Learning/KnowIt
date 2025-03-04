@@ -177,7 +177,7 @@ class KnowIt:
         datamodule = BaseDataset(meta_path, package_path)
         summary = {'dataset_name': datamodule.name,
                    'components': datamodule.components,
-                   'instances': datamodule.instances,
+                   'instances': datamodule.instance_names,
                    'time_delta': datamodule.time_delta}
 
         return summary
