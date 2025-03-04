@@ -654,9 +654,8 @@ class KnowIt:
 
         interpret_args['results'] = interpreter.interpret(pred_point_id=i_inx)
         interpret_args['i_inx'] = i_inx
-
-        # TODO: Make _fetch_points_from_datamodule non-private with RR permission
-        interpret_args['input_features'] = interpreter._fetch_points_from_datamodule(i_inx)
+        interpret_args['input_features'] = trained_model_dict['datamodule'].fetch_input_points_manually(
+            interpret_args['interpretation_set'], i_inx)
 
         interpret_args['input_features'] = interpret_args['input_features'].detach().cpu().numpy()
         if interpret_args['rescale_inputs']:
