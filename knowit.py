@@ -21,9 +21,10 @@ from env.env_paths import (ckpt_path, model_output_dir, model_args_path,
                            model_interpretations_dir,
                            model_predictions_dir, default_dataset_dir,
                            custom_dataset_dir, default_archs_dir, custom_arch_dir,
-                           custom_dataset_path, dataset_path, arch_path,
+                           custom_dataset_meta_path, dataset_meta_path, arch_path,
                            custom_arch_path, root_exp_dir, arch_name,
-                           interpretation_name, model_run_dir, model_sweep_dir)
+                           interpretation_name, model_run_dir, model_sweep_dir,
+                           custom_dataset_package_path, dataset_package_path)
 from helpers.logger import get_logger
 from helpers.file_dir_procs import (yaml_to_dict, safe_dump, safe_copy)
 from helpers.viz import (plot_learning_curves, plot_set_predictions, plot_feature_attribution)
@@ -33,10 +34,9 @@ from setup.select_interpretation_points import get_interpretation_inx, get_predi
 from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
 from setup.import_custom_arch import import_custom_arch, complies
 from data.base_dataset import BaseDataset
-from data.classification_dataset import ClassificationDataset
-from data.regression_dataset import RegressionDataset
+from data.prepared_dataset import PreparedDataset
 from trainer.trainer import KITrainer
-from trainer.trainer_states import TrainNew
+from trainer.trainer_states import TrainNew, EvaluateOnly
 from interpret.DLS_Captum import DLS
 from interpret.DL_Captum import DeepL
 from interpret.IntegratedGrad_Captum import IntegratedGrad
@@ -165,14 +165,16 @@ class KnowIt:
         """
         dataset_dict = self.available_datasets()
         if name in dataset_dict['custom']:
-            data_path = custom_dataset_path(name, self.exp_output_dir)
+            meta_path = custom_dataset_meta_path(name, self.exp_output_dir)
+            package_path = custom_dataset_package_path(name, self.exp_output_dir)
         elif name in dataset_dict['defaults']:
-            data_path = dataset_path(name)
+            meta_path = dataset_meta_path(name)
+            package_path = dataset_package_path(name)
         else:
             logger.error('Dataset name %s not found. Aborting.', name)
             exit(101)
 
-        datamodule = BaseDataset(data_path)
+        datamodule = BaseDataset(meta_path, package_path)
         summary = {'dataset_name': datamodule.name,
                    'components': datamodule.components,
                    'instances': datamodule.instances,
@@ -225,11 +227,11 @@ class KnowIt:
         custom_datasets = os.listdir(custom_dataset_dir(self.exp_output_dir))
         data_dict = {'defaults': [], 'custom': []}
         for d in default_datasets:
-            if d.endswith('.pickle'):
-                data_dict['defaults'].append(d.split('.pickle')[0])
+            if d.endswith('_meta.pickle'):
+                data_dict['defaults'].append(d.split('_meta.pickle')[0])
         for d in custom_datasets:
-            if d.endswith('.pickle'):
-                data_dict['custom'].append(d.split('.pickle')[0])
+            if d.endswith('_meta.pickle'):
+                data_dict['custom'].append(d.split('_meta.pickle')[0])
         return data_dict
 
     def available_archs(self) -> dict:
@@ -305,7 +307,8 @@ class KnowIt:
 
     def train_model(self, model_name: str, kwargs: dict, *, device: str | None = None,
                     safe_mode: bool | None = None, and_viz: bool | None = None,
-                    sweep_kwargs: dict | None = None) -> None:
+                    sweep_kwargs: dict | None = None,
+                    preload: bool = True, num_workers: int = 4) -> None:
         """Trains a model given user arguments.
 
         This function sets up and trains a model using the provided arguments and configurations.
@@ -330,6 +333,10 @@ class KnowIt:
         sweep_kwargs : dict | None, default=None
             Optional kwargs if a hyperparameter sweep is being performed.
             If provided, must contain kwargs (sweep_name: str, run_name: str, and log_to_local: bool).
+        num_workers : int, default = 4
+            Sets the number of workers to use for loading the dataset.
+        preload : bool, default = False
+            Whether to preload the raw relevant instances and slice into memory when sampling feature values.
 
         Notes
         -----
@@ -349,25 +356,25 @@ class KnowIt:
         relevant_args = setup_relevant_args(kwargs, required_types=('data', 'arch', 'trainer', ))
 
         # Set up required data modules, Models, and trainner arguments
-        datamodule, class_counts = KnowIt._get_datamodule(self.exp_output_dir, self.available_datasets(),
-                                                          relevant_args['data'])
+        datamodule = KnowIt._get_datamodule(self.exp_output_dir, self.available_datasets(), relevant_args['data'])
         model, model_params = KnowIt._get_arch_setup(self.exp_output_dir, self.available_archs(),
                                                      relevant_args['arch'], datamodule.in_shape,
                                                      datamodule.out_shape)
-        trainer_args = KnowIt._get_trainer_setup(relevant_args['trainer'], device, class_counts,
+        trainer_args = KnowIt._get_trainer_setup(relevant_args['trainer'], device,
                                                  model, model_params, sweep_kwargs,
-                                                 self.exp_output_dir, model_name, safe_mode)
+                                                 self.exp_output_dir, model_name, safe_mode,
+                                                 datamodule)
 
         # Add dynamically generated data characteristics to relevant args for model_args storage
-        relevant_args['data_dynamics'] = KnowIt._get_data_dynamics(relevant_args['data'], datamodule)
+        relevant_args['data_dynamics'] = KnowIt._get_data_dynamics(datamodule)
 
         # Instantiate trainer and begin training
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
         trainer = KITrainer(state=TrainNew, base_trainer_kwargs=trainer_args,
                             optional_pl_kwargs=optional_pl_kwargs)
-        trainer.fit(dataloaders=(datamodule.get_dataloader('train'),
-                                 datamodule.get_dataloader('valid'),
-                                 datamodule.get_dataloader('eval')))
+        trainer.fit(dataloaders=(datamodule.get_dataloader('train', preload=preload, num_workers=num_workers),
+                                 datamodule.get_dataloader('valid', preload=preload, num_workers=num_workers),
+                                 datamodule.get_dataloader('eval', preload=False, num_workers=num_workers)))
 
         if trainer_args['out_dir'] is not None:
             safe_dump(relevant_args, os.path.join(trainer_args['out_dir'], 'model_args.yaml'), safe_mode)
@@ -442,14 +449,56 @@ class KnowIt:
         if wipe_after and not safe_mode:
             shutil.rmtree(sweep_dir)
 
-    def train_model_further(self, model_name: str, max_epochs: int, *, device: str | None = None,
-                            safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
-        """Train an existing model further. Not implemented yet. Does nothing.
-        """
-        # TODO: This function should train the desired model to the desired max_epochs without
-        #  overwriting old learning metrics. See train_model() for reference.
+    def run_model_eval(self, model_name: str, device: str | None=None,
+                       preload: bool = True, num_workers: int = 4) -> None:
+        """Run model evaluation over dataloaders.
 
-        logger.warning('KnowIt.train_model_further not implemented yet.')
+        Given a trained model name, evaluates the model on the train, valid-
+        ation, and evaluation dataloaders. Prints the evaluation metrics to the
+        terminal and saves the metrics in the metrics.csv file in the lightning
+        _logs folder.
+
+        Parameters
+        ----------
+        model_name : str
+            The names of the trained model.
+        device : str | None
+            The device to use for the evaluation (cpu or gpu).
+        num_workers : int, default = 4
+            Sets the number of workers to use for loading the dataset.
+        preload : bool, default = False
+            Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+        """
+        if device is None:
+            device = self.global_device
+
+        ckpt_file = ckpt_path(exp_output_dir=self.exp_output_dir, name=model_name)
+
+        trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir,
+                                                        self.available_datasets(), self.available_archs(),
+                                                        model_name, device, w_pt_model=True)
+
+        trainer_args = trained_model_dict['model_args']['trainer']
+        optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs') # empty dictionary
+        trainer_args.pop('task')
+        trainer_args['model'] = trained_model_dict['model']
+        trainer_args['device'] = device
+        trainer_args['model_params'] = trained_model_dict['model_params']
+        trainer_args['out_dir'] = model_output_dir(self.exp_output_dir, model_name)
+        trainer_args['device'] = device
+
+        trainer = KITrainer(
+            state=EvaluateOnly,
+            ckpt_file=ckpt_file,
+            base_trainer_kwargs=trainer_args,
+            optional_pl_kwargs=optional_pl_kwargs,
+            train_flag='evaluate_only',
+        )
+
+        trainer.evaluate_fitted_model(dataloaders=(
+            trained_model_dict['datamodule'].get_dataloader('train', analysis=True, preload=preload, num_workers=num_workers),
+            trained_model_dict['datamodule'].get_dataloader('valid', analysis=True, preload=preload, num_workers=num_workers),
+            trained_model_dict['datamodule'].get_dataloader('eval', analysis=True, preload=preload, num_workers=num_workers)))
 
     def generate_predictions(self, model_name: str, kwargs: dict, *, device: str | None = None,
                              safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
@@ -494,7 +543,7 @@ class KnowIt:
 
         # get details on trained model and construct appropriate dataloader
         trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir, self.available_datasets(),
-                                                        self.available_archs(), model_name, w_pt_model=True)
+                                                        self.available_archs(), model_name, device, w_pt_model=True)
         dataloader = trained_model_dict['datamodule'].get_dataloader(relevant_args['predictor']['prediction_set'],
                                                                      analysis=True)
 
@@ -517,8 +566,15 @@ class KnowIt:
 
             prediction = trained_model_dict['pt_model'](x)
 
+            prediction = prediction.detach().cpu().numpy()
+            y = y.detach().cpu().numpy()
+            if relevant_args['predictor']['rescale_outputs']:
+                if trained_model_dict['datamodule'].scaling_tag == 'full':
+                    prediction = trained_model_dict['datamodule'].y_scaler.inverse_transform(prediction)
+                    y = trained_model_dict['datamodule'].y_scaler.inverse_transform(y)
+
             file_name = relevant_args['predictor']['prediction_set'] + '-' + 'batch_' + str(batch[0]) + '.pickle'
-            safe_dump((s_id, prediction.detach(), y), os.path.join(save_dir, file_name), safe_mode)
+            safe_dump((s_id, prediction, y), os.path.join(save_dir, file_name), safe_mode)
             for s in s_id:
                 inx_dict[s.item()] = batch[0]
 
@@ -574,7 +630,7 @@ class KnowIt:
         save_dir = model_interpretations_dir(self.exp_output_dir, model_name, safe_mode)
 
         trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir, self.available_datasets(),
-                                                        self.available_archs(), model_name, w_pt_model=False)
+                                                        self.available_archs(), model_name, device, w_pt_model=False)
 
         # TODO: If the call in the previous line is done with w_pt_model=True,
         #  the actual Pytorch model will also be returned under the key 'pt_model'.
@@ -590,7 +646,8 @@ class KnowIt:
                                         device=device,
                                         i_data=relevant_args['interpreter']['interpretation_set'],
                                         multiply_by_inputs=relevant_args['interpreter']['multiply_by_inputs'],
-                                        seed=relevant_args['interpreter']['seed'])
+                                        seed=relevant_args['interpreter']['seed'],
+                                        batch_size=relevant_args['interpreter']['batch_size'])
 
         i_inx = get_interpretation_inx(relevant_args['interpreter'], trained_model_dict['model_args'],
                                        model_predictions_dir(self.exp_output_dir, model_name))
@@ -600,6 +657,12 @@ class KnowIt:
 
         # TODO: Make _fetch_points_from_datamodule non-private with RR permission
         interpret_args['input_features'] = interpreter._fetch_points_from_datamodule(i_inx)
+
+        interpret_args['input_features'] = interpret_args['input_features'].detach().cpu().numpy()
+        if interpret_args['rescale_inputs']:
+            if trained_model_dict['datamodule'].scaling_tag in ('full', 'in_only'):
+                interpret_args['input_features'] = trained_model_dict['datamodule'].x_scaler.inverse_transform(
+                    interpret_args['input_features'])
 
         points, predictions, targets, timestamps = get_predictions(model_predictions_dir(self.exp_output_dir, model_name),
                                                        relevant_args['interpreter']['interpretation_set'],
@@ -622,7 +685,7 @@ class KnowIt:
 
     @staticmethod
     def _load_trained_model(exp_output_dir: str, available_datasets: dict, available_archs: dict,
-                            model_name: str, w_pt_model: bool = False) -> dict:
+                            model_name: str, device, w_pt_model: bool = False) -> dict:
         """Load a trained model along with details on its construction.
 
         This method loads the configuration, data module, model architecture, and checkpoint path
@@ -638,6 +701,8 @@ class KnowIt:
             A dictionary listing the available model architectures.
         model_name : str
             The name of the trained model to load.
+        device : str | None
+            The device to use for the evaluation (cpu or gpu).
         w_pt_model : bool, default=False
             Whether to load the actual PyTorch model. If set to True, the PyTorch model is loaded
             and included in the returned dictionary. Default is False.
@@ -647,28 +712,33 @@ class KnowIt:
         dict[str, any]
             A dictionary containing the following keys:
                 - 'model_args' (dict): The arguments/configuration used for the model.
-                - 'datamodule' (RegressionDataset | ClassificationDataset): The data module associated with the model.
-                - 'class_counts' (dict | None): The class counts used by the data module.
+                - 'datamodule' (PreparedDataset): The data module associated with the model.
                 - 'path_to_ckpt' (str): The path to the model checkpoint.
                 - 'model' (type): The untrained PyTorch model.
                 - 'model_params' (dict): The model hyperparameters.
                 - 'pt_model' (torch.nn.Module, optional): The loaded PyTorch model, included if w_pt_model is True.
         """
         model_args: dict = yaml_to_dict(model_args_path(exp_output_dir, model_name))
-        datamodule, class_counts = KnowIt._get_datamodule(exp_output_dir, available_datasets,
-                                                          model_args['data'])
+        datamodule = KnowIt._get_datamodule(exp_output_dir, available_datasets, model_args['data'])
         model, model_params = KnowIt._get_arch_setup(exp_output_dir, available_archs,
                                                      model_args['arch'], datamodule.in_shape,
                                                      datamodule.out_shape)
         path_to_ckpt = ckpt_path(exp_output_dir, model_name)
         ret_dict = {'model_args': model_args,
                     'datamodule': datamodule,
-                    'class_counts': class_counts,
                     'path_to_ckpt': path_to_ckpt,
                     'model': model,
                     'model_params': model_params}
         if w_pt_model:
             ret_dict['pt_model'] = KnowIt._load_trained_pt_model(model, path_to_ckpt, model_params)
+
+        if ret_dict['model_args']['trainer']['loss_fn'] == 'weighted_cross_entropy':
+            if ret_dict['model_args']['trainer']['task'] == 'classification':
+                ret_dict['model_args']['trainer']['loss_fn'] = proc_weighted_cross_entropy(datamodule.class_counts,
+                                                                                           device)
+            else:
+                logger.error('weighted_cross_entropy only supported for classification tasks.')
+                exit(101)
 
         return ret_dict
 
@@ -710,12 +780,11 @@ class KnowIt:
         return pt_model
 
     @staticmethod
-    def _get_datamodule(exp_output_dir: str, available_datasets: dict, data_args: dict) -> tuple:
+    def _get_datamodule(exp_output_dir: str, available_datasets: dict, data_args: dict) -> PreparedDataset:
         """Retrieve the appropriate data module based on the provided data arguments.
 
-        This method determines the data path based on whether the dataset is custom or default,
-        initializes the appropriate data module (regression or classification), and returns it
-        along with class counts if applicable.
+        This method determines the data path based on whether the dataset is custom or default and
+        initializes the appropriate data module.
 
         Parameters
         ----------
@@ -730,35 +799,32 @@ class KnowIt:
 
         Returns
         -------
-        tuple
-            A tuple containing:
-                - datamodule: The initialized data module.
-                - class_counts: The class counts for classification tasks, or None for regression tasks.
+        PreparedDataset
+            The initialized data module.
 
         Notes
         -----
         The dataset is chosen from the custom experiment directory before trying the default directory.
         """
         if data_args['name'] in available_datasets['custom']:
-            data_path = custom_dataset_path(data_args['name'], exp_output_dir)
+            meta_path = custom_dataset_meta_path(data_args['name'], exp_output_dir)
+            package_path = custom_dataset_package_path(data_args['name'], exp_output_dir)
         elif data_args['name'] in available_datasets['defaults']:
-            data_path = dataset_path(data_args['name'])
+            meta_path = dataset_meta_path(data_args['name'])
+            package_path = dataset_package_path(data_args['name'])
         else:
             logger.error('Unknown dataset name %s. Aborting.', data_args['name'])
             exit(101)
-        data_args['data_path'] = data_path
+        data_args['meta_path'] = meta_path
+        data_args['package_path'] = package_path
 
-        if data_args['task'] == 'regression':
-            datamodule = RegressionDataset(**data_args)
-            class_counts = None
-        elif data_args['task'] == 'classification':
-            datamodule = ClassificationDataset(**data_args)
-            class_counts = datamodule.class_counts
+        if data_args['task'] in ('regression', 'classification'):
+            datamodule = PreparedDataset(**data_args)
         else:
             logger.error('Unknown task type %s.', data_args['task'])
             exit(101)
 
-        return datamodule, class_counts
+        return datamodule
 
     @staticmethod
     def _get_arch_setup(exp_output_dir: str, available_archs: dict, arch_args: dict,
@@ -845,9 +911,10 @@ class KnowIt:
         return model, model_params
 
     @staticmethod
-    def _get_trainer_setup(trainer_args: dict, device: str, class_counts: list, model: type,
+    def _get_trainer_setup(trainer_args: dict, device: str, model: type,
                            model_params: dict, sweep_kwargs: dict | None,
-                           exp_output_dir: str, model_name: str, safe_mode: bool) -> dict:
+                           exp_output_dir: str, model_name: str, safe_mode: bool,
+                           datamodule: PreparedDataset) -> dict:
         """Process and return the trainer arguments with dynamically generated parameters.
 
         This function takes in the initial trainer arguments and modifies them based on
@@ -860,8 +927,6 @@ class KnowIt:
             The initial arguments for the trainer, including configurations such as loss function and task type.
         device : str
             The device on which the model will be trained (e.g., 'cpu' or 'cuda').
-        class_counts : list or None
-            The counts of each class in the dataset, used for tasks like computing weighted loss functions.
         model : type
             The model class to be trained.
         model_params : dict
@@ -875,6 +940,8 @@ class KnowIt:
             The name of the model to be trained.
         safe_mode : bool,
             Safe mode value for this operation.
+        datamodule : PreparedDataset
+            The datamodule object.
 
         Returns
         -------
@@ -890,9 +957,11 @@ class KnowIt:
         """
         ret_trainer_args = copy.deepcopy(trainer_args)
         if ret_trainer_args['loss_fn'] == 'weighted_cross_entropy':
-            ret_trainer_args['loss_fn'] = proc_weighted_cross_entropy(ret_trainer_args['task'],
-                                                                      device,
-                                                                      class_counts)
+            if ret_trainer_args['task'] == 'classification':
+                ret_trainer_args['loss_fn'] = proc_weighted_cross_entropy(datamodule.class_counts, device)
+            else:
+                logger.error('weighted_cross_entropy only supported for classification tasks.')
+                exit(101)
 
         ret_trainer_args['model'] = model
         ret_trainer_args['model_params'] = model_params
@@ -951,7 +1020,7 @@ class KnowIt:
             exit(101)
 
     @staticmethod
-    def _get_data_dynamics(data_args: dict, datamodule: RegressionDataset | ClassificationDataset) -> dict:
+    def _get_data_dynamics(datamodule: PreparedDataset) -> dict:
         """Extract and return dynamic information about the dataset.
 
         This function gathers various dynamic attributes of the dataset from the provided
@@ -959,8 +1028,6 @@ class KnowIt:
 
         Parameters
         ----------
-        data_args : dict
-            A dictionary containing the arguments related to the dataset, including the task type.
         datamodule : object
             The data module object containing the dataset and its properties.
 
@@ -973,17 +1040,18 @@ class KnowIt:
                 - 'train_size' (int): The size of the training set.
                 - 'valid_size' (int): The size of the validation set.
                 - 'eval_size' (int): The size of the evaluation set.
-                - 'class_set' (dict, optional): The set of classes, included if the task is classification.
-                - 'class_count' (dict, optional): The count of each class, included if the task is classification.
+                - 'class_set' (dict): Class name mapping, if task=classification.
+                - 'class_counts' (dict): Class count mapping, if task=classification.
         """
         data_dynamics = {'in_shape': datamodule.in_shape,
                          'out_shape': datamodule.out_shape,
                          'train_size': datamodule.train_set_size,
                          'valid_size': datamodule.valid_set_size,
                          'eval_size': datamodule.eval_set_size}
-        if data_args['task'] == 'classification':
+
+        if datamodule.task == 'classification':
             data_dynamics['class_set'] = datamodule.class_set
-            data_dynamics['class_count'] = datamodule.class_counts
+            data_dynamics['class_counts'] = datamodule.class_counts
 
         return data_dynamics
 

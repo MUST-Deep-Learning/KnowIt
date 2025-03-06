@@ -230,14 +230,15 @@ def get_predictions(predictions_dir: str, data_tag: str, model_args: dict) -> tu
         If the `predictions_dir` does not exist or if the required prediction points are incomplete.
     """
 
-    if not os.path.exists(predictions_dir):
-        logger.error('No generated predictions to be found at at %s.', predictions_dir)
+    ist_file_name = f'_{data_tag}-ist_inx_dict.pickle'
+    if not os.path.exists(os.path.join(predictions_dir, ist_file_name)):
+        logger.error('No %s set predictions generated at %s', data_tag, predictions_dir)
+        logger.error('Please generate predictions before interpreting them. e.g. KI.generate_predictions(model_name, kwargs)')
         exit(101)
 
     batch_paths = [os.path.join(predictions_dir, b) for b in os.listdir(predictions_dir) if
                    b.startswith(f'{data_tag}-batch')]
 
-    ist_file_name = f'_{data_tag}-ist_inx_dict.pickle'
     ist_path = os.path.join(predictions_dir, ist_file_name)
     ist_values, _ = load_from_path(ist_path)
 
@@ -251,8 +252,8 @@ def get_predictions(predictions_dir: str, data_tag: str, model_args: dict) -> tu
             s = s_inx[p].item()
             y_hat = batch[1][p]
             y = batch[2][p]
-            predictions[s] = y_hat.detach().cpu().numpy()
-            targets[s] = y.detach().cpu().numpy()
+            predictions[s] = y_hat
+            targets[s] = y
             timestamps[s] = ist_values[s]
 
     if len(predictions) != model_args['data_dynamics'][data_tag + '_size']:

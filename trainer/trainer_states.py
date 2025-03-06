@@ -398,20 +398,28 @@ class EvaluateOnly(BaseTrainer):
      to_ckpt : None | str
         Path to the model checkpoint file.
 
+    base_trainer_kwargs: dict
+        A dictionary to initialize Pytorch Lightning's Trainer module.
+
     Attributes
     ----------
+    ckpt_file: str
+        Path to model checkpoint file.
+
     pl_model : type
         The Pytorch Lightning model initialized with a user's Pytorch model.
 
     trainer : type
-        The Pytorch Lightning trainer initialized with pl_model and any
-        additional user kwargs (see optional_pl_kwargs).
+        The Pytorch Lightning trainer initialized with pl_model and any addit-
+        ional kwargs.
     """
 
     def __init__(
         self,
         to_ckpt: str,
+        base_trainer_kwargs: dict[str, Any],
     ) -> None:
+        super().__init__(**base_trainer_kwargs)
         self.ckpt_file = to_ckpt
 
         self._prepare_pl_model()
@@ -447,15 +455,23 @@ class EvaluateOnly(BaseTrainer):
 
     def _prepare_pl_model(self) -> None:
         self.pl_model = PLModel.load_from_checkpoint(  # type: ignore  # noqa: PGH003
-            **self.pl_model_kwargs,
             checkpoint_path=self.ckpt_file,
+            **self.pl_model_kwargs,
         )
 
     def _prepare_pl_trainer(
         self,
         optional_pl_kwargs: dict[str, Any],
     ) -> None:
-        self.trainer = PLTrainer(**optional_pl_kwargs)  # optional_pl_kwargs={}
+
+        self.trainer_kwargs["default_root_dir"] = self.out_dir
+        self.trainer_kwargs["logger"] = [
+            pl_loggers.CSVLogger(save_dir=self.out_dir, version="evaluation"),
+        ]
+        self.trainer = PLTrainer(
+            **self.trainer_kwargs,
+            **optional_pl_kwargs, # optional_pl_kwargs={}
+        )
 
     def _save_model_state(self) -> None:
         pass

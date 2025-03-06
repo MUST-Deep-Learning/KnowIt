@@ -23,7 +23,7 @@ The three possible concrete states are:
 
 KnowIt's Trainer module is built using Pytorch Lightning. See here:
 https://lightning.ai/pytorch-lightning
-"""  # noqa: D205, D400
+"""
 
 from __future__ import annotations
 
@@ -63,6 +63,11 @@ class KITrainer:
         A string that points to a Pytorch checkpoint file. Required for
         certain trainer states.
 
+    train_flag: str, default='train'
+        An additional flag to indicate whether the Trainer is in a train
+        state or an evaluate only state. Options= "train", "train_from_ckpt",
+        or "evaluate_only".
+
     Attributes
     ----------
     _state: None | type[Any], default=None
@@ -77,12 +82,15 @@ class KITrainer:
         base_trainer_kwargs: dict[str, Any],
         optional_pl_kwargs: dict[str, Any],
         ckpt_file: None | str = None,
+        *,
+        train_flag: str = "train",
     ) -> None:
         self._set_state(
             state=state,
             base_trainer_kwargs=base_trainer_kwargs,
             optional_pl_kwargs=optional_pl_kwargs,
             ckpt_file=ckpt_file,
+            train_flag=train_flag,
         )
 
     def _set_state(
@@ -91,17 +99,27 @@ class KITrainer:
         base_trainer_kwargs: dict[str, Any],
         ckpt_file: None | str,
         optional_pl_kwargs: dict[str, Any],
+        *,
+        train_flag: str,
     ) -> None:
-        if ckpt_file:
+        if train_flag == "train":
+            # train from scratch
+            self._state = state(
+                base_kwargs=base_trainer_kwargs,
+                optional_pl_kwargs=optional_pl_kwargs,
+            )
+        elif train_flag == "train_from_ckpt":
+            # train from checkpoint
             self._state = state(
                 to_ckpt=ckpt_file,
                 base_kwargs=base_trainer_kwargs,
                 optional_pl_kwargs=optional_pl_kwargs,
             )
-        else:
+        elif train_flag == "evaluate_only":
+            # evaluate model
             self._state = state(
-                base_kwargs=base_trainer_kwargs,
-                optional_pl_kwargs=optional_pl_kwargs,
+                to_ckpt=ckpt_file,
+                base_trainer_kwargs=base_trainer_kwargs,
             )
 
         if not self._state:
@@ -130,28 +148,7 @@ class KITrainer:
 
         self._state.fit_model(dataloaders=dataloaders)
 
-    def fit_and_eval(
-        self,
-        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
-    ) -> None:
-        """Fit model to training data and evaluate on all dataloaders.
-
-        Parameters
-        ----------
-        dataloaders tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
-            The Pytorch dataloaders that has been set up in KnowIt's
-            datamodule. The triplet corresponds to the train, val, and eval
-            dataloaders.
-
-        """
-        if self._state is None:
-            emsg = "Trainer state cannot be set to None."
-            raise TypeError(emsg)
-
-        self._state.fit_model(dataloaders=dataloaders)
-        self._state.evaluate_model(dataloaders=dataloaders)
-
-    def eval(
+    def evaluate_fitted_model(
         self,
         dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
     ) -> None:
@@ -165,12 +162,6 @@ class KITrainer:
             dataloaders.
 
         """
-
-        # TODO: We might want to rename this function to something else.
-        # There are two locations in knowit.py and interpreter.py where ".eval()" is called on the model
-        # I think the only reason that this one is not called is because no dataloaders are sent at those points.
-        # It would be safer to call this function something else like "evaluate_fitted_model".
-
         if self._state is None:
             emsg = "Trainer state cannot be set to None."
             raise TypeError(emsg)

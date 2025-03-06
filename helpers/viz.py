@@ -90,6 +90,7 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     loss_curves = [key for key in curves.keys() if 'perf' not in key]
     perf_curves = [key for key in curves.keys() if 'perf' in key]
     epochs = [e + 1 for e in range(num_epochs)]
+    result_epoch += 1
 
     fig, axes = plt.subplots(2 if perf_curves else 1, 1, figsize=generic_figsize)
     ax = axes if isinstance(axes, np.ndarray) else [axes]
@@ -549,7 +550,7 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
         The directory path where the animated .gif files will be saved.
     model_args : dict
         Dictionary of model and dataset metadata, specifically:
-            - 'data': A dictionary with keys 'in_components', 'in_chunk', and 'data_path' to retrieve time delta.
+            - 'data': A dictionary with keys 'in_components', 'in_chunk', 'meta_path', and 'package_path' to retrieve time delta.
             - 'data_dynamics': A dictionary containing 'class_set' which maps each class to its corresponding index.
     interpretation_file_name : str
         The filename of the interpretation data, used as the base name for saving .gif files.
@@ -580,7 +581,7 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
     in_comps = model_args['data']['in_components']
     in_chunk = model_args['data']['in_chunk']
     in_scan = np.arange(in_chunk[0], in_chunk[-1] + 1)
-    t_delta = BaseDataset(model_args['data']['data_path']).time_delta
+    t_delta = BaseDataset(model_args['data']['meta_path'], model_args['data']['package_path']).time_delta
     t_delta = np.timedelta64(t_delta)
 
     class_set = model_args['data_dynamics']['class_set']
@@ -668,7 +669,7 @@ def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args:
     model_args : dict
         Dictionary containing metadata about the dataset and model parameters, specifically:
             - 'data': A dictionary with keys 'in_components', 'out_components', 'in_chunk', 'out_chunk',
-              and 'data_path' for loading time delta and related settings.
+              and 'meta_path' for loading time delta and related settings.
     interpretation_file_name : str
         The filename of the interpretation data, used to generate the .gif filenames.
     classic : bool, default = False
@@ -704,7 +705,7 @@ def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args:
     in_chunk = model_args['data']['in_chunk']
     out_chunk = model_args['data']['out_chunk']
     in_scan = np.arange(in_chunk[0], in_chunk[-1] + 1)
-    t_delta = BaseDataset(model_args['data']['data_path']).time_delta
+    t_delta = BaseDataset(model_args['data']['meta_path'], model_args['data']['package_path']).time_delta
     t_delta = np.timedelta64(t_delta)
 
     # find instances relevant to current interpretation
@@ -719,11 +720,15 @@ def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args:
             # for every relevant instance
             for instance in instances:
                 relevant_to_i = np.argwhere(i == instance).squeeze()
+                if relevant_to_i.size == 1:
+                    relevant_to_i = np.array([relevant_to_i])
                 s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
                 slices = list(set(s))
                 # for every relevant (to current instance) slice
                 for slice in slices:
                     relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+                    if relevant_to_s.size == 1:
+                        relevant_to_s = np.array([relevant_to_s])
                     y = np.array(feat_att_dict['targets'])[relevant_to_s]
                     y_hat = np.array(feat_att_dict['predictions'])[relevant_to_s]
                     t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
@@ -1073,11 +1078,15 @@ def mean_feat_att_regression(feat_att_dict: dict, save_dir: str, model_args: dic
             # for every relevant instance
             for instance in instances:
                 relevant_to_i = np.argwhere(i == instance).squeeze()
+                if relevant_to_i.size == 1:
+                    relevant_to_i = np.array([relevant_to_i])
                 s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
                 slices = list(set(s))
                 # for every relevant (to current instance) slice
                 for slice in slices:
                     relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+                    if relevant_to_s.size == 1:
+                        relevant_to_s = np.array([relevant_to_s])
                     t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
                     t = [c for c in t]
                     feature_attributions = feat_att_dict['results'][logit]['attributions'][relevant_to_s, :, :].abs().detach().cpu().numpy()
