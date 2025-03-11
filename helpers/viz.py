@@ -222,7 +222,8 @@ def plot_set_predictions(exp_output_dir: str, model_name: str, data_tag: str) ->
     predictions_dir = model_predictions_dir(exp_output_dir, model_name)
 
     # find prediction and target values
-    _, predictions, targets, timestamps  = get_predictions(predictions_dir, data_tag, model_args)
+    _, predictions, targets, timestamps  = get_predictions(predictions_dir, data_tag,
+                                                           model_args['data_dynamics'][data_tag + '_size'])
     instances = list(set([timestamps[i][0] for i in timestamps]))
 
     # fill gaps where necessary
