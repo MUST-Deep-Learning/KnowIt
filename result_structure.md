@@ -1,6 +1,6 @@
 # Results structure
 
-Towards efficient experimentation, KnowIt outputs results in a specific structure.
+KnowIt outputs results in a specific structure, meant to facilitate efficient experimentation.
 
 This structure is illustrated in the following diagram.
 
@@ -15,9 +15,11 @@ Titles in quotations are user defined or determined dynamically during experimen
 │   ├── ...
 │   └── ["custom_arch_N.py"]
 ├── <custom_datasets>
-│   ├── ["custom_dataset_one.pickle"]
+│   ├── ["custom_dataset_one_meta.pickle"]
+│   ├── <"custom_dataset_one">
 │   ├── ...
-│   └── ["custom_dataset_N.pickle"]
+│   ├── ["custom_dataset_N_meta.pickle"]
+│   └── <"custom_dataset_N">
 └── <models>
     ├── <"model name one">
     ├── <"model name two">
@@ -55,12 +57,12 @@ Titles in quotations are user defined or determined dynamically during experimen
     
     What this directory represents is very flexible. It could include a whole series of investigations, 
     potentially including, but not limited to: 
-     - different splits of the data
-       - different datasets
-       - different architectures
-       - different capacities
-       - different preprocessing techniques
-       - different interpretations
+        - different splits of the data
+        - different datasets
+        - different architectures
+        - different capacities
+        - different preprocessing techniques
+        - different interpretations
     
     Any time a new KnowIt object is created, and linked with this \<experiment output directory\>, it will behave like a 
     continuation of any previous one that was linked with it.
@@ -73,17 +75,18 @@ Titles in quotations are user defined or determined dynamically during experimen
     See ``KnowIt.default_archs.arch_how_to.md`` for the details on how an architecture script can be constructed and imported.
 
 ### \<custom_datasets\>
-    If a new dataset is imported using the created KnowIt object it will be stored in this directory as a dataset pickle.
-    Each dataset pickle contains a dictionary with the following entries:
+    If a new dataset is imported using the created KnowIt object it will be stored in this directory as a pickle containing meta data and a partitioned parquet directory containing actual data.
+    Each dataset meta pickle contains a dictionary with the following entries:
         - name : str 
         - components : list
         - time_delta : timedelta
-        - instances : list
+        - instances_names : dict
+        - data_structure : dict
         - base_nan_filler : str
         - nan_filled_components : list
         - the_data : dict
     
-    This dictionary represents a base dataset in KnowIt. 
+    This dictionary and its accompanying partitioned parquet directory represents a base dataset in KnowIt. 
     See ``KnowIt.data.base_dataset.py`` for details about what it contains.
 
 ### \<models\>
@@ -138,7 +141,7 @@ Titles in quotations are user defined or determined dynamically during experimen
         - prediction : tensor[num_sample_in_batch, num_classes]
         - target : tensor[num_sample_in_batch, num_classes]
     
-    The *s_id* tensor contains sample specific unique ID's for each prediction point in the batch.
+    The *s_id* tensor contains sample specific unique (within the current split set) ID's for each prediction point in the batch.
     The *target* and *prediction* tensors represent the ground truths and model outputs for the relevant prediction points.
 
 #### 2. "IST" indices
@@ -149,7 +152,7 @@ Titles in quotations are user defined or determined dynamically during experimen
     
     Each item in *ist_values* corresponds to a single prediction point in the relevant set. Their order correponds to the unique IDs 
     stored in the batch predictions. Each item is a 3-valued tuple:
-        - i : any 
+        - i : int 
         - s : int
         - t : pandas.Timestamp
     
