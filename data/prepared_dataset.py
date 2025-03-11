@@ -798,7 +798,7 @@ class CustomSampler(Sampler):
             # determine how many sequences to skip at the start
             skip = 0
             if self.shuffle:
-                skip = rng.integers(0, self.skip_max)
+                skip = rng.integers(0, min(self.skip_max, len(sb)))
             # compile batches greedily
             for b in range(skip, len(sb), self.batch_size):
                 batch = sb[arange(b, min(b + self.batch_size, len(sb))), 3].tolist()
