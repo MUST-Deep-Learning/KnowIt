@@ -649,8 +649,16 @@ class KnowIt:
                                         seed=relevant_args['interpreter']['seed'],
                                         batch_size=relevant_args['interpreter']['batch_size'])
 
-        i_inx = get_interpretation_inx(relevant_args['interpreter'], trained_model_dict['model_args'],
-                                       model_predictions_dir(self.exp_output_dir, model_name))
+        data_tag = relevant_args['interpreter']['interpretation_set']
+        data_selection_matrix = trained_model_dict['datamodule'].selection[
+            relevant_args['interpreter']['interpretation_set']]
+        i_size = relevant_args['interpreter']['size']
+        i_selection_tag = relevant_args['interpreter']['selection']
+        seed = relevant_args['interpreter']['seed']
+        predictions_dir = model_predictions_dir(self.exp_output_dir, model_name)
+        i_inx, _, predictions, targets, timestamps = get_interpretation_inx(data_tag, data_selection_matrix,
+                                                                                 i_size, i_selection_tag,
+                                                                                 predictions_dir, seed)
 
         interpret_args['results'] = interpreter.interpret(pred_point_id=i_inx)
         interpret_args['i_inx'] = i_inx
@@ -663,9 +671,6 @@ class KnowIt:
                 interpret_args['input_features'] = trained_model_dict['datamodule'].x_scaler.inverse_transform(
                     interpret_args['input_features'])
 
-        points, predictions, targets, timestamps = get_predictions(model_predictions_dir(self.exp_output_dir, model_name),
-                                                       relevant_args['interpreter']['interpretation_set'],
-                                                       trained_model_dict['model_args'])
         if isinstance(i_inx, int):
             interpret_args['targets'] = targets[i_inx]
             interpret_args['predictions'] = predictions[i_inx]
@@ -674,7 +679,6 @@ class KnowIt:
             interpret_args['targets'] = [targets[i] for i in range(i_inx[0], i_inx[1])]
             interpret_args['predictions'] = [predictions[i] for i in range(i_inx[0], i_inx[1])]
             interpret_args['timestamps'] = [timestamps[i] for i in range(i_inx[0], i_inx[1])]
-
 
         save_name = interpretation_name(interpret_args)
         safe_dump(interpret_args, os.path.join(save_dir, save_name), safe_mode)
