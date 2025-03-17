@@ -37,13 +37,14 @@ Titles in quotations are user defined or determined dynamically during experimen
     │    │   ├── ...
     │    │   └── ["visualization_N.gif"]
     │    └── <sweeps>
-    │        ├── <"run one">
-    │        ├── <"run two">
-    │        ├── <"run three">
-    │        │    ├── ["bestmodel-epoch=N-valid_loss=M.ckpt"]
-    │        │    ├── [model_args.yaml]
-    │        │    └── <lightning_logs>
-    │        └── ...
+    │        └── <"sweep name one">
+    │                ├── <"batch_size_64-dropout_0.2-learning_rate_0.1">
+    │                ├── <"batch_size_64-dropout_0.2-learning_rate_0.01">
+    │                ├── <"batch_size_64-dropout_0.2-learning_rate_0.001">
+    │                │    ├── ["bestmodel-epoch=4-valid_loss=0.04.ckpt"]
+    │                │    ├── [model_args.yaml]
+    │                │    └── <lightning_logs>
+    │                └── ...
     └── ...
 ```
 
@@ -221,7 +222,10 @@ Titles in quotations are user defined or determined dynamically during experimen
 ---
 
 ### \<sweeps\>
-    TODO: Once RR has finalized sweep methods, the output restructure needs to be defined here.
+    When performing HP sweeps for our model the resulting sweeps and runs are stored in this directory.
+    Sweeps are stored as directories containing runs (also directories).
+    Within each run is the resulting model checkpoint, model_args.yaml, and lightning_logs.
+    See the HP sweet turorial for more details.
 
 
 
