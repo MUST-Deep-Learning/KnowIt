@@ -3,26 +3,40 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-KnowIt: Knowledge Discovery in Time Series Data
+**KnowIt**
 ===============================================
-A codebase to train and interpret ANNs performing time series modelling. 
+A codebase for deep time series modeling and interpretation.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Quick Start:
+   :caption: Start:
 
    markdowns/quickstart_readme
 
 .. toctree::
    :maxdepth: 1
-   :caption: User Guide:
+   :caption: Guides:
 
-   markdowns/datasets_readme
-   markdowns/data_readme
-   markdowns/archs_readme
-   markdowns/trainer_readme
-   markdowns/interpreter_readme
-   markdowns/env_readme
+   markdowns/guides/user_options_readme
+   markdowns/guides/terminology_readme
+   markdowns/guides/datasets_readme
+   markdowns/guides/archs_readme
+   markdowns/guides/result_structure_readme
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Tutorials:
+
+   markdowns/tutorials/basics/basics_tut_readme
+   markdowns/tutorials/basic_sweep/basic_sweep_tut_readme
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Module overview:
+
+   markdowns/docs/data_readme
+   markdowns/docs/trainer_readme
+   markdowns/docs/interpreter_readme
 
 .. toctree::
    :maxdepth: 1
