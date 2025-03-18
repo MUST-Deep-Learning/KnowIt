@@ -1,5 +1,3 @@
-# Basics: ETT Tutorial
-
 In this tutorial we show how to load, prepare, and import a new dataset into KnowIt, 
 as well as train, evaluate, and interpret a new model of this dataset.
 
@@ -138,7 +136,7 @@ Note that if no directory path is given, a temporary output directory will be ma
 until the KnowIt object is destroyed.
 
 We then call the ``KnowIt.import_dataset`` function providing the required 
-kwarg dictionary (for importing a dataset a 'data_import_args' kwarg dictionary is required).
+kwarg dictionary (for importing a dataset a 'data_import' kwarg dictionary is required).
 
 See ``KnowIt.user_options.md`` for information on additional kwargs.
 
@@ -152,7 +150,7 @@ KI = KnowIt('ETT_exp_dir')
 # we switch KnowIt to verbose mode to provide more information
 KI.global_args(verbose=True)
 # import the prepared data into KnowIt
-KI.import_dataset({'data_import_args': {'path': 'ETT_ready.pkl'}})
+KI.import_dataset({'data_import': {'path': 'ETT_ready.pkl'}})
 ```
 
 ### 3.2. Output
@@ -278,7 +276,7 @@ data_args = {'name': 'ETTm',
              'scaling_method': 'z-norm'}
 # Define architecture kwargs
 arch_args = {'task': 'regression',
-             'name': 'tcn'}
+             'name': 'TCN'}
 # Define trainer kwargs
 trainer_args = {'loss_fn': 'mse_loss',
                 'optim': 'Adam',
