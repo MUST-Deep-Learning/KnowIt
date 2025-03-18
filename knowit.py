@@ -277,7 +277,7 @@ class KnowIt:
         ----------
         kwargs : dict
             A dictionary containing the arguments for data import. It must include the key
-            'data_import_args'.
+            'data_import'.
         safe_mode : bool | None, default=None
             If provided, sets the safe mode value for this operation. Safe mode determines
             whether existing files should be protected from being overwritten. If not provided,
@@ -291,19 +291,19 @@ class KnowIt:
         Raises
         -------
         KeyError
-            If 'data_import_args' is not present in the provided dictionary.
+            If 'data_import' is not present in the provided dictionary.
 
         Notes
         -----
-        See setup.setup_action_args.py for details on the arguments required in args['data_import_args'].
+        See setup.setup_action_args.py for details on the arguments required in args['data_import'].
         """
         if safe_mode is None:
             safe_mode = self.global_safe_mode
-        relevant_args = setup_relevant_args(kwargs, required_types=('data_import_args', ))
-        data_import_args = relevant_args['data_import_args']
-        data_import_args['exp_output_dir'] = self.exp_output_dir
-        data_import_args['safe_mode'] = safe_mode
-        return BaseDataset.from_path(**data_import_args)
+        relevant_args = setup_relevant_args(kwargs, required_types=('data_import', ))
+        data_import = relevant_args['data_import']
+        data_import['exp_output_dir'] = self.exp_output_dir
+        data_import['safe_mode'] = safe_mode
+        return BaseDataset.from_path(**data_import)
 
     def train_model(self, model_name: str, kwargs: dict, *, device: str | None = None,
                     safe_mode: bool | None = None, and_viz: bool | None = None,
