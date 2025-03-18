@@ -22,7 +22,8 @@ copyright = "2025, MUST Deep Learning"
 author = "Tian Theunissen, Randle Rabe"
 
 # The full version, including alpha/beta/rc tags
-release = "0.0.1"
+release = "0.1.0"
+version = "0.1"
 
 
 # -- General configuration ---------------------------------------------------
