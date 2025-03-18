@@ -1,5 +1,3 @@
-# Hyperparameter tuning
-
 In this tutorial we show how to perform a basic hyperparameter (HP) sweep in the KnowIt framework, 
 using the [Weights and Biases (W&B) API](https://docs.wandb.ai/).
 
