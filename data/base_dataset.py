@@ -30,18 +30,31 @@ time delta.
 
 Along with the metadata, the data package itself is stored as a directory containing
 a set of instances and underlying slices.
+
     <dataset name>
+
     ├── <instance=0>
+
     │   ├── <slice=0>
+
     │   │   └── file.parquet
+
     │   ├── ...
+
     │   └── <slice=B>
+
     │       └── file.parquet
+
     ├── ...
+
     └── <instance=A>
+
        ├── <slice=0>
+
        ├── ...
+
        └── <slice=C>
+
 
 Each parquet file represents a dataframe for which the rows are:
     - Time indexed
