@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = "KnowIt"
-copyright = "2024, Tian Theunissen, Randle Rabe"
+copyright = "2025, MUST Deep Learning"
 author = "Tian Theunissen, Randle Rabe"
 
 # The full version, including alpha/beta/rc tags
@@ -53,6 +53,8 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 html_theme = "pydata_sphinx_theme"
+html_logo = "markdowns/KI_logo_short_stencil.png"
+html_show_sourcelink = False
 
 html_theme_options = {
     "show_nav_level": 2,
@@ -72,9 +74,10 @@ html_theme_options = {
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_css_files = [
-    "css/custom.css",
-]
+# html_css_files = [
+#     "css/custom.css",
+# ]
+# html_js_files = ["js/theme-sync.js"]
 
 # For napoleon:
 napoleon_use_param = False

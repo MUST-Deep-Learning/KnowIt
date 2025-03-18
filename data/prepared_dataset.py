@@ -439,6 +439,47 @@ class PreparedDataset(BaseDataset):
 
         return ist_values
 
+    def fetch_input_points_manually(self, set_tag: str, point_ids: int | list) -> Tensor:
+        """ Manually fetch data points from the datamodule based on provided point IDs.
+
+        Parameters
+        ----------
+        set_tag : str
+            A string indicating the dataset split to load ('train', 'valid', 'eval').
+        point_ids : int | list[int]
+            The IDs of the data points to fetch. These indices are defined as the relative position in the selection
+            matrix corresponding to the set tag. Can be a single integer, a list of integers,
+            or a tuple specifying a range (start, end).
+
+        Returns
+        -------
+        Tensor
+            A tensor containing the data points corresponding to the provided
+            IDs.
+
+        Raises
+        ------
+        ValueError
+            If the provided point IDs are invalid or out of range.
+
+        """
+        dataset = self.get_dataset(set_tag, preload=False)
+
+        if isinstance(point_ids, tuple):
+            ids = list(range(point_ids[0], point_ids[1]))
+        else:
+            ids = point_ids
+
+        try:
+            tensor = dataset.__getitem__(idx=ids)["x"]
+        except ValueError:
+            logger.error('Invalid: ids %s not in choice "%s" (which has range %s)',
+                         str(point_ids), set_tag,
+                         str((0, len(self.selection[set_tag]))))
+            exit(101)
+
+        return tensor
+
     def _prepare(self) -> None:
         """Prepare the dataset by splitting and scaling the data.
 
@@ -757,7 +798,7 @@ class CustomSampler(Sampler):
             # determine how many sequences to skip at the start
             skip = 0
             if self.shuffle:
-                skip = rng.integers(0, self.skip_max)
+                skip = rng.integers(0, min(self.skip_max, len(sb)))
             # compile batches greedily
             for b in range(skip, len(sb), self.batch_size):
                 batch = sb[arange(b, min(b + self.batch_size, len(sb))), 3].tolist()

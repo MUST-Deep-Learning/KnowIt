@@ -1,5 +1,3 @@
-# Terminology
-
 This is a list of terms used in the KnowIt framework. To be updated as needed.
 
 ---

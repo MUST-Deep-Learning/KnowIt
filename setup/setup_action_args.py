@@ -24,7 +24,7 @@ __description__ = 'Checks, filters, and adjusts user arguments for various actio
 from helpers.logger import get_logger
 logger = get_logger()
 
-arg_dict = {'data_import_args':  {'required': ('path',),
+arg_dict = {'data_import':  {'required': ('path',),
                                   'optional': ('base_nan_filler',
                                                'nan_filled_components',
                                                'meta'),
@@ -90,11 +90,12 @@ arg_dict = {'data_import_args':  {'required': ('path',),
                                             'selection',
                                             'size',
                                             'multiply_by_inputs',
+                                            'seed',
                                             'batch_size',
                                             'rescale_inputs'),  # whether the inputs are rescaled before storage (when applicable)
-                             'default': {'interpretation_set': 'eval',
+                             'default': {'interpretation_set': 'valid',
                                          'selection': 'random',
-                                         'size': 1,
+                                         'size': 100,
                                          'multiply_by_inputs': True,
                                          'seed': 123,
                                          'batch_size': None,

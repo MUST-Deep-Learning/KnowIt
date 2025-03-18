@@ -1,5 +1,6 @@
 KnowIt uses deep learning architectures derived from [``torch.nn.Module``](https://pytorch.org/docs/stable/generated/torch.nn.Module.html).
-This guide explains how to import and manage new architectures.
+This guide explains how to import and manage new architectures. For details on the imported data structure see 
+`KnowIt.data.base_dataset`.
 
 ## 1. Importing new architectures using Pytorch
 

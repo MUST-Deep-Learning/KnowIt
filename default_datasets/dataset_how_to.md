@@ -32,7 +32,7 @@ calling the ``KI.train_model`` function.
 
 Use ``KI.available_datasets()`` to see what datasets are available after importing.
 
-Use ``KI.summarize_dataset('synth_2')`` to see a summary of your new dataset as it is imported.
+Use ``KI.summarize_dataset()`` to see a summary of your new dataset as it is imported.
 
 ## 3. Default datasets
 

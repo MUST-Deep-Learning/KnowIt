@@ -70,7 +70,8 @@ __description__ = 'Example of a 1D Convolutional Neural Network (CNN).'
 
 import torch.nn as nn
 import numpy as np
-from torch.nn.utils import weight_norm
+# from torch.nn.utils import weight_norm
+from torch.nn.utils.parametrizations import weight_norm
 
 from helpers.logger import get_logger
 logger = get_logger()

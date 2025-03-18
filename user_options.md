@@ -1,23 +1,19 @@
-# User options
-
 The user interacts with KnowIt by providing relevant keyword arguments (kwargs) to specific functions.
 Some functions require one or more kwarg dictionaries, which have required and optional arguments.
-In the absence of optional arguments, defaults will be provided.
+In the absence of optional arguments, defaults will be provided. These defaults are set in 
+`KnowIt.setup.setup_action_args`.
 
-This page provides a summary of the main four functions used to interact with KnowIt with comments on where to find their relevant inputs.
- - See the relevant documentation (modules or docs) for more detail. 
- - See the tutorials for an example of these functions in action.
- - See ``KnowIt.setup.setup_action_args.arg_dict`` for required, optional, and default argument values 
-for each kwarg key.
+This page provides a summary of the main four functions used to interact with KnowIt.
+See the relevant API docs for more details. See the tutorials for an example of these functions in action.
 
 ---
 
 ## 1. Importing a new dataset
 
  - **relevant functions**: ``KnowIt.import_dataset``
- - **kwarg keys**: 'data_import_args'
+ - **kwarg keys**: 'data_import'
  - **relevant modules**: ``KnowIt.data.raw_data_conversion.RawDataConverter``
- - **relevant docs**: ``KnowIt.default_datasets.dataset_how_to.md``
+ - **relevant docs**: Dataset How-to
 
 ### Example
 The following code constructs a KnowIt object, linked to an experiment output directory, 
@@ -29,7 +25,7 @@ KI = KnowIt('/my_experiment_dir')
 import_args = {'path': '/my_new_raw_data.pickle',
                'base_nan_filler': 'linear',
                'nan_filled_components': ['x1', 'x2', 'x3']}
-KI.import_dataset(kwargs={'data_import_args': import_args})
+KI.import_dataset(kwargs={'data_import': import_args})
 ```
 
 ---
@@ -39,7 +35,7 @@ KI.import_dataset(kwargs={'data_import_args': import_args})
  - **relevant functions**: ``KnowIt.import_arch``
  - **kwarg keys**: None
  - **relevant modules**: ``KnowIt.setup.import_custom_arch.import_custom_arch``
- - **relevant docs**: ``KnowIt.default_archs.arch_how_to.md``
+ - **relevant docs**: Dataset How-to
 
 ### Example
 The following code constructs a KnowIt object, linked to an experiment output directory, 
@@ -57,7 +53,8 @@ KI.import_arch('/my_new_arch.py')
 
  - **relevant functions**: ``KnowIt.train_model``
  - **kwarg keys**: 'data', 'arch', 'trainer'
- - **relevant modules**: ``KnowIt.data.prepared_dataset.PreparedDataset``, ``KnowIt.trainer.base_trainer.BaseTrainer``
+ - **relevant modules**: ``KnowIt.data.prepared_dataset.PreparedDataset``, 
+``KnowIt.trainer.base_trainer.BaseTrainer``, ``KnowIt.trainer.trainer_states.TrainNew``
  - **relevant docs**: None
 
 ### Example

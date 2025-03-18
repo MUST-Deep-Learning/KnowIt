@@ -172,6 +172,8 @@ class PLModel(pl.LightningModule):
             **loss_log_metrics,
             **perf_log_metrics,
         }
+        log_metrics['epoch'] = float(self.current_epoch)
+
         # The loss and performance is accumulated over an epoch and then
         # averaged.
         self.log_dict(  # type: ignore[type]
@@ -215,6 +217,8 @@ class PLModel(pl.LightningModule):
             **loss_log_metrics,
             **perf_log_metrics,
         }
+        log_metrics['epoch'] = float(self.current_epoch)
+
         # The loss and performance is accumulated over an epoch and then
         # averaged.
         self.log_dict(  # type: ignore[type]
@@ -270,6 +274,7 @@ class PLModel(pl.LightningModule):
             **loss_log_metrics,
             **perf_log_metrics,
         }
+
         # The loss and performance is accumulated over an epoch and then
         # averaged.
         self.log_dict(  # type: ignore[type]

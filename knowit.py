@@ -177,7 +177,7 @@ class KnowIt:
         datamodule = BaseDataset(meta_path, package_path)
         summary = {'dataset_name': datamodule.name,
                    'components': datamodule.components,
-                   'instances': datamodule.instances,
+                   'instances': datamodule.instance_names,
                    'time_delta': datamodule.time_delta}
 
         return summary
@@ -277,7 +277,7 @@ class KnowIt:
         ----------
         kwargs : dict
             A dictionary containing the arguments for data import. It must include the key
-            'data_import_args'.
+            'data_import'.
         safe_mode : bool | None, default=None
             If provided, sets the safe mode value for this operation. Safe mode determines
             whether existing files should be protected from being overwritten. If not provided,
@@ -291,19 +291,19 @@ class KnowIt:
         Raises
         -------
         KeyError
-            If 'data_import_args' is not present in the provided dictionary.
+            If 'data_import' is not present in the provided dictionary.
 
         Notes
         -----
-        See setup.setup_action_args.py for details on the arguments required in args['data_import_args'].
+        See setup.setup_action_args.py for details on the arguments required in args['data_import'].
         """
         if safe_mode is None:
             safe_mode = self.global_safe_mode
-        relevant_args = setup_relevant_args(kwargs, required_types=('data_import_args', ))
-        data_import_args = relevant_args['data_import_args']
-        data_import_args['exp_output_dir'] = self.exp_output_dir
-        data_import_args['safe_mode'] = safe_mode
-        return BaseDataset.from_path(**data_import_args)
+        relevant_args = setup_relevant_args(kwargs, required_types=('data_import', ))
+        data_import = relevant_args['data_import']
+        data_import['exp_output_dir'] = self.exp_output_dir
+        data_import['safe_mode'] = safe_mode
+        return BaseDataset.from_path(**data_import)
 
     def train_model(self, model_name: str, kwargs: dict, *, device: str | None = None,
                     safe_mode: bool | None = None, and_viz: bool | None = None,
@@ -649,14 +649,21 @@ class KnowIt:
                                         seed=relevant_args['interpreter']['seed'],
                                         batch_size=relevant_args['interpreter']['batch_size'])
 
-        i_inx = get_interpretation_inx(relevant_args['interpreter'], trained_model_dict['model_args'],
-                                       model_predictions_dir(self.exp_output_dir, model_name))
+        data_tag = relevant_args['interpreter']['interpretation_set']
+        data_selection_matrix = trained_model_dict['datamodule'].selection[
+            relevant_args['interpreter']['interpretation_set']]
+        i_size = relevant_args['interpreter']['size']
+        i_selection_tag = relevant_args['interpreter']['selection']
+        seed = relevant_args['interpreter']['seed']
+        predictions_dir = model_predictions_dir(self.exp_output_dir, model_name)
+        i_inx, _, predictions, targets, timestamps = get_interpretation_inx(data_tag, data_selection_matrix,
+                                                                                 i_size, i_selection_tag,
+                                                                                 predictions_dir, seed)
 
         interpret_args['results'] = interpreter.interpret(pred_point_id=i_inx)
         interpret_args['i_inx'] = i_inx
-
-        # TODO: Make _fetch_points_from_datamodule non-private with RR permission
-        interpret_args['input_features'] = interpreter._fetch_points_from_datamodule(i_inx)
+        interpret_args['input_features'] = trained_model_dict['datamodule'].fetch_input_points_manually(
+            interpret_args['interpretation_set'], i_inx)
 
         interpret_args['input_features'] = interpret_args['input_features'].detach().cpu().numpy()
         if interpret_args['rescale_inputs']:
@@ -664,9 +671,6 @@ class KnowIt:
                 interpret_args['input_features'] = trained_model_dict['datamodule'].x_scaler.inverse_transform(
                     interpret_args['input_features'])
 
-        points, predictions, targets, timestamps = get_predictions(model_predictions_dir(self.exp_output_dir, model_name),
-                                                       relevant_args['interpreter']['interpretation_set'],
-                                                       trained_model_dict['model_args'])
         if isinstance(i_inx, int):
             interpret_args['targets'] = targets[i_inx]
             interpret_args['predictions'] = predictions[i_inx]
@@ -675,7 +679,6 @@ class KnowIt:
             interpret_args['targets'] = [targets[i] for i in range(i_inx[0], i_inx[1])]
             interpret_args['predictions'] = [predictions[i] for i in range(i_inx[0], i_inx[1])]
             interpret_args['timestamps'] = [timestamps[i] for i in range(i_inx[0], i_inx[1])]
-
 
         save_name = interpretation_name(interpret_args)
         safe_dump(interpret_args, os.path.join(save_dir, save_name), safe_mode)
