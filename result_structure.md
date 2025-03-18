@@ -1,5 +1,3 @@
-# Results structure
-
 KnowIt outputs results in a specific structure, meant to facilitate efficient experimentation.
 
 This structure is illustrated in the following diagram.
@@ -9,7 +7,7 @@ Directories are indicated by <...> and files are indicated by [...].
 Titles in quotations are user defined or determined dynamically during experimentation.
 
 ```bash
-<experiment output directory>
+<"experiment output directory">
 ├── <custom_archs>
 │   ├── ["custom_arch_one.py"]
 │   ├── ...
@@ -52,7 +50,7 @@ Titles in quotations are user defined or determined dynamically during experimen
 
 ## 1. Experiment-wide structure
 
-### \<experiment output directory\>
+### \<"experiment output directory"\>
     When a KnowIt object is created it can be linked to an existing output directory.
     If no output directory is defined, a temporary one is made in ``KnowIt.temp_experiments``.
     
@@ -65,7 +63,7 @@ Titles in quotations are user defined or determined dynamically during experimen
         - different preprocessing techniques
         - different interpretations
     
-    Any time a new KnowIt object is created, and linked with this \<experiment output directory\>, it will behave like a 
+    Any time a new KnowIt object is created, and linked with this <"experiment output directory">, it will behave like a 
     continuation of any previous one that was linked with it.
 
 ### \<custom_archs\>
@@ -73,7 +71,7 @@ Titles in quotations are user defined or determined dynamically during experimen
     
     The custom architecture will be a direct copy of the imported .py script.
     
-    See ``KnowIt.default_archs.arch_how_to.md`` for the details on how an architecture script can be constructed and imported.
+    See the Architecture How-to doc for the details on how an architecture script can be constructed and imported.
 
 ### \<custom_datasets\>
     If a new dataset is imported using the created KnowIt object it will be stored in this directory as a pickle containing meta data and a partitioned parquet directory containing actual data.
@@ -88,7 +86,7 @@ Titles in quotations are user defined or determined dynamically during experimen
         - the_data : dict
     
     This dictionary and its accompanying partitioned parquet directory represents a base dataset in KnowIt. 
-    See ``KnowIt.data.base_dataset.py`` for details about what it contains.
+    See the Dataset How-to doc for details about what it contains.
 
 ### \<models\>
     All models that are named and trained using the created KnowIt object will be stored in this directory, under a subdirectory 
