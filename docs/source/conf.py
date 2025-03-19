@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = "KnowIt"
-copyright = "2025, MUST Deep Learning"
+copyright = "2025, North-West University (NWU), South Africa"
 author = "Tian Theunissen, Randle Rabe"
 
 # The full version, including alpha/beta/rc tags
