@@ -1,7 +1,5 @@
 # Knowledge discovery in time series data
 
----
-
 ![KI_logo.png](KI_logo.png)
 
 ---
@@ -101,10 +99,21 @@ the model prediction is not propagated across batches.
  - Testbench for synthetic data experimentation
  - Additional feature attribution visualizations
 
-## Contact
-
- - Main author: tiantheunissen@gmail.com
- - Main author: randlerabe@gmail.com
-
 We are open to any suggestions.
+
+## Citation
+If you make use of KnowIt, we kindly request that you cite it with the provided citation file.
+This link will be updated to an official link soon.
+
+## Acknowledgments
+
+This project is made possible due to funding and support from:
+- MUST Deep Learning
+- North-West University (NWU), South Africa
+- National Institute for Theoretical & Computational Sciences (NITheCS), South Africa
+- Centre for Artificial Intelligence Research (CAIR), South Africa
+
+Contributors:
+- **Marthinus Wilhelmus Theunissen** (tiantheunissen@gmail.com)
+- **Randle Rabe** (randlerabe@gmail.com)
 
