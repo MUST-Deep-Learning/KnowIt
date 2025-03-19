@@ -101,6 +101,10 @@ the model prediction is not propagated across batches.
 
 We are open to any suggestions.
 
+## Citation
+If you make use of KnowIt, we kindly request that you cite it with the provided citation file.
+This link will be updated to an official link soon.
+
 ## Acknowledgments
 
 This project is made possible due to funding and support from:
