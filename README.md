@@ -1,7 +1,5 @@
 # Knowledge discovery in time series data
 
----
-
 ![KI_logo.png](KI_logo.png)
 
 ---
