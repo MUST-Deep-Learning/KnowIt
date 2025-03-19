@@ -109,7 +109,7 @@ This project is made possible due to funding and support from:
 - National Institute for Theoretical & Computational Sciences (NITheCS), South Africa
 - Centre for Artificial Intelligence Research (CAIR), South Africa
 
-Contributors:  
-- **Marthinus Wilhelmus Theunissen** (tiantheunissen@gmail.com)  
+Contributors:
+- **Marthinus Wilhelmus Theunissen** (tiantheunissen@gmail.com)
 - **Randle Rabe** (randlerabe@gmail.com)
 
