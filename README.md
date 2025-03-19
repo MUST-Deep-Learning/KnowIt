@@ -98,13 +98,13 @@ the model prediction is not propagated across batches.
  - Adding Transformer-based models to default architectures
  - Stateful model training
  - Package installation options
- - Live API reference docs
- - Citation link
+ - Testbench for synthetic data experimentation
+ - Additional feature attribution visualizations
 
 ## Contact
 
  - Main author: tiantheunissen@gmail.com
  - Main author: randlerabe@gmail.com
 
-Feel free to log an issue if you have suggestions.
+We are open to any suggestions.
 
