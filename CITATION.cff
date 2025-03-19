@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use KnowIt in your work, we kindly request that your cite it as below."
+authors:
+- family-names: "Theunissen"
+  given-names: "Marthinus Wilhelmus"
+  scholar: "https://scholar.google.com/citations?user=p3bOWQEAAAAJ&hl=en"
+- family-names: "Rabe"
+  given-names: "Randle"
+  scholar: "https://scholar.google.com/citations?user=BgW4AvsAAAAJ&hl=en&oi=ao"
+title: "KnowIt - Knowledge discovery In Time series data"
+version: 0.1.0
+doi: TBD
+date-released: 2025-03-19
+url: "https://github.com/MUST-Deep-Learning/KnowIt"
