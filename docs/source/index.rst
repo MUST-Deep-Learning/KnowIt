@@ -22,6 +22,7 @@ A codebase for deep time series modeling and interpretation.
    markdowns/guides/datasets_readme
    markdowns/guides/archs_readme
    markdowns/guides/result_structure_readme
+   markdowns/guides/coding_convention_readme
 
 .. toctree::
    :maxdepth: 1
