@@ -183,7 +183,6 @@ dependencies:
   - tomli=2.0.1=py38h06a4308_0
   - tomlkit=0.13.2=py38h06a4308_0
   - torchaudio=2.1.0=py38_cu118
-  - torchmetrics=1.1.2=py38h06a4308_0
   - torchtriton=2.1.0=py38
   - torchvision=0.16.0=py38_cu118
   - tornado=6.3.3=py38h5eee18b_0
@@ -229,5 +228,6 @@ dependencies:
     - sphinx-autoapi==3.1.1
     - tblib==1.7.0
     - toolz==0.11.2
+    - torchmetrics==1.5.2
     - zict==2.2.0
 prefix: /home/tian/miniconda3/envs/knowit_env
