@@ -142,6 +142,13 @@ class DataSplitter:
             logger.error('Split portions do not add up to one.')
             exit(101)
 
+        options = ('random', 'chronological',
+                   'instance-random', 'instance-chronological',
+                   'slice-random', 'slice-chronological')
+        if method not in options:
+            logger.error('split_method %s is not recognized; must be one of %s', method, options)
+            exit(101)
+
         # 1. Find all appropriate prediction points
         prediction_points, times = self._select_prediction_points(data_extractor,
                                                                   x_map, y_map,
