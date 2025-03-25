@@ -103,6 +103,7 @@ This project is made possible due to funding and support from:
 - North-West University (NWU), South Africa
 - National Institute for Theoretical & Computational Sciences (NITheCS), South Africa
 - Centre for Artificial Intelligence Research (CAIR), South Africa
+- National Research Foundation (NRF), South Africa
 
 Contributors:
 - **Marthinus Wilhelmus Theunissen** (tiantheunissen@gmail.com)
