@@ -19,28 +19,22 @@ It is developed in Python and uses [PyTorch Lightning](https://github.com/Lightn
 # Import the KnowIt module
 from knowit import KnowIt
 
-# Define an experiment output directory
-exp_out_dir = 'output_path'
-
-# Instantiate a KnowIt object
-KI = KnowIt(exp_out_dir)
-
-# Import a new dataset from a pickled pandas DataFrame
-KI.import_dataset({'data_import': {'path': 'dummy_df.pkl'}})
+# Instantiate a KnowIt object linked to an output directory
+KI = KnowIt(custom_exp_dir='my_output_path')
 
 # Define your dataset
-data_args = {'name': 'dummy_dataset',
+data_args = {'name': 'synth_2',
              'task': 'regression',
-             'in_components': ['x'],
-             'out_components': ['y'],
-             'in_chunk': [-10, 0],
+             'in_components': ['x1', 'x2', 'x3', 'x4'],
+             'out_components': ['x5'],
+             'in_chunk': [-32, 0],
              'out_chunk': [0, 0],
              'split_portions': [0.6, 0.2, 0.2],
              'batch_size': 64}
 
 # Define your architecture
 arch_args = {'task': 'regression',
-             'name': 'TCN'}
+             'name': 'MLP'}
 
 # Define your trainer
 trainer_args = {'loss_fn': 'mse_loss',
@@ -49,25 +43,22 @@ trainer_args = {'loss_fn': 'mse_loss',
                 'learning_rate': 0.01,
                 'task': 'regression'}
 
-# Name your model
-model_name = 'new_model_name'
-
 # Train your model
-KI.train_model(model_name=model_name, 
-               kwargs={'data': data_args, 
-                       'arch': arch_args, 
+KI.train_model(model_name='my_new_model_name',
+               kwargs={'data': data_args,
+                       'arch': arch_args,
                        'trainer': trainer_args})
 
 # Generate model predictions
-KI.generate_predictions(model_name=model_name, 
+KI.generate_predictions(model_name='my_new_model_name',
                         kwargs={'predictor': {'prediction_set': 'valid'}})
 
 # Interpret model predictions
-KI.interpret_model(model_name=model_name, 
+KI.interpret_model(model_name='my_new_model_name',
                    kwargs={'interpreter': 
-                               {'interpretation_method': 'DeepLift', 
-                                'interpretation_set': 'valid', 
-                                'selection': 'random', 
+                               {'interpretation_method': 'DeepLift',
+                                'interpretation_set': 'valid',
+                                'selection': 'random',
                                 'size': 100}})
 ```
 
@@ -112,6 +103,7 @@ This project is made possible due to funding and support from:
 - North-West University (NWU), South Africa
 - National Institute for Theoretical & Computational Sciences (NITheCS), South Africa
 - Centre for Artificial Intelligence Research (CAIR), South Africa
+- National Research Foundation (NRF), South Africa
 
 Contributors:
 - **Marthinus Wilhelmus Theunissen** (tiantheunissen@gmail.com)
