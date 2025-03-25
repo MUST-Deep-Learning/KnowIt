@@ -92,7 +92,13 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     epochs = [e + 1 for e in range(num_epochs)]
     result_epoch += 1
 
-    fig, axes = plt.subplots(2 if perf_curves else 1, 1, figsize=generic_figsize)
+    num_rows = 1
+    perf_set = []
+    if perf_curves:
+        perf_set = list(set([curve.split('_perf_')[-1] for curve in perf_curves]))
+        num_rows += len(perf_set)
+
+    fig, axes = plt.subplots(num_rows, 1, figsize=generic_figsize)
     ax = axes if isinstance(axes, np.ndarray) else [axes]
 
     def plot_curves(ax: plt.Axes, curves: dict, epoch: list, result_epoch: int, ylabel: str) -> None:
@@ -111,8 +117,11 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     plot_curves(ax[0], {k: curves[k] for k in loss_curves}, epochs, result_epoch, 'Loss')
 
     # Plot performance curves if they exist
-    if perf_curves:
-        plot_curves(ax[1], {k: curves[k] for k in perf_curves}, epochs, result_epoch, 'Perf')
+    for p in range(len(perf_set)):
+        for curve in perf_curves:
+            if perf_set[p] in curve:
+                plot_curves(ax[p+1], {curve: curves[curve]}, epochs, result_epoch, perf_set[p])
+
 
     # Save the figure
     save_path = os.path.join(model_viz_dir(exp_output_dir, model_name), 'learning_curves.png')
