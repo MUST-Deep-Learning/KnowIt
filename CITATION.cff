@@ -7,8 +7,11 @@ authors:
 - family-names: "Rabe"
   given-names: "Randle"
   scholar: "https://scholar.google.com/citations?user=BgW4AvsAAAAJ&hl=en&oi=ao"
-title: "KnowIt - Knowledge discovery In Time series data"
-version: 0.1.0
+- family-names: "Davel"
+  given-names: "Marelie"
+  scholar: "https://scholar.google.com/citations?user=Xz-fi1cAAAAJ&hl=en"
+title: "KnowIt: Deep Time Series Modeling and Interpretation (in prep)"
+version: 1.0.0
 doi: TBD
-date-released: 2025-03-19
+date-released: 2025-03-27
 url: "https://github.com/MUST-Deep-Learning/KnowIt"
