@@ -1,5 +1,3 @@
-# Basics: ETT Tutorial
-
 In this tutorial we show how to load, prepare, and import a new dataset into KnowIt, 
 as well as train, evaluate, and interpret a new model of this dataset.
 
@@ -138,7 +136,7 @@ Note that if no directory path is given, a temporary output directory will be ma
 until the KnowIt object is destroyed.
 
 We then call the ``KnowIt.import_dataset`` function providing the required 
-kwarg dictionary (for importing a dataset a 'data_import_args' kwarg dictionary is required).
+kwarg dictionary (for importing a dataset a 'data_import' kwarg dictionary is required).
 
 See ``KnowIt.user_options.md`` for information on additional kwargs.
 
@@ -149,8 +147,10 @@ See ``KnowIt.user_options.md`` for information on additional kwargs.
 from knowit import KnowIt
 # create a KnowIt object linked to a new experiment directory
 KI = KnowIt('ETT_exp_dir')
+# we switch KnowIt to verbose mode to provide more information
+KI.global_args(verbose=True)
 # import the prepared data into KnowIt
-KI.import_dataset({'data_import_args': {'path': 'ETT_ready.pkl'}})
+KI.import_dataset({'data_import': {'path': 'ETT_ready.pkl'}})
 ```
 
 ### 3.2. Output
@@ -194,7 +194,7 @@ print(KI.summarize_dataset('ETTm'))
 ### 4.3. Observations
 
 Given the output, we can see that:
- - there are three datasets available to our KnowIt object; the two defaults and our new custom dataset.
+ - there are two datasets available to our KnowIt object; the default 'synth_2' dataset and our new custom 'ETTm' dataset.
  - there are four architectures available for training; all defaults.
  - the specifics of our new dataset are as expected.
 
@@ -239,10 +239,10 @@ it allows us a lot of freedom in defining alternative tasks on-the-fly.
 The second kwarg dictionary (arch) defines the deep learning architecture that will be trained to form the model.
 As a bare minimum, we need to define the architecture name and type of task the model will perform:
  - task = 'regression' &#8594; We want the model output to be real-valued.
- - 'name' = 'LSTM' &#8594; We want to use the default LSTM based architecture to build our model.
+ - 'name' = 'TCN' &#8594; We want to use the default TCN based architecture to build our model.
 
 Note that hyperparameters relating to the architecture can also be set by passing an 'arch_hps' kwarg dictionary.
-Here we just use the default hyperparameters as defined in the relevant architecture script ``KnowIt.default_archs.LSTM``.
+Here we just use the default hyperparameters as defined in the relevant architecture script ``KnowIt.default_archs.TCN``.
 
 **trainer** &#8594;
 
@@ -259,8 +259,10 @@ In this example we will use a very basic setup:
 ### 5.1. Code
 
 ```python
+from knowit import KnowIt
+KI = KnowIt('ETT_exp_dir')
 # name the new model
-model_name = "ETTm_uni_model_lstm"
+model_name = "ETTm_uni_model_tcn"
 # define dataset kwargs
 data_args = {'name': 'ETTm',
              'task': 'regression',
@@ -274,7 +276,7 @@ data_args = {'name': 'ETTm',
              'scaling_method': 'z-norm'}
 # Define architecture kwargs
 arch_args = {'task': 'regression',
-             'name': 'LSTM'}
+             'name': 'TCN'}
 # Define trainer kwargs
 trainer_args = {'loss_fn': 'mse_loss',
                 'optim': 'Adam',
@@ -290,7 +292,7 @@ KI.train_model(model_name=model_name,
 
 ### 5.2. Output
 
-The following files are created under ``ETT_exp_dir.models.ETTm_uni_model_lstm``:
+The following files are created under ``ETT_exp_dir.models.ETTm_uni_model_tcn``:
 
 ![trained_model.png](trained_model.png)
 
@@ -308,18 +310,9 @@ See ``result_structure.md`` for details on the output format for the trained mod
 
 Note that our code has produced a visualization of the learning curves captured in the ``lightning_logs`` subdirectory.
 See ``helpers.viz.plot_learning_curves`` for the code to generate this visualization.
-We note that our training operation has reduced the loss drastically within the first to epochs, and then 
-stagnated quite quickly. The best model was obtained at the last epoch. By default, the model is saved at 
-the epoch with the lowest validation loss. 
-
-If we open the ``lightning_logs`` we see that the exact final evaluation loss is 0.03582769259810448. 
-This is not too far off from what we would expect given the reported ETTm1 scores in Table 1 of [1]. 
-Note that we predict the OT value 24 time steps into the future, while they predict 
-OT for the next 24 time steps.
-
-[1]
-H. Zhou et al., “Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting,” 
-arXiv:2012.07436 [cs], Mar. 2021, Available: https://arxiv.org/abs/2012.07436
+We note that our training operation has reduced the loss drastically within the first epoch, and then 
+stagnated quite quickly. The best model was obtained at the eighth epoch. By default, the model is saved at 
+the epoch with the lowest validation loss. If we open the ``lightning_logs`` we see that the exact final validation loss is 0.00008289787.
 
 ---
 
@@ -330,21 +323,21 @@ by visualizing its prediction on data it was not trained on.
 
 We do this by calling ``KnowIt.generate_predictions`` function with the required model name and kwarg dictionary.
 The only kwarg dictionary that is required is 'predictor' and we set the desired data split to be predicted on to 
-'eval', corresponding to the evaluation set.
+'valid', corresponding to the validation set.
 
 
 ### 6.1. Code
 
 ```python
-# generate model predictions on the evaluation set and use default visualization for predictions
+# generate model predictions on the validation set and use default visualization for predictions
 KI.generate_predictions(model_name=model_name,
-                        kwargs={'predictor': {'prediction_set': 'eval'}},
+                        kwargs={'predictor': {'prediction_set': 'valid'}},
                         and_viz=True)
 ```
 
 ### 6.2. Output
 
-The following files are now listed under ``ETT_exp_dir.models.ETTm_uni_model_lstm``:
+The following files are now listed under ``ETT_exp_dir.models.ETTm_uni_model_tcn``:
 
 ![trained_model_after_predictions.png](trained_model_after_predictions.png)
 
@@ -358,16 +351,16 @@ The previous visualization, zoomed in:
 
 ### 6.3. Observations
 
-Note that our code has produced a visualization of the evaluation set predictions of our trained model.
+Note that our code has produced a visualization of the validation set predictions of our trained model.
 See ``helpers.viz.plot_set_predictions`` for the code to generate this visualization.
 
 Each point on the horizontal axis represents a prediction point (ordered by time step).
-Each point on the vertical axis shows the OT value as represented by the ground truth (red), and
-predicted by the model (blue), at the current prediction point.
+Each point on the vertical axis shows the OT value (rescaled to its native range) as represented by the 
+ground truth (red), and predicted by the model (blue), at the current prediction point.
 
 Notice that if we look at the overall predictions (top visualization) it appears that the model, 
 is making very accurate predictions in general. However, if we look at the zoomed in visualization (bottom), 
-we see that the model tends to output a near copy of the OT, only delayed by some constant number of 
+we see that the model tends to output a near copy of the OT, only delayed by some number of 
 time steps. From this we suspect that the model is performing a naive forecast, where the forecasted value is 
 just the most recently available value in the input chunk.
 
@@ -382,7 +375,7 @@ regarded as overwhelmingly more important than the others, it would be a strong 
 To do this we call ``KnowIt.interpret_model`` and provide the required kwarg dictionary (interpreter).
 The kwargs we provide are as follows:
  - interpretation_method = 'DeepLift' &#8594; Use [Captum's DeeLift](https://captum.ai/api/deep_lift.html) feature attributions.
- - 'interpretation_set' = 'eval' &#8594; Interpret model prediction on the evaluation set predictions.
+ - 'interpretation_set' = 'valid' &#8594; Interpret model prediction on the validation set predictions.
  - 'selection' = 'random' &#8594; Select a random set of contiguous prediction points to interpret.
  - 'size' = 100 &#8594; Select 100 prediction points to interpret.
 
@@ -391,7 +384,7 @@ The kwargs we provide are as follows:
 ```python
 # set up interpreter kwarg dictionary
 interpret_args = {'interpretation_method': 'DeepLift',
-                  'interpretation_set': 'eval',
+                  'interpretation_set': 'valid',
                   'selection': 'random',
                   'size': 100}
 # Initiate interpretations and use default visualization methods
@@ -402,7 +395,7 @@ KI.interpret_model(model_name=model_name,
 
 ### 7.2. Output
 
-The following files are now listed under ``ETT_exp_dir.models.ETTm_uni_model_lstm``:
+The following files are now listed under ``ETT_exp_dir.models.ETTm_uni_model_tcn``:
 
 ![trained_model_after_interpretations.png](trained_model_after_interpretations.png)
 
@@ -412,7 +405,7 @@ The following visualization is stored under the ``visualizations`` subdirectory.
 
 ### 7.3. Observations
 
-Note that our code has produced a visualization of the interpretation's 100 evaluation set predictions of our trained model.
+Note that our code has produced a visualization of the interpretation's 100 validation set predictions of our trained model.
 See ``helpers.viz.plot_feature_attribution`` for the code to generate this visualization.
 
 The top plot shows the full set of interpreted prediction point target (red) and predicted (blue) OT values.
@@ -421,8 +414,9 @@ The dashed lines frame the input chunk and the solid line indicates the predicti
 Note that the input chunk is delayed by a number (we know to be 24) of time steps behind the prediction point.
 
 The bottom plot shows a heatmap of the feature attributions assigned to each input feature in the input chunk.
-We note that the most recently available time step in the input chunk (corresponding to delay -24), 
-consistently has a much higher feature attribution value than the others. This supports our hypothesis that 
-our model is really only making naive forecasts.
+We note that the OT value at a time delay of -48 consistently has higher attribution value, while most 
+of the others tend to fluctuate. This suggests that our hypothesis was not entirely correct. Our model seems to be 
+basing its prediction a lot on the OT value 12 hours in the past (-48 x 15min) even though it is given OT values for the 
+6 hours after that point.
 
 

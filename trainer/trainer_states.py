@@ -205,7 +205,7 @@ class TrainNew(BaseTrainer):
 
         to_monitor = "valid_loss"
         if isinstance(self.pl_model_kwargs["performance_metrics"], dict):
-            met = list(self.pl_model_kwargs["performance_matrics"].keys())
+            met = list(self.pl_model_kwargs["performance_metrics"].keys())
             met = met[0]
             to_monitor = "valid_perf_" + met
         elif isinstance(self.pl_model_kwargs["performance_metrics"], str):
@@ -383,7 +383,7 @@ class ContinueTraining(BaseTrainer):
 
         to_monitor = "valid_loss"
         if isinstance(self.pl_model_kwargs["performance_metrics"], dict):
-            met = list(self.pl_model_kwargs["performance_matrics"].keys())
+            met = list(self.pl_model_kwargs["performance_metrics"].keys())
             met = met[0]
             to_monitor = "valid_perf_" + met
         elif isinstance(self.pl_model_kwargs["performance_metrics"], str):

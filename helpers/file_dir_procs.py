@@ -299,3 +299,47 @@ def load_from_path(path: str) -> any:
         exit(101)
 
     return result
+
+
+def safe_dump_parquet(path: str, safe_mode: bool, data_package: any,
+                      partitioned_on: list, engine: str = "pyarrow") -> None:
+    """Safely save a dataset as a partitioned Parquet file.
+
+    This function checks if the specified path already exists before saving the dataset.
+    If `safe_mode` is enabled and the path exists, an error is logged, and execution stops.
+    If `safe_mode` is disabled and the path exists, a warning is logged, and the existing
+    directory is removed before saving the new dataset.
+
+    Parameters
+    ----------
+    path : str
+        The file path where the Parquet dataset will be stored.
+    safe_mode : bool
+        If True, prevents overwriting an existing dataset by exiting with an error.
+        If False, overwrites the existing dataset after logging a warning.
+    data_package : any
+        The dataset to be saved as a Parquet file. Must be compatible with `.to_parquet()`.
+    partitioned_on : list
+        A list of column names to use for partitioning the dataset.
+    engine : str, optional
+        The Parquet engine to use for saving the dataset (default is "pyarrow").
+
+    Raises
+    ------
+    SystemExit
+        If `safe_mode` is True and the specified path already exists.
+
+    Notes
+    -----
+    - If `safe_mode` is enabled and the path exists, the function exits with error code 101.
+    - If `safe_mode` is disabled and the path exists, the existing directory is deleted.
+    - The dataset is saved using the specified engine and partitioning scheme.
+    """
+
+    if os.path.exists(path) and safe_mode:
+        logger.error('Base dataset package already exists at {}'.format(path))
+        exit(101)
+    elif os.path.exists(path) and not safe_mode:
+        logger.warning('Base dataset package already exists at {}, overwriting.'.format(path))
+        shutil.rmtree(path)
+    data_package.to_parquet(path, engine=engine, partition_cols=partitioned_on)

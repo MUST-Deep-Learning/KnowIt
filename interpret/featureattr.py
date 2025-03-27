@@ -123,27 +123,9 @@ class FeatureAttribution(KIInterpreter):
         training set. Otherwise, it fetches data points from the dataset
         specified by `self.i_data`.
         """
+
         if is_baseline:
-            data_loader = self.datamodule.get_dataloader(
-                "train",
-            )  # only sample baselines from training set
+            set_tag = "train"
         else:
-            data_loader = self.datamodule.get_dataloader(self.i_data)
-
-        if isinstance(point_ids, tuple):
-            ids = list(range(point_ids[0], point_ids[1]))
-        else:
-            ids = point_ids
-
-        try:
-            tensor = data_loader.dataset.__getitem__(idx=ids)["x"]
-        except ValueError:
-            logger.exception(
-                'Invalid: ids %s not in choice "%s" (which has range %s)',
-                str(point_ids),
-                str(self.i_data),
-                str(getattr(self.datamodule, self.i_data + "_set_size")),
-            )
-            sys.exit()
-
-        return tensor
+            set_tag = self.i_data
+        return self.datamodule.fetch_input_points_manually(set_tag, point_ids)

@@ -1,23 +1,24 @@
 """
----------------
+------------
 DataSplitter
----------------
+------------
 
-This module selects a set of prediction points from "the_data" structure (see ``KnowIt.Basedataset``)
+This module selects a set of prediction points from a provided ``DataExtractor`` object (see ``KnowIt.Basedataset``)
 that are appropriate for model training and then splits them into a train, validation, and evaluation set.
 A prediction point is appropriate for model training if:
-    1. Its corresponding slice is larger or equal to the minimum slice length.
-    2. There are no missing values in the features corresponding to the model output components.
-    3. The out_chunk corresponding to it is within its corresponding slice.
+    1. Its corresponding slice is larger or equal to the minimum slice length. (optional)
+    2. There would be no missing values in the resulting output feature values.
+    3. The resulting output window would be within its corresponding slice.
+    4. A significant portion (default 0.5) of the resulting input window would be within its corresponding slice.
 
-------------------
+----------------
 Selection matrix
-------------------
+----------------
 
 Appropriate prediction points are stored in a "selection matrix".
-This is an n-row, 3-column matrix where each row corresponds to a prediction point.
+This is an n-row, 3-column matrix where each row corresponds to an appropriate prediction point.
 The value in each column indicates:
-    1.   The relative position, in ``BaseDataset.instances``, of the instance to which the prediction point belongs.
+    1.   The ID of the instance to which the prediction point belongs.
     2.   The relative position, within said instance, of the slice to which the prediction point belongs.
     3.   The relative position, within said slice, of the timestep at which a prediction is to be made.
 This is also the format that the data splits are stored in (i.e. one matrix for each split).
@@ -28,7 +29,7 @@ of a prediction point or time step.
 Splitting
 ---------
 
-Given a selection matrix for all available prediction points, they need to be split into 3
+Given a selection matrix of all available prediction points, they need to be split into 3
 sets according to the proportions given by the "portions" tuple. In practice, they are all
 split in order (train-then-valid-then-eval), however the elements being split on, and the
 order of these elements are defined by the 'method' argument:
@@ -69,36 +70,47 @@ __description__ = 'Contains the DataSplitter class for KnowIt.'
 # external imports
 from numpy import (array, random, argwhere, isnan,
                    count_nonzero, vstack, concatenate,
-                   argsort, arange, unique, append, floor)
+                   argsort, arange, unique, append, floor, full)
 
 # internal imports
+from data.base_dataset import DataExtractor
 from helpers.logger import get_logger
 logger = get_logger()
 
 
 class DataSplitter:
-    """The DataSplitter module is used by PreparedDataset to split the raw data into train/valid/eval sets.
+    """The DataSplitter module is used by PreparedDataset to split the raw data into train/valid/eval sets,
+    and produce the corresponding selection matrices.
 
     Parameters
     ----------
-    the_data : dict[any, list]
-        Raw data structure as defined in BaseDataset.
+    data_extractor : DataExtractor
+        The data extractor object to read data from disk.
     method : str
         Method for data splitting. Options are 'random', 'chronological',
         'instance-random', 'instance-chronological', 'slice-random', or 'slice-chronological'.
     portions : tuple, shape=[3,]
         Tuple of three floats representing the portions for training, validation, and evaluation
         datasets respectively. The sum of these portions should be 1.0.
-    instances : list
-        List of instances in the_data to be considered for splitting.
     limit : int
         Maximum number of elements (depends on method) to consider.
+    x_map : array
+        Mapping for input data components. This defines the indices of desired input components.
     y_map : array
-        Mapping for target data components. This defines the indices desired output components.
+        Mapping for target data components. This defines the indices of desired output components.
+    in_chunk : list, shape=[2,]
+        Input data chunk parameters.
     out_chunk : list, shape=[2,]
         Target data chunk parameters.
     min_slice : int
-        Minimum slice size.
+        Minimum slice length.
+    in_portion : float, default=0.5
+        The portions of the input window that must still be within a slice to correspond to an appropriate slice.
+        Value must be between 0 and 1.
+    load_level : str, default='instance'
+        What level to load values from disk with.
+        If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
+        If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
 
     Attributes
     ----------
@@ -118,17 +130,31 @@ class DataSplitter:
     valid_points = None
     eval_points = None
 
-    def __init__(self, the_data: dict, method: str, portions: tuple,
-                 instances: list, limit: int, y_map: array, out_chunk: list, min_slice: int) -> None:
+    def __init__(self, data_extractor: DataExtractor,
+                 method: str, portions: tuple, limit: int,
+                 x_map: array, y_map: array,
+                 in_chunk: list, out_chunk: list,
+                 min_slice: int, in_portion: float = 0.5,
+                 load_level: str = 'instance') -> None:
+
         # check that defined portions are valid
         if abs(1.0 - sum(portions)) > 1e-6:
             logger.error('Split portions do not add up to one.')
             exit(101)
 
-        # 1. Find all appropriate prediction points
-        prediction_points, times = self._select_prediction_points(the_data, instances, y_map, out_chunk, min_slice)
+        options = ('random', 'chronological',
+                   'instance-random', 'instance-chronological',
+                   'slice-random', 'slice-chronological')
+        if method not in options:
+            logger.error('split_method %s is not recognized; must be one of %s', method, options)
+            exit(101)
 
-        # [instance, slice, relative position]
+        # 1. Find all appropriate prediction points
+        prediction_points, times = self._select_prediction_points(data_extractor,
+                                                                  x_map, y_map,
+                                                                  in_chunk, out_chunk,
+                                                                  min_slice, in_portion,
+                                                                  load_level)
 
         # 2. Split (and limit)
         self.train_points, self.valid_points, self.eval_points = self._do_split(prediction_points, times,
@@ -344,27 +370,37 @@ class DataSplitter:
         return train_points, valid_points, eval_points
 
     @staticmethod
-    def _select_prediction_points(data: dict, instances: list, y: array, out_chunk: list, min_slice: int) -> tuple:
-        """Construct the full selection matrix for all appropriate prediction points.
+    def _select_prediction_points(data_extractor: DataExtractor,
+                                  x_map: array, y_map: array,
+                                  in_chunk: list, out_chunk: list,
+                                  min_slice: int, in_portion: float = 0.5,
+                                  load_level: str = 'instance') -> tuple:
+        """Construct the full selection matrix for all appropriate prediction points available in the given
+        DataExtractor.
 
         Parameters
         ----------
-        data : dict
-            A dictionary where keys are instance identifiers and values are lists of slices. Each slice is
-            a dictionary containing 'd' (data array) and 't' (time array).
-
-        instances : list
-            A list of instance identifiers to process.
-
-        y : array
-            An array of column indices specifying which columns in 'd' to check for NaN values.
-
+        data_extractor : DataExtractor
+            The data extractor object to read data from disk.
+        x_map : array
+            An array of column indices specifying which columns to check for input edge cases.
+        y_map : array
+            An array of column indices specifying which columns to check for NaN values and output edge cases.
+        in_chunk : list
+            A list of two integers specifying which portions of the slices to consider when creating the mask.
+            Negative values refer to positions from the end of the array.
         out_chunk : list
             A list of integers specifying which portions of the slices to consider when creating the mask.
             Negative values refer to positions from the end of the array.
-
         min_slice : int
             The minimum size a slice must have to be considered. Slices smaller than this value are ignored.
+        in_portion : float, default=0.5
+            The portions of the input window that must still be within a slice to correspond to an appropriate slice.
+            Value must be between 0 and 1.
+        load_level : str, default='instance'
+            What level to load values from disk with.
+            If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
+            If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
 
         Returns
         -------
@@ -382,42 +418,66 @@ class DataSplitter:
             - The resulting prediction points and times are concatenated and returned.
         """
 
-        def no_nan_mask(arr: array, chunk: array) -> array:
-            """Create a mask to exclude rows with NaN values and specified edge chunks.
+        def _appropriate_mask(arr: array,
+                        in_chunk: list, out_chunk: list,
+                        x_map: array, y_map: array,
+                        in_portion: float = 0.5) -> array:
+            """Create a mask to exclude rows with NaN values and specified edge chunks for output components,
+            and softened edge chunks for input components.
 
             Parameters
             ----------
             arr : array
-                The array to check for NaN values. Each row is considered a separate entity.
-
-            chunk : array
-                An array specifying which portions of the array to mask out. Negative values refer to positions
-                from the end of the array, while positive values refer to positions from the start.
+                The array containing component values over a slice.
+            x_map : array
+                An array of column indices specifying which columns to check for input edge cases.
+            y_map : array
+                An array of column indices specifying which columns to check for NaN values and edge cases.
+            in_chunk : list
+                A list of integers specifying which portions of the slices to consider when creating the mask.
+                Negative values refer to positions from the end of the array.
+            out_chunk : list
+                A list of integers specifying which portions of the slices to consider when creating the mask.
+                Negative values refer to positions from the end of the array.
+            in_portion : float, default=0.5
+                The portions of the input window that must still be within a slice to correspond to an appropriate slice.
+                Value must be between 0 and 1.
 
             Returns
             -------
             array
                 A boolean mask array where True indicates valid rows and False indicates rows to be excluded.
-
-            Notes
-            -----
-                - The function first creates a mask that is True for rows without any NaN values.
-                - It then modifies this mask to exclude the specified edge chunks. For example, if `chunk` contains
-                  -3, the last three rows will be masked out. If it contains 3, the first three rows will be masked out.
-
             """
-            mask = ~isnan(arr).any(axis=1)
-            chunk = array(chunk)
-            negatives = chunk[chunk < 0]
-            positives = chunk[chunk > 0]
-            if len(negatives) > 0:
-                mask[:abs(min(negatives))] = False
-            if len(positives) > 0:
-                mask[-max(positives):] = False
+
+            def _trim(mask: array, chunk: array):
+                negatives = chunk[chunk < 0]
+                positives = chunk[chunk > 0]
+                if len(negatives) > 0:
+                    mask[:abs(min(negatives))] = False
+                if len(positives) > 0:
+                    mask[-max(positives):] = False
+                return mask
+
+            if in_portion < 0. or in_portion > 1.:
+                logger.error('in_portion must be between 0 and 1 for prediction point selection.')
+                exit(101)
+
+            y_arr = arr[:, y_map]
+            y_mask = ~isnan(y_arr).any(axis=1)
+            out_chunk = array(out_chunk)
+            y_mask = _trim(y_mask, out_chunk)
+
+            x_arr = arr[:, x_map]
+            x_mask = full(x_arr.shape[0], True)
+            in_chunk = array(in_chunk)
+            in_chunk = floor(in_chunk * in_portion).astype(int)
+            x_mask = _trim(x_mask, in_chunk)
+
+            mask = y_mask * x_mask
 
             return mask
 
-        def constant_col(count: int, val: any) -> array:
+        def _constant_col(count: int, val: any) -> array:
             """Create an array filled with a constant value.
 
             Parameters
@@ -436,7 +496,7 @@ class DataSplitter:
             """
             return array([val for _ in range(count)])
 
-        def relative_col(mask: array) -> array:
+        def _relative_col(mask: array) -> array:
             """Create an array of relative positions based on a boolean mask.
 
             Parameters
@@ -459,35 +519,43 @@ class DataSplitter:
             vals = argwhere(mask)
             return vals.squeeze()
 
+        logger.info('Gathering all appropriate prediction points from base dataset.')
+
         times = []
         prediction_points = []
         ignored_slices = 0
-        for i in range(len(instances)):
-            s = 0
-            for slice in data[instances[i]]:
-                if min_slice is None or min_slice < slice['d'].shape[0]:
-                    slice_mask = no_nan_mask(slice['d'][:, y], out_chunk)
-
-                    # slice_mask = slice_mask * no_nan_mask(slice['d'][:, x], out_chunk)
-
-                    times.append(slice['t'][slice_mask])
+        for i in data_extractor.data_structure:
+            if load_level == 'instance':
+                instance = data_extractor.instance(i)
+                slices = {category: group for category, group in instance.groupby("slice")}
+                del instance
+            num_slices = len(data_extractor.data_structure[i])
+            for s in range(num_slices):
+                if load_level == 'instance':
+                    slice = slices[s]
+                else:
+                    slice = data_extractor.slice(i, s)
+                if min_slice is None or min_slice < slice.shape[0]:
+                    slice_d = slice.to_numpy()
+                    slice_t = slice.index.to_numpy()
+                    slice_mask = _appropriate_mask(slice_d, in_chunk, out_chunk, x_map, y_map, in_portion)
+                    times.append(slice_t[slice_mask])
                     nn_count = count_nonzero(slice_mask)
-                    prediction_points.append(vstack((constant_col(nn_count, i),
-                                                     constant_col(nn_count, s),
-                                                     relative_col(slice_mask))))
+                    if nn_count > 0:
+                        prediction_points.append(vstack((_constant_col(nn_count, i),
+                                                         _constant_col(nn_count, s),
+                                                         _relative_col(slice_mask))))
+                    else:
+                        ignored_slices += 1
                 else:
                     ignored_slices += 1
-                s += 1
 
-        if min_slice and ignored_slices > 0:
-            logger.warning(str(ignored_slices) + ' slices ignored because they were smaller than min_slice=%s.',
+        if ignored_slices > 0:
+            logger.warning(str(ignored_slices) + ' slices ignored because they were smaller than min_slice=%s or contained no appropriate prediction points.',
                            str(min_slice))
 
         prediction_points = concatenate(prediction_points, axis=1)
         prediction_points = prediction_points.transpose()
         times = concatenate(times)
-
-        # targets   [instance, slice, relative position]
-        # times     [timestep]
 
         return prediction_points, times

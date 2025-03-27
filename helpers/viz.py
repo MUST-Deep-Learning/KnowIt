@@ -92,7 +92,13 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     epochs = [e + 1 for e in range(num_epochs)]
     result_epoch += 1
 
-    fig, axes = plt.subplots(2 if perf_curves else 1, 1, figsize=generic_figsize)
+    num_rows = 1
+    perf_set = []
+    if perf_curves:
+        perf_set = list(set([curve.split('_perf_')[-1] for curve in perf_curves]))
+        num_rows += len(perf_set)
+
+    fig, axes = plt.subplots(num_rows, 1, figsize=generic_figsize)
     ax = axes if isinstance(axes, np.ndarray) else [axes]
 
     def plot_curves(ax: plt.Axes, curves: dict, epoch: list, result_epoch: int, ylabel: str) -> None:
@@ -111,8 +117,11 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     plot_curves(ax[0], {k: curves[k] for k in loss_curves}, epochs, result_epoch, 'Loss')
 
     # Plot performance curves if they exist
-    if perf_curves:
-        plot_curves(ax[1], {k: curves[k] for k in perf_curves}, epochs, result_epoch, 'Perf')
+    for p in range(len(perf_set)):
+        for curve in perf_curves:
+            if perf_set[p] in curve:
+                plot_curves(ax[p+1], {curve: curves[curve]}, epochs, result_epoch, perf_set[p])
+
 
     # Save the figure
     save_path = os.path.join(model_viz_dir(exp_output_dir, model_name), 'learning_curves.png')
@@ -222,7 +231,8 @@ def plot_set_predictions(exp_output_dir: str, model_name: str, data_tag: str) ->
     predictions_dir = model_predictions_dir(exp_output_dir, model_name)
 
     # find prediction and target values
-    _, predictions, targets, timestamps  = get_predictions(predictions_dir, data_tag, model_args)
+    _, predictions, targets, timestamps  = get_predictions(predictions_dir, data_tag,
+                                                           model_args['data_dynamics'][data_tag + '_size'])
     instances = list(set([timestamps[i][0] for i in timestamps]))
 
     # fill gaps where necessary
@@ -550,7 +560,7 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
         The directory path where the animated .gif files will be saved.
     model_args : dict
         Dictionary of model and dataset metadata, specifically:
-            - 'data': A dictionary with keys 'in_components', 'in_chunk', and 'data_path' to retrieve time delta.
+            - 'data': A dictionary with keys 'in_components', 'in_chunk', 'meta_path', and 'package_path' to retrieve time delta.
             - 'data_dynamics': A dictionary containing 'class_set' which maps each class to its corresponding index.
     interpretation_file_name : str
         The filename of the interpretation data, used as the base name for saving .gif files.
@@ -581,7 +591,7 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
     in_comps = model_args['data']['in_components']
     in_chunk = model_args['data']['in_chunk']
     in_scan = np.arange(in_chunk[0], in_chunk[-1] + 1)
-    t_delta = BaseDataset(model_args['data']['data_path']).time_delta
+    t_delta = BaseDataset(model_args['data']['meta_path'], model_args['data']['package_path']).time_delta
     t_delta = np.timedelta64(t_delta)
 
     class_set = model_args['data_dynamics']['class_set']
@@ -669,7 +679,7 @@ def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args:
     model_args : dict
         Dictionary containing metadata about the dataset and model parameters, specifically:
             - 'data': A dictionary with keys 'in_components', 'out_components', 'in_chunk', 'out_chunk',
-              and 'data_path' for loading time delta and related settings.
+              and 'meta_path' for loading time delta and related settings.
     interpretation_file_name : str
         The filename of the interpretation data, used to generate the .gif filenames.
     classic : bool, default = False
@@ -705,7 +715,7 @@ def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args:
     in_chunk = model_args['data']['in_chunk']
     out_chunk = model_args['data']['out_chunk']
     in_scan = np.arange(in_chunk[0], in_chunk[-1] + 1)
-    t_delta = BaseDataset(model_args['data']['data_path']).time_delta
+    t_delta = BaseDataset(model_args['data']['meta_path'], model_args['data']['package_path']).time_delta
     t_delta = np.timedelta64(t_delta)
 
     # find instances relevant to current interpretation
