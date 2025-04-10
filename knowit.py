@@ -1084,7 +1084,7 @@ class KnowIt:
         if type(sweep_kwargs['log_to_local']) != bool:
             logger.error('Log to local sweep variable must be a boolean.')
             exit(101)
-        return
+        return True
 
     @staticmethod
     def _load_config(config_dir: str, exp_dir: str, model_name) -> dict:
