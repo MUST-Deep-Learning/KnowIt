@@ -308,12 +308,14 @@ class KnowIt:
     def train_model(self, model_name: str, kwargs: dict, *, device: str | None = None,
                     safe_mode: bool | None = None, and_viz: bool | None = None,
                     sweep_kwargs: dict | None = None,
-                    preload: bool = True, num_workers: int = 4) -> None:
+                    preload: bool = True, num_workers: int = 4,
+                    train_from_yaml: bool = False, config_dir: str | None = None) -> None:
         """Trains a model given user arguments.
 
         This function sets up and trains a model using the provided arguments and configurations.
         It checks and uses global settings for the device, safe mode, and visualization unless
-        overridden by the provided arguments.
+        overridden by the provided arguments. It also supports optional loading of model configurations
+        from a YAML file if specified.
 
         Parameters
         ----------
@@ -337,6 +339,12 @@ class KnowIt:
             Sets the number of workers to use for loading the dataset.
         preload : bool, default = False
             Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+        train_from_yaml : bool, default=False
+            If True, the model configuration is loaded from a YAML file rather than using the arguments
+            provided in `kwargs`. The YAML file is loaded from `config_dir` if provided.
+        config_dir : str | None, default=None
+            The directory containing the configuration files (if `train_from_yaml` is True). If not provided,
+            a default configuration directory will be used.
 
         Notes
         -----
@@ -351,6 +359,9 @@ class KnowIt:
             safe_mode = self.global_safe_mode
         if and_viz is None:
             and_viz = self.global_and_viz
+
+        if train_from_yaml and config_dir is not None:
+            kwargs = KnowIt._load_config(config_dir, self.exp_output_dir, model_name)
 
         # check that all relevant args are provided
         relevant_args = setup_relevant_args(kwargs, required_types=('data', 'arch', 'trainer', ))
@@ -1073,4 +1084,59 @@ class KnowIt:
         if type(sweep_kwargs['log_to_local']) != bool:
             logger.error('Log to local sweep variable must be a boolean.')
             exit(101)
-        return True
+        return
+
+    @staticmethod
+    def _load_config(config_dir: str, exp_dir: str, model_name) -> dict:
+        """
+    Load a configuration file from the specified directories.
+
+    This function searches for a YAML configuration file in the specified directories
+    and subdirectories. It checks multiple potential locations, including the given
+    `config_dir` and `exp_dir`, to find a valid configuration file that matches the model name.
+    If a valid configuration file is found, it returns the contents of the file as a dictionary.
+    If no valid file is found, an error message is logged, and the program exits with a non-zero
+    status code.
+
+    Parameters
+    ----------
+    config_dir : str
+        The directory containing the configuration files.
+        This directory will be checked first for configuration files.
+
+    exp_dir : str
+        The directory containing the experiment outputs.
+
+    model_name : str
+        The name of the model for which the configuration file is being loaded.
+
+    Returns
+    -------
+    dict
+        The contents of the configuration file as a dictionary. The YAML file is parsed
+        and returned as a Python dictionary using the `yaml_to_dict` function.
+
+    Raises
+    ------
+    SystemExit
+        If no valid configuration file is found after checking all candidate paths,
+        an error is logged, and the program exits with status code 101.
+    """
+
+        exp_dir = os.path.join(os.getcwd(), exp_dir)
+        candidate_paths = [
+            config_dir,
+            os.path.join(config_dir, 'model_args.yaml'),
+            os.path.join(config_dir, f'{model_name}.yaml'),
+            os.path.join(exp_dir, config_dir),
+            os.path.join(exp_dir, f'models/{model_name}/model_args.yaml'),
+            os.path.join(exp_dir, f'models/{model_name}/{config_dir}'),
+            os.path.join(exp_dir, f'{config_dir}/model_args.yaml'),
+        ]
+
+        for path in candidate_paths:
+            if os.path.exists(path) and os.path.isfile(path):
+                return yaml_to_dict(path)
+
+        logger.error("No valid config file found at the expected location:\n%s", config_dir)
+        exit(101)
