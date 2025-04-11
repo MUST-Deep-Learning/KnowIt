@@ -39,6 +39,8 @@ order of these elements are defined by the 'method' argument:
     -   instance-chronological: split on instances in chronological order. The ordering is based on the first (chronologically) time step in the instance.
     -   slice-chronological: split on slices in chronological order. The ordering is based on the first (chronologically) time step in the slice.
     -   slice-random: split on slices in random order
+    -   custom-random: split on slices in random order, but the set category is defined by the user
+    -   custom-chronological: split on slices in chronological order, but the set category is defined by the user
 
 This means that 'portions' are defined i.t.o the specific 'method'. For examples:
 portions=(0.8, 0.1, 0.1) and method=instance-random means that the prediction points of a random 80% of instances,
@@ -49,6 +51,9 @@ will constitute training data, etc.
 Note that this also means that the provided portions do not necessarily correspond to the portions of prediction points,
 and therefore they might not directly control the number of examples trained and tested on.
 Only for method=random or method=chronological would they.
+
+The user also has the option to set the category for each instance in the dataset by adding a 'set' column to the
+dataframe, which then includes the set each of the instances belong to i.e. 'train', 'valid', or 'eval'.
 
 --------
 Limiting
@@ -64,13 +69,13 @@ that occur chronologically.
 
 """
 
-__author__ = 'tiantheunissen@gmail.com'
+__author__ = 'tiantheunissen@gmail.com, potgieterharmen@gmail.com'
 __description__ = 'Contains the DataSplitter class for KnowIt.'
 
 # external imports
 from numpy import (array, random, argwhere, isnan,
                    count_nonzero, vstack, concatenate,
-                   argsort, arange, unique, append, floor, full)
+                   argsort, arange, unique, append, floor, full, where)
 
 # internal imports
 from data.base_dataset import DataExtractor
@@ -144,20 +149,21 @@ class DataSplitter:
 
         options = ('random', 'chronological',
                    'instance-random', 'instance-chronological',
-                   'slice-random', 'slice-chronological')
+                   'slice-random', 'slice-chronological',
+                   'custom-random', 'custom-chronological')
         if method not in options:
             logger.error('split_method %s is not recognized; must be one of %s', method, options)
             exit(101)
 
         # 1. Find all appropriate prediction points
-        prediction_points, times = self._select_prediction_points(data_extractor,
+        prediction_points, times, set_category = self._select_prediction_points(data_extractor,
                                                                   x_map, y_map,
                                                                   in_chunk, out_chunk,
                                                                   min_slice, in_portion,
                                                                   load_level)
 
         # 2. Split (and limit)
-        self.train_points, self.valid_points, self.eval_points = self._do_split(prediction_points, times,
+        self.train_points, self.valid_points, self.eval_points = self._do_split(prediction_points, times, set_category,
                                                                                 portions, method, limit)
 
     def get_selection(self) -> dict:
@@ -233,6 +239,33 @@ class DataSplitter:
         return train_elements, valid_elements, eval_elements
 
     @staticmethod
+    def _custom_split(elements: array, set_category: array):
+        """Splits an array of elements into train, valid, and eval sets based on the set_category.
+        The train set contains elements with set_category 'train'.
+        The valid set contains elements with set_category 'valid'.
+        The eval set contains elements with set_category 'eval'.
+        Parameters
+        ----------
+        elements : array, shape=[n_elements,]
+            A 1D array of unique scalar values, representing elements to make a custom split on.
+        set_category : array, shape=[n_elements,]
+            A 1D array of the same length as elements, containing the set category for each element.
+            The set category can be 'train', 'valid', or 'eval'.
+        Returns
+        -------
+        tuple
+            train_elements (array): The elements with set_category 'train'.
+            valid_elements (array): The elements with set_category 'valid'.
+            eval_elements (array): The elements with set_category 'eval'.
+        """
+
+        train_elements = elements[where(set_category == 'train')[0]]
+        valid_elements = elements[where(set_category == 'valid')[0]]
+        eval_elements = elements[where(set_category == 'eval')[0]]
+
+        return train_elements, valid_elements, eval_elements
+
+    @staticmethod
     def _split_indices_on(prediction_points: array, tag: str) -> array:
         """Split selection matrix at one of three levels.
 
@@ -272,7 +305,8 @@ class DataSplitter:
         return start_stop_indxs
 
     @staticmethod
-    def _do_split(prediction_points: array, times: array, portions: tuple, method: str, limit: int) -> tuple:
+    def _do_split(prediction_points: array, times: array, set_category: array,
+                  portions: tuple, method: str, limit: int) -> tuple:
         """Performs the overall splitting and limiting of prediction points based on the specified method.
 
         Parameters
@@ -281,6 +315,8 @@ class DataSplitter:
             An array containing the prediction points to be split (i.e. the full selection matrix).
         times : array, shape=[n_elements,]
             An array containing the times (in as timestamps) corresponding to the prediction points.
+        set_category : array, shape=[n_elements,]
+            An array indicating the dataset category (train, valid, eval) for each prediction point.
         portions : tuple | list, shape=[3,]
             A tuple containing three float values that represent the portions for the training, validation,
             and evaluation splits, respectively. The values should sum to 1.0.
@@ -292,6 +328,8 @@ class DataSplitter:
             - 'instance-chronological'
             - 'random'
             - 'chronological'
+            - 'custom-random'
+            - 'custom-chronological'
         limit : int
             An integer that limits the number of elements to be used for splitting.
             If 0 or None, no limit is applied.
@@ -325,17 +363,17 @@ class DataSplitter:
             level = 'slice'
         elif method in ('instance-random', 'instance-chronological'):
             level = 'instance'
-        elif method in ('random', 'chronological'):
+        elif method in ('random', 'chronological', 'custom-random', 'custom-chronological'):
             level = 'timestep'
 
         start_stop_indxs = DataSplitter._split_indices_on(prediction_points, level)
 
         # 2. Define the order of the start-stop indices based on method order
 
-        if method in ('slice-chronological', 'instance-chronological', 'chronological'):
+        if method in ('slice-chronological', 'instance-chronological', 'chronological', 'custom-chronological'):
             sub_starts = times[start_stop_indxs[:, 0]]
             elements = argsort(sub_starts)
-        elif method in ('slice-random', 'instance-random', 'random'):
+        elif method in ('slice-random', 'instance-random', 'random', 'custom-random'):
             elements = arange(0, start_stop_indxs.shape[0])
             random.shuffle(elements)
         else:
@@ -354,8 +392,10 @@ class DataSplitter:
                 elements = elements[:limit]
 
         # 4. Split the remaining elements in three based on portions
-
-        train_elements, valid_elements, eval_elements = DataSplitter._ordered_split(elements, portions)
+        if not method.startswith('custom'):
+            train_elements, valid_elements, eval_elements = DataSplitter._ordered_split(elements, portions)
+        else:
+            train_elements, valid_elements, eval_elements = DataSplitter._custom_split(elements, set_category)
 
         if len(train_elements) < 1 or len(valid_elements) < 1 or len(eval_elements) < 1:
             logger.error('Data segments too limited for selected splitting method %s', method)
@@ -409,13 +449,14 @@ class DataSplitter:
                 - prediction_points: A 2D array where each row represents a prediction point
                     with [instance, slice, relative position].
                 - times: An array of corresponding times for the prediction points.
+                - set_category: An array indicating the dataset category (train, valid, eval) for each prediction point.
 
         Notes
         -----
             - The method iterates through each instance and each slice within the instance,
                 applying a mask to exclude NaN values and short slices.
             - Slices that are smaller than `min_slice` are ignored.
-            - The resulting prediction points and times are concatenated and returned.
+            - The resulting prediction points, times and dataset categories are concatenated and returned.
         """
 
         def _appropriate_mask(arr: array,
@@ -523,6 +564,7 @@ class DataSplitter:
 
         times = []
         prediction_points = []
+        set_category = []
         ignored_slices = 0
         for i in data_extractor.data_structure:
             if load_level == 'instance':
@@ -536,6 +578,9 @@ class DataSplitter:
                 else:
                     slice = data_extractor.slice(i, s)
                 if min_slice is None or min_slice < slice.shape[0]:
+                    slice_set_col = slice['set']
+                    slice = slice.drop(columns=['set'])
+
                     slice_d = slice.to_numpy()
                     slice_t = slice.index.to_numpy()
                     slice_mask = _appropriate_mask(slice_d, in_chunk, out_chunk, x_map, y_map, in_portion)
@@ -545,6 +590,7 @@ class DataSplitter:
                         prediction_points.append(vstack((_constant_col(nn_count, i),
                                                          _constant_col(nn_count, s),
                                                          _relative_col(slice_mask))))
+                        set_category.append(slice_set_col[slice_mask])
                     else:
                         ignored_slices += 1
                 else:
@@ -557,5 +603,7 @@ class DataSplitter:
         prediction_points = concatenate(prediction_points, axis=1)
         prediction_points = prediction_points.transpose()
         times = concatenate(times)
+        if set_category:
+            set_category = concatenate(set_category)
 
-        return prediction_points, times
+        return prediction_points, times, set_category

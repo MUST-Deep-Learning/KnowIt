@@ -126,7 +126,7 @@ This class supports three different modes of temporal contiguity. See the module
 """
 
 from __future__ import annotations
-__author__ = 'tiantheunissen@gmail.com'
+__author__ = 'tiantheunissen@gmail.com, potgieterharmen@gmail.com'
 __description__ = ('Contains the PreparedDataset, CustomDataset, and CustomClassificationDataset, '
                    'and CustomSampler class for Knowit.')
 
@@ -1109,11 +1109,16 @@ class CustomDataset(Dataset):
             # get sample selection
             selection = self.selection_matrix[pp]
 
-            # get relevant slice information
+            # get relevant slice information and drop the set column if used. Ignores errors if no set column is present
             if self.preload:
-                slice_vals = self.preloaded_slices[(selection[0], selection[1])].to_numpy()
+                slice_vals = (self.preloaded_slices[(selection[0], selection[1])])
+                slice_vals = (slice_vals.drop(columns=['set'], errors='ignore'))
+                slice_vals = slice_vals.to_numpy()
             else:
-                slice_vals = self.data_extractor.slice(selection[0], selection[1]).to_numpy()
+                slice_vals = self.data_extractor.slice(selection[0], selection[1])
+                slice_vals = slice_vals(slice_vals.drop(columns=['set'], errors='ignore'))
+                slice_vals = slice_vals.to_numpy()
+
 
             # get input values and pad if necessary
             x_vals = self._sample_and_pad(slice_vals, selection, self.in_chunk, self.x_map, self.padding_method)
