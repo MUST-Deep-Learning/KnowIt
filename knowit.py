@@ -382,6 +382,58 @@ class KnowIt:
         if and_viz and not trainer_args['logger_status'] and sweep_kwargs is None:
             plot_learning_curves(self.exp_output_dir, model_name)
 
+    def train_model_from_yaml(self, model_name: str, config_dir: str, device: str | None = None,
+                    safe_mode: bool | None = None, and_viz: bool | None = None,
+                    preload: bool = True, num_workers: int = 4) -> None:
+        """Trains a model given a config file.
+
+        This function sets up and trains a model using the provided config file model_args.yaml.
+        It checks and uses global settings for the device, safe mode, and visualization unless
+        overridden by the provided arguments.
+
+        Parameters
+        ----------
+        model_name : str
+            The name of the model to be trained.
+        config_dir : str
+            The path to the config file (model_args.yaml) containing the necessary arguments for setting up the data,
+            architecture, and trainer. The config file should be in YAML format.
+            The config file should contain the following keys: 'data', 'arch', and 'trainer'.
+        device : str | None, default=None
+            The device to be used for training. Defaults to the global device setting if not provided.
+        safe_mode : bool | None, default=None
+            If provided, sets the safe mode value for this operation.
+            Defaults to the global safe mode setting if not provided.
+        and_viz : bool | None, default=None
+            If provided, sets the visualization setting for this operation. Defaults to the global
+            visualization setting if not provided.
+        num_workers : int, default = 4
+            Sets the number of workers to use for loading the dataset.
+        preload : bool, default = False
+            Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+
+        Notes
+        -----
+        See setup.setup_action_args.py for details on the arguments required in args.
+
+        Optional visualization is not done if busy with sweep.
+
+        """
+
+        if os.path.exists(config_dir) and os.path.isfile(config_dir):
+            config_args = yaml_to_dict(config_dir)
+            config_args.pop('data_dynamics')
+            required_keys = ['data', 'arch', 'trainer']
+            missing_key = [key for key in required_keys if key not in config_args]
+            if missing_key:
+                logger.warning("Key '%s' in config file is not recognized. Ignoring it.", missing_key)
+                exit(101)
+
+            self.train_model(model_name=model_name, kwargs=config_args, device=device, safe_mode=safe_mode, and_viz=and_viz, preload=preload, num_workers=num_workers)
+        else:
+            logger.error("model_args.yaml config file not found at the expected location:\n%s", os.path.abspath(config_dir))
+            exit(101)
+
     def consolidate_sweep(self, model_name: str, sweep_name: str,
                           selection_by_min: bool = True, safe_mode: bool | None = None,
                           wipe_after: bool = False) -> None:
