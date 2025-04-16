@@ -64,6 +64,8 @@ that occur chronologically.
 
 """
 
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the DataSplitter class for KnowIt.'
 

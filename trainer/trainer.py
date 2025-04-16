@@ -26,7 +26,8 @@ https://lightning.ai/pytorch-lightning
 """
 
 from __future__ import annotations
-
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "randlerabe@gmail.com"
 __description__ = "Contains the KITrainer context class."
 

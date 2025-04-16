@@ -71,6 +71,8 @@ The BaseDataset module uses the ``RawDataConverter`` module to convert this data
 into a known structure. See that module for more details.
 """
 from __future__ import annotations
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the BaseDataset class for KnowIt.'
 

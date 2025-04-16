@@ -1,5 +1,6 @@
 from __future__ import annotations  # noqa: D100
-
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "randlerabe@gmail.com"
 __description__ = "Helper functions used in KnowIt's trainer module."
 

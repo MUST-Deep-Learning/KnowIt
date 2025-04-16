@@ -126,6 +126,8 @@ This class supports three different modes of temporal contiguity. See the module
 """
 
 from __future__ import annotations
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = ('Contains the PreparedDataset, CustomDataset, and CustomClassificationDataset, '
                    'and CustomSampler class for Knowit.')
