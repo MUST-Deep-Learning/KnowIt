@@ -3,8 +3,6 @@ Updating and enforcing these conventions is an ongoing task.
 
 # Layout
 
-> Check check
-
 > `KnowIt.knowit.KnowIt` is the top-level module that calls and runs all lower-level operations.
 > It is assumed that the user only interacts directly with the toolkit through this module.
 
