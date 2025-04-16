@@ -1,5 +1,3 @@
-sphinx.ext.autodoc
+sphinx
 myst_parser
-sphinx.ext.inheritance_diagram
-sphinx.ext.napoleon
-autoapi.extension
+autoapi
