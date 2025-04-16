@@ -1,5 +1,7 @@
 """Functions used to facilitate weighted cross entropy. """
 
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains a function to prepare a weighted CE function.'
 

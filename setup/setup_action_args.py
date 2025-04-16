@@ -13,6 +13,8 @@ This script contains a function ``setup_relevant_args`` that checks arguments.
 """
 
 from __future__ import annotations
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Checks, filters, and adjusts user arguments for various actions in KnowIt.'
 
