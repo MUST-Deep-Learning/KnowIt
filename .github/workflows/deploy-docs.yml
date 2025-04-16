@@ -7,6 +7,8 @@ on:
     paths:
       - 'docs/**'  # Trigger only when files in docs/ change
       - '.github/workflows/deploy-docs.yml'  # Trigger if workflow changes
+      - '**.py' # Trigger for any .py files
+      - '**.md' # Trigger for any .md files
 
 jobs:
   build-and-deploy:
