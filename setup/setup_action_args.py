@@ -26,7 +26,7 @@ __description__ = 'Checks, filters, and adjusts user arguments for various actio
 from helpers.logger import get_logger
 logger = get_logger()
 
-arg_dict = {'data_import':  {'required': ('path',),
+arg_dict = {'data_import':  {'required': ('raw_data',),
                                   'optional': ('base_nan_filler',
                                                'nan_filled_components',
                                                'meta'),

@@ -22,7 +22,7 @@ and calls the ``KnowIt.import_dataset`` function with the relevant kwargs.
 ```python
 from knowit import KnowIt
 KI = KnowIt('/my_experiment_dir')
-import_args = {'path': '/my_new_raw_data.pickle',
+import_args = {'raw_data': '/my_new_raw_data.pickle',
                'base_nan_filler': 'linear',
                'nan_filled_components': ['x1', 'x2', 'x3']}
 KI.import_dataset(kwargs={'data_import': import_args})

@@ -150,7 +150,7 @@ KI = KnowIt('ETT_exp_dir')
 # we switch KnowIt to verbose mode to provide more information
 KI.global_args(verbose=True)
 # import the prepared data into KnowIt
-KI.import_dataset({'data_import': {'path': 'ETT_ready.pkl'}})
+KI.import_dataset({'data_import': {'raw_data': 'ETT_ready.pkl'}})
 ```
 
 ### 3.2. Output
