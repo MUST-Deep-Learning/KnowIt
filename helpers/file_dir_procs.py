@@ -344,4 +344,10 @@ def safe_dump_parquet(path: str, safe_mode: bool, data_package: any,
     elif os.path.exists(path) and not safe_mode:
         logger.warning('Base dataset package already exists at {}, overwriting.'.format(path))
         shutil.rmtree(path)
-    data_package.to_parquet(path, engine=engine, partition_cols=partitioned_on)
+
+    num_fragments = data_package.groupby(partitioned_on).ngroups
+    if num_fragments > 1024:
+        logger.warning('Partitioning dataset into a parquet folder with %s fragments. '
+                       'Some overhead expected during data loading from disk.',
+                       num_fragments)
+    data_package.to_parquet(path, engine=engine, partition_cols=partitioned_on, max_partitions=num_fragments)

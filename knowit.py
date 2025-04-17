@@ -305,7 +305,7 @@ class KnowIt:
         data_import = relevant_args['data_import']
         data_import['exp_output_dir'] = self.exp_output_dir
         data_import['safe_mode'] = safe_mode
-        return BaseDataset.from_path(**data_import)
+        return BaseDataset.from_raw(**data_import)
 
     def train_model(self, model_name: str, kwargs: dict, *, device: str | None = None,
                     safe_mode: bool | None = None, and_viz: bool | None = None,
