@@ -72,7 +72,7 @@ __description__ = 'Contains the DataSplitter class for KnowIt.'
 # external imports
 from numpy import (array, random, argwhere, isnan,
                    count_nonzero, vstack, concatenate,
-                   argsort, arange, unique, append, floor, full)
+                   argsort, arange, unique, append, floor, full, where)
 
 # internal imports
 from data.base_dataset import DataExtractor
@@ -146,13 +146,13 @@ class DataSplitter:
 
         options = ('random', 'chronological',
                    'instance-random', 'instance-chronological',
-                   'slice-random', 'slice-chronological')
+                   'slice-random', 'slice-chronological', 'custom')
         if method not in options:
             logger.error('split_method %s is not recognized; must be one of %s', method, options)
             exit(101)
 
         # 1. Find all appropriate prediction points
-        prediction_points, times = self._select_prediction_points(data_extractor,
+        prediction_points, times, split_category = self._select_prediction_points(data_extractor,
                                                                   x_map, y_map,
                                                                   in_chunk, out_chunk,
                                                                   min_slice, in_portion,
@@ -160,7 +160,7 @@ class DataSplitter:
 
         # 2. Split (and limit)
         self.train_points, self.valid_points, self.eval_points = self._do_split(prediction_points, times,
-                                                                                portions, method, limit)
+                                                                                split_category, portions, method, limit)
 
     def get_selection(self) -> dict:
         """Returns the obtained data splits as a dictionary of selection matrices.
@@ -235,6 +235,54 @@ class DataSplitter:
         return train_elements, valid_elements, eval_elements
 
     @staticmethod
+    def _custom_split(elements: array, split_category: array, limit: int, portions: tuple) -> tuple:
+        """
+        Splits an array of elements into train, valid, and eval sets based on the split_category.
+        The train set contains elements with split_category '0'.
+        The valid set contains elements with split_category '1'.
+        The eval set contains elements with split_category '2'.
+
+        If the number of instances are limited, the split portions are used to limit each set accordingly.
+
+        Parameters
+        ----------
+        elements : array, shape=[n_elements,]
+            A 1D array of unique scalar values, representing elements to make a custom split on.
+        split_category : array, shape=[n_elements,]
+            A 1D array of the same length as elements, containing the set category for each element.
+            The set category can be '0', '1', or '2'.
+        limit : int
+            An integer that limits the number of elements to be used for splitting.
+            If 0 or None, no limit is applied.
+        portions : tuple | list, shape=[3,]
+            A tuple containing three float values that represent the portions for the training, validation,
+            and evaluation splits, respectively. The values should sum to 1.0.
+
+        Returns
+        -------
+        tuple
+            train_elements (array): The elements with split_category '0'.
+            valid_elements (array): The elements with split_category '1'.
+            eval_elements (array): The elements with split_category '2'.
+        """
+
+        train_elements = elements[where(split_category == 0)[0]]
+        valid_elements = elements[where(split_category == 1)[0]]
+        eval_elements = elements[where(split_category == 2)[0]]
+
+        if limit:
+            portions = [int(round(x * limit)) for x in portions]
+            train_elements = train_elements[:portions[0]]
+            valid_elements = valid_elements[:portions[1]]
+            eval_elements = eval_elements[:portions[2]]
+
+            logger.warning('Limiting data to %s %s(s). Train: %s, Valid: %s, Eval: %s', str(limit),
+                           str(portions[0]), str(portions[1]), str(portions[2])
+                           )
+
+        return train_elements, valid_elements, eval_elements
+
+    @staticmethod
     def _split_indices_on(prediction_points: array, tag: str) -> array:
         """Split selection matrix at one of three levels.
 
@@ -274,7 +322,8 @@ class DataSplitter:
         return start_stop_indxs
 
     @staticmethod
-    def _do_split(prediction_points: array, times: array, portions: tuple, method: str, limit: int) -> tuple:
+    def _do_split(prediction_points: array, times: array, split_category: array,
+                  portions: tuple, method: str, limit: int) -> tuple:
         """Performs the overall splitting and limiting of prediction points based on the specified method.
 
         Parameters
@@ -283,6 +332,8 @@ class DataSplitter:
             An array containing the prediction points to be split (i.e. the full selection matrix).
         times : array, shape=[n_elements,]
             An array containing the times (in as timestamps) corresponding to the prediction points.
+        split_category : array, shape=[n_elements,]
+            An array indicating the dataset category (train, valid, eval) for each prediction point.
         portions : tuple | list, shape=[3,]
             A tuple containing three float values that represent the portions for the training, validation,
             and evaluation splits, respectively. The values should sum to 1.0.
@@ -294,6 +345,7 @@ class DataSplitter:
             - 'instance-chronological'
             - 'random'
             - 'chronological'
+            - 'custom'
         limit : int
             An integer that limits the number of elements to be used for splitting.
             If 0 or None, no limit is applied.
@@ -325,7 +377,7 @@ class DataSplitter:
         level = None
         if method in ('slice-random', 'slice-chronological'):
             level = 'slice'
-        elif method in ('instance-random', 'instance-chronological'):
+        elif method in ('instance-random', 'instance-chronological', 'custom'):
             level = 'instance'
         elif method in ('random', 'chronological'):
             level = 'timestep'
@@ -340,6 +392,8 @@ class DataSplitter:
         elif method in ('slice-random', 'instance-random', 'random'):
             elements = arange(0, start_stop_indxs.shape[0])
             random.shuffle(elements)
+        elif method == 'custom':
+            elements = arange(start_stop_indxs.shape[0])
         else:
             logger.error("Unknown split method %s.", method)
             exit(101)
@@ -351,13 +405,16 @@ class DataSplitter:
                 logger.error('Data limiter %s larger than %s available %s(s).',
                              str(limit), str(len(elements)), str(level))
                 exit(101)
-            else:
+            elif method != 'custom':
                 logger.warning('Limiting data to %s %s(s).', str(limit), level)
                 elements = elements[:limit]
 
         # 4. Split the remaining elements in three based on portions
 
-        train_elements, valid_elements, eval_elements = DataSplitter._ordered_split(elements, portions)
+        if method != 'custom':
+            train_elements, valid_elements, eval_elements = DataSplitter._ordered_split(elements, portions)
+        else:
+            train_elements, valid_elements, eval_elements = DataSplitter._custom_split(elements, split_category, limit, portions)
 
         if len(train_elements) < 1 or len(valid_elements) < 1 or len(eval_elements) < 1:
             logger.error('Data segments too limited for selected splitting method %s', method)
@@ -411,6 +468,8 @@ class DataSplitter:
                 - prediction_points: A 2D array where each row represents a prediction point
                     with [instance, slice, relative position].
                 - times: An array of corresponding times for the prediction points.
+                - split_category: An array indicating the dataset category (train, valid, eval)
+                    for each prediction point.
 
         Notes
         -----
@@ -525,6 +584,7 @@ class DataSplitter:
 
         times = []
         prediction_points = []
+        split_category = []
         ignored_slices = 0
         for i in data_extractor.data_structure:
             if load_level == 'instance':
@@ -538,6 +598,8 @@ class DataSplitter:
                 else:
                     slice = data_extractor.slice(i, s)
                 if min_slice is None or min_slice < slice.shape[0]:
+                    slice_set_col = slice['split']
+                    slice = slice.drop(columns=['split'])
                     slice_d = slice.to_numpy()
                     slice_t = slice.index.to_numpy()
                     slice_mask = _appropriate_mask(slice_d, in_chunk, out_chunk, x_map, y_map, in_portion)
@@ -547,17 +609,25 @@ class DataSplitter:
                         prediction_points.append(vstack((_constant_col(nn_count, i),
                                                          _constant_col(nn_count, s),
                                                          _relative_col(slice_mask))))
+                        if load_level == 'instance':
+                            split_category.append(slice_set_col[0])
+                        else:
+                            split_category.append(slice_set_col[slice_mask])
                     else:
                         ignored_slices += 1
                 else:
                     ignored_slices += 1
 
         if ignored_slices > 0:
-            logger.warning(str(ignored_slices) + ' slices ignored because they were smaller than min_slice=%s or contained no appropriate prediction points.',
+            logger.warning(str(ignored_slices) + ' slices ignored because they were smaller than min_slice=%s or '
+                                                 'contained no appropriate prediction points.',
                            str(min_slice))
 
         prediction_points = concatenate(prediction_points, axis=1)
         prediction_points = prediction_points.transpose()
         times = concatenate(times)
+        split_category = array(split_category)
+        # if split_category and ndim(split_category[0]) == 1:
+        #     split_category = concatenate(split_category)
 
-        return prediction_points, times
+        return prediction_points, times, split_category
