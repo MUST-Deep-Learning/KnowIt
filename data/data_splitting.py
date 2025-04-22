@@ -626,8 +626,10 @@ class DataSplitter:
         prediction_points = concatenate(prediction_points, axis=1)
         prediction_points = prediction_points.transpose()
         times = concatenate(times)
-        split_category = array(split_category)
-        # if split_category and ndim(split_category[0]) == 1:
-        #     split_category = concatenate(split_category)
+
+        if split_category and not load_level == 'instance':
+            split_category = concatenate(split_category)
+        else:
+            split_category = array(split_category)
 
         return prediction_points, times, split_category
