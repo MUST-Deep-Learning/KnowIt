@@ -428,15 +428,19 @@ class KnowIt:
         if os.path.exists(config_dir) and os.path.isfile(config_dir):
             config_args = yaml_to_dict(config_dir)
             config_args.pop('data_dynamics')
+            config_args['data'].pop('meta_path')
+            config_args['data'].pop('package_path')
             required_keys = ['data', 'arch', 'trainer']
             missing_key = [key for key in required_keys if key not in config_args]
+
             if missing_key:
                 logger.warning("Key '%s' in config file is not recognized. Ignoring it.", missing_key)
                 exit(101)
 
-            self.train_model(model_name=model_name, kwargs=config_args, device=device, safe_mode=safe_mode, and_viz=and_viz, preload=preload, num_workers=num_workers)
+            self.train_model(model_name=model_name, kwargs=config_args, device=device, safe_mode=safe_mode,
+                             and_viz=and_viz, preload=preload, num_workers=num_workers)
         else:
-            logger.error("model_args.yaml config file not found at the expected location:\n%s", os.path.abspath(config_dir))
+            logger.error(".yaml config file not found at the expected location:\n%s", os.path.abspath(config_dir))
             exit(101)
 
     def consolidate_sweep(self, model_name: str, sweep_name: str,
