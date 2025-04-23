@@ -126,6 +126,8 @@ This class supports three different modes of temporal contiguity. See the module
 """
 
 from __future__ import annotations
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = ('Contains the PreparedDataset, CustomDataset, and CustomClassificationDataset, '
                    'and CustomSampler class for Knowit.')
@@ -515,6 +517,11 @@ class PreparedDataset(BaseDataset):
         self.in_shape = [self.in_chunk[1] - self.in_chunk[0] + 1, len(self.in_components)]
         self.out_shape = [self.out_chunk[1] - self.out_chunk[0] + 1, len(self.out_components)]
         if self.task == 'classification':
+            if self.out_chunk[0] != self.out_chunk[1]:
+                logger.error('Currently, KnowIt can only perform classification at one specific time step at a time. '
+                             'Please change the out_chunk %s argument to reflect this. Both values must match.',
+                             str(self.out_chunk))
+                exit(101)
             self._get_classes()
             self._count_classes()
             self.out_shape = [1, len(self.class_set)]
@@ -536,6 +543,11 @@ class PreparedDataset(BaseDataset):
 
         # scale the dataset
         logger.info('Preparing data scalers, if relevant.')
+
+        if self.task == 'classification' and self.scaling_tag == 'full':
+            logger.warning('scaling_tag cannot be full for classification tasks. Changing to scaling_tag=in_only.')
+            self.scaling_tag = 'in_only'
+
         self.x_scaler, self.y_scaler = DataScaler(self.get_extractor(),
                                                   self.selection['train'],
                                                   self.scaling_method,

@@ -66,6 +66,8 @@ Updating and enforcing these conventions is an ongoing task.
 > Every script has the following top-matter:
 > 
 >    - """ Overview of contents... """
+>    - \_\_copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+>    - \_\_licence__ = 'Apache 2.0; see LICENSE file for details.'
 >    - \_\_author__ = 'tiantheunissen@gmail.com, randlerabe@gmail.com'
 >    - \_\_description__ = 'One-liner of the contents.'
 >    - \# external imports

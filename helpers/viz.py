@@ -1,5 +1,7 @@
 """This script contains example visualizations. These serve to illustrate how the outputs of KnowIt can be visualized."""
 
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains various functions to visualize KnowIt data structures.'
 
@@ -85,7 +87,7 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     None
     """
     curves, num_epochs = get_learning_curves(exp_output_dir, model_name)
-    score, metric, result_epoch = get_model_score(model_output_dir(exp_output_dir, model_name))
+    _, _, result_epoch = get_model_score(model_output_dir(exp_output_dir, model_name))
 
     loss_curves = [key for key in curves.keys() if 'perf' not in key]
     perf_curves = [key for key in curves.keys() if 'perf' in key]

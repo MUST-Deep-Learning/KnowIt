@@ -126,7 +126,8 @@ def runner():
                 'split_portions': [0.6, 0.2, 0.2],
                 'batch_size': hp_dict['batch_size'],
                 'split_method': 'instance-random',
-                'scaling_tag': 'full'}
+                'scaling_tag': 'full', 
+                'rescale_logged_output_metrics': False}
     arch_args = {'task': 'regression',
                 'name': 'MLP',
                 'arch_hps': {'dropout': hp_dict['dropout']}}
