@@ -298,7 +298,68 @@ The following files are created under ``ETT_exp_dir.models.ETTm_uni_model_tcn``:
 
 The ``model_args.yaml`` contains:
 
-![trained_model_args.png](trained_model_args.png)
+```yaml
+arch:
+  arch_hps: {}
+  name: TCN
+  task: regression
+data:
+  batch_sampling_mode: 0
+  batch_size: 64
+  in_chunk:
+  - -48
+  - -24
+  in_components:
+  - OT
+  limit: null
+  meta_path: ETT_exp_dir/custom_datasets/ETTm_meta.pickle
+  min_slice: null
+  name: ETTm
+  out_chunk:
+  - 0
+  - 0
+  out_components:
+  - OT
+  package_path: ETT_exp_dir/custom_datasets/ETTm
+  padding_method: mean
+  scaling_method: z-norm
+  scaling_tag: full
+  seed: 123
+  shuffle_train: true
+  skip_max: 10
+  split_method: chronological
+  split_portions:
+  - 0.6
+  - 0.2
+  - 0.2
+  succession_length: 10
+  task: regression
+data_dynamics:
+  eval_size: 13931
+  in_shape:
+  - 25
+  - 1
+  out_shape:
+  - 1
+  - 1
+  train_size: 41793
+  valid_size: 13932
+trainer:
+  ckpt_mode: min
+  early_stopping_args: null
+  learning_rate: 0.01
+  logger_status: false
+  loss_fn: mse_loss
+  lr_scheduler: null
+  max_epochs: 10
+  optim: Adam
+  optional_pl_kwargs: {}
+  performance_metrics: null
+  rescale_logged_output_metrics: true
+  return_final: false
+  seed: 123
+  task: regression
+```
 
 The following visualization is stored under the ``visualizations`` subdirectory.
 
@@ -312,7 +373,7 @@ Note that our code has produced a visualization of the learning curves captured 
 See ``helpers.viz.plot_learning_curves`` for the code to generate this visualization.
 We note that our training operation has reduced the loss drastically within the first epoch, and then 
 stagnated quite quickly. The best model was obtained at the eighth epoch. By default, the model is saved at 
-the epoch with the lowest validation loss. If we open the ``lightning_logs`` we see that the exact final validation loss is 0.00008289787.
+the epoch with the lowest validation loss. If we open the ``lightning_logs`` we see that the exact final validation loss is 3.4645497801992424.
 
 ---
 
@@ -355,7 +416,7 @@ Note that our code has produced a visualization of the validation set prediction
 See ``helpers.viz.plot_set_predictions`` for the code to generate this visualization.
 
 Each point on the horizontal axis represents a prediction point (ordered by time step).
-Each point on the vertical axis shows the OT value (rescaled to its native range) as represented by the 
+Each point on the vertical axis shows the OT value as represented by the 
 ground truth (red), and predicted by the model (blue), at the current prediction point.
 
 Notice that if we look at the overall predictions (top visualization) it appears that the model, 

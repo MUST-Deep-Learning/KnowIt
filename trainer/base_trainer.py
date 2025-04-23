@@ -187,6 +187,12 @@ class BaseTrainer(ABC):
         Stores the kwargs required to initialize a Pytorch Lightning's
         trainer module.
 
+    output_scaler : None | object, default=None
+        The scaling object to rescale the model outputs to original ranges (if applicable)
+        during performance calculations. Must have an appropriate `inverse_transform` function.
+        If None, no rescaling is performed. Note, only applicable to logged metrics,
+        gradients are still calculated with scaled outputs (if applicable).
+
     """  # noqa: D205
 
     def __init__(

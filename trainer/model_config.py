@@ -120,6 +120,12 @@ class PLModel(pl.LightningModule):
         Stores the name of the performance metric(s) to be used during training
         and any additional kwargs if needed.
 
+    output_scaler : None | object, default=None
+        The scaling object to rescale the model outputs to original ranges (if applicable)
+        during performance calculations. Must have an appropriate `inverse_transform` function.
+        If None, no rescaling is performed. Note, only applicable to logged metrics,
+        gradients are still calculated with scaled outputs (if applicable).
+
     model : Module
         An initialized Pytorch model.
 
