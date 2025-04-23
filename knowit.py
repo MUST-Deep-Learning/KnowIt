@@ -370,6 +370,9 @@ class KnowIt:
         # Add dynamically generated data characteristics to relevant args for model_args storage
         relevant_args['data_dynamics'] = KnowIt._get_data_dynamics(datamodule)
 
+        if trainer_args.pop('rescale_logged_output_metrics'):
+            trainer_args['output_scaler'] = datamodule.y_scaler
+
         # Instantiate trainer and begin training
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
         trainer = KITrainer(state=TrainNew, base_trainer_kwargs=trainer_args,
@@ -488,6 +491,9 @@ class KnowIt:
         trainer_args['model_params'] = trained_model_dict['model_params']
         trainer_args['out_dir'] = model_output_dir(self.exp_output_dir, model_name)
         trainer_args['device'] = device
+
+        if trainer_args.pop('rescale_logged_output_metrics'):
+            trainer_args['output_scaler'] = trained_model_dict['datamodule'].y_scaler
 
         trainer = KITrainer(
             state=EvaluateOnly,

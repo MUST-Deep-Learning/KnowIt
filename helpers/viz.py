@@ -87,7 +87,7 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     None
     """
     curves, num_epochs = get_learning_curves(exp_output_dir, model_name)
-    score, metric, result_epoch = get_model_score(model_output_dir(exp_output_dir, model_name))
+    _, _, result_epoch = get_model_score(model_output_dir(exp_output_dir, model_name))
 
     loss_curves = [key for key in curves.keys() if 'perf' not in key]
     perf_curves = [key for key in curves.keys() if 'perf' in key]
