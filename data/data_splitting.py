@@ -237,10 +237,10 @@ class DataSplitter:
     @staticmethod
     def _custom_split(elements: array, split_category: array, limit: int, portions: tuple) -> tuple:
         """
-        Splits an array of elements into train, valid, and eval sets based on the split_category.
-        The train set contains elements with split_category '0'.
-        The valid set contains elements with split_category '1'.
-        The eval set contains elements with split_category '2'.
+        Splits an array of elements into train, valid, and eval sets based on the user defined split_category.
+        The train set constitutes elements with split_category '0'.
+        The valid set constitutes elements with split_category '1'.
+        The eval set constitutes elements with split_category '2'.
 
         If the number of instances are limited, the split portions are used to limit each set accordingly.
 
@@ -393,7 +393,7 @@ class DataSplitter:
             elements = arange(0, start_stop_indxs.shape[0])
             random.shuffle(elements)
         elif method == 'custom':
-            elements = arange(start_stop_indxs.shape[0])
+            elements = arange(0, start_stop_indxs.shape[0])
         else:
             logger.error("Unknown split method %s.", method)
             exit(101)
@@ -414,7 +414,9 @@ class DataSplitter:
         if method != 'custom':
             train_elements, valid_elements, eval_elements = DataSplitter._ordered_split(elements, portions)
         else:
-            train_elements, valid_elements, eval_elements = DataSplitter._custom_split(elements, split_category, limit, portions)
+            train_elements, valid_elements, eval_elements = DataSplitter._custom_split(
+                elements, split_category, limit, portions
+            )
 
         if len(train_elements) < 1 or len(valid_elements) < 1 or len(eval_elements) < 1:
             logger.error('Data segments too limited for selected splitting method %s', method)
@@ -598,8 +600,7 @@ class DataSplitter:
                 else:
                     slice = data_extractor.slice(i, s)
                 if min_slice is None or min_slice < slice.shape[0]:
-                    slice_set_col = slice['split']
-                    slice = slice.drop(columns=['split'])
+                    slice_split_col = slice['split']
                     slice_d = slice.to_numpy()
                     slice_t = slice.index.to_numpy()
                     slice_mask = _appropriate_mask(slice_d, in_chunk, out_chunk, x_map, y_map, in_portion)
@@ -609,10 +610,7 @@ class DataSplitter:
                         prediction_points.append(vstack((_constant_col(nn_count, i),
                                                          _constant_col(nn_count, s),
                                                          _relative_col(slice_mask))))
-                        if load_level == 'instance':
-                            split_category.append(slice_set_col[0])
-                        else:
-                            split_category.append(slice_set_col[slice_mask])
+                        split_category.append(slice_split_col[0])
                     else:
                         ignored_slices += 1
                 else:
@@ -626,10 +624,6 @@ class DataSplitter:
         prediction_points = concatenate(prediction_points, axis=1)
         prediction_points = prediction_points.transpose()
         times = concatenate(times)
-
-        if split_category and not load_level == 'instance':
-            split_category = concatenate(split_category)
-        else:
-            split_category = array(split_category)
+        split_category = array(split_category)
 
         return prediction_points, times, split_category
