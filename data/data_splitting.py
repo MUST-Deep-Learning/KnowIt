@@ -238,9 +238,9 @@ class DataSplitter:
     def _custom_split(elements: array, split_category: array, limit: int, portions: tuple) -> tuple:
         """
         Splits an array of elements into train, valid, and eval sets based on the user defined split_category.
-        The train set constitutes elements with split_category '0'.
-        The valid set constitutes elements with split_category '1'.
-        The eval set constitutes elements with split_category '2'.
+        The train set constitutes elements with split_category int '0'.
+        The valid set constitutes elements with split_category int '1'.
+        The eval set constitutes elements with split_category int '2'.
 
         If the number of instances are limited, the split portions are used to limit each set accordingly.
 
@@ -261,9 +261,9 @@ class DataSplitter:
         Returns
         -------
         tuple
-            train_elements (array): The elements with split_category '0'.
-            valid_elements (array): The elements with split_category '1'.
-            eval_elements (array): The elements with split_category '2'.
+            train_elements (array): The elements with split_category int '0'.
+            valid_elements (array): The elements with split_category int '1'.
+            eval_elements (array): The elements with split_category int '2'.
         """
 
         train_elements = elements[where(split_category == 0)[0]]
