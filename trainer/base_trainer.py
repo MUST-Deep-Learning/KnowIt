@@ -151,6 +151,12 @@ class BaseTrainer(ABC):
         If int, sets the random seed value for reproducibility. If
         None, a new random seed is used for each training run.
 
+    output_scaler : None | object, default=None
+        The scaling object to rescale the model outputs to original ranges (if applicable)
+        during performance calculations. Must have an appropriate `inverse_transform` function.
+        If None, no rescaling is performed. Note, only applicable to logged metrics,
+        gradients are still calculated with scaled outputs (if applicable).
+
     Attributes
     ----------
     out_dir : str
@@ -201,6 +207,7 @@ class BaseTrainer(ABC):
         return_final: bool = False,
         logger_status: bool = False,
         seed: None | int = 123,
+        output_scaler: None | object = None
     ) -> None:
         self.out_dir = out_dir
         self.logger_status = logger_status
@@ -208,6 +215,7 @@ class BaseTrainer(ABC):
         self.early_stopping_args = early_stopping_args
         self.return_final = return_final
         self.ckpt_mode = ckpt_mode
+        self.output_scaler = output_scaler
 
         # seed everything
         if seed:
@@ -222,6 +230,7 @@ class BaseTrainer(ABC):
             "optimizer": optim,
             "learning_rate": learning_rate,
             "learning_rate_scheduler": lr_scheduler,
+            "output_scaler": output_scaler,
         }
 
         # PL trainer setup kwargs
