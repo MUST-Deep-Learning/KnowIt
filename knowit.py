@@ -387,20 +387,18 @@ class KnowIt:
         if and_viz and not trainer_args['logger_status'] and sweep_kwargs is None:
             plot_learning_curves(self.exp_output_dir, model_name)
 
-    def train_model_from_yaml(self, model_name: str, config_dir: str, device: str | None = None,
+    def train_model_from_yaml(self, model_name: str, config_path: str, device: str | None = None,
                     safe_mode: bool | None = None, and_viz: bool | None = None,
                     preload: bool = True, num_workers: int = 4) -> None:
         """Trains a model given a config file.
 
         This function sets up and trains a model using the provided config file model_args.yaml.
-        It checks and uses global settings for the device, safe mode, and visualization unless
-        overridden by the provided arguments.
 
         Parameters
         ----------
         model_name : str
             The name of the model to be trained.
-        config_dir : str
+        config_path : str
             The path to the config file (model_args.yaml) containing the necessary arguments for setting up the data,
             architecture, and trainer. The config file should be in YAML format.
             The config file should contain the following keys: 'data', 'arch', and 'trainer'.
@@ -418,30 +416,16 @@ class KnowIt:
             Whether to preload the raw relevant instances and slice into memory when sampling feature values.
 
         Notes
-        -----
-        See setup.setup_action_args.py for details on the arguments required in args.
-
-        Optional visualization is not done if busy with sweep.
+        ---
+        This function is a wrapper for the train_model function.
 
         """
 
-        if os.path.exists(config_dir) and os.path.isfile(config_dir):
-            config_args = yaml_to_dict(config_dir)
-            config_args.pop('data_dynamics')
-            config_args['data'].pop('meta_path')
-            config_args['data'].pop('package_path')
-            required_keys = ['data', 'arch', 'trainer']
-            missing_key = [key for key in required_keys if key not in config_args]
+        config_args = yaml_to_dict(config_path)
 
-            if missing_key:
-                logger.warning("Key '%s' in config file is not recognized. Ignoring it.", missing_key)
-                exit(101)
-
-            self.train_model(model_name=model_name, kwargs=config_args, device=device, safe_mode=safe_mode,
-                             and_viz=and_viz, preload=preload, num_workers=num_workers)
-        else:
-            logger.error(".yaml config file not found at the expected location:\n%s", os.path.abspath(config_dir))
-            exit(101)
+        self.train_model(model_name=model_name, kwargs=config_args,
+                         device=device, safe_mode=safe_mode, and_viz=and_viz,
+                         preload=preload, num_workers=num_workers)
 
     def consolidate_sweep(self, model_name: str, sweep_name: str,
                           selection_by_min: bool = True, safe_mode: bool | None = None,
