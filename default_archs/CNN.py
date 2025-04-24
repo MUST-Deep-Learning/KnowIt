@@ -64,13 +64,15 @@ Notes
 """ # noqa: INP001, D415, D400, D212, D205
 
 from __future__ import annotations
-
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Example of a 1D Convolutional Neural Network (CNN).'
 
 import torch.nn as nn
 import numpy as np
-from torch.nn.utils import weight_norm
+# from torch.nn.utils import weight_norm
+from torch.nn.utils.parametrizations import weight_norm
 
 from helpers.logger import get_logger
 logger = get_logger()

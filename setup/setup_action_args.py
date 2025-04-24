@@ -13,6 +13,8 @@ This script contains a function ``setup_relevant_args`` that checks arguments.
 """
 
 from __future__ import annotations
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Checks, filters, and adjusts user arguments for various actions in KnowIt.'
 
@@ -24,7 +26,7 @@ __description__ = 'Checks, filters, and adjusts user arguments for various actio
 from helpers.logger import get_logger
 logger = get_logger()
 
-arg_dict = {'data_import_args':  {'required': ('path',),
+arg_dict = {'data_import':  {'required': ('raw_data',),
                                   'optional': ('base_nan_filler',
                                                'nan_filled_components',
                                                'meta'),
@@ -76,7 +78,8 @@ arg_dict = {'data_import_args':  {'required': ('path',),
                                           'return_final',
                                           'ckpt_mode',
                                           'logger_status',
-                                          'optional_pl_kwargs'),
+                                          'optional_pl_kwargs',
+                                          'rescale_logged_output_metrics'), # whether the outputs are rescaled before calculating performance (only relevant to performance logging)
                              'default': {'seed': 123,
                                          'logger_status': False,
                                          'lr_scheduler': None,
@@ -84,17 +87,19 @@ arg_dict = {'data_import_args':  {'required': ('path',),
                                          'early_stopping_args': None,
                                          'return_final': False,
                                          'ckpt_mode': 'min',
-                                         'optional_pl_kwargs': {}}},
+                                         'optional_pl_kwargs': {},
+                                         'rescale_logged_output_metrics': True}},
             'interpreter':    {'required': ('interpretation_method',),
                                'optional': ('interpretation_set',
                                             'selection',
                                             'size',
                                             'multiply_by_inputs',
+                                            'seed',
                                             'batch_size',
                                             'rescale_inputs'),  # whether the inputs are rescaled before storage (when applicable)
-                             'default': {'interpretation_set': 'eval',
+                             'default': {'interpretation_set': 'valid',
                                          'selection': 'random',
-                                         'size': 1,
+                                         'size': 100,
                                          'multiply_by_inputs': True,
                                          'seed': 123,
                                          'batch_size': None,

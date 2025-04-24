@@ -18,6 +18,8 @@ process that has already called |setup_logging|.
 
 """
 
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __description__ = 'Provide multiprocessing-safe logging'
 __author__ = 'dgerbrandh@gmail.com'
 

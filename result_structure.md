@@ -1,6 +1,4 @@
-# Results structure
-
-Towards efficient experimentation, KnowIt outputs results in a specific structure.
+KnowIt outputs results in a specific structure, meant to facilitate efficient experimentation.
 
 This structure is illustrated in the following diagram.
 
@@ -9,15 +7,17 @@ Directories are indicated by <...> and files are indicated by [...].
 Titles in quotations are user defined or determined dynamically during experimentation.
 
 ```bash
-<experiment output directory>
+<"experiment output directory">
 ├── <custom_archs>
 │   ├── ["custom_arch_one.py"]
 │   ├── ...
 │   └── ["custom_arch_N.py"]
 ├── <custom_datasets>
-│   ├── ["custom_dataset_one.pickle"]
+│   ├── ["custom_dataset_one_meta.pickle"]
+│   ├── <"custom_dataset_one">
 │   ├── ...
-│   └── ["custom_dataset_N.pickle"]
+│   ├── ["custom_dataset_N_meta.pickle"]
+│   └── <"custom_dataset_N">
 └── <models>
     ├── <"model name one">
     ├── <"model name two">
@@ -35,13 +35,14 @@ Titles in quotations are user defined or determined dynamically during experimen
     │    │   ├── ...
     │    │   └── ["visualization_N.gif"]
     │    └── <sweeps>
-    │        ├── <"run one">
-    │        ├── <"run two">
-    │        ├── <"run three">
-    │        │    ├── ["bestmodel-epoch=N-valid_loss=M.ckpt"]
-    │        │    ├── [model_args.yaml]
-    │        │    └── <lightning_logs>
-    │        └── ...
+    │        └── <"sweep name one">
+    │                ├── <"batch_size_64-dropout_0.2-learning_rate_0.1">
+    │                ├── <"batch_size_64-dropout_0.2-learning_rate_0.01">
+    │                ├── <"batch_size_64-dropout_0.2-learning_rate_0.001">
+    │                │    ├── ["bestmodel-epoch=4-valid_loss=0.04.ckpt"]
+    │                │    ├── [model_args.yaml]
+    │                │    └── <lightning_logs>
+    │                └── ...
     └── ...
 ```
 
@@ -49,20 +50,20 @@ Titles in quotations are user defined or determined dynamically during experimen
 
 ## 1. Experiment-wide structure
 
-### \<experiment output directory\>
+### \<"experiment output directory"\>
     When a KnowIt object is created it can be linked to an existing output directory.
     If no output directory is defined, a temporary one is made in ``KnowIt.temp_experiments``.
     
     What this directory represents is very flexible. It could include a whole series of investigations, 
     potentially including, but not limited to: 
-     - different splits of the data
-       - different datasets
-       - different architectures
-       - different capacities
-       - different preprocessing techniques
-       - different interpretations
+        - different splits of the data
+        - different datasets
+        - different architectures
+        - different capacities
+        - different preprocessing techniques
+        - different interpretations
     
-    Any time a new KnowIt object is created, and linked with this \<experiment output directory\>, it will behave like a 
+    Any time a new KnowIt object is created, and linked with this <"experiment output directory">, it will behave like a 
     continuation of any previous one that was linked with it.
 
 ### \<custom_archs\>
@@ -70,21 +71,22 @@ Titles in quotations are user defined or determined dynamically during experimen
     
     The custom architecture will be a direct copy of the imported .py script.
     
-    See ``KnowIt.default_archs.arch_how_to.md`` for the details on how an architecture script can be constructed and imported.
+    See the Architecture How-to doc for the details on how an architecture script can be constructed and imported.
 
 ### \<custom_datasets\>
-    If a new dataset is imported using the created KnowIt object it will be stored in this directory as a dataset pickle.
-    Each dataset pickle contains a dictionary with the following entries:
+    If a new dataset is imported using the created KnowIt object it will be stored in this directory as a pickle containing meta data and a partitioned parquet directory containing actual data.
+    Each dataset meta pickle contains a dictionary with the following entries:
         - name : str 
         - components : list
         - time_delta : timedelta
-        - instances : list
+        - instances_names : dict
+        - data_structure : dict
         - base_nan_filler : str
         - nan_filled_components : list
         - the_data : dict
     
-    This dictionary represents a base dataset in KnowIt. 
-    See ``KnowIt.data.base_dataset.py`` for details about what it contains.
+    This dictionary and its accompanying partitioned parquet directory represents a base dataset in KnowIt. 
+    See the Dataset How-to doc for details about what it contains.
 
 ### \<models\>
     All models that are named and trained using the created KnowIt object will be stored in this directory, under a subdirectory 
@@ -138,7 +140,7 @@ Titles in quotations are user defined or determined dynamically during experimen
         - prediction : tensor[num_sample_in_batch, num_classes]
         - target : tensor[num_sample_in_batch, num_classes]
     
-    The *s_id* tensor contains sample specific unique ID's for each prediction point in the batch.
+    The *s_id* tensor contains sample specific unique (within the current split set) ID's for each prediction point in the batch.
     The *target* and *prediction* tensors represent the ground truths and model outputs for the relevant prediction points.
 
 #### 2. "IST" indices
@@ -149,7 +151,7 @@ Titles in quotations are user defined or determined dynamically during experimen
     
     Each item in *ist_values* corresponds to a single prediction point in the relevant set. Their order correponds to the unique IDs 
     stored in the batch predictions. Each item is a 3-valued tuple:
-        - i : any 
+        - i : int 
         - s : int
         - t : pandas.Timestamp
     
@@ -218,7 +220,10 @@ Titles in quotations are user defined or determined dynamically during experimen
 ---
 
 ### \<sweeps\>
-    TODO: Once RR has finalized sweep methods, the output restructure needs to be defined here.
+    When performing HP sweeps for our model the resulting sweeps and runs are stored in this directory.
+    Sweeps are stored as directories containing runs (also directories).
+    Within each run is the resulting model checkpoint, model_args.yaml, and lightning_logs.
+    See the HP sweet turorial for more details.
 
 
 

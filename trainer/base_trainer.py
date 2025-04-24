@@ -36,7 +36,8 @@ ional parameters.
 """  # noqa: D205, D400
 
 from __future__ import annotations
-
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "randlerabe@gmail.com"
 __description__ = "Contains the abstract BaseTrainer class."
 
@@ -150,6 +151,12 @@ class BaseTrainer(ABC):
         If int, sets the random seed value for reproducibility. If
         None, a new random seed is used for each training run.
 
+    output_scaler : None | object, default=None
+        The scaling object to rescale the model outputs to original ranges (if applicable)
+        during performance calculations. Must have an appropriate `inverse_transform` function.
+        If None, no rescaling is performed. Note, only applicable to logged metrics,
+        gradients are still calculated with scaled outputs (if applicable).
+
     Attributes
     ----------
     out_dir : str
@@ -180,6 +187,12 @@ class BaseTrainer(ABC):
         Stores the kwargs required to initialize a Pytorch Lightning's
         trainer module.
 
+    output_scaler : None | object, default=None
+        The scaling object to rescale the model outputs to original ranges (if applicable)
+        during performance calculations. Must have an appropriate `inverse_transform` function.
+        If None, no rescaling is performed. Note, only applicable to logged metrics,
+        gradients are still calculated with scaled outputs (if applicable).
+
     """  # noqa: D205
 
     def __init__(
@@ -200,6 +213,7 @@ class BaseTrainer(ABC):
         return_final: bool = False,
         logger_status: bool = False,
         seed: None | int = 123,
+        output_scaler: None | object = None
     ) -> None:
         self.out_dir = out_dir
         self.logger_status = logger_status
@@ -207,6 +221,7 @@ class BaseTrainer(ABC):
         self.early_stopping_args = early_stopping_args
         self.return_final = return_final
         self.ckpt_mode = ckpt_mode
+        self.output_scaler = output_scaler
 
         # seed everything
         if seed:
@@ -221,6 +236,7 @@ class BaseTrainer(ABC):
             "optimizer": optim,
             "learning_rate": learning_rate,
             "learning_rate_scheduler": lr_scheduler,
+            "output_scaler": output_scaler,
         }
 
         # PL trainer setup kwargs

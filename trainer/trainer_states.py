@@ -35,6 +35,10 @@ also contains an example template class "CustomTrainer" that a user can edit.
 """  # noqa: D205, D400
 
 from __future__ import annotations
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
+__author__ = "randlerabe@gmail.com"
+__description__ = "Contains the TrainNew, ContinueTraining, EvaluateOnly, and CustomTrainer classe."
 
 from typing import TYPE_CHECKING, Any
 
@@ -205,7 +209,7 @@ class TrainNew(BaseTrainer):
 
         to_monitor = "valid_loss"
         if isinstance(self.pl_model_kwargs["performance_metrics"], dict):
-            met = list(self.pl_model_kwargs["performance_matrics"].keys())
+            met = list(self.pl_model_kwargs["performance_metrics"].keys())
             met = met[0]
             to_monitor = "valid_perf_" + met
         elif isinstance(self.pl_model_kwargs["performance_metrics"], str):
@@ -372,7 +376,7 @@ class ContinueTraining(BaseTrainer):
 
         to_monitor = "valid_loss"
         if isinstance(self.pl_model_kwargs["performance_metrics"], dict):
-            met = list(self.pl_model_kwargs["performance_matrics"].keys())
+            met = list(self.pl_model_kwargs["performance_metrics"].keys())
             met = met[0]
             to_monitor = "valid_perf_" + met
         elif isinstance(self.pl_model_kwargs["performance_metrics"], str):

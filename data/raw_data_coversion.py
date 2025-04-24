@@ -30,11 +30,14 @@ Take note
 """
 
 from __future__ import annotations
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the RawDataConverter class for Knowit.'
 
 # external imports
 from pandas import DatetimeIndex, concat, DataFrame, Timedelta
+from pandas.api.types import is_numeric_dtype
 from numpy import array
 from datetime import timedelta
 
@@ -102,7 +105,8 @@ class RawDataConverter:
     def __init__(self, df: DataFrame, required_meta: dict,
                  nan_filler: str, nan_filled_components: list, meta: dict = None) -> None:
 
-        self.df = df
+        self.df = self._ensure_correct_dtypes(df)
+
         self.required_meta = required_meta
         self.nan_filler = nan_filler
         self.nan_filled_components = nan_filled_components
@@ -554,3 +558,48 @@ class RawDataConverter:
         df = df[~df.index.duplicated(keep='first')]
         len_check_dropped = len(df)
         return df, len_check - len_check_dropped
+
+    @staticmethod
+    def _ensure_correct_dtypes(df: DataFrame) -> DataFrame:
+        """
+        Ensures that all columns in the DataFrame have appropriate data types.
+        Converts non-numeric columns to either `int`, `float`, or `string` based on their contents.
+
+        Conversion rules:
+        - If a column is already numeric, it remains unchanged.
+        - If a column can be converted to `float`, it is converted.
+        - If all values in the column are whole numbers after conversion to `float`,
+        the column is further converted to `int`.
+        - If conversion to `float` fails, the column is converted to `string`.
+
+        Parameters
+        ----------
+        df : DataFrame
+            Input pandas DataFrame whose columns will be type-checked and converted.
+
+        Returns
+        -------
+        DataFrame
+            The modified DataFrame with corrected data types.
+
+        Warnings
+        --------
+        A warning is logged each time a column's data type is modified.
+        """
+
+        for column in df.columns:
+            col_dtype = df[column].dtype
+            if is_numeric_dtype(col_dtype):
+                continue
+            try:
+                df[column] = df[column].astype(float)
+                if (df[column] % 1 == 0).all():
+                    df[column] = df[column].astype(int)
+                logger.warning('Raw component %s value type converted from %s to %s',
+                               column, col_dtype, df[column].dtype)
+            except ValueError:
+                df[column] = df[column].astype("string")
+                logger.warning('Raw component %s value type converted from %s to string',
+                               column, col_dtype)
+
+        return df

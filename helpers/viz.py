@@ -1,5 +1,7 @@
 """This script contains example visualizations. These serve to illustrate how the outputs of KnowIt can be visualized."""
 
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains various functions to visualize KnowIt data structures.'
 
@@ -85,23 +87,26 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     None
     """
     curves, num_epochs = get_learning_curves(exp_output_dir, model_name)
-    score, metric, result_epoch = get_model_score(model_output_dir(exp_output_dir, model_name))
+    _, _, result_epoch = get_model_score(model_output_dir(exp_output_dir, model_name))
 
     loss_curves = [key for key in curves.keys() if 'perf' not in key]
     perf_curves = [key for key in curves.keys() if 'perf' in key]
     epochs = [e + 1 for e in range(num_epochs)]
     result_epoch += 1
 
-    fig, axes = plt.subplots(2 if perf_curves else 1, 1, figsize=generic_figsize)
+    num_rows = 1
+    perf_set = []
+    if perf_curves:
+        perf_set = list(set([curve.split('_perf_')[-1] for curve in perf_curves]))
+        num_rows += len(perf_set)
+
+    fig, axes = plt.subplots(num_rows, 1, figsize=generic_figsize)
     ax = axes if isinstance(axes, np.ndarray) else [axes]
 
     def plot_curves(ax: plt.Axes, curves: dict, epoch: list, result_epoch: int, ylabel: str) -> None:
         """Helper function to plot curves."""
         for c in curves:
             ax.plot(epoch, curves[c], label=c, marker='.', color=get_color(c))
-        ax.axvline(x=result_epoch, linestyle='--', c='white')
-        check = 0.5 * (ax.get_ylim()[1] - ax.get_ylim()[0]) + ax.get_ylim()[0]
-        ax.text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
         ax.set_xlabel('Epochs')
         ax.set_ylabel(ylabel)
         ax.grid(color=grid_color, alpha=0.5)
@@ -109,10 +114,19 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
 
     # Plot loss curves
     plot_curves(ax[0], {k: curves[k] for k in loss_curves}, epochs, result_epoch, 'Loss')
+    ax[0].axvline(x=result_epoch, linestyle='--', c='white')
+    check = 0.5 * (ax[0].get_ylim()[1] - ax[0].get_ylim()[0]) + ax[0].get_ylim()[0]
+    ax[0].text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
 
     # Plot performance curves if they exist
-    if perf_curves:
-        plot_curves(ax[1], {k: curves[k] for k in perf_curves}, epochs, result_epoch, 'Perf')
+    for p in range(len(perf_set)):
+        for curve in perf_curves:
+            if perf_set[p] in curve:
+                plot_curves(ax[p+1], {curve: curves[curve]}, epochs, result_epoch, perf_set[p])
+        ax[p+1].axvline(x=result_epoch, linestyle='--', c='white')
+        check = 0.5 * (ax[p+1].get_ylim()[1] - ax[p+1].get_ylim()[0]) + ax[p+1].get_ylim()[0]
+        ax[p+1].text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
+
 
     # Save the figure
     save_path = os.path.join(model_viz_dir(exp_output_dir, model_name), 'learning_curves.png')
@@ -222,7 +236,8 @@ def plot_set_predictions(exp_output_dir: str, model_name: str, data_tag: str) ->
     predictions_dir = model_predictions_dir(exp_output_dir, model_name)
 
     # find prediction and target values
-    _, predictions, targets, timestamps  = get_predictions(predictions_dir, data_tag, model_args)
+    _, predictions, targets, timestamps  = get_predictions(predictions_dir, data_tag,
+                                                           model_args['data_dynamics'][data_tag + '_size'])
     instances = list(set([timestamps[i][0] for i in timestamps]))
 
     # fill gaps where necessary
@@ -569,9 +584,9 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
     - The function requires `compile_running_plot_animation` to compile and save animations.
     """
 
-    def scale_alpha(min_val, max_val, val):
+    def scale_alpha(min_val, max_val, val, epsilon=1e-6):
         def lin_scale(f, target_min, target_max, native_min, native_max):
-            return (target_max - target_min) * (f - native_min) / (native_max - native_min) + target_min
+            return (target_max - target_min) * (f - native_min) / (native_max - native_min + epsilon) + target_min
         alpha = lin_scale(val, 0, 1, min_val, max_val)
         return alpha
 

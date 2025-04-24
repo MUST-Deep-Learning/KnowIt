@@ -13,7 +13,8 @@ https://lightning.ai/docs/pytorch/stable/common/lightning_module.html
 """  # noqa: D400, D205
 
 from __future__ import annotations
-
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "randlerabe@gmail.com"
 __description__ = "Constructs a Pytorch Lightning model class."
 
@@ -91,6 +92,12 @@ class PLModel(pl.LightningModule):
     model_params : dict[str, Any]
         The parameters needed to instantiate the above Pytorch model class.
 
+    output_scaler : None | object, default=None
+        The scaling object to rescale the model outputs to original ranges (if applicable)
+        during performance calculations. Must have an appropriate `inverse_transform` function.
+        If None, no rescaling is performed. Note, only applicable to logged metrics,
+        gradients are still calculated with scaled outputs (if applicable).
+
 
     Attributes
     ----------
@@ -113,6 +120,12 @@ class PLModel(pl.LightningModule):
         Stores the name of the performance metric(s) to be used during training
         and any additional kwargs if needed.
 
+    output_scaler : None | object, default=None
+        The scaling object to rescale the model outputs to original ranges (if applicable)
+        during performance calculations. Must have an appropriate `inverse_transform` function.
+        If None, no rescaling is performed. Note, only applicable to logged metrics,
+        gradients are still calculated with scaled outputs (if applicable).
+
     model : Module
         An initialized Pytorch model.
 
@@ -127,6 +140,7 @@ class PLModel(pl.LightningModule):
         performance_metrics: None | str | dict[str, Any],
         model: Module,
         model_params: dict[str, Any],
+        output_scaler: None | object = None
     ) -> None:
         super().__init__()
 
@@ -135,6 +149,7 @@ class PLModel(pl.LightningModule):
         self.lr_scheduler = learning_rate_scheduler
         self.optimizer = optimizer
         self.performance_metrics = performance_metrics
+        self.output_scaler = output_scaler
 
         self.model = self._build_model(model, model_params)
 
@@ -172,6 +187,8 @@ class PLModel(pl.LightningModule):
             **loss_log_metrics,
             **perf_log_metrics,
         }
+        log_metrics['epoch'] = float(self.current_epoch)
+
         # The loss and performance is accumulated over an epoch and then
         # averaged.
         self.log_dict(  # type: ignore[type]
@@ -215,6 +232,8 @@ class PLModel(pl.LightningModule):
             **loss_log_metrics,
             **perf_log_metrics,
         }
+        log_metrics['epoch'] = float(self.current_epoch)
+
         # The loss and performance is accumulated over an epoch and then
         # averaged.
         self.log_dict(  # type: ignore[type]
@@ -270,6 +289,7 @@ class PLModel(pl.LightningModule):
             **loss_log_metrics,
             **perf_log_metrics,
         }
+
         # The loss and performance is accumulated over an epoch and then
         # averaged.
         self.log_dict(  # type: ignore[type]
@@ -383,6 +403,13 @@ class PLModel(pl.LightningModule):
             loss = function(input=y_pred, target=y)
             log_metrics[loss_label] = loss
 
+            if self.output_scaler is not None:
+                y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
+                y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
+                loss_rescaled = function(input=y_pred, target=y)
+                log_metrics[loss_label] = loss_rescaled
+
+
         if loss is None:
             logger.error(
                 "Something went wrong when trying to compute the loss.",
@@ -439,7 +466,11 @@ class PLModel(pl.LightningModule):
 
         for _function in self.perf_functions:
             function = self.perf_functions[_function]
+            if self.output_scaler is not None:
+                y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
+                y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
             val = function(preds=y_pred, target=y)
             log_metrics[perf_label + _function] = val
+
 
         return log_metrics

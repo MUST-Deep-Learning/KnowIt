@@ -126,6 +126,8 @@ This class supports three different modes of temporal contiguity. See the module
 """
 
 from __future__ import annotations
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = ('Contains the PreparedDataset, CustomDataset, and CustomClassificationDataset, '
                    'and CustomSampler class for Knowit.')
@@ -439,6 +441,47 @@ class PreparedDataset(BaseDataset):
 
         return ist_values
 
+    def fetch_input_points_manually(self, set_tag: str, point_ids: int | list) -> Tensor:
+        """ Manually fetch data points from the datamodule based on provided point IDs.
+
+        Parameters
+        ----------
+        set_tag : str
+            A string indicating the dataset split to load ('train', 'valid', 'eval').
+        point_ids : int | list[int]
+            The IDs of the data points to fetch. These indices are defined as the relative position in the selection
+            matrix corresponding to the set tag. Can be a single integer, a list of integers,
+            or a tuple specifying a range (start, end).
+
+        Returns
+        -------
+        Tensor
+            A tensor containing the data points corresponding to the provided
+            IDs.
+
+        Raises
+        ------
+        ValueError
+            If the provided point IDs are invalid or out of range.
+
+        """
+        dataset = self.get_dataset(set_tag, preload=False)
+
+        if isinstance(point_ids, tuple):
+            ids = list(range(point_ids[0], point_ids[1]))
+        else:
+            ids = point_ids
+
+        try:
+            tensor = dataset.__getitem__(idx=ids)["x"]
+        except ValueError:
+            logger.error('Invalid: ids %s not in choice "%s" (which has range %s)',
+                         str(point_ids), set_tag,
+                         str((0, len(self.selection[set_tag]))))
+            exit(101)
+
+        return tensor
+
     def _prepare(self) -> None:
         """Prepare the dataset by splitting and scaling the data.
 
@@ -474,6 +517,11 @@ class PreparedDataset(BaseDataset):
         self.in_shape = [self.in_chunk[1] - self.in_chunk[0] + 1, len(self.in_components)]
         self.out_shape = [self.out_chunk[1] - self.out_chunk[0] + 1, len(self.out_components)]
         if self.task == 'classification':
+            if self.out_chunk[0] != self.out_chunk[1]:
+                logger.error('Currently, KnowIt can only perform classification at one specific time step at a time. '
+                             'Please change the out_chunk %s argument to reflect this. Both values must match.',
+                             str(self.out_chunk))
+                exit(101)
             self._get_classes()
             self._count_classes()
             self.out_shape = [1, len(self.class_set)]
@@ -495,6 +543,11 @@ class PreparedDataset(BaseDataset):
 
         # scale the dataset
         logger.info('Preparing data scalers, if relevant.')
+
+        if self.task == 'classification' and self.scaling_tag == 'full':
+            logger.warning('scaling_tag cannot be full for classification tasks. Changing to scaling_tag=in_only.')
+            self.scaling_tag = 'in_only'
+
         self.x_scaler, self.y_scaler = DataScaler(self.get_extractor(),
                                                   self.selection['train'],
                                                   self.scaling_method,
@@ -757,7 +810,7 @@ class CustomSampler(Sampler):
             # determine how many sequences to skip at the start
             skip = 0
             if self.shuffle:
-                skip = rng.integers(0, self.skip_max)
+                skip = rng.integers(0, min(self.skip_max, len(sb)))
             # compile batches greedily
             for b in range(skip, len(sb), self.batch_size):
                 batch = sb[arange(b, min(b + self.batch_size, len(sb))), 3].tolist()

@@ -64,6 +64,8 @@ that occur chronologically.
 
 """
 
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the DataSplitter class for KnowIt.'
 
@@ -140,6 +142,13 @@ class DataSplitter:
         # check that defined portions are valid
         if abs(1.0 - sum(portions)) > 1e-6:
             logger.error('Split portions do not add up to one.')
+            exit(101)
+
+        options = ('random', 'chronological',
+                   'instance-random', 'instance-chronological',
+                   'slice-random', 'slice-chronological')
+        if method not in options:
+            logger.error('split_method %s is not recognized; must be one of %s', method, options)
             exit(101)
 
         # 1. Find all appropriate prediction points

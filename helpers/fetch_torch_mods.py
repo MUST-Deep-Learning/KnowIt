@@ -1,5 +1,6 @@
 from __future__ import annotations  # noqa: D100
-
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "randlerabe@gmail.com"
 __description__ = "Helper functions used in KnowIt's trainer module."
 
@@ -17,6 +18,7 @@ from torch import optim
 from torch.nn import functional as f
 from torch.optim import lr_scheduler
 from torchmetrics import functional as mf
+import pandas as pd
 
 
 def get_loss_function(loss: str) -> Callable[..., float | Tensor]:
@@ -149,7 +151,8 @@ def get_model_score(model_dir: str) -> tuple:
     """
     This function scans the specified directory for a checkpoint file (indicated by "ckpt" in the filename),
     loads the checkpoint, and extracts the best score, the corresponding monitored metric, and epoch number,
-    from the callbacks section.
+    from the callbacks section. If there is no best score, it is assumed that the model at the last epoch was
+    stored and the score is retrieved from the `/lightning_logs/version_0/metrics.csv` file.
 
     Parameters
     ----------
@@ -172,5 +175,15 @@ def get_model_score(model_dir: str) -> tuple:
     ckpt = torch.load(f=ckpt_path)
     keys = list(ckpt["callbacks"].keys())[0]
 
-    return (ckpt["callbacks"][keys]["best_model_score"].item(),
-            ckpt["callbacks"][keys]["monitor"], ckpt["epoch"])
+    best_score = ckpt["callbacks"][keys]["best_model_score"]
+    metric = ckpt["callbacks"][keys]["monitor"]
+    epoch = ckpt["epoch"]
+    if best_score is not None:
+        best_score = best_score.item()
+    else:
+        lc_info = os.path.join(model_dir, "lightning_logs", "version_0", "metrics.csv")
+        metrics_df = pd.read_csv(lc_info)
+        valid_loss_df = metrics_df[metric]
+        best_score = valid_loss_df.loc[valid_loss_df.last_valid_index()]
+
+    return best_score, metric, epoch
