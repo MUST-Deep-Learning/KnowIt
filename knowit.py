@@ -387,6 +387,46 @@ class KnowIt:
         if and_viz and not trainer_args['logger_status'] and sweep_kwargs is None:
             plot_learning_curves(self.exp_output_dir, model_name)
 
+    def train_model_from_yaml(self, model_name: str, config_path: str, device: str | None = None,
+                    safe_mode: bool | None = None, and_viz: bool | None = None,
+                    preload: bool = True, num_workers: int = 4) -> None:
+        """Trains a model given a config file.
+
+        This function sets up and trains a model using the provided config file model_args.yaml.
+
+        Parameters
+        ----------
+        model_name : str
+            The name of the model to be trained.
+        config_path : str
+            The path to the config file (model_args.yaml) containing the necessary arguments for setting up the data,
+            architecture, and trainer. The config file should be in YAML format.
+            The config file should contain the following keys: 'data', 'arch', and 'trainer'.
+        device : str | None, default=None
+            The device to be used for training. Defaults to the global device setting if not provided.
+        safe_mode : bool | None, default=None
+            If provided, sets the safe mode value for this operation.
+            Defaults to the global safe mode setting if not provided.
+        and_viz : bool | None, default=None
+            If provided, sets the visualization setting for this operation. Defaults to the global
+            visualization setting if not provided.
+        num_workers : int, default = 4
+            Sets the number of workers to use for loading the dataset.
+        preload : bool, default = False
+            Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+
+        Notes
+        ---
+        This function is a wrapper for the train_model function.
+
+        """
+
+        config_args = yaml_to_dict(config_path)
+
+        self.train_model(model_name=model_name, kwargs=config_args,
+                         device=device, safe_mode=safe_mode, and_viz=and_viz,
+                         preload=preload, num_workers=num_workers)
+
     def consolidate_sweep(self, model_name: str, sweep_name: str,
                           selection_by_min: bool = True, safe_mode: bool | None = None,
                           wipe_after: bool = False) -> None:
