@@ -38,7 +38,7 @@ __description__ = 'Contains the RawDataConverter class for Knowit.'
 # external imports
 from pandas import DatetimeIndex, concat, DataFrame, Timedelta
 from pandas.api.types import is_numeric_dtype
-from numpy import array
+from numpy import array, sum, argwhere, hstack, vstack
 from datetime import timedelta
 
 # internal imports
@@ -101,6 +101,7 @@ class RawDataConverter:
     the_data = None
     instances = None
     instance_names = None
+    defines_custom_split = None
 
     def __init__(self, df: DataFrame, required_meta: dict,
                  nan_filler: str, nan_filled_components: list, meta: dict = None) -> None:
@@ -134,6 +135,7 @@ class RawDataConverter:
                 - 'base_nan_filler': The method or value used to fill NaN values in the dataset.
                 - 'nan_filled_components': The components where potential NaN values were filled.
                 - 'data_structure': The structure of the dataset.
+                - 'custom_splits': Defines the custom data splits
                 - Additional metadata (e.g., name, components, time_delta).
 
         the_data : DataFrame
@@ -146,6 +148,8 @@ class RawDataConverter:
         meta_data['base_nan_filler'] = self.nan_filler
         meta_data['nan_filled_components'] = self.nan_filled_components
         meta_data['data_structure'] = self.data_structure
+        if self.defines_custom_split:
+            meta_data['custom_splits'] = self.custom_splits
         return meta_data, self.the_data
 
     def _recompile_data_package(self) -> None:
@@ -155,6 +159,8 @@ class RawDataConverter:
         data_package = []
         data_structure = {}
         instance_names = {}
+        if self.defines_custom_split:
+            custom_splits = {'train': [], 'valid': [], 'eval': []}
         i_tick = 0
         for i in self.instances:
             data_structure[i_tick] = {}
@@ -167,12 +173,38 @@ class RawDataConverter:
                 new_df['slice'] = s
                 data_package.append(new_df)
                 data_structure[i_tick][s] = new_df.shape[0]
+                if self.defines_custom_split:
+                    instance_slice = new_df[['instance', 'slice']].values
+
+                    train_points = argwhere(self.the_data[i][s]['split'] == 0)
+                    if len(train_points) > 0:
+                        train_ist = instance_slice[train_points.squeeze()]
+                        train_ist = hstack((train_ist, train_points))
+                        custom_splits['train'].extend(train_ist)
+
+                    valid_points = argwhere(self.the_data[i][s]['split'] == 1)
+                    if len(valid_points) > 0:
+                        valid_ist = instance_slice[valid_points.squeeze()]
+                        valid_ist = hstack((valid_ist, valid_points))
+                        custom_splits['valid'].extend(valid_ist)
+
+                    eval_points = argwhere(self.the_data[i][s]['split'] == 2)
+                    if len(eval_points) > 0:
+                        eval_ist = instance_slice[eval_points.squeeze()]
+                        eval_ist = hstack((eval_ist, eval_points))
+                        custom_splits['eval'].extend(eval_ist)
+
             self.the_data.pop(i)
             i_tick += 1
         data_package = concat(data_package)
         self.the_data = data_package
         self.data_structure = data_structure
         self.instance_names = instance_names
+        if self.defines_custom_split:
+            custom_splits['train'] = vstack(custom_splits['train'])
+            custom_splits['valid'] = vstack(custom_splits['valid'])
+            custom_splits['eval'] = vstack(custom_splits['eval'])
+            self.custom_splits = custom_splits
         delattr(self, 'instances')
 
     def _summarize_data(self) -> None:
@@ -190,6 +222,14 @@ class RawDataConverter:
         logger.info(' TOTAL INSTANCES: %s', str(len(summary)))
         logger.info(' TOTAL SLICES: %s', str(num_slices))
         logger.info(' TOTAL PREDICTION POINTS: %s', str(num_pp))
+
+        if self.defines_custom_split:
+            train_counts = sum([sum([sum(s['split'] == 0) for s in self.the_data[i]]) for i in self.instances])
+            logger.info(' TOTAL CUSTOM TRAIN PREDICTION POINTS: %s', str(train_counts))
+            train_counts = sum([sum([sum(s['split'] == 1) for s in self.the_data[i]]) for i in self.instances])
+            logger.info(' TOTAL CUSTOM VALIDATION PREDICTION POINTS: %s', str(train_counts))
+            train_counts = sum([sum([sum(s['split'] == 2) for s in self.the_data[i]]) for i in self.instances])
+            logger.info(' TOTAL CUSTOM EVALUATION PREDICTION POINTS: %s', str(train_counts))
 
         logger.info('- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ')
 
@@ -220,7 +260,7 @@ class RawDataConverter:
         for i in self.the_data:
 
             # drop duplicates
-            i_df, num_dropped = self._drop_duplicates(self.the_data[i][self.meta['components']])
+            i_df, num_dropped = self._drop_duplicates(self.the_data[i])
             if num_dropped > 0:
                 logger.warning('Instance %s has ' + str(num_dropped) +
                                ' duplicates, dropping!', str(i))
@@ -238,6 +278,8 @@ class RawDataConverter:
                     t = i_slices[s].index.to_numpy()
                     d = i_slices[s][self.meta['components']].to_numpy()
                     self.the_data[i].append({'t': t, 'd': d})
+                    if self.defines_custom_split:
+                        self.the_data[i][-1]['split'] = i_slices[s]['split'].to_numpy()
                 instance_to_keep.append(i)
             else:
                 logger.warning('Found no appropriate slices in instance %s. Dropping instance.', str(i))
@@ -301,6 +343,13 @@ class RawDataConverter:
             if self.df['instance'].isnull().values.any():
                 logger.error('Some instance IDs are NaN.')
                 exit(101)
+
+        if 'split' in self.df.columns:
+            logger.info('Found column in raw dataframe called split. Defining optional custom data splits.')
+            if not (self.df['split'].isin([0, 1, 2]) | self.df['split'].isna()).all():
+                logger.error('All custom split tags must be 0, 1, or 2.')
+                exit(101)
+            self.defines_custom_split = True
 
     def _check_meta(self) -> None:
         """Check that the metadata is correctly provided.
