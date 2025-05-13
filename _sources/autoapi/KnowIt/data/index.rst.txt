@@ -1,0 +1,24 @@
+KnowIt.data
+===========
+
+.. py:module:: KnowIt.data
+
+.. autoapi-nested-parse::
+
+   KnowIt data framework.
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/KnowIt/data/base_dataset/index
+   /autoapi/KnowIt/data/data_scaling/index
+   /autoapi/KnowIt/data/data_splitting/index
+   /autoapi/KnowIt/data/prepared_dataset/index
+   /autoapi/KnowIt/data/raw_data_coversion/index
+
+
