@@ -20,7 +20,20 @@ Handling NaNs
     - nan_filled_components (str, None): Defines what components should be checked for NaNs.
         - None: All columns with float datatype will be flagged for NaN-handling.
         - A list of column headers to flag for NaN-handling.
-    
+
+------------
+Custom Split
+------------
+If a custom data split is used it should be defined in a separate column in the dataframe labeled 'split'.
+This column should contain the set indicators
+    - The train set is indicated by 0.
+    - The validation set is indicated by 1.
+    - The evaluation set is indicated by 2
+The selection matrices are saved for future use.
+Once the dataset is imported with Knowit.import_dataset(), can the custom split be used.
+
+Note that the 'split' column should not be included as a component in the metadata
+
 ---------
 Take note
 ---------

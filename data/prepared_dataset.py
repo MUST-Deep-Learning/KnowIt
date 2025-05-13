@@ -62,7 +62,7 @@ More details can be found in ``DataSplitter``, but we summarize the options here
     - 'slice-chronological': Ignore all distinction between instances, and split on slices chronologically.
     - 'instance-random': Split on instances randomly.
     - 'instance-chronological': Split on instances chronologically.
-    - 'custom': User defined split on instances.
+    - 'custom': User defined split.
 Note that the data is split ON the relevant level (instance, slice, or timesteps).
 I.e. If you split on instances and there are only 3 instances, then split_portions=(0.6, 0.2, 0.2)
 will be a wild approximation i.t.o actual time steps.
@@ -72,12 +72,8 @@ the excess data points from the end of the data block after shuffling or orderin
 Also note that if the data is limited too much for a given ``split_portion`` to have a single entry,
 an error will occur confirming it.
 
-Note that to use the 'custom' split, a separate column must be defined in the dataframe labeled 'split'.
-This column contains the set indicators
-    - The train set is indicated by 0.
-    - The validation set is indicated by 1.
-    - The evaluation set is indicated by 2
-Once the dataset is imported with Knowit.import_dataset(), can the custom split be used.
+Note that the 'custom' split have to be constructed during the importation of the dataset.
+This is done in data.raw_data_conversion.py
 
 -------
 Scaling
@@ -281,6 +277,7 @@ class PreparedDataset(BaseDataset):
     out_shape = None
     class_set = None # only filled if task='classification'
     class_counts = None  # only filled if task='classification'
+    class_splits = None
 
     def __init__(self, **kwargs) -> None:
 
@@ -501,8 +498,8 @@ class PreparedDataset(BaseDataset):
             - The splits are defined in the 'selection' variable in three selection matrices.
             - The scalers are stored in the 'x_scaler' and 'y_scaler' variables.
             - After the data is prepared the 'the_data' dictionary is removed from memory.
-            - If 'custom' is used, a previously defined list created by data.raw_data_conversion
-            is used to indicate the set splits
+            - If 'custom' is used, the selection matrices are constructed by data.raw_data_conversion
+              which is used to indicate the set splits
 
         """
         # check that desired components are in dataset
@@ -545,7 +542,7 @@ class PreparedDataset(BaseDataset):
                                           self.limit, self.x_map, self.y_map,
                                           self.in_chunk, self.out_chunk,
                                           self.min_slice).get_selection()
-        elif hasattr(self, 'custom_splits'):
+        elif self.custom_splits != None:
             self.selection = self.custom_splits
             missing_split_components = set(self.selection) - {'valid', 'train', 'eval'}
             if len(missing_split_components) > 0:
@@ -553,8 +550,7 @@ class PreparedDataset(BaseDataset):
                              str(missing_out_components))
                 exit(101)
         else:
-            logger.error('The custom split dictionary does not exist. Import the dataset with '
-                         'Knowit.import_dataset to create the custom split dictionary')
+            logger.error('Custom splits not defined.')
             exit(101)
 
         self.train_set_size = len(self.selection['train'])
