@@ -72,8 +72,8 @@ the excess data points from the end of the data block after shuffling or orderin
 Also note that if the data is limited too much for a given ``split_portion`` to have a single entry,
 an error will occur confirming it.
 
-Note that the 'custom' split have to be constructed during the importation of the dataset.
-This is done in data.raw_data_conversion.py
+Note that the 'custom' split has to be constructed during the data importing.
+See the RawDataConverter module for more information.
 
 -------
 Scaling
@@ -239,6 +239,8 @@ class PreparedDataset(BaseDataset):
     class_counts : dict
         A dictionary that maps each class ID to its size.
         Only created if task='classification'.
+    class_splits: dict
+        A dictionary defining the custom selection matrices.
 
     Notes
     -----
@@ -498,7 +500,7 @@ class PreparedDataset(BaseDataset):
             - The splits are defined in the 'selection' variable in three selection matrices.
             - The scalers are stored in the 'x_scaler' and 'y_scaler' variables.
             - After the data is prepared the 'the_data' dictionary is removed from memory.
-            - If 'custom' is used, the selection matrices are constructed by data.raw_data_conversion
+            - If custom splits are defined, the selection matrices are constructed by data.raw_data_conversion.
               which is used to indicate the set splits
 
         """
