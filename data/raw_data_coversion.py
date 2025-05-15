@@ -29,10 +29,10 @@ This column should contain the set indicators
     - The train set is indicated by 0.
     - The validation set is indicated by 1.
     - The evaluation set is indicated by 2
-The selection matrices are saved for future use.
-Once the dataset is imported with Knowit.import_dataset(), can the custom split be used.
+Appropriate selection matrices are generated and saved as metadata.
+Once the dataset is imported with Knowit.import_dataset(), the user can use this custom split.
 
-Note that the 'split' column should not be included as a component in the metadata
+Note that the 'split' column should not be included as a component in the metadata of the raw dataframe being imported.
 
 ---------
 Take note
@@ -148,7 +148,7 @@ class RawDataConverter:
                 - 'base_nan_filler': The method or value used to fill NaN values in the dataset.
                 - 'nan_filled_components': The components where potential NaN values were filled.
                 - 'data_structure': The structure of the dataset.
-                - 'custom_splits': Defines the custom data splits
+                - 'custom_splits': Defines the custom data splits if applicable.
                 - Additional metadata (e.g., name, components, time_delta).
 
         the_data : DataFrame

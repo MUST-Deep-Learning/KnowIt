@@ -279,7 +279,7 @@ class PreparedDataset(BaseDataset):
     out_shape = None
     class_set = None # only filled if task='classification'
     class_counts = None  # only filled if task='classification'
-    class_splits = None
+    custom_splits = None # only filled if custom_splits are defined at data import
 
     def __init__(self, **kwargs) -> None:
 
