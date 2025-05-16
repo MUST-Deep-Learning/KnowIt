@@ -113,6 +113,8 @@ class DataSplitter:
         What level to load values from disk with.
         If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
         If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
+    custom_splits: dict
+        A dictionary defining the custom selection matrices.
 
     Attributes
     ----------
@@ -120,7 +122,7 @@ class DataSplitter:
         The selection matrix corresponding to the train set.
     valid_points : array, shape=[n_valid_prediction_points, 3]
         The selection matrix corresponding to the validation set.
-    train_points : array, shape=[n_eval_prediction_points, 3]
+    eval_points : array, shape=[n_eval_prediction_points, 3]
         The selection matrix corresponding to the evaluation set.
 
     Raises
@@ -137,7 +139,8 @@ class DataSplitter:
                  x_map: array, y_map: array,
                  in_chunk: list, out_chunk: list,
                  min_slice: int, in_portion: float = 0.5,
-                 load_level: str = 'instance') -> None:
+                 load_level: str = 'instance',
+                 custom_splits = None) -> None:
 
         # check that defined portions are valid
         if abs(1.0 - sum(portions)) > 1e-6:
@@ -146,7 +149,7 @@ class DataSplitter:
 
         options = ('random', 'chronological',
                    'instance-random', 'instance-chronological',
-                   'slice-random', 'slice-chronological')
+                   'slice-random', 'slice-chronological', 'custom')
         if method not in options:
             logger.error('split_method %s is not recognized; must be one of %s', method, options)
             exit(101)
@@ -158,8 +161,30 @@ class DataSplitter:
                                                                   min_slice, in_portion,
                                                                   load_level)
 
-        # 2. Split (and limit)
-        self.train_points, self.valid_points, self.eval_points = self._do_split(prediction_points, times,
+        if method == 'custom':
+            # Check if all sets are present in the custom split
+            missing_split_components = set(custom_splits) - {'valid', 'train', 'eval'}
+            if len(missing_split_components) > 0:
+                logger.error('Defined set selection %s not in custom splits.',
+                                     str(missing_split_components))
+                exit(101)
+            elif limit is not None:
+                logger.error("At the moment Knowit cannot limit the data when custom selected splits are used.")
+                exit(101)
+
+            # Check if any chunks are beyond the relevant slice
+            for data_set in ['train', 'valid', 'eval']:
+                converted_prediction_set = set(map(tuple, prediction_points))
+                mask = [tuple(row) in converted_prediction_set for row in custom_splits[data_set]]
+                custom_splits[data_set] = custom_splits[data_set][mask]
+
+            self.train_points = custom_splits['train']
+            self.valid_points = custom_splits['valid']
+            self.eval_points = custom_splits['eval']
+
+        else:
+            # 2. Split (and limit)
+            self.train_points, self.valid_points, self.eval_points = self._do_split(prediction_points, times,
                                                                                 portions, method, limit)
 
     def get_selection(self) -> dict:

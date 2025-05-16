@@ -239,7 +239,7 @@ class PreparedDataset(BaseDataset):
     class_counts : dict
         A dictionary that maps each class ID to its size.
         Only created if task='classification'.
-    class_splits: dict
+    custom_splits: dict
         A dictionary defining the custom selection matrices.
 
     Notes
@@ -537,23 +537,23 @@ class PreparedDataset(BaseDataset):
 
         # split the dataset
         logger.info('Preparing data splits (selection).')
-        if self.split_method != 'custom':
-            self.selection = DataSplitter(self.get_extractor(),
-                                          self.split_method,
-                                          self.split_portions,
-                                          self.limit, self.x_map, self.y_map,
-                                          self.in_chunk, self.out_chunk,
-                                          self.min_slice).get_selection()
-        elif self.custom_splits != None:
-            self.selection = self.custom_splits
-            missing_split_components = set(self.selection) - {'valid', 'train', 'eval'}
-            if len(missing_split_components) > 0:
-                logger.error('Defined set selection %s not in custom splits.',
-                             str(missing_out_components))
-                exit(101)
-        else:
-            logger.error('Custom splits not defined.')
-            exit(101)
+        self.selection = DataSplitter(self.get_extractor(),
+                                      self.split_method,
+                                      self.split_portions,
+                                      self.limit, self.x_map, self.y_map,
+                                      self.in_chunk, self.out_chunk,
+                                      self.min_slice,
+                                      custom_splits = self.custom_splits).get_selection()
+        # if self.split_method == 'custom':
+        #     self.selection = self.custom_splits
+        #     missing_split_components = set(self.selection) - {'valid', 'train', 'eval'}
+        #     if len(missing_split_components) > 0:
+        #         logger.error('Defined set selection %s not in custom splits.',
+        #                      str(missing_out_components))
+        #         exit(101)
+        # else:
+        #     logger.error('Custom splits not defined.')
+        #     exit(101)
 
         self.train_set_size = len(self.selection['train'])
         self.valid_set_size = len(self.selection['valid'])
