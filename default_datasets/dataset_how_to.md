@@ -5,8 +5,8 @@ This guide explains how to import and manage new raw data.
 
 In order to train models on your data you will need to convert it into a specific format for 
 KnowIt to understand. Your data will need to be compiled into a [``pandas.Dataframe``](https://pandas.pydata.org/docs/reference/frame.html) that meets 
-a number of criteria. It can then be imported using the ``KnowIt.import_dataset(kwarg={'import_data_args': {'raw_data': <the dataframe>, ...}})`` function.
-You can also provide the data as a path to a pickled dataframe using ``KnowIt.import_dataset(kwarg={'import_data_args': {'raw_data': <path to pickle>, ...}})``.
+a number of criteria. It can then be imported using the ``KnowIt.import_dataset(kwarg={'data_import': {'raw_data': <the dataframe>, ...}})`` function.
+You can also provide the data as a path to a pickled dataframe using ``KnowIt.import_dataset(kwarg={'data_import': {'raw_data': <path to pickle>, ...}})``.
 
 The criteria are as follows:
 1. Must be time indexed. (with a [``pandas.DatetimeIndex``](https://pandas.pydata.org/docs/reference/api/pandas.DatetimeIndex.html#pandas.DatetimeIndex), not strings)
