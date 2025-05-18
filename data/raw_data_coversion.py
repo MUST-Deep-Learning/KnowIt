@@ -28,7 +28,7 @@ If a custom data split is used it should be defined in a separate column in the 
 This column should contain the set indicators
     - The train set is indicated by 0.
     - The validation set is indicated by 1.
-    - The evaluation set is indicated by 2
+    - The evaluation set is indicated by 2.
 Appropriate selection matrices are generated and saved as metadata.
 Once the dataset is imported with Knowit.import_dataset(), the user can use this custom split.
 
