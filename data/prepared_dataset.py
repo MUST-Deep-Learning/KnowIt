@@ -183,7 +183,7 @@ class PreparedDataset(BaseDataset):
         The mini-batch size for training.
     split_method : str
         The method of splitting data. Options are 'random', 'chronological',
-        'instance-random', 'instance-chronological', 'slice-random', 'slice-chronological', or 'custom.
+        'instance-random', 'instance-chronological', 'slice-random', 'slice-chronological', or 'custom'.
         See heading for description.
     scaling_method : str | None
         The method for scaling data features. Options are 'z-norm', 'zero-one', or None.
@@ -500,8 +500,6 @@ class PreparedDataset(BaseDataset):
             - The splits are defined in the 'selection' variable in three selection matrices.
             - The scalers are stored in the 'x_scaler' and 'y_scaler' variables.
             - After the data is prepared the 'the_data' dictionary is removed from memory.
-            - If custom splits are defined, the selection matrices are constructed by data.raw_data_conversion.
-              which is used to indicate the set splits
 
         """
         # check that desired components are in dataset
@@ -544,16 +542,6 @@ class PreparedDataset(BaseDataset):
                                       self.in_chunk, self.out_chunk,
                                       self.min_slice,
                                       custom_splits = self.custom_splits).get_selection()
-        # if self.split_method == 'custom':
-        #     self.selection = self.custom_splits
-        #     missing_split_components = set(self.selection) - {'valid', 'train', 'eval'}
-        #     if len(missing_split_components) > 0:
-        #         logger.error('Defined set selection %s not in custom splits.',
-        #                      str(missing_out_components))
-        #         exit(101)
-        # else:
-        #     logger.error('Custom splits not defined.')
-        #     exit(101)
 
         self.train_set_size = len(self.selection['train'])
         self.valid_set_size = len(self.selection['valid'])
