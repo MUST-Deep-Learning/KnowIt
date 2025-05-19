@@ -113,7 +113,7 @@ class DataSplitter:
         What level to load values from disk with.
         If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
         If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
-    custom_splits: dict
+    custom_splits: dict | None, default=None
         A dictionary defining the custom selection matrices.
 
     Attributes
@@ -140,7 +140,7 @@ class DataSplitter:
                  in_chunk: list, out_chunk: list,
                  min_slice: int, in_portion: float = 0.5,
                  load_level: str = 'instance',
-                 custom_splits = None) -> None:
+                 custom_splits: dict = None) -> None:
 
         # check that defined portions are valid
         if abs(1.0 - sum(portions)) > 1e-6:
@@ -162,26 +162,29 @@ class DataSplitter:
                                                                   load_level)
 
         if method == 'custom':
+
             # Check if all sets are present in the custom split
             missing_split_components = set(custom_splits) - {'valid', 'train', 'eval'}
             if len(missing_split_components) > 0:
                 logger.error('Defined set selection %s not in custom splits.',
                                      str(missing_split_components))
                 exit(101)
-            elif limit is not None:
-                logger.error("At the moment Knowit cannot limit the data when custom selected splits are used.")
+
+            # Check that the splits are not to be limited
+            if limit is not None:
+                logger.error("KnowIt does not currently support custom splits and limiting the dataset.")
                 exit(101)
 
-            # Check if any chunks are beyond the relevant slice
+            # Remove custom selected prediction points that are not valid
+            # @TODO this loop can probably be done much faster, TBD if required.
+            converted_prediction_set = set(map(tuple, prediction_points))
             for data_set in ['train', 'valid', 'eval']:
-                converted_prediction_set = set(map(tuple, prediction_points))
                 mask = [tuple(row) in converted_prediction_set for row in custom_splits[data_set]]
                 custom_splits[data_set] = custom_splits[data_set][mask]
 
             self.train_points = custom_splits['train']
             self.valid_points = custom_splits['valid']
             self.eval_points = custom_splits['eval']
-
         else:
             # 2. Split (and limit)
             self.train_points, self.valid_points, self.eval_points = self._do_split(prediction_points, times,
