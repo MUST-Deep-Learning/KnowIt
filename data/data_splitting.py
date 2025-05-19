@@ -39,6 +39,7 @@ order of these elements are defined by the 'method' argument:
     -   instance-chronological: split on instances in chronological order. The ordering is based on the first (chronologically) time step in the instance.
     -   slice-chronological: split on slices in chronological order. The ordering is based on the first (chronologically) time step in the slice.
     -   slice-random: split on slices in random order
+    -   custom: custom user defined splits, specified at data importing
 
 This means that 'portions' are defined i.t.o the specific 'method'. For examples:
 portions=(0.8, 0.1, 0.1) and method=instance-random means that the prediction points of a random 80% of instances,
@@ -49,6 +50,9 @@ will constitute training data, etc.
 Note that this also means that the provided portions do not necessarily correspond to the portions of prediction points,
 and therefore they might not directly control the number of examples trained and tested on.
 Only for method=random or method=chronological would they.
+
+Also note that if a custom split is defined, as in RawDataConverter, and selected here (method='custom').
+The operations above will not be performed. The splits defined at raw data import will be checked for validity and used instead.
 
 --------
 Limiting
@@ -90,7 +94,7 @@ class DataSplitter:
         The data extractor object to read data from disk.
     method : str
         Method for data splitting. Options are 'random', 'chronological',
-        'instance-random', 'instance-chronological', 'slice-random', or 'slice-chronological'.
+        'instance-random', 'instance-chronological', 'slice-random', or 'slice-chronological', 'custom'.
     portions : tuple, shape=[3,]
         Tuple of three floats representing the portions for training, validation, and evaluation
         datasets respectively. The sum of these portions should be 1.0.
@@ -435,6 +439,11 @@ class DataSplitter:
         converted_prediction_set = set(map(tuple, prediction_points))
         for data_set in ['train', 'valid', 'eval']:
             mask = [tuple(row) in converted_prediction_set for row in custom_splits[data_set]]
+            dropped = len(mask) - count_nonzero(mask)
+            if dropped > 0:
+                logger.warning('Dropping %s %s-set prediction points as they do not constitute appropriate prediction points for the current model. '
+                               'This is likely due to slice edge cases not having available input or output features.',
+                               dropped, data_set)
             custom_splits[data_set] = custom_splits[data_set][mask]
 
         return custom_splits['train'], custom_splits['valid'], custom_splits['eval']
