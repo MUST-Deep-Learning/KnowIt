@@ -541,7 +541,7 @@ class PreparedDataset(BaseDataset):
                                       self.limit, self.x_map, self.y_map,
                                       self.in_chunk, self.out_chunk,
                                       self.min_slice,
-                                      custom_splits = self.custom_splits).get_selection()
+                                      custom_splits=self.custom_splits).get_selection()
 
         self.train_set_size = len(self.selection['train'])
         self.valid_set_size = len(self.selection['valid'])
