@@ -38,7 +38,7 @@ from setup.import_custom_arch import import_custom_arch, complies
 from data.base_dataset import BaseDataset
 from data.prepared_dataset import PreparedDataset
 from trainer.trainer import KITrainer
-from trainer.trainer_states import TrainNew, EvaluateOnly
+from trainer.trainer_states import TrainNew, EvaluateOnly, ContinueTraining
 from interpret.DLS_Captum import DLS
 from interpret.DL_Captum import DeepL
 from interpret.IntegratedGrad_Captum import IntegratedGrad
@@ -494,8 +494,80 @@ class KnowIt:
         if wipe_after and not safe_mode:
             shutil.rmtree(sweep_dir)
 
-    def run_model_eval(self, model_name: str, device: str | None=None,
-                       preload: bool = True, num_workers: int = 4) -> None:
+    def train_model_further(self, model_name: str, max_epochs: int, *, device: str | None = None,
+                            safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
+        """Train an existing model further from checkpoint.
+
+        The trainer will continue training from the previous epoch up to the
+        new max_epoch. For example, if previously trained from epoch 0 to epoch
+        4 and max_epoch = 5, then the trainer will continue training from epoch
+        5 to epoch 9.
+
+        Parameters
+        ----------
+        model_name : str
+            The name of the trained model.
+        max_epochs : int
+            The maximum number of epochs for which to train the model.
+        device : str|None
+            The device to use for the training (cpu or gpu).
+        safe_mode : bool | None, default=None
+            If provided, sets the safe mode value for this operation.
+            Defaults to the global safe mode setting if not provided.
+        and_viz : bool | None, default=None
+            If provided, sets the visualization setting for this operation. Defaults to the global
+            visualization setting if not provided.
+        """
+        if device is None:
+            device = self.global_device
+        if safe_mode is None:
+            safe_mode = self.global_safe_mode
+        if and_viz is None:
+            and_viz = self.global_and_viz
+
+        ckpt_file = ckpt_path(exp_output_dir=self.exp_output_dir, name=model_name)
+
+        model_args = yaml_to_dict(model_args_path(self.exp_output_dir, model_name))
+        trainer_args = model_args['trainer']
+        data_args = model_args['data']
+
+        datamodule, class_counts = KnowIt._get_datamodule(self.exp_output_dir, self.available_datasets(), data_args=data_args)
+
+        trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir, self.available_datasets(), self.available_archs(), model_name=model_name, w_pt_model=True)
+
+        optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
+
+        task = trainer_args.pop('task')
+        trainer_args['model'] = trained_model_dict['model']
+        trainer_args['device'] = device
+        trainer_args['model_params'] = trained_model_dict['model_params']
+        trainer_args['out_dir'] = model_output_dir(self.exp_output_dir, model_name)
+        trainer_args['device'] = device
+        trainer_args['max_epochs'] = max_epochs
+
+        if trainer_args['loss_fn'] == 'weighted_cross_entropy':
+            trainer_args['loss_fn'] = proc_weighted_cross_entropy(
+                task=task,
+                device=device,
+                class_counts=class_counts,
+            )
+
+        trainer = KITrainer(
+            state=ContinueTraining,
+            ckpt_file=ckpt_file,
+            base_trainer_kwargs=trainer_args,
+            optional_pl_kwargs=optional_pl_kwargs,
+            train_flag="train_from_ckpt",
+        )
+
+        trainer.fit(dataloaders=(datamodule.get_dataloader('train'),
+                                 datamodule.get_dataloader('valid'),
+                                 datamodule.get_dataloader('eval')))
+
+        if and_viz and not trainer_args['logger_status']:
+            plot_learning_curves(self.exp_output_dir, model_name)
+
+    def run_model_eval(self, model_name: str, device: str|None=None) -> None:
         """Run model evaluation over dataloaders.
 
         Given a trained model name, evaluates the model on the train, valid-
