@@ -16,7 +16,12 @@ The criteria are as follows:
         - **input_dim** (tuple) = The expected input dimensions of the model (t, c). Where t is the number of time steps (delays) and c is the number of input components. 
         - **output_dim** (tuple) = The expected output dimensions of the model (t, c). Where t is the number of time steps (delays) and c is the number of output components.
     - All other arguments are optional and default values must be provided.
-    -   The class must also have a forward function that recieved one argument (the input tensor).
+    -   The class must also have a forward function that receives a `batch` dictionary, as argument, with the following contents:
+    - 
+      - `x` - The input tensor for the batch.
+      - `y` - The target tensor for the batch. Can (and should) be ignored.
+      - `s_id` - The indices corresponding to the prediction points in the batch. This is the there position in the selection matrix.
+      - `ist_idx` - The IST indices of the prediction points in the batch. This can be used to facilitate statefulness if desired. 
 
 Note that the architecture will have the same name as the script being imported.
 

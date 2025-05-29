@@ -160,15 +160,12 @@ class PLModel(pl.LightningModule):
 
         Overrides the method in pl.LightningModule.
         """
-        x = batch["x"]
-        y = batch["y"]
-
         forward = getattr(self.model, "forward")  # noqa: B009
-        y_pred = forward(x)
+        y_pred = forward(batch)
 
         # compute loss; depends on whether user gave kwargs
         loss, loss_log_metrics = self._compute_loss(
-            y=y,
+            y=batch['y'],
             y_pred=y_pred,
             loss_label="train_loss",
         )
@@ -178,7 +175,7 @@ class PLModel(pl.LightningModule):
             perf_log_metrics = {}
         else:
             perf_log_metrics = self._compute_performance(
-                y=y,
+                y=batch['y'],
                 y_pred=y_pred,
                 perf_label="train_perf_",
             )
@@ -205,15 +202,13 @@ class PLModel(pl.LightningModule):
 
         Overrides the method in pl.LightningModule.
         """
-        x = batch["x"]
-        y = batch["y"]
 
         forward = getattr(self.model, "forward")  # noqa: B009
-        y_pred = forward(x)
+        y_pred = forward(batch)
 
         # compute loss; depends on whether user gave kwargs
         loss, loss_log_metrics = self._compute_loss(
-            y=y,
+            y=batch['y'],
             y_pred=y_pred,
             loss_label="valid_loss",
         )
@@ -223,7 +218,7 @@ class PLModel(pl.LightningModule):
             perf_log_metrics = {}
         else:
             perf_log_metrics = self._compute_performance(
-                y=y,
+                y=batch['y'],
                 y_pred=y_pred,
                 perf_label="valid_perf_",
             )
@@ -262,15 +257,12 @@ class PLModel(pl.LightningModule):
         }
         current_loader = loaders[dataloader_idx]
 
-        x = batch["x"]
-        y = batch["y"]
-
         forward = getattr(self.model, "forward")  # noqa: B009
-        y_pred = forward(x)
+        y_pred = forward(batch)
 
         # compute loss; depends on whether user gave kwargs
         _, loss_log_metrics = self._compute_loss(
-            y=y,
+            y=batch['y'],
             y_pred=y_pred,
             loss_label=current_loader + "loss",
         )
@@ -280,7 +272,7 @@ class PLModel(pl.LightningModule):
             perf_log_metrics = {}
         else:
             perf_log_metrics = self._compute_performance(
-                y=y,
+                y=batch['y'],
                 y_pred=y_pred,
                 perf_label=current_loader + "perf_",
             )
