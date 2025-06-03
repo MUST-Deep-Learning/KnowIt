@@ -1,19 +1,29 @@
-"""
-----
-LSTM
-----
+"""This is a set of stacked LSTM blocks,
+with optional normalization, dropout, bidirectionality, and residual connections,
+followed by a final linear layer, with optional output activation.
+Additionally, the architecture can be stateful or stateless.
 
-An example of an LSTM architecture using Pytorch.
+---------
+LSTMBlock
+---------
 
-The LSTM consists of recurrent cells that contain hidden states and cell
-states. When in stateless mode, the hidden and cell states are re-initialized for each batch.
-When in stateful mode, hidden and cell states are maintained across batches only if prediction points at
-corresponding indices across batches are contiguous in time.
+This block consists of 2 to 4 layers.
+* is optional
 
-The architecture consists of a set of basic uni-directional LSTM layers, followed by a fully connected layer and an
-optional output activation function.
+[lstm] -> [layernorm*] -> [dropout*] -> [residual*]
 
-"""
+    -   [lstm] = torch.nn.LSTM
+    -   [layernorm*] = torch.nn.LayerNorm
+    -   [dropout*] = torch.nn.Dropout
+    -   [residual*] = a residual connection
+
+Notes
+-----
+    - The LSTM is capable of handling regression or classification tasks.
+    - All LSTMBlocks have bias parameters.
+    - All LSTMBlocks have the same number of hidden units, defined by the ``width`` parameter.
+
+""" # noqa: INP001, D415, D400, D212, D205
 
 from __future__ import annotations
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
@@ -21,10 +31,10 @@ __licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "tiantheunissen@gmail.com, randlerabe@gmail.com"
 __description__ = "Contains an example of a LSTM architecture."
 
-import numpy as np
-import torch
-from torch import Tensor, nn
-from torch.nn import LSTM, Linear, Module
+from numpy import arange, prod
+from torch import Tensor, zeros, randn, randn_like, nn, ones, cat
+from torch.nn import (LSTM, Linear, Module, LayerNorm,
+                      Dropout, ModuleList, Sequential, Identity)
 
 from helpers.logger import get_logger
 
@@ -34,7 +44,7 @@ available_tasks = ("regression", "classification")
 
 HP_ranges_dict = {"width": range(2, 1025, 1),
                   "depth": range(2, 1025, 1),
-                  "dropout": np.arange(0, 1.1, 0.1),
+                  "dropout": arange(0, 1.1, 0.1),
                   "output_activation": (None, "Sigmoid", "Softmax"),
                   "stateful": (False, True),
                   "hc_init_method": ('zeros', 'random'),
@@ -42,11 +52,69 @@ HP_ranges_dict = {"width": range(2, 1025, 1),
                   "residual": (False, True)}
 
 class Model(Module):
+    """A stacked LSTM model for sequence processing with configurable depth,
+    bidirectional processing, and output layers.
+
+    This model consists of multiple LSTMBlock layers followed by a linear output layer and an optional activation function.
+    It supports stateful processing for sequential data, handling tasks like regression or classification.
+
+    Parameters
+    ----------
+    input_dim : list[int], shape=[in_chunk, in_components]
+        The shape of the input data. The "time axis" is along the first dimension.
+    output_dim : list[int], shape=[out_chunk, out_components]
+        The shape of the output data. The "time axis" is along the first dimension.
+    task_name : str
+        The type of task (classification or regression).
+    width : int, default=256
+        The number of features in the hidden state of each LSTMBlock.
+    depth : int, default=2
+        The number of LSTMBlocks.
+    dropout : float, default=0.0
+        Dropout probability applied in each LSTMBlock.
+    output_activation : str or None, default=None
+        The activation function for the output layer ('Sigmoid', 'Softmax', or None).
+    stateful : bool, default=False
+        If True, maintains hidden states across batches for contiguous sequences.
+    hc_init_method : str, default='zeros'
+        Method for initializing hidden and cell states in LSTMBlocks ('zeros' or 'random').
+    layernorm : bool, default=True
+        If True, applies layer normalization in each LSTMBlock.
+    bidirectional : bool, default=False
+        If True, uses bidirectional LSTMBlocks.
+    residual : bool, default=False
+        If True, applies residual connections in LSTMBlocks if sizes match.
+
+    Attributes
+    ----------
+    task_name : str
+        The task type ('regression' or 'classification').
+    model_in_dim : int
+        The input feature size (last dimension of input_dim).
+    model_out_dim : int
+        The flattened output size (product of output_dim).
+    final_out_shape : list[int]
+        The desired output shape.
+    stateful : bool
+        Whether the model maintains hidden states across batches.
+    last_ist_idx : torch.Tensor or None
+        The last batch indices used for stateful processing, or None if not set.
+    lstm_layers : torch.nn.ModuleList
+        List of LSTMBlock instances.
+    output_layers : torch.nn.Sequential
+        Sequential container of the output linear layer and optional activation function.
+
+    Notes
+    -----
+    - The output shape is reshaped to match `output_dim` (e.g., [batch_size, out_chunk, out_components]).
+    - Stateful processing requires `ist_idx` in the input batch to track sequence continuity.
+    - The `output_activation` is applied only if specified, typically for classification tasks.
+    """
 
     task_name = None
     model_in_dim = None
     model_out_dim = None
-    final_out_dim = None
+    final_out_shape = None
     stateful = False
     last_ist_idx = None
 
@@ -58,7 +126,7 @@ class Model(Module):
         *,
         width: int = 256,
         depth: int = 2,
-        dropout: float = 0.5,
+        dropout: float = 0.0,
         output_activation: str | None = None,
         stateful: bool = False,
         hc_init_method: str = 'zeros',
@@ -69,16 +137,17 @@ class Model(Module):
         super().__init__()
 
         self.task_name = task_name
-        self.input_size = input_dim[-1]
-        self.model_out_dim = int(np.prod(output_dim))
+        self.model_in_dim = input_dim[-1]
+        self.model_out_dim = int(prod(output_dim))
         self.final_out_shape = output_dim
         self.stateful = stateful
 
-        self.lstm_layers = nn.ModuleList()
+        self.lstm_layers = ModuleList()
+        direction = 2 if bidirectional else 1
         for d in range(depth):
             self.lstm_layers.append(
-                LSTM_Block(
-                    input_size=self.input_size if d == 0 else width,
+                LSTMBlock(
+                    input_size=self.model_in_dim if d == 0 else direction * width,
                     hidden_size=width,
                     num_layers=1,
                     dropout=dropout,
@@ -91,24 +160,57 @@ class Model(Module):
             )
 
         self.output_layers = []
-        self.output_layers.append(Linear(in_features=width * input_dim[-2],
+        self.output_layers.append(Linear(in_features=direction * width * input_dim[-2],
                                         out_features=self.model_out_dim,
                                         bias=False))
         if output_activation is not None:
             self.output_layers.append(get_output_activation(output_activation))
-        self.output_layers = nn.Sequential(*self.output_layers)
+        self.output_layers = Sequential(*self.output_layers)
 
-    def _reset_all_layer_states(self, batch_size, device, changed_idx=None):
+    def _reset_all_layer_states(self, batch_size, device, changed_idx=None) -> None:
+        """Reset the hidden and cell states of all LSTMBlock layers.
+
+        Parameters
+        ----------
+        batch_size : int
+            The batch size for the hidden and cell states.
+        device : str
+            The device to place the hidden and cell states on (e.g., 'cuda' or 'cpu').
+        changed_idx : torch.Tensor, default=None
+            Boolean mask tensor of shape (batch_size,) indicating which batch indices to reset.
+        """
         for layer in self.lstm_layers:
             layer.reset_states(batch_size=batch_size, device=device, changed_idx=changed_idx)
 
-    def _detach_all_layer_hidden_states(self):
+    def _detach_all_layer_hidden_states(self) -> None:
+        """Detach the hidden and cell states of all LSTMBlock layers to stop gradient tracking.
+
+        Notes
+        -----
+        This is typically used in stateful mode to break gradient computation across batches.
+        """
         for layer in self.lstm_layers:
             layer.hidden_state = (layer.hidden_state[0].detach(), layer.hidden_state[1].detach())
 
     def _handle_states(self, ist_idx, device) -> None:
+        """Manage hidden state continuity for stateful processing based on batch indices.
+
+        Parameters
+        ----------
+        ist_idx : torch.Tensor
+            Tensor of shape (batch_size, 3) containing batch indices for tracking sequence continuity.
+        device : str
+            The device to place the hidden and cell states on (e.g., 'cuda' or 'cpu').
+
+        Notes
+        -----
+        - If `stateful=True`, hidden states are preserved for contiguous sequences and reset for non-contiguous ones.
+        - `ist_idx` is expected to have columns [instance_id, slice_id, time_step_id].
+        - Non-contiguous sequences are detected by comparing `ist_idx` with `last_ist_idx`.
+        """
 
         def _is_contiguous(a, b):
+            """ Determine which prediction points are contiguous with last batch. """
             same_i = a[:, 0] == b[:, 0]
             same_s = a[:, 1] == b[:, 1]
             next_t = a[:, 2]+1 == b[:, 2]
@@ -117,23 +219,55 @@ class Model(Module):
 
         if self.stateful:
             if not self.last_ist_idx is None:
-                # this is not the first pass of data
+                # data has been passed before, detach all hidden states
                 self._detach_all_layer_hidden_states()
                 if self.last_ist_idx.shape == ist_idx.shape:
-                    # new batch is same shape as last batch
+                    # new batch is same shape as last batch, just reset at breaks in contiguousness
                     changed = ~_is_contiguous(self.last_ist_idx, ist_idx)
-                    self._reset_all_layer_states(ist_idx.shape[0], device, changed)
+                elif self.last_ist_idx.shape[0] > ist_idx.shape[0]:
+                    # new batch is smaller than last batch
+                    changed = ~_is_contiguous(self.last_ist_idx[:ist_idx.shape[0], :], ist_idx[:ist_idx.shape[0], :])
+                    this = ones(size=(self.last_ist_idx.shape[0] - ist_idx.shape[0],), dtype=bool).to(device)
+                    changed = cat((changed, this))
                 else:
-                    # new batch is different shape to last batch
-                    self._reset_all_layer_states(ist_idx.shape[0], device)
+                    # new batch is larger than last batch
+                    changed = ~_is_contiguous(self.last_ist_idx, ist_idx[:self.last_ist_idx.shape[0], :])
+                    this = ones(size=(ist_idx.shape[0] - self.last_ist_idx.shape[0],), dtype=bool).to(device)
+                    changed = cat((changed, this))
+                self._reset_all_layer_states(ist_idx.shape[0], device, changed)
             else:
+                # first time data is passed through model, reset everything
                 self._reset_all_layer_states(ist_idx.shape[0], device)
             self.last_ist_idx = ist_idx.clone()
         else:
             self._reset_all_layer_states(ist_idx.shape[0], device)
 
     def forward(self, batch: dict) -> Tensor:
+        """Forward pass through the model, processing input through LSTM layers and output layers.
 
+        Parameters
+        ----------
+        batch : dict
+            Dictionary containing:
+            - 'x': Input tensor of shape (batch_size, in_chunk, in_components).
+            - 'ist_idx': Tensor of shape (batch_size, 3) for stateful processing.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (batch_size, sequence_length, output_size) matching `final_out_shape`.
+
+        Raises
+        ------
+        SystemExit
+            If `task_name` is neither 'regression' nor 'classification', exits with code 101.
+
+        Notes
+        -----
+        - The input is processed sequentially through each LSTMBlock, followed by reshaping and output layers.
+        - For 'regression', the output is reshaped to match `final_out_shape`.
+        - For 'classification', the output is returned as is (assumes activation like softmax is in output_layers).
+        """
         x = batch['x']
         self._handle_states(batch['ist_idx'][0], x.device)
 
@@ -154,18 +288,80 @@ class Model(Module):
 
         return out
 
-class LSTM_Block(nn.Module):
+
+class LSTMBlock(Module):
+    """A customizable LSTM block with optional bidirectional processing, layer normalization,
+    dropout, and residual connections.
+
+    This module wraps a PyTorch LSTM layer with additional features such as layer normalization, dropout, and residual
+    connections. It also supports customizable initialization of hidden and cell states.
+
+    Parameters
+    ----------
+    input_size : int
+        The number of expected features in the input `x`.
+    hidden_size : int
+        The number of features in the hidden state `h`.
+    num_layers : int
+        Number of recurrent layers.
+    dropout : float
+        Dropout probability to apply to the LSTM output. If 0, no dropout is applied.
+    batch_first : bool
+        If True, input and output tensors are provided as (batch, seq, feature). Otherwise, (seq, batch, feature).
+    hc_init_method : str
+        Method for initializing hidden and cell states: 'zeros' or 'random'.
+    layernorm : bool
+        If True, applies layer normalization to the LSTM output.
+    bidirectional : bool
+        If True, uses a bidirectional LSTM.
+    residual : bool
+        If True, applies a residual connection between input and output if their sizes match.
+
+    Attributes
+    ----------
+    hidden_size : int
+        The number of features in the hidden state of the LSTM.
+    num_layers : int
+        The number of LSTM layers.
+    hc_init_method : str
+        The method for initializing hidden and cell states ('zeros' or 'random').
+    bidirectional : bool
+        If True, the LSTM is bidirectional.
+    residual : bool
+        If True, applies a residual connection if input and output sizes match.
+    hidden_state : tuple of Tensor
+        The hidden and cell states of the LSTM, with shapes (num_layers * num_directions, batch_size, hidden_size).
+    lstm_layer : torch.nn.LSTM
+        The underlying LSTM layer.
+    layer_norm : torch.nn.Module
+        The layer normalization module (LayerNorm if layernorm=True, else Identity).
+    dropout : torch.nn.Module | Identity
+        The dropout module (Dropout if dropout > 0, else Identity).
+
+    Notes
+    -----
+    - The LSTM output size is `hidden_size * 2` if bidirectional, otherwise `hidden_size`.
+    - Residual connections are only applied if `residual=True` and the input size matches the output size.
+    - Hidden and cell states are initialized on the specified device (default: 'cuda') during `reset_states`.
+    """
 
     hidden_size = None
     num_layers = None
     hc_init_method = None
-    hidden_state = None
     bidirectional = None
+    residual = None
+    hidden_state = None
 
-    def __init__(self, input_size, hidden_size,
-                 num_layers, dropout, batch_first, hc_init_method,
-                 layernorm, bidirectional, residual):
-        super(LSTM_Block, self).__init__()
+    def __init__(self, input_size: int,
+                 hidden_size: int,
+                 num_layers: int,
+                 dropout: float,
+                 batch_first: bool,
+                 hc_init_method: str,
+                 layernorm: bool,
+                 bidirectional: bool,
+                 residual: bool) -> None:
+        super(LSTMBlock, self).__init__()
 
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -181,37 +377,130 @@ class LSTM_Block(nn.Module):
             batch_first=batch_first,
             bidirectional=bidirectional)
 
-        self.layer_norm = nn.LayerNorm(normalized_shape=hidden_size) if layernorm else nn.Identity()
+        self.layer_norm = LayerNorm(normalized_shape=hidden_size) if layernorm else Identity()
 
-        self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
+        self.dropout = Dropout(dropout) if dropout > 0 else Identity()
 
         self.reset_states(batch_size=1, device='cuda')
 
-    def reset_states(self, batch_size, device, changed_idx=None):
-        if changed_idx is None:
+    def reset_states(self, batch_size, device, changed_idx=None) -> None:
+        """Initialize or reset the hidden and cell states of the LSTM.
+
+        Parameters
+        ----------
+        batch_size : int
+            The batch size for the hidden and cell states.
+        device : str
+            The device to place the hidden and cell states on (e.g., 'cuda' or 'cpu').
+        changed_idx : int, optional
+            If provided, reset only the specified indices of the hidden and cell states. Default is None.
+
+        Raises
+        ------
+        SystemExit
+            If `hc_init_method` is neither 'zeros' nor 'random', exits with code 101.
+        """
+        if changed_idx is None or changed_idx.sum().item() == batch_size:
+            # either the first pass of data through the model or all indices need resetting
             d = 2 if self.bidirectional else 1
             if self.hc_init_method == 'zeros':
-                h = torch.zeros(self.num_layers * d, batch_size, self.hidden_size).to(device)
-                c = torch.zeros(self.num_layers * d, batch_size, self.hidden_size).to(device)
+                h = zeros(self.num_layers * d, batch_size, self.hidden_size).to(device)
+                c = zeros(self.num_layers * d, batch_size, self.hidden_size).to(device)
             elif self.hc_init_method == 'random':
-                h = torch.randn(self.num_layers * d, batch_size, self.hidden_size).to(device)
-                c = torch.randn(self.num_layers * d, batch_size, self.hidden_size).to(device)
+                h = randn(self.num_layers * d, batch_size, self.hidden_size).mul_(0.1).to(device)
+                c = randn(self.num_layers * d, batch_size, self.hidden_size).mul_(0.1).to(device)
             else:
                 logger.error('Unknown hc_init_method %s ', self.hc_init_method)
                 exit(101)
             self.hidden_state = (h, c)
+        elif changed_idx.sum().item() == 0 and self.hidden_state[0].shape[1] == batch_size:
+            # no indices need resetting and new batch size is old batch size, just ensure correct device
+            self.hidden_state = (self.hidden_state[0].to(device), self.hidden_state[1].to(device))
         else:
-            if self.hc_init_method == 'zeros':
-                self.hidden_state[0][:, changed_idx, :] = 0.
-                self.hidden_state[1][:, changed_idx, :] = 0.
-            elif self.hc_init_method == 'random':
-                self.hidden_state[0][:, changed_idx, :] = torch.randn_like(self.hidden_state[0][:, changed_idx, :])
-                self.hidden_state[1][:, changed_idx, :] = torch.randn_like(self.hidden_state[0][:, changed_idx, :])
+            # some partial resetting required
+            self._partial_reset(batch_size, device, changed_idx)
+
+    def _partial_reset(self, batch_size: int, device: str, changed_idx: Tensor) -> None:
+        """Helper method to reset specific indices of the hidden and cell states.
+
+        Parameters
+        ----------
+        batch_size : int
+            The batch size for the next hidden and cell states.
+        device : str
+            The device to place the hidden and cell states on (e.g., 'cuda' or 'cpu').
+        changed_idx : torch.Tensor
+            Boolean mask tensor of shape (batch_size,) indicating which batch indices to reset.
+
+        Raises
+        ------
+        ValueError
+            If `hc_init_method` is invalid or `hidden_state` is not initialized.
+        """
+
+        def _apply_sub_reset(t, mask, mode):
+            """ Directly resets specific indices based on a mask. """
+            if mode == 'zeros':
+                t[:, mask, :] = 0.
+            elif mode == 'random':
+                t[:, mask, :] = randn_like(t[:, mask, :]).mul_(0.1)
             else:
                 logger.error('Unknown hc_init_method %s ', self.hc_init_method)
                 exit(101)
+            return t
 
-    def forward(self, x) -> Tensor:
+        def _gen_extra(t, l, mode):
+            """ Generates a tensor to add based on the given tensor and length. """
+            if mode == 'zeros':
+                to_add = zeros(size=(t.shape[0], l, t.shape[2])).mul_(0.1).to(device)
+            elif mode == 'random':
+                to_add = randn(size=(t.shape[0], l, t.shape[2])).mul_(0.1).to(device)
+            else:
+                logger.error('Unknown hc_init_method %s ', self.hc_init_method)
+                exit(101)
+            return to_add
+
+        if self.hidden_state is None:
+            self.reset_states(batch_size, device)
+
+        h = self.hidden_state[0].to(device)
+        c = self.hidden_state[1].to(device)
+        old_batch_size = self.hidden_state[0].shape[1]
+
+        if old_batch_size == batch_size:
+            h = _apply_sub_reset(h, changed_idx, self.hc_init_method)
+            c = _apply_sub_reset(c, changed_idx, self.hc_init_method)
+        elif batch_size < old_batch_size:
+            h = h[:, :batch_size, :]
+            c = c[:, :batch_size, :]
+            h = _apply_sub_reset(h, changed_idx, self.hc_init_method)
+            c = _apply_sub_reset(c, changed_idx, self.hc_init_method)
+        else:
+            h = _apply_sub_reset(h, changed_idx[:old_batch_size], self.hc_init_method)
+            c = _apply_sub_reset(c, changed_idx[:old_batch_size], self.hc_init_method)
+            h = cat((h, _gen_extra(h, batch_size - old_batch_size, self.hc_init_method)), dim=1)
+            c = cat((c, _gen_extra(c, batch_size - old_batch_size, self.hc_init_method)), dim=1)
+        self.hidden_state = (h, c)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Forward pass through the LSTM block.
+
+        Parameters
+        ----------
+        x : Tensor
+            Input tensor with shape (batch, seq, input_size) if batch_first=True, else (seq, batch, input_size).
+
+        Returns
+        -------
+        Tensor
+            Output tensor with shape (batch, seq, hidden_size * num_directions) if batch_first=True,
+            else (seq, batch, hidden_size * num_directions).
+
+        Notes
+        -----
+        - Applies the LSTM layer, followed by optional layer normalization, residual connection, and dropout.
+        - The residual connection is only applied if `residual=True` and the input size matches the output size.
+        """
         res = x if x.shape[-1] == self.hidden_size and self.residual else None
         out, self.hidden_state = self.lstm_layer(x, self.hidden_state)
         out = self.layer_norm(out)
@@ -227,4 +516,4 @@ def get_output_activation(output_activation: None | str) -> Module:
         return getattr(nn, output_activation)(dim=1)
     if output_activation == "Sigmoid":
         return getattr(nn, output_activation)()
-    return nn.Identity()
+    return Identity()
