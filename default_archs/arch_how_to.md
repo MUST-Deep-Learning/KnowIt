@@ -18,9 +18,9 @@ The criteria are as follows:
     - All other arguments are optional and default values must be provided.
     -   The class must also have a forward function that receives a `batch` dictionary, as argument, with the following contents:
     - 
-      - `x` - The input tensor for the batch.
-      - `y` - The target tensor for the batch. Can (and should) be ignored.
-      - `s_id` - The indices corresponding to the prediction points in the batch. This is the there position in the selection matrix.
+      - `x` - The input tensor of shape `[batch_size, in_chunk[b] - in_chunk[b], num_in_components]` for the batch.
+      - `y` - The target tensor for the batch. Can (and should) be ignored in most cases.
+      - `s_id` - The indices corresponding to the prediction points in the batch. This is their position in the selection matrix.
       - `ist_idx` - The IST indices of the prediction points in the batch. This can be used to facilitate statefulness if desired. 
 
 Note that the architecture will have the same name as the script being imported.
