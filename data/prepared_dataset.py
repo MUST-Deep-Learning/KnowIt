@@ -1,7 +1,7 @@
 """
-------------------
+---------------
 PreparedDataset
-------------------
+---------------
 
 The ``PreparedDataset`` represents a ``BaseDataset`` that is preprocessed for model training.
 It inherits from ``BaseDataset``. Based on the provided path(s) to a dataset, it will populate the
@@ -11,7 +11,7 @@ parent's variables.
 Prediction points
 -----------------
 
-In order to define a PreparedDataset, the input-output dynamics of the model to be trained
+In order to define a ``PreparedDataset``, the input-output dynamics of the model to be trained
 must be defined rather precisely. The ``PreparedDataset`` is built on the idea of 'prediction points'.
 Each time step in the ``BaseDataset`` can be regarded a prediction point (under some assumptions).
 At every prediction point, a model is to predict a specific set of features-over-time from
@@ -22,11 +22,11 @@ a specific other set of features-over-time. The specifics are defined as follows
     out_components : list
         A subset of ``BaseDataset.components`` representing the components that will be used as output to the model.
     in_chunk : list
-        A list of two integers [a, b] for which a <= b defining the time steps (of in_components)
-        to be used for prediction at point t as [t + a, t + b].
+        A list of two integers `[a, b]` for which `a <= b` defining the time steps (of `in_components`)
+        to be used for prediction at point `t` as `[t + a, t + b]`.
     out_chunk : list
-        A list of two integers [a, b] for which a <= b defining the time steps (of out_components)
-        to be predicted at prediction point t as [t + a, t + b].
+        A list of two integers `[a, b]` for which `a <= b` defining the time steps (of `out_components`)
+        to be predicted at prediction point `t` as `[t + a, t + b]`.
 
 Note that this might seem cumbersome, but it allows us to easily define several different types of tasks.
 For example:
@@ -37,7 +37,7 @@ For example:
     - in_chunk = [-5, 5]
     - out_chunk = [0, 0]
 
-- autoregressive univariate forcasting (predict a stock's value in 5 time steps given last 20 time steps)
+- autoregressive univariate forecasting (predict a stock's value in 5 time steps given last 21 time steps)
     - in_components = [stock,]
     - out_components = [stock,]
     - in_chunk = [-20, 0]
@@ -53,8 +53,8 @@ Splitting & Limiting
 --------------------
 
 The first step in preparing the dataset is to split it into a train-, validation-,
-and evaluation set along with limiting it if applicable. This is done with the ``DataSplitter`` module.
-The ``split_method`` keyword argument defines the way the dataset is split.
+and evaluation set. This is done with the ``DataSplitter`` module.
+The ``split_method`` data keyword argument defines the way the dataset is split.
 More details can be found in ``DataSplitter``, but we summarize the options here:
     - 'random': Ignore all distinction between instances and slices, and split on time steps randomly.
     - 'chronological' (default): Ignore all distinction between instances and slices, and split on time steps chronologically.
@@ -73,25 +73,25 @@ Also note that if the data is limited too much for a given ``split_portion`` to 
 an error will occur confirming it.
 
 Note that the 'custom' split has to be constructed during the data importing.
-See the RawDataConverter module for more information.
+See the ``RawDataConverter`` module for more information.
 
 -------
 Scaling
 -------
 
-After the data is split and possibly limited, a scaler is fit to the train set data
+After the data is split, a scaler is fit to the train set data
 which will be applied to all data being extracted for model training.
 This is done with the ``DataScaler`` module and the corresponding ``scaling_method`` and ``scaling_tag``,
-keyword arguments. More details can be found there, but we summarize the options here:
+data keyword arguments. More details can be found there, but we summarize the options here:
     - scaling_method='z-norm': Features are scaled by subtracting the mean and dividing by the std.
     - scaling_method='zero-one': Features are scaled linearly to be in the range (0, 1).
     - scaling_method=None: No scaling occurs.
     - scaling_tag='in_only': Only the input features will be scaled.
     - scaling_tag='full': The input and output features will be scaled.
     - scaling_tag=None: No features will be scaled.
-Note that scaling of output components is not permitted if performing a classification task. scaling_tag='full' will be
-automatically changed to scaling_tag='in_only' for classification tasks.
-Also note that the scaling happens "online" during sampling.
+Note that scaling of output components is not permitted if performing a classification task. ``scaling_tag``='full' will be
+automatically changed to ``scaling_tag``='in_only' for classification tasks.
+Also note that the scaling happens "online" as data is sampled from disk.
 
 -------
 Padding
@@ -100,8 +100,9 @@ Padding
 At some prediction points the ``in_chunk`` might exceed the corresponding
 slice range. In these cases we pad the input values. The output values are never padded.
 Prediction points that do not have valid output values for an ``out_chunk`` are not selected
-during data splitting. The argument ``padding_method`` is the same as ``mode`` in the numpy.pad
-function (https://numpy.org/doc/stable/reference/generated/numpy.pad.html).
+as appropriate prediction point during data splitting. The argument ``padding_method`` is the same
+as ``mode`` in the numpy.pad function (https://numpy.org/doc/stable/reference/generated/numpy.pad.html).
+See the ``DataSplitter`` module for more information.
 
 -------------
 CustomDataset
@@ -117,15 +118,20 @@ This includes sampling, padding, and normalizing.
 CustomClassificationDataset
 ---------------------------
 
-If the task is a regression task a ``CustomClassificationDataset`` will be used instead of ``CustomDataset``.
+If the task is a classification task a ``CustomClassificationDataset`` will be used instead of ``CustomDataset``.
 ``CustomClassificationDataset`` inherits from ``CustomDataset`` and adds some classification specific methods.
 
 -------------
 CustomSampler
 -------------
 
-In addition to ``CustomDataset``, ``PreparedDataset`` also uses a custom batch sampler ``CustomSampler``.
-This class supports three different modes of temporal contiguity. See the module for details.
+In addition to ``CustomDataset``, ``PreparedDataset`` also uses a custom batch sampler ``CustomSampler``
+when ``PreparedDataset.get_dataloader()`` is called to generate a dataloader.
+This class supports three different modes of temporal contiguity.
+    - 'independent': Time is contiguous within sequences (i.e. prediction points) but not enforced within or across batches.
+    - 'sliding-window': Time is contiguous within sequences and across batches, as far as possible.
+    - 'inference': Time is contiguous within sequences and across batches, as far as possible. Also ensures that all prediction points occur exactly once across batches.
+See the ``CustomSampler`` module for details.
 
 """
 
@@ -205,7 +211,9 @@ class PreparedDataset(BaseDataset):
         If None, no slice selection is performed.
     batch_sampling_mode : str | None
         The sampling mode for generating batches in the CustomSampler class.
-        Either 'independent' or 'sliding-window' or 'inference', as described below.
+        Either 'independent' or 'sliding-window' or 'inference', as described in the CustomSampler module.
+    slide_stride : int
+        The stride used for the sliding-window approach, if selected.
 
     Attributes
     ----------
@@ -259,8 +267,7 @@ class PreparedDataset(BaseDataset):
     padding_method = None
     min_slice = None
     batch_sampling_mode = None
-    succession_length = None
-    skip_max = None
+    slide_stride = None
 
     # to be filled automatically
     x_map = None
@@ -301,6 +308,7 @@ class PreparedDataset(BaseDataset):
         self.min_slice = kwargs['min_slice']
         self.task = kwargs['task']
         self.batch_sampling_mode = kwargs['batch_sampling_mode']
+        self.slide_stride = kwargs['slide_stride']
 
         # Initiate the data preparation
         random.seed(self.seed)
@@ -372,7 +380,8 @@ class PreparedDataset(BaseDataset):
         Notes
         -----
         If set_tag=`valid` or `eval` or analysis=True,
-        then the dataloader will not be shuffled and no smaller than batch_size batches will be dropped.
+        then the dataloader will not be shuffled, no smaller than batch_size batches will be dropped,
+        and batch_sampling_mode will be set to `inference`.
         """
 
         if set_tag == 'train' and not analysis:
@@ -388,7 +397,8 @@ class PreparedDataset(BaseDataset):
                                 seed=self.seed,
                                 mode=self.batch_sampling_mode,
                                 drop_small=drop_small,
-                                shuffle=shuffle)
+                                shuffle=shuffle,
+                                slide_stride=self.slide_stride)
 
         dataset = self.get_dataset(set_tag, preload=preload)
 
@@ -623,12 +633,12 @@ class CustomSampler(Sampler):
     seed : int, default=None
         Random seed for reproducibility.
     mode : str, default='independent'
-        Either 'independent' or 'sliding-window' or 'inference', as described below.
+        Either 'independent', 'sliding-window' or 'inference', as described below.
     drop_small : bool, default=True
         Whether to drop batches smaller than batch_size.
     shuffle : bool, default=True
         Whether to apply shuffling.
-    stride : int, default=1
+    slide_stride : int, default=1
         The stride used for the sliding-window approach, if selected.
 
     Attributes
@@ -645,7 +655,7 @@ class CustomSampler(Sampler):
         Whether to drop batches smaller than batch_size.
     shuffle : bool, default=True
         Whether to apply shuffling.
-    stride : int, default=1
+    slide_stride : int, default=1
         The stride used for the sliding-window approach, if selected.
     batches : list
         The current set of batches that will be iterated over.
@@ -654,14 +664,15 @@ class CustomSampler(Sampler):
 
     Notes
     -----
-    - mode='independent': Time is contiguous within sequences but not enforced within or across batches.
-    - mode='sliding-window': A sliding window approach is used to ensure that time is contiguous
-    within sequences and across batches, but not necessarily within batches.
-    - mode='inference': Batch size is always 1, no shuffling, and ordered chronologically slice-by-slice.
-    - When shuffle=False: Batches are constructed in dataset order as per the "selection" array.
-    - When shuffle=True:
-        - mode='independent': Sequences within and across batches are randomly shuffled.
-        - mode='sliding-window': Slices (contiguous blocks of time) are shuffled before batches are constructed.
+        - mode='independent': Time is contiguous within sequences but not across batches.
+        - mode='sliding-window': A sliding window approach is used to ensure that time is contiguous within sequences and across batches.
+        - mode='inference': Same as 'sliding-window', but no shuffling, expansion for batch sizing, and striding.
+        - shuffle=False: Batches are constructed in dataset order as per the "selection" array.
+        - shuffle=True:
+            - mode='independent': Sequences within and across batches are randomly shuffled.
+            - mode='sliding-window': Slices are shuffled before and after expansion,
+            and a random number of prediction points (between 0 and 10) at the start of each slice
+            are dropped before batches are constructed.
     """
 
     def __init__(self,
@@ -671,7 +682,7 @@ class CustomSampler(Sampler):
                  mode: str = 'independent',
                  drop_small: bool = True,
                  shuffle: bool = True,
-                 stride: int = 1) -> None:
+                 slide_stride: int = 1) -> None:
 
         self.selection = selection
         self.batch_size = batch_size
@@ -679,7 +690,7 @@ class CustomSampler(Sampler):
         self.mode = mode
         self.drop_small = drop_small
         self.shuffle = shuffle
-        self.stride = stride
+        self.slide_stride = slide_stride
 
         self.batches = []
         self.epoch = 0
@@ -706,6 +717,7 @@ class CustomSampler(Sampler):
 
         self._check_small()
 
+        # only for debugging
         # self._batch_analyser()
 
         return iter(self.batches)
@@ -721,17 +733,14 @@ class CustomSampler(Sampler):
         """
         return len(self.batches)
 
-    def _create_inference_batches(self) -> None:
-        """
-        Creates batches of one prediction point each in contiguous and chronological (within slices) order.
-        """
-        self.batches = []
-        contiguous_slices = self._get_contiguous_slices()
-        self._block_sample_contiguous_batches(contiguous_slices)
-
     def _create_default_batches(self) -> None:
         """
         Creates batches in a simple sequential order. Shuffles if enabled.
+
+        Notes
+        -----
+        - The resulting batches adhere to the desired batch size up to the last edge-case, which will be smaller.
+        - The resulting batches will contain all appropriate prediction points exactly once.
         """
         self.batches = []
         sampling = arange(len(self.selection))
@@ -742,9 +751,25 @@ class CustomSampler(Sampler):
             batch = [t for t in sampling[b:min(b + self.batch_size, len(self.selection))]]
             self.batches.append(batch)
 
-    def _create_sliding_window_batches(self) -> None:
+    def _create_inference_batches(self) -> None:
         """
         Creates batches while maintaining temporal contiguity across batches, using a sliding window approach.
+        No shuffling, striding, or expansion (to fill batch size) is performed.
+
+        Notes
+        -----
+        - The resulting batches do not necessarily adhere to the desired batch size.
+        - The resulting batches will contain all appropriate prediction points exactly once.
+        """
+        self.batches = []
+        contiguous_slices = self._get_contiguous_slices()
+        self._block_sample_contiguous_batches(contiguous_slices)
+
+    def _create_sliding_window_batches(self) -> None:
+        """
+        Creates batches while maintaining temporal contiguity across batches,
+        using a sliding window approach. Also shuffles, expands the batches to match the desired batch size,
+        and applies stride to sliding window if selected.
         """
         self.batches = []
 
@@ -768,8 +793,8 @@ class CustomSampler(Sampler):
             rng.shuffle(contiguous_slices)
 
         # subsample slices if stride is more than one
-        if self.stride > 1:
-            contiguous_slices = [s[::self.stride] for s in contiguous_slices]
+        if self.slide_stride > 1:
+            contiguous_slices = [s[::self.slide_stride] for s in contiguous_slices]
 
         # if shuffle is on, drop a random number of prediction points at the start of slices
         if self.shuffle:
@@ -1028,7 +1053,7 @@ class CustomSampler(Sampler):
             A list of arrays, where each array contains indices representing a contiguous
             block of prediction points from the selection matrix.
         dilation : int, default=1
-            The dilation within a sampling window. Note this is different to `self.stride`,
+            The dilation within a sampling window. Note this is different to `self.slide_stride`,
             which defines the gaps between sampling windows.
 
         Returns
@@ -1041,13 +1066,13 @@ class CustomSampler(Sampler):
         ------
         SystemExit
             If the input `contiguous_slices` is empty or new slices cannot be generated
-            due to insufficient data for the stride, logs an error and exits with code 101.
+            due to insufficient data for the dilation, logs an error and exits with code 101.
 
         Notes
         -----
         The method uses a sliding window approach with a dilation defined by `dilation` to
         generate new slices from existing ones. It iterates through the input slices, creating
-        new slices by shifting the starting point by the stride value. A `found` flag tracks
+        new slices by shifting the starting point by the dilation value. A `found` flag tracks
         whether new slices are successfully created in each iteration to avoid infinite loops.
         If the batch size cannot be met, an error is logged, and the program exits.
         """
@@ -1160,12 +1185,11 @@ class CustomSampler(Sampler):
             rng = random.default_rng(self.seed)
         return rng
 
-    def _batch_analyser(self):
+    def _batch_analyser(self) -> None:
 
         # ONLY FOR DEBUGGING
 
         num_pps = len(self.selection)
-        num_batches = len(self.batches)
         batch_sizes = [len(b) for b in self.batches]
         coverage = []
         for pp in range(num_pps):
@@ -1195,13 +1219,12 @@ class CustomSampler(Sampler):
         ax[1, 1].hist(coverage[:, 1])
         ax[1, 1].set_xlabel('Present in this many batches')
 
-        # ax[0].title(str(num_batches) + ' total batches of size ' + str(batch_sizes[0]))
-
         plt.tight_layout()
         plt.show()
         plt.close()
 
         exit(101)
+
 
 class CustomDataset(Dataset):
     """
