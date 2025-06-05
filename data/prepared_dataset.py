@@ -697,13 +697,38 @@ class CustomSampler(Sampler):
 
     def __iter__(self):
         """
-        Generates batches according to the selected mode and shuffling settings.
+        Returns an iterator over the batches, and generated them if they do not exist.
 
         Returns
         -------
         iterator
             An iterator over the generated batches.
         """
+        if self.batches == []:
+            self.set_epoch(self.epoch)
+        return iter(self.batches)
+
+    def __len__(self):
+        """
+        Returns the number of batches, and generated them if they do not exist.
+
+        Returns
+        -------
+        int
+            Number of generated batches.
+        """
+        if self.batches == []:
+            self.set_epoch(self.epoch)
+        return len(self.batches)
+
+    def set_epoch(self, epoch):
+        """
+        Sets the current epoch and generates batches according to the selected mode and shuffling settings.
+        Called by PLModel in the trainer module.
+
+        """
+        self.epoch = epoch
+
         if self.mode == 'independent':
             self._create_default_batches()
         elif self.mode == 'sliding-window':
@@ -714,28 +739,10 @@ class CustomSampler(Sampler):
             logger.error('Unknown sampler mode %s. Expected (independent, sliding-window, or inference).', self.mode)
             exit(101)
 
-        self._check_small()
-
         # only for debugging
         # self._batch_analyser()
 
-        return iter(self.batches)
-
-    def __len__(self):
-        """
-        Returns the number of batches.
-
-        Returns
-        -------
-        int
-            Number of generated batches.
-        """
-        return len(self.batches)
-
-    def set_epoch(self, epoch):
-        """Sets the current epoch.
-        Called by PLModel in the trainer module. """
-        self.epoch = epoch
+        self._check_small()
 
     def _create_default_batches(self) -> None:
         """
