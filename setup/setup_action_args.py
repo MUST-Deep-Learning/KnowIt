@@ -7,7 +7,7 @@ The user interacts with KnowIt by sending arguments or paths to external files.
 This script contains a function ``setup_relevant_args`` that checks arguments.
 
  - The presence of required arguments are ensured.
- - Irrelevant arguments are ignored.
+ - Errors are raised if any unknown arguments are encountered.
  - Default values for optional arguments, that are not given, are provided here.
 
 """
@@ -166,7 +166,7 @@ def setup_type_args(experiment_dict: dict, arg_type: str) -> dict:
     `experiment_dict`, utilizing `arg_dict` as a reference for expected arguments. If a required
     argument is missing, an error is logged, and execution is stopped. Optional arguments are added
     if present, and default values are assigned for any optional arguments not specified. Irrelevant
-    arguments are logged as warnings.
+    arguments are logged as errors.
 
     Parameters
     ----------
@@ -211,9 +211,10 @@ def setup_type_args(experiment_dict: dict, arg_type: str) -> dict:
             if a not in ret_args:
                 ret_args[a] = arg_dict[arg_type]['default'][a]
 
-    # warn if nonsense arguments found
+    # error if nonsense arguments found
     nonsense_args = set(list(experiment_dict[arg_type].keys())) - set(list(ret_args.keys()))
     if len(nonsense_args) > 0:
-        logger.warning('Ignoring irrelevant arguments: %s', str(nonsense_args))
+        logger.error('Unknown arguments found: %s', str(nonsense_args))
+        exit(101)
 
     return ret_args
