@@ -227,8 +227,6 @@ class Model(Module):
                 elif self.last_ist_idx.shape[0] > ist_idx.shape[0]:
                     # new batch is smaller than last batch
                     changed = ~_is_contiguous(self.last_ist_idx[:ist_idx.shape[0], :], ist_idx[:ist_idx.shape[0], :])
-                    this = ones(size=(self.last_ist_idx.shape[0] - ist_idx.shape[0],), dtype=bool).to(device)
-                    changed = cat((changed, this))
                 else:
                     # new batch is larger than last batch
                     changed = ~_is_contiguous(self.last_ist_idx, ist_idx[:self.last_ist_idx.shape[0], :])
