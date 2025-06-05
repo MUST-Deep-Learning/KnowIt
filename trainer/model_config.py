@@ -155,6 +155,10 @@ class PLModel(pl.LightningModule):
 
         self.save_hyperparameters(ignore=['model'])
 
+    def on_train_epoch_start(self):
+        """ Set the training epoch number in the CustomSampler."""
+        self.trainer.train_dataloader.batch_sampler.set_epoch(self.current_epoch)
+
     def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
         """Compute loss and optional metrics, log metrics, and return the loss.
 

@@ -734,7 +734,7 @@ class CustomSampler(Sampler):
 
     def set_epoch(self, epoch):
         """Sets the current epoch.
-        Called by PL in the trainer module. """
+        Called by PLModel in the trainer module. """
         self.epoch = epoch
 
     def _create_default_batches(self) -> None:
