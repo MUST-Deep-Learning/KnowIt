@@ -704,7 +704,6 @@ class CustomSampler(Sampler):
         iterator
             An iterator over the generated batches.
         """
-        self.epoch += 1
         if self.mode == 'independent':
             self._create_default_batches()
         elif self.mode == 'sliding-window':
@@ -732,6 +731,11 @@ class CustomSampler(Sampler):
             Number of generated batches.
         """
         return len(self.batches)
+
+    def set_epoch(self, epoch):
+        """Sets the current epoch.
+        Called by PL in the trainer module. """
+        self.epoch = epoch
 
     def _create_default_batches(self) -> None:
         """
