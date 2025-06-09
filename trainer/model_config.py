@@ -155,9 +155,28 @@ class PLModel(pl.LightningModule):
 
         self.save_hyperparameters(ignore=['model'])
 
+    def on_train_epoch_end(self):
+        """ Set the next training epoch number in the CustomSampler.
+
+        This is done to manage potential stochasticity (which is connected to the epoch number).
+
+        """
+        self.trainer.train_dataloader.batch_sampler.set_epoch(self.current_epoch+1)
+
     def on_train_epoch_start(self):
-        """ Set the training epoch number in the CustomSampler."""
-        self.trainer.train_dataloader.batch_sampler.set_epoch(self.current_epoch)
+        """ Reset the model internal states for new training epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+
+    def on_validation_epoch_start(self):
+        """ Reset the model internal states for new validation epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+
+    def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        """ Reset the model internal states between dataloaders during evaluation."""
+        if batch_idx == 0:
+            self.model.force_reset()
 
     def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
         """Compute loss and optional metrics, log metrics, and return the loss.

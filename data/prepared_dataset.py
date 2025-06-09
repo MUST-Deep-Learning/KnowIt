@@ -693,11 +693,12 @@ class CustomSampler(Sampler):
         self.slide_stride = slide_stride
 
         self.batches = []
-        self.epoch = 0
+        self.epoch = -1
+        self.set_epoch(0)
 
     def __iter__(self):
         """
-        Returns an iterator over the batches, and generated them if they do not exist.
+        Returns an iterator over the batches, and generates them if they do not exist.
 
         Returns
         -------
@@ -710,7 +711,7 @@ class CustomSampler(Sampler):
 
     def __len__(self):
         """
-        Returns the number of batches, and generated them if they do not exist.
+        Returns the number of batches, and generates them if they do not exist.
 
         Returns
         -------
@@ -721,28 +722,50 @@ class CustomSampler(Sampler):
             self.set_epoch(self.epoch)
         return len(self.batches)
 
-    def set_epoch(self, epoch):
+    def set_epoch(self, epoch: int):
         """
-        Sets the current epoch and generates batches according to the selected mode and shuffling settings.
-        Called by PLModel in the trainer module.
+        If the next epoch not already set, sets the next epoch and regenerate batches according to the sampling mode.
 
+        This method updates the internal epoch counter and triggers batch generation
+        based on the configured mode. It is intended to be called by the training loop
+        (e.g., a PyTorch Lightning model wrapper) at the end of each epoch.
+
+        Parameters
+        ----------
+        epoch : int
+            The next epoch number.
+
+        Raises
+        ------
+        SystemExit
+            If an unknown sampling mode is encountered.
+
+        Notes
+        -----
+        Supported modes:
+        - 'independent': Generates batches without enforcing temporal continuity.
+        - 'sliding-window': Generates batches using a sliding window approach for temporal consistency.
+        - 'inference': Prepares batches for model inference.
+
+        Additional checks are performed to ensure that batches meet size requirements.
         """
-        self.epoch = epoch
+        if epoch != self.epoch:
+            self.epoch = epoch
+            if self.mode == 'independent':
+                self._create_default_batches()
+            elif self.mode == 'sliding-window':
+                self._create_sliding_window_batches()
+            elif self.mode == 'inference':
+                self._create_inference_batches()
+            else:
+                logger.error('Unknown sampler mode %s. Expected (independent, sliding-window, or inference).',
+                             self.mode)
+                exit(101)
 
-        if self.mode == 'independent':
-            self._create_default_batches()
-        elif self.mode == 'sliding-window':
-            self._create_sliding_window_batches()
-        elif self.mode == 'inference':
-            self._create_inference_batches()
-        else:
-            logger.error('Unknown sampler mode %s. Expected (independent, sliding-window, or inference).', self.mode)
-            exit(101)
+            # only for debugging
+            # self._batch_analyser()
 
-        # only for debugging
-        # self._batch_analyser()
-
-        self._check_small()
+            self._check_small()
 
     def _create_default_batches(self) -> None:
         """
@@ -1289,7 +1312,7 @@ class CustomDataset(Dataset):
 
         self.preloaded_slices = {}
         if preload:
-            logger.info("Preloading relevant slices into memory. This could take a while, but spead up actual training.")
+            logger.info("Preloading relevant slices into memory. This could take a while, but speed up actual training.")
             instances = unique(self.selection_matrix[:, 0], axis=0)
             for i in instances:
                 slices = unique(self.selection_matrix[self.selection_matrix[:, 0] == i, 1])

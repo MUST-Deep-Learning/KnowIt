@@ -167,6 +167,10 @@ class Model(Module):
             self.output_layers.append(get_output_activation(output_activation))
         self.output_layers = Sequential(*self.output_layers)
 
+    def force_reset(self):
+        """ A function for external modules to manually signal that all hidden and internal states need to be reset."""
+        self._reset_all_layer_states(1, 'cuda')
+
     def _reset_all_layer_states(self, batch_size, device, changed_idx=None) -> None:
         """Reset the hidden and cell states of all LSTMBlock layers.
 

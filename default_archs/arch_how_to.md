@@ -21,7 +21,8 @@ The criteria are as follows:
       - `x` - The input tensor of shape `[batch_size, in_chunk[b] - in_chunk[b], num_in_components]` for the batch.
       - `y` - The target tensor for the batch. Can (and should) be ignored in most cases.
       - `s_id` - The indices corresponding to the prediction points in the batch. This is their position in the selection matrix.
-      - `ist_idx` - The IST indices of the prediction points in the batch. This can be used to facilitate statefulness if desired. 
+      - `ist_idx` - The IST indices of the prediction points in the batch. This can be used to facilitate statefulness if desired.
+    - Additionally, if statefulness is desired, the class must have a function ``force_reset()``, accessable from outer scope. This function should reset all hidden and internal states.
 
 Note that the architecture will have the same name as the script being imported.
 
