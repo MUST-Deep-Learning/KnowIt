@@ -604,15 +604,13 @@ class KnowIt:
         # loop through dataloader get trained model predictions, along with sample id's and batch id's
         # for each batch with trained model.
         inx_dict = {}
-        for batch in enumerate(dataloader):
-            x = batch[1]['x']
-            y = batch[1]['y']
-            s_id = batch[1]['s_id']
-
-            x = x.to(pred_device)
+        for batch_id, batch in enumerate(dataloader):
+            y = batch['y']
+            s_id = batch['s_id']
+            batch['x'] = batch['x'].to(pred_device)
             y = y.to(pred_device)
 
-            prediction = trained_model_dict['pt_model'](x)
+            prediction = trained_model_dict['pt_model'](batch)
 
             prediction = prediction.detach().cpu().numpy()
             y = y.detach().cpu().numpy()
@@ -621,10 +619,10 @@ class KnowIt:
                     prediction = trained_model_dict['datamodule'].y_scaler.inverse_transform(prediction)
                     y = trained_model_dict['datamodule'].y_scaler.inverse_transform(y)
 
-            file_name = relevant_args['predictor']['prediction_set'] + '-' + 'batch_' + str(batch[0]) + '.pickle'
+            file_name = relevant_args['predictor']['prediction_set'] + '-' + 'batch_' + str(batch_id) + '.pickle'
             safe_dump((s_id, prediction, y), os.path.join(save_dir, file_name), safe_mode)
             for s in s_id:
-                inx_dict[s.item()] = batch[0]
+                inx_dict[s.item()] = batch_id
 
         # retrieve (instance, slice, and timestep) indices
         ist_values = trained_model_dict['datamodule'].get_ist_values(relevant_args['predictor']['prediction_set'])
