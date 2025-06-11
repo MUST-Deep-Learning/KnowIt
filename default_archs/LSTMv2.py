@@ -132,7 +132,7 @@ class Model(Module):
         hc_init_method: str = 'zeros',
         layernorm: bool = True,
         bidirectional: bool = False,
-        residual: bool = False
+        residual: bool = True
     ) -> None:
         super().__init__()
 
@@ -169,7 +169,7 @@ class Model(Module):
 
     def force_reset(self):
         """ A function for external modules to manually signal that all hidden and internal states need to be reset."""
-        self._reset_all_layer_states(1, 'cuda')
+        self.last_ist_idx = None
 
     def _reset_all_layer_states(self, batch_size, device, changed_idx=None) -> None:
         """Reset the hidden and cell states of all LSTMBlock layers.
@@ -379,7 +379,8 @@ class LSTMBlock(Module):
             batch_first=batch_first,
             bidirectional=bidirectional)
 
-        self.layer_norm = LayerNorm(normalized_shape=hidden_size) if layernorm else Identity()
+        d = 2 if self.bidirectional else 1
+        self.layer_norm = LayerNorm(normalized_shape=d*hidden_size) if layernorm else Identity()
 
         self.dropout = Dropout(dropout) if dropout > 0 else Identity()
 
