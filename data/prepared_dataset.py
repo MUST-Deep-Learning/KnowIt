@@ -394,6 +394,7 @@ class PreparedDataset(BaseDataset):
 
         sampler = CustomSampler(selection=self.selection[set_tag],
                                 batch_size=self.batch_size,
+                                input_size=self.in_shape[0],
                                 seed=self.seed,
                                 mode=self.batch_sampling_mode,
                                 drop_small=drop_small,
@@ -647,6 +648,8 @@ class CustomSampler(Sampler):
         Selection matrix containing instance IDs, slice IDs, time steps.
     batch_size : int
         Number of sequences per batch.
+    input_size : int
+        Number of time delays in the input of the model.
     seed : int, default=None
         Random seed for reproducibility.
     mode : str, default='independent'
@@ -678,6 +681,7 @@ class CustomSampler(Sampler):
     def __init__(self,
                  selection: array,
                  batch_size: int,
+                 input_size: int,
                  seed: int = None,
                  mode: str = 'independent',
                  drop_small: bool = True,
@@ -686,11 +690,17 @@ class CustomSampler(Sampler):
 
         self.selection = selection
         self.batch_size = batch_size
+        self.input_size = input_size
         self.seed = seed
         self.mode = mode
         self.drop_small = drop_small
         self.shuffle = shuffle
         self.slide_stride = slide_stride
+
+        if self.mode == 'sliding-window' and self.input_size != 1:
+            logger.error('For sliding-window batches, input_size (i.e. size of in_chunk) must be 1. Currently %s.',
+                         self.input_size)
+            exit(101)
 
         self.batches = []
         self.epoch = -1
