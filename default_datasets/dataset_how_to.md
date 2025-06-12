@@ -18,11 +18,13 @@ The criteria are as follows:
 3. Must contain no all-NaN columns.
 4. Must contain column headers corresponding to the components defined in the metadata.
 
-
 If instances are desired, they must be defined in the metadata and a corresponding 
 column header 'instance' must be present in the dataframe. 
 This column contains no NaNs, and indicates what instance each time step (row) corresponds to.
 If no instances are define all time steps will be assumed to belong to one single instance.
+
+Similarly, if a custom data split is to be defined (for future training) it should be defined in a separate column in
+the dataframe labeled 'split'. This column should only contain set indicators: 0 (train), 1 (valid), or 2 (eval).
 
 The resulting datastructure will be stored under ``/custom_datasets`` in the relevant custom experiment output directory.
 It can then be used to train a model by passing ``kwargs={'data': {'name': <data name>, ...}, ...}`` when 
