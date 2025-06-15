@@ -176,7 +176,8 @@ class PLModel(pl.LightningModule):
     def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
         """ Reset the model internal states between dataloaders during evaluation."""
         if batch_idx == 0:
-            self.model.force_reset()
+            if hasattr(self.model, 'force_reset'):
+                self.model.force_reset()
 
     def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
         """Compute loss and optional metrics, log metrics, and return the loss.

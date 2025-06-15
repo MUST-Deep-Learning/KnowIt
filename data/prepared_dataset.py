@@ -697,11 +697,6 @@ class CustomSampler(Sampler):
         self.shuffle = shuffle
         self.slide_stride = slide_stride
 
-        if self.mode == 'sliding-window' and self.input_size != 1:
-            logger.error('For sliding-window batches, input_size (i.e. size of in_chunk) must be 1. Currently %s.',
-                         self.input_size)
-            exit(101)
-
         self.batches = []
         self.epoch = -1
         self.set_epoch(0)
@@ -807,6 +802,13 @@ class CustomSampler(Sampler):
         """
         self.batches = []
         contiguous_slices = self._get_contiguous_slices()
+
+        # subsample slices if stride is more than one
+        if self.slide_stride > 1:
+            logger.warning('Note: with sliding window stride greater than 1, '
+                           'inference is not done on all available prediction points.')
+            contiguous_slices = [s[::self.slide_stride] for s in contiguous_slices]
+
         self._block_sample_contiguous_batches(contiguous_slices)
 
     def _create_sliding_window_batches(self) -> None:
@@ -836,13 +838,13 @@ class CustomSampler(Sampler):
         if self.shuffle:
             rng.shuffle(contiguous_slices)
 
-        # subsample slices if stride is more than one
-        if self.slide_stride > 1:
-            contiguous_slices = [s[::self.slide_stride] for s in contiguous_slices]
-
         # if shuffle is on, drop a random number of prediction points at the start of slices
         if self.shuffle:
             contiguous_slices = self._random_drop_start(contiguous_slices, rng)
+
+        # subsample slices if stride is more than one
+        if self.slide_stride > 1:
+            contiguous_slices = [s[::self.slide_stride] for s in contiguous_slices]
 
         # initiate batch sampling from contiguous slices
         self._block_sample_contiguous_batches(contiguous_slices)
