@@ -16,13 +16,10 @@ The criteria are as follows:
         - **input_dim** (tuple) = The expected input dimensions of the model (t, c). Where t is the number of time steps (delays) and c is the number of input components. 
         - **output_dim** (tuple) = The expected output dimensions of the model (t, c). Where t is the number of time steps (delays) and c is the number of output components.
     - All other arguments are optional and default values must be provided.
-    -   The class must also have a forward function that receives a `batch` dictionary, as argument, with the following contents:
-    - 
-      - `x` - The input tensor of shape `[batch_size, in_chunk[b] - in_chunk[b], num_in_components]` for the batch.
-      - `y` - The target tensor for the batch. Can (and should) be ignored in most cases.
-      - `s_id` - The indices corresponding to the prediction points in the batch. This is their position in the selection matrix.
-      - `ist_idx` - The IST indices of the prediction points in the batch. This can be used to facilitate statefulness if desired.
-    - Additionally, if statefulness is desired, the class must have a function ``force_reset()``, accessable from outer scope. This function should reset all hidden and internal states.
+    -   The class must also have a forward function that receives a Tensor of shape `[batch_size, in_chunk[b] - in_chunk[b], num_in_components]`, as argument.
+    - Additionally, if statefulness is desired, the following two methods must also be defined:
+      - ``force_reset()``, accessable from outer scope. This method should reset all hidden and internal states. It is called at the start of train, validation, and testing loops.
+      - ``update_states()`` it receives a Tensor of current IST indices of shape `[batch_size, 3]` as argument. This method can be used to handle statefulness. It is called at the start of each batch.
 
 Note that the architecture will have the same name as the script being imported.
 
