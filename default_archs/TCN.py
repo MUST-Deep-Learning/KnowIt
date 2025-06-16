@@ -293,14 +293,13 @@ class Model(nn.Module):
                                            (kernel_size - 1)) + 1)))
         return depth
 
-    def forward(self, batch: dict):
+    def forward(self, x):
         """Return model output for an input batch.
 
         Parameters
         ----------
-        batch : dict
-            A dictionary where the input tensor, shape=[batch_size, in_chunk, in_components],
-            is found at key `x`.
+        x : Tensor, shape=[batch_size, in_chunk, in_components]
+            An input tensor.
 
         Returns
         -------
@@ -308,7 +307,6 @@ class Model(nn.Module):
             Model output.
 
         """
-        x = batch['x']
         return self.network(x)
 
 
