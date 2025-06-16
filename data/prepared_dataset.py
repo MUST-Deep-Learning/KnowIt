@@ -144,7 +144,7 @@ __description__ = ('Contains the PreparedDataset, CustomDataset, and CustomClass
 
 # external imports
 from numpy import (array, random, unique, pad, isnan, arange, expand_dims, concatenate,
-                   diff, where, split)
+                   diff, where, split, ndarray)
 from numpy.random import Generator
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch import from_numpy, is_tensor, Tensor
@@ -452,7 +452,7 @@ class PreparedDataset(BaseDataset):
 
         return ist_values
 
-    def fetch_input_points_manually(self, set_tag: str, point_ids: int | list) -> Tensor:
+    def fetch_input_points_manually(self, set_tag: str, point_ids: int | list) -> dict:
         """ Manually fetch data points from the datamodule based on provided point IDs.
 
         Parameters
@@ -466,9 +466,9 @@ class PreparedDataset(BaseDataset):
 
         Returns
         -------
-        Tensor
-            A tensor containing the data points corresponding to the provided
-            IDs.
+        dict
+            A dictionary containing the data points corresponding to the provided
+            IDs at key 'x'.
 
         Raises
         ------
@@ -478,20 +478,15 @@ class PreparedDataset(BaseDataset):
         """
         dataset = self.get_dataset(set_tag, preload=False)
 
-        if isinstance(point_ids, tuple):
-            ids = list(range(point_ids[0], point_ids[1]))
-        else:
-            ids = point_ids
-
         try:
-            tensor = dataset.__getitem__(idx=ids)["x"]
+            custom_batch = dataset.__getitem__(idx=point_ids)
         except ValueError:
             logger.error('Invalid: ids %s not in choice "%s" (which has range %s)',
                          str(point_ids), set_tag,
                          str((0, len(self.selection[set_tag]))))
             exit(101)
 
-        return tensor
+        return custom_batch
 
     def _prepare(self) -> None:
         """Prepare the dataset by splitting and scaling the data.
@@ -1363,6 +1358,8 @@ class CustomDataset(Dataset):
             idx_list = idx
         elif is_tensor(idx):
             idx_list = idx.tolist()
+        elif isinstance(idx, ndarray):
+            idx_list = idx.tolist()
         else:
             # assumes idx is an integer
             idx_list = [idx]
@@ -1393,7 +1390,7 @@ class CustomDataset(Dataset):
             input_x.append(self.x_scaler.transform(x_vals))
             output_y.append(self.y_scaler.transform(y_vals))
 
-        if type(idx) is list or is_tensor(idx):
+        if len(idx_list) > 1:
             input_x = array(input_x)
             output_y = array(output_y)
         else:
@@ -1418,8 +1415,6 @@ class CustomDataset(Dataset):
         if right >= far_right:
             pw = ((0, right - far_right + 1), (0, 0))
             vals = pad(vals, pad_width=pw, mode=pad_mode)
-
-        # vals = random.rand(49, 3)
 
         return vals
 
