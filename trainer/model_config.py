@@ -15,7 +15,7 @@ https://lightning.ai/docs/pytorch/stable/common/lightning_module.html
 from __future__ import annotations
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
 __licence__ = 'Apache 2.0; see LICENSE file for details.'
-__author__ = "randlerabe@gmail.com"
+__author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com"
 __description__ = "Constructs a Pytorch Lightning model class."
 
 from typing import TYPE_CHECKING, Any, Callable

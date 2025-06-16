@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from torch import Tensor
     from torch.nn import Module
 
-__author__ = "randlerabe@gmail.com"
+__author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com"
 __description__ = "Implements Captum's DeepLift attribution method."
 
 import numpy as np
