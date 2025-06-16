@@ -196,7 +196,7 @@ class Model(Module):
         for layer in self.lstm_layers:
             layer.hidden_state = (layer.hidden_state[0].detach(), layer.hidden_state[1].detach())
 
-    def _handle_states(self, ist_idx, device) -> None:
+    def update_states(self, ist_idx, device) -> None:
         """Manage hidden state continuity for stateful processing based on batch indices.
 
         Parameters
@@ -217,7 +217,7 @@ class Model(Module):
             """ Determine which prediction points are contiguous with last batch. """
             same_i = a[:, 0] == b[:, 0]
             same_s = a[:, 1] == b[:, 1]
-            next_t = a[:, 2]+1 == b[:, 2]
+            next_t = a[:, 2] + 1 == b[:, 2]
             result = same_i & same_s & next_t
             return result
 
@@ -244,15 +244,13 @@ class Model(Module):
         else:
             self._reset_all_layer_states(ist_idx.shape[0], device)
 
-    def forward(self, batch: dict) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         """Forward pass through the model, processing input through LSTM layers and output layers.
 
         Parameters
         ----------
-        batch : dict
-            Dictionary containing:
-            - 'x': Input tensor of shape (batch_size, in_chunk, in_components).
-            - 'ist_idx': Tensor of shape (batch_size, 3) for stateful processing.
+        x : Tensor, shape=[batch_size, in_chunk, in_components]
+            An input tensor.
 
         Returns
         -------
@@ -270,8 +268,12 @@ class Model(Module):
         - For 'regression', the output is reshaped to match `final_out_shape`.
         - For 'classification', the output is returned as is (assumes activation like softmax is in output_layers).
         """
-        x = batch['x']
-        self._handle_states(batch['ist_idx'][0], x.device)
+
+        if x.shape[0] != self.lstm_layers[0].hidden_state[0].shape[1]:
+            logger.warning('Unplanned reset of hidden state in LSTMv2! '
+                           'This was done due to missmatch in batch size and hidden state expectation. '
+                           'Statefulness at least partially lost.')
+            self._reset_all_layer_states(x.shape[0], x.device)
 
         hidden = x
         for i, layer in enumerate(self.lstm_layers):
