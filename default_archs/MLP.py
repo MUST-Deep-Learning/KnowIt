@@ -151,14 +151,13 @@ class Model(nn.Module):
         self.model = nn.Sequential(*layers)
 
 
-    def forward(self, batch: dict) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         """Return model output for an input batch.
 
         Parameters
         ----------
-        batch : dict
-            A dictionary where the input tensor, shape=[batch_size, in_chunk, in_components],
-            is found at key `x`.
+        x : Tensor, shape=[batch_size, in_chunk, in_components]
+            An input tensor.
 
         Returns
         -------
@@ -166,7 +165,6 @@ class Model(nn.Module):
             Model output.
 
         """
-        x = batch['x']
         x = x.view(x.shape[0], self.model_in_dim)
         out = self.model(x)
         if self.task_name == "regression":
