@@ -174,10 +174,28 @@ class PLModel(pl.LightningModule):
             self.model.force_reset()
 
     def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Reset the model internal states between dataloaders during evaluation."""
+        """ Update model internal states if applicable."""
         if batch_idx == 0:
             if hasattr(self.model, 'force_reset'):
                 self.model.force_reset()
+        else:
+            if hasattr(self.model, 'update_states'):
+                self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+
+    def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        """ Update model internal states if applicable."""
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+
+    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        """ Update model internal states if applicable."""
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+
+    def on_predict_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        """ Update model internal states if applicable."""
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
 
     def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
         """Compute loss and optional metrics, log metrics, and return the loss.
@@ -185,7 +203,7 @@ class PLModel(pl.LightningModule):
         Overrides the method in pl.LightningModule.
         """
         forward = getattr(self.model, "forward")  # noqa: B009
-        y_pred = forward(batch)
+        y_pred = forward(batch['x'])
 
         # compute loss; depends on whether user gave kwargs
         loss, loss_log_metrics = self._compute_loss(
@@ -228,7 +246,7 @@ class PLModel(pl.LightningModule):
         """
 
         forward = getattr(self.model, "forward")  # noqa: B009
-        y_pred = forward(batch)
+        y_pred = forward(batch['x'])
 
         # compute loss; depends on whether user gave kwargs
         loss, loss_log_metrics = self._compute_loss(
@@ -282,7 +300,7 @@ class PLModel(pl.LightningModule):
         current_loader = loaders[dataloader_idx]
 
         forward = getattr(self.model, "forward")  # noqa: B009
-        y_pred = forward(batch)
+        y_pred = forward(batch['x'])
 
         # compute loss; depends on whether user gave kwargs
         _, loss_log_metrics = self._compute_loss(
