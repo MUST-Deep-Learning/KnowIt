@@ -318,13 +318,13 @@ class Model(Module):
 
         return self.model_output(hidden)
 
-    def forward(self, batch: dict) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         """Return model output for an input batch.
 
         Args:
         ----
-            batch (dict):    A dictionary where the input tensor, shape=[batch_size, in_chunk, in_components],
-            is found at key `x`.
+            x (Tensor):     An input tensor of shape
+                            (batch_size, in_chunk, in_components).
 
         Returns
         -------
@@ -336,7 +336,6 @@ class Model(Module):
                             (batch_size, num_classes) if classification.
 
         """
-        x = batch['x']
         if self.task_name == "regression":
             return self._regression(x)
 
