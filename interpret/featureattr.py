@@ -96,7 +96,7 @@ class FeatureAttribution(KIInterpreter):
         point_ids: int | list[int] | tuple[int, int],
         *,
         is_baseline: bool = False,
-    ) -> Tensor:
+    ) -> dict:
         """Fetch data points from the datamodule based on provided point IDs.
 
         Parameters
@@ -109,9 +109,9 @@ class FeatureAttribution(KIInterpreter):
 
         Returns
         -------
-        Tensor
-            A tensor containing the data points corresponding to the provided
-            IDs.
+        dict
+            A dictionary containing the data points corresponding to the provided
+            IDs at key 'x'.
 
         Raises
         ------
