@@ -22,7 +22,7 @@ https://captum.ai/api/integrated_gradients.html
 from __future__ import annotations
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
 __licence__ = 'Apache 2.0; see LICENSE file for details.'
-__author__ = "randlerabe@gmail.com"
+__author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com"
 __description__ = "Implements Captum's Integrated Gradients attribution \
     method."
 
@@ -74,10 +74,6 @@ class IntegratedGrad(FeatureAttribution):
         If True, perform local attributions. If False, perform global
         attributions. For more information, see Captum's documentation.
 
-    batch_size : int | None, default=None
-        How many prediction points should be attributed at once.
-        Default is None, which means all at once.
-
     Attributes
     ----------
     model : Module
@@ -110,7 +106,6 @@ class IntegratedGrad(FeatureAttribution):
         seed: int,
         *,
         multiply_by_inputs: bool = True,
-        batch_size: int | None = None,
     ) -> None:
         super().__init__(
             model=model,
@@ -126,7 +121,6 @@ class IntegratedGrad(FeatureAttribution):
             multiply_by_inputs=multiply_by_inputs
         )
         self.seed = seed
-        self.batch_size = batch_size
 
     def generate_baseline_from_data(self, num_baselines: int) -> Tensor:
         """Return a (single) baseline.
@@ -167,7 +161,7 @@ class IntegratedGrad(FeatureAttribution):
         baselines = self._fetch_points_from_datamodule(
             baselines,
             is_baseline=True,
-        )
+        )['x']
 
         return torch.mean(baselines, 0, keepdim=True)
 
@@ -219,45 +213,38 @@ class IntegratedGrad(FeatureAttribution):
         rapidly, which may therefore obscure model interpretability.
         """
 
-        def _batch_attributions(input_tensor, baseline, target, batch_size):
-            """ Batch the attribution calculations if an appropriate batch size is provided. """
-            n = input_tensor.shape[0]
-            if batch_size is None or n < batch_size:
+        def _extract_attributions(custom_batch, baseline, target):
+            """ Extract the feature attributions one-by-one and concatenate at the end. """
+
+            pseudo_batches = []
+            for p in range(custom_batch['x'].shape[0]):
+                new_batch = {'x': torch.unsqueeze(custom_batch['x'][p], 0),
+                             'y': torch.unsqueeze(custom_batch['y'][p], 0),
+                             's_id': custom_batch['s_id'][p],
+                             'ist_idx': np.expand_dims(custom_batch['ist_idx'][p], 0)}
+                pseudo_batches.append(new_batch)
+            full_attributions = []
+            full_delta = []
+            for pp in pseudo_batches:
+                if hasattr(self.model, 'update_states'):
+                    self.model.update_states(torch.from_numpy(pp['ist_idx']), pp['x'].device)
                 attributions, delta = self.ig.attribute(
-                    inputs=input_tensor,
+                    inputs=pp['x'],
                     baselines=baseline,
                     target=target,
                     return_convergence_delta=True,
                 )
-            else:
-                full_attributions = []
-                full_delta = []
-                batches = np.arange(0, n, batch_size)
-                for b in batches:
-                    attributions, delta = self.ig.attribute(
-                        inputs=input_tensor[b:b+batch_size],
-                        baselines=baseline,
-                        target=target,
-                        return_convergence_delta=True,
-                    )
-                    full_attributions.append(attributions)
-                    full_delta.append(delta)
-                attributions = torch.cat(full_attributions)
-                delta = torch.cat(full_delta)
+                full_attributions.append(attributions)
+                full_delta.append(delta)
+            attributions = torch.cat(full_attributions)
+            delta = torch.cat(full_delta)
             return attributions, delta
 
         # extract explicands using ids
-        input_tensor = super()._fetch_points_from_datamodule(pred_point_id)
+        custom_batch = super()._fetch_points_from_datamodule(pred_point_id)
 
-        # Captum requires batch dimension = number of explicands
-        if not isinstance(pred_point_id, tuple):
-            input_tensor = torch.unsqueeze(
-                input_tensor,
-                0,
-            )
-
-        input_tensor = input_tensor.to(self.device)
-        input_tensor.requires_grad = True  # required by Captum
+        custom_batch['x'] = custom_batch['x'].to(self.device)
+        custom_batch['x'].requires_grad = True  # required by Captum
 
         # generate a baseline (baseline is computed as an average over a sample
         # distribution)
@@ -283,8 +270,8 @@ class IntegratedGrad(FeatureAttribution):
         if is_classification:
             for key in self.datamodule.class_set:
                 target = self.datamodule.class_set[key]
-                attributions, delta = _batch_attributions(input_tensor, baseline,
-                                                          target, self.batch_size)
+                attributions, delta = _extract_attributions(custom_batch, baseline,
+                                                          target)
                 attributions = torch.squeeze(attributions, 0)
 
                 results[target] = {
@@ -295,8 +282,8 @@ class IntegratedGrad(FeatureAttribution):
             for out_chunk in range(out_shape[0]):
                 for out_component in range(out_shape[1]):
                     target = (out_chunk, out_component)
-                    attributions, delta = _batch_attributions(input_tensor, baseline,
-                                                              target, self.batch_size)
+                    attributions, delta = _extract_attributions(custom_batch, baseline,
+                                                              target)
                     attributions = torch.squeeze(attributions, 0)
 
                     results[target] = {

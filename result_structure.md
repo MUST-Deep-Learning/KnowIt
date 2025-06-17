@@ -27,9 +27,9 @@ Titles in quotations are user defined or determined dynamically during experimen
     │    ├── <lightning_logs>
     │    ├── <predictions>
     │    ├── <interpretations>
-    │    │   ├── ["DeepLiftShap-eval-success-100-True-123-(15557, 15657).pickle"]
+    │    │   ├── ["DeepLiftShap-eval-success-100-True-123.pickle"]
     │    │   ├── ...
-    │    │   └── ["IntegratedGradients-eval-success-50-True-123-(15140, 15190).pickle"]
+    │    │   └── ["IntegratedGradients-eval-success-50-True-123.pickle"]
     │    ├── <visualizations>
     │    │   ├── ["visualization_one.png"]
     │    │   ├── ...
@@ -179,7 +179,6 @@ Titles in quotations are user defined or determined dynamically during experimen
         - **size** is the number of prediction points interpreted on
         - **mbi** is whether the feature attributions are multiplied by input
         - **seed** is the seed used for random selection
-        - **inx_range** is the index range of the set of prediction in the data split
     
     The pickle file contains a dictionary containing all the same information as in the file name, in addition to:
         - results : dict

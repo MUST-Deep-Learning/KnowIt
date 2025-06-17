@@ -25,7 +25,8 @@ time step to be two separate, usable events, i.e. belonging to different instanc
 Defining instances can be useful when trying to split your data based on subjects without test set leakage.
 
 > **IST index**: A prediction point specific 3-valued tuple where the first value indicates the instance to which the prediction point belongs, 
-the second value indicates the slice to which the prediction point belongs, and the last value indicates the exact time step.
+the second value indicates the slice to which the prediction point belongs, and the last value indicates the relative position 
+of the prediction point within its slice.
 
 ---
 
@@ -67,6 +68,10 @@ For example: [-5, -4, -3, -2, -1] is a chunk defining the five time steps preced
 ## Data processing
 
 > **Split**: A particular partitioning of a dataset. Defined as a train, validation, and evaluation set.
+
+> **Selection matrix**: An array defining what prediction points a particular split contains. 
+It is an n-by-3 array, where n is the number of prediction points in the split. Each row represents one 
+prediction point indicated by its IST index (which requires 3 values to define).
 
 ---
 

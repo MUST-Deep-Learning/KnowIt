@@ -1,7 +1,7 @@
 """
-------------------
+---------------
 PreparedDataset
-------------------
+---------------
 
 The ``PreparedDataset`` represents a ``BaseDataset`` that is preprocessed for model training.
 It inherits from ``BaseDataset``. Based on the provided path(s) to a dataset, it will populate the
@@ -11,7 +11,7 @@ parent's variables.
 Prediction points
 -----------------
 
-In order to define a PreparedDataset, the input-output dynamics of the model to be trained
+In order to define a ``PreparedDataset``, the input-output dynamics of the model to be trained
 must be defined rather precisely. The ``PreparedDataset`` is built on the idea of 'prediction points'.
 Each time step in the ``BaseDataset`` can be regarded a prediction point (under some assumptions).
 At every prediction point, a model is to predict a specific set of features-over-time from
@@ -22,11 +22,11 @@ a specific other set of features-over-time. The specifics are defined as follows
     out_components : list
         A subset of ``BaseDataset.components`` representing the components that will be used as output to the model.
     in_chunk : list
-        A list of two integers [a, b] for which a <= b defining the time steps (of in_components)
-        to be used for prediction at point t as [t + a, t + b].
+        A list of two integers `[a, b]` for which `a <= b` defining the time steps (of `in_components`)
+        to be used for prediction at point `t` as `[t + a, t + b]`.
     out_chunk : list
-        A list of two integers [a, b] for which a <= b defining the time steps (of out_components)
-        to be predicted at prediction point t as [t + a, t + b].
+        A list of two integers `[a, b]` for which `a <= b` defining the time steps (of `out_components`)
+        to be predicted at prediction point `t` as `[t + a, t + b]`.
 
 Note that this might seem cumbersome, but it allows us to easily define several different types of tasks.
 For example:
@@ -37,7 +37,7 @@ For example:
     - in_chunk = [-5, 5]
     - out_chunk = [0, 0]
 
-- autoregressive univariate forcasting (predict a stock's value in 5 time steps given last 20 time steps)
+- autoregressive univariate forecasting (predict a stock's value in 5 time steps given last 21 time steps)
     - in_components = [stock,]
     - out_components = [stock,]
     - in_chunk = [-20, 0]
@@ -53,8 +53,8 @@ Splitting & Limiting
 --------------------
 
 The first step in preparing the dataset is to split it into a train-, validation-,
-and evaluation set along with limiting it if applicable. This is done with the ``DataSplitter`` module.
-The ``split_method`` keyword argument defines the way the dataset is split.
+and evaluation set. This is done with the ``DataSplitter`` module.
+The ``split_method`` data keyword argument defines the way the dataset is split.
 More details can be found in ``DataSplitter``, but we summarize the options here:
     - 'random': Ignore all distinction between instances and slices, and split on time steps randomly.
     - 'chronological' (default): Ignore all distinction between instances and slices, and split on time steps chronologically.
@@ -73,25 +73,25 @@ Also note that if the data is limited too much for a given ``split_portion`` to 
 an error will occur confirming it.
 
 Note that the 'custom' split has to be constructed during the data importing.
-See the RawDataConverter module for more information.
+See the ``RawDataConverter`` module for more information.
 
 -------
 Scaling
 -------
 
-After the data is split and possibly limited, a scaler is fit to the train set data
+After the data is split, a scaler is fit to the train set data
 which will be applied to all data being extracted for model training.
 This is done with the ``DataScaler`` module and the corresponding ``scaling_method`` and ``scaling_tag``,
-keyword arguments. More details can be found there, but we summarize the options here:
+data keyword arguments. More details can be found there, but we summarize the options here:
     - scaling_method='z-norm': Features are scaled by subtracting the mean and dividing by the std.
     - scaling_method='zero-one': Features are scaled linearly to be in the range (0, 1).
     - scaling_method=None: No scaling occurs.
     - scaling_tag='in_only': Only the input features will be scaled.
     - scaling_tag='full': The input and output features will be scaled.
     - scaling_tag=None: No features will be scaled.
-Note that scaling of output components is not permitted if performing a classification task. scaling_tag='full' will be
-automatically changed to scaling_tag='in_only' for classification tasks.
-Also note that the scaling happens "online" during sampling.
+Note that scaling of output components is not permitted if performing a classification task. ``scaling_tag``='full' will be
+automatically changed to ``scaling_tag``='in_only' for classification tasks.
+Also note that the scaling happens "online" as data is sampled from disk.
 
 -------
 Padding
@@ -100,8 +100,9 @@ Padding
 At some prediction points the ``in_chunk`` might exceed the corresponding
 slice range. In these cases we pad the input values. The output values are never padded.
 Prediction points that do not have valid output values for an ``out_chunk`` are not selected
-during data splitting. The argument ``padding_method`` is the same as ``mode`` in the numpy.pad
-function (https://numpy.org/doc/stable/reference/generated/numpy.pad.html).
+as appropriate prediction point during data splitting. The argument ``padding_method`` is the same
+as ``mode`` in the numpy.pad function (https://numpy.org/doc/stable/reference/generated/numpy.pad.html).
+See the ``DataSplitter`` module for more information.
 
 -------------
 CustomDataset
@@ -117,15 +118,20 @@ This includes sampling, padding, and normalizing.
 CustomClassificationDataset
 ---------------------------
 
-If the task is a regression task a ``CustomClassificationDataset`` will be used instead of ``CustomDataset``.
+If the task is a classification task a ``CustomClassificationDataset`` will be used instead of ``CustomDataset``.
 ``CustomClassificationDataset`` inherits from ``CustomDataset`` and adds some classification specific methods.
 
 -------------
 CustomSampler
 -------------
 
-In addition to ``CustomDataset``, ``PreparedDataset`` also uses a custom batch sampler ``CustomSampler``.
-This class supports three different modes of temporal contiguity. See the module for details.
+In addition to ``CustomDataset``, ``PreparedDataset`` also uses a custom batch sampler ``CustomSampler``
+when ``PreparedDataset.get_dataloader()`` is called to generate a dataloader.
+This class supports three different modes of temporal contiguity.
+    - 'independent': Time is contiguous within sequences (i.e. prediction points) but not enforced within or across batches.
+    - 'sliding-window': Time is contiguous within sequences and across batches, as far as possible.
+    - 'inference': Time is contiguous within sequences and across batches, as far as possible. Also ensures that all prediction points occur exactly once across batches.
+See the ``CustomSampler`` module for details.
 
 """
 
@@ -138,7 +144,7 @@ __description__ = ('Contains the PreparedDataset, CustomDataset, and CustomClass
 
 # external imports
 from numpy import (array, random, unique, pad, isnan, arange, expand_dims, concatenate,
-                   diff, where, split)
+                   diff, where, split, ndarray)
 from numpy.random import Generator
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch import from_numpy, is_tensor, Tensor
@@ -203,13 +209,11 @@ class PreparedDataset(BaseDataset):
     min_slice : int | None
         The minimum slice size to consider during data splitting/selection.
         If None, no slice selection is performed.
-    batch_sampling_mode : int | None
+    batch_sampling_mode : str | None
         The sampling mode for generating batches in the CustomSampler class.
-        Options are 0, 1, or 2.
-    succession_length : int | None
-        Number of batches to maintain temporal succession if batch_sampling_mode=2.
-    skip_max : int
-        Maximum number of initial time steps to skip if batch_sampling_mode=1 and 2 and shuffle_train=True.
+        Either 'independent' or 'sliding-window' or 'inference', as described in the CustomSampler module.
+    slide_stride : int
+        The stride used for the sliding-window approach, if selected.
 
     Attributes
     ----------
@@ -263,8 +267,7 @@ class PreparedDataset(BaseDataset):
     padding_method = None
     min_slice = None
     batch_sampling_mode = None
-    succession_length = None
-    skip_max = None
+    slide_stride = None
 
     # to be filled automatically
     x_map = None
@@ -305,8 +308,7 @@ class PreparedDataset(BaseDataset):
         self.min_slice = kwargs['min_slice']
         self.task = kwargs['task']
         self.batch_sampling_mode = kwargs['batch_sampling_mode']
-        self.succession_length = kwargs['succession_length']
-        self.skip_max = kwargs['skip_max']
+        self.slide_stride = kwargs['slide_stride']
 
         # Initiate the data preparation
         random.seed(self.seed)
@@ -378,7 +380,8 @@ class PreparedDataset(BaseDataset):
         Notes
         -----
         If set_tag=`valid` or `eval` or analysis=True,
-        then the dataloader will not be shuffled and no smaller than batch_size batches will be dropped.
+        then the dataloader will not be shuffled, no smaller than batch_size batches will be dropped,
+        and batch_sampling_mode will be set to `inference`.
         """
 
         if set_tag == 'train' and not analysis:
@@ -387,15 +390,16 @@ class PreparedDataset(BaseDataset):
         else:
             shuffle = False
             drop_small = False
+            self.batch_sampling_mode = 'inference'
 
         sampler = CustomSampler(selection=self.selection[set_tag],
                                 batch_size=self.batch_size,
+                                input_size=self.in_shape[0],
                                 seed=self.seed,
                                 mode=self.batch_sampling_mode,
                                 drop_small=drop_small,
-                                succession_length=self.succession_length,
                                 shuffle=shuffle,
-                                skip_max=self.skip_max)
+                                slide_stride=self.slide_stride)
 
         dataset = self.get_dataset(set_tag, preload=preload)
 
@@ -448,7 +452,7 @@ class PreparedDataset(BaseDataset):
 
         return ist_values
 
-    def fetch_input_points_manually(self, set_tag: str, point_ids: int | list) -> Tensor:
+    def fetch_input_points_manually(self, set_tag: str, point_ids: int | list) -> dict:
         """ Manually fetch data points from the datamodule based on provided point IDs.
 
         Parameters
@@ -462,9 +466,9 @@ class PreparedDataset(BaseDataset):
 
         Returns
         -------
-        Tensor
-            A tensor containing the data points corresponding to the provided
-            IDs.
+        dict
+            A dictionary containing the data points corresponding to the provided
+            IDs at key 'x'.
 
         Raises
         ------
@@ -474,20 +478,15 @@ class PreparedDataset(BaseDataset):
         """
         dataset = self.get_dataset(set_tag, preload=False)
 
-        if isinstance(point_ids, tuple):
-            ids = list(range(point_ids[0], point_ids[1]))
-        else:
-            ids = point_ids
-
         try:
-            tensor = dataset.__getitem__(idx=ids)["x"]
+            custom_batch = dataset.__getitem__(idx=point_ids)
         except ValueError:
             logger.error('Invalid: ids %s not in choice "%s" (which has range %s)',
                          str(point_ids), set_tag,
                          str((0, len(self.selection[set_tag]))))
             exit(101)
 
-        return tensor
+        return custom_batch
 
     def _prepare(self) -> None:
         """Prepare the dataset by splitting and scaling the data.
@@ -629,17 +628,14 @@ class CustomSampler(Sampler):
         Number of sequences per batch.
     seed : int, default=None
         Random seed for reproducibility.
-    mode : int, default=0
-        Sampling mode (0, 1, or 2) as described below.
+    mode : str, default='independent'
+        Either 'independent', 'sliding-window' or 'inference', as described below.
     drop_small : bool, default=True
         Whether to drop batches smaller than batch_size.
-    succession_length : int, default=10
-        Number of batches to maintain temporal succession in mode 2. Only applicable if mode=2.
     shuffle : bool, default=True
         Whether to apply shuffling.
-    skip_max : int, default=10
-        Maximum number of initial time steps to skip when shuffling.
-        Only applicable if mode=1 or 2 and shuffle=True.
+    slide_stride : int, default=1
+        The stride used for the sliding-window approach, if selected.
 
     Attributes
     ----------
@@ -647,19 +643,18 @@ class CustomSampler(Sampler):
         Selection matrix containing instance IDs, slice IDs, time steps.
     batch_size : int
         Number of sequences per batch.
+    input_size : int
+        Number of time delays in the input of the model.
     seed : int, default=None
         Random seed for reproducibility.
-    mode : int, default=0
-        Sampling mode (0, 1, or 2) as described below.
+    mode : str, default='independent'
+        Either 'independent' or 'sliding-window' or 'inference', as described below.
     drop_small : bool, default=True
         Whether to drop batches smaller than batch_size.
-    succession_length : int, default=10
-        Number of batches to maintain temporal succession in mode 2. Only applicable if mode=2.
     shuffle : bool, default=True
         Whether to apply shuffling.
-    skip_max : int, default=10
-        Maximum number of initial time steps to skip when shuffling.
-        Only applicable if mode=1 or 2 and shuffle=True.
+    slide_stride : int, default=1
+        The stride used for the sliding-window approach, if selected.
     batches : list
         The current set of batches that will be iterated over.
     epoch : int
@@ -667,80 +662,119 @@ class CustomSampler(Sampler):
 
     Notes
     -----
-    - Mode 0: Time is contiguous within sequences but not enforced across sequences or batches.
-    - Mode 1: Time is contiguous within sequences and within batches, but not across batches.
-    - Mode 2: Time is contiguous within sequences and across batches, but not withing batches,
-    maintaining temporal succession.
-    - When shuffle=False:
-        - Mode 0: Batches are constructed in dataset order as per the "selection" array.
-        - Mode 1 & 2: Batches are constructed greedily from the first available prediction point.
-    - When shuffle=True:
-        - Mode 0: Sequences within and across batches are randomly shuffled.
-        - Mode 1 & 2: A random number of sequences at the beginning of each contiguous block is skipped,
-          later added back as new batches. Additionally, batches or successive batch blocks are shuffled.
+        - mode='independent': Time is contiguous within sequences but not across batches.
+        - mode='sliding-window': A sliding window approach is used to ensure that time is contiguous within sequences and across batches.
+        - mode='inference': Same as 'sliding-window', but no shuffling, expansion for batch sizing, and striding.
+        - shuffle=False: Batches are constructed in dataset order as per the "selection" array.
+        - shuffle=True:
+            - mode='independent': Sequences within and across batches are randomly shuffled.
+            - mode='sliding-window': Slices are shuffled before and after expansion,
+            and a random number of prediction points (between 0 and 10) at the start of each slice
+            are dropped before batches are constructed.
     """
 
     def __init__(self,
                  selection: array,
                  batch_size: int,
+                 input_size: int,
                  seed: int = None,
-                 mode: int = 0,
+                 mode: str = 'independent',
                  drop_small: bool = True,
-                 succession_length: int = 10,
                  shuffle: bool = True,
-                 skip_max: int = 10) -> None:
+                 slide_stride: int = 1) -> None:
 
         self.selection = selection
         self.batch_size = batch_size
+        self.input_size = input_size
         self.seed = seed
         self.mode = mode
         self.drop_small = drop_small
-        self.succession_length = succession_length
         self.shuffle = shuffle
-        self.skip_max = skip_max
+        self.slide_stride = slide_stride
 
         self.batches = []
-        self.epoch = 0
+        self.epoch = -1
+        self.set_epoch(0)
 
     def __iter__(self):
         """
-        Generates batches according to the selected mode and shuffling settings.
+        Returns an iterator over the batches, and generates them if they do not exist.
 
         Returns
         -------
         iterator
             An iterator over the generated batches.
         """
-        self.epoch += 1
-        if self.mode == 0:
-            self._create_default_batches()
-        elif self.mode == 1:
-            self._create_contiguous_batches(tag='within')
-        elif self.mode == 2:
-            self._create_contiguous_batches(tag='between')
-        else:
-            logger.error('Unknown sampler mode %s. Expected 0, 1, or 2.', self.mode)
-            exit(101)
-
-        self._check_unique()
-        self._check_small()
-
+        if self.batches == []:
+            self.set_epoch(self.epoch)
         return iter(self.batches)
 
     def __len__(self):
         """
-        Returns the number of batches.
+        Returns the number of batches, and generates them if they do not exist.
 
         Returns
         -------
         int
             Number of generated batches.
         """
+        if self.batches == []:
+            self.set_epoch(self.epoch)
         return len(self.batches)
+
+    def set_epoch(self, epoch: int):
+        """
+        If the next epoch not already set, sets the next epoch and regenerate batches according to the sampling mode.
+
+        This method updates the internal epoch counter and triggers batch generation
+        based on the configured mode. It is intended to be called by the training loop
+        (e.g., a PyTorch Lightning model wrapper) at the end of each epoch.
+
+        Parameters
+        ----------
+        epoch : int
+            The next epoch number.
+
+        Raises
+        ------
+        SystemExit
+            If an unknown sampling mode is encountered.
+
+        Notes
+        -----
+        Supported modes:
+        - 'independent': Generates batches without enforcing temporal continuity.
+        - 'sliding-window': Generates batches using a sliding window approach for temporal consistency.
+        - 'inference': Prepares batches for model inference.
+
+        Additional checks are performed to ensure that batches meet size requirements.
+        """
+        if epoch != self.epoch:
+            self.epoch = epoch
+            if self.mode == 'independent':
+                self._create_default_batches()
+            elif self.mode == 'sliding-window':
+                self._create_sliding_window_batches()
+            elif self.mode == 'inference':
+                self._create_inference_batches()
+            else:
+                logger.error('Unknown sampler mode %s. Expected (independent, sliding-window, or inference).',
+                             self.mode)
+                exit(101)
+
+            # only for debugging
+            # self._batch_analyser()
+
+            self._check_small()
 
     def _create_default_batches(self) -> None:
         """
         Creates batches in a simple sequential order. Shuffles if enabled.
+
+        Notes
+        -----
+        - The resulting batches adhere to the desired batch size up to the last edge-case, which will be smaller.
+        - The resulting batches will contain all appropriate prediction points exactly once.
         """
         self.batches = []
         sampling = arange(len(self.selection))
@@ -751,28 +785,398 @@ class CustomSampler(Sampler):
             batch = [t for t in sampling[b:min(b + self.batch_size, len(self.selection))]]
             self.batches.append(batch)
 
-    def _create_contiguous_batches(self, tag: str) -> None:
+    def _create_inference_batches(self) -> None:
         """
-        Creates batches while maintaining temporal contiguity within or across batches.
+        Creates batches while maintaining temporal contiguity across batches, using a sliding window approach.
+        No shuffling, striding, or expansion (to fill batch size) is performed.
 
-        Parameters
-        ----------
-        tag : str
-            Determines contiguity level ('within' for mode 1, 'between' for mode 2).
+        Notes
+        -----
+        - The resulting batches do not necessarily adhere to the desired batch size.
+        - The resulting batches will contain all appropriate prediction points exactly once.
         """
         self.batches = []
+        contiguous_slices = self._get_contiguous_slices()
 
-        # add indices to selection matrix corresponding to dataset-wide position
-        inx = expand_dims(arange(len(self.selection)), 1)
-        selection = concatenate((self.selection, inx), axis=1)
+        # subsample slices if stride is more than one
+        if self.slide_stride > 1:
+            logger.warning('Note: with sliding window stride greater than 1, '
+                           'inference is not done on all available prediction points.')
+            contiguous_slices = [s[::self.slide_stride] for s in contiguous_slices]
+
+        self._block_sample_contiguous_batches(contiguous_slices)
+
+    def _create_sliding_window_batches(self) -> None:
+        """
+        Creates batches while maintaining temporal contiguity across batches,
+        using a sliding window approach. Also shuffles, expands the batches to match the desired batch size,
+        and applies stride to sliding window if selected.
+        """
+        self.batches = []
 
         # if shuffle is on prepare rng
         rng = None
         if self.shuffle:
             rng = self._get_rng()
 
-        # for each unique instance slice in selection
-        for s in unique(selection[:, :2], axis=0):
+        # retrieve contiguous slices
+        contiguous_slices = self._get_contiguous_slices()
+
+        # shuffle slices if shuffle is on
+        if self.shuffle:
+            rng.shuffle(contiguous_slices)
+
+        # expand contiguous slices to satisfy batch size
+        contiguous_slices = self._expand_contiguous_slices(contiguous_slices)
+
+        # shuffle expanded slices too, if shuffle is on
+        if self.shuffle:
+            rng.shuffle(contiguous_slices)
+
+        # if shuffle is on, drop a random number of prediction points at the start of slices
+        if self.shuffle:
+            contiguous_slices = self._random_drop_start(contiguous_slices, rng)
+
+        # subsample slices if stride is more than one
+        if self.slide_stride > 1:
+            contiguous_slices = [s[::self.slide_stride] for s in contiguous_slices]
+
+        # initiate batch sampling from contiguous slices
+        self._block_sample_contiguous_batches(contiguous_slices)
+
+    def _block_sample_contiguous_batches(self, contiguous_slices: list) -> None:
+        """
+        Generate and store batches from a list of contiguous slices.
+
+        This method processes a list of 1D NumPy arrays (contiguous slices) to create batches
+        of size `self.batch_size`. It iteratively samples blocks of slices, combines them with
+        remainders from previous iterations, handles empty slices, and constructs batches by
+        sampling across slices at the same position. The resulting batches are appended to
+        `self.batches`.
+
+        Parameters
+        ----------
+        contiguous_slices : list
+            A list of 1D NumPy arrays, each representing a contiguous block of prediction
+            points. Assumes at least `self.batch_size` slices are provided, though slices
+            may have variable lengths.
+
+        Returns
+        -------
+        None
+            The method appends generated batches to `self.batches` and does not return a value.
+
+        Raises
+        ------
+        ValueError
+            If `contiguous_slices` is empty or has fewer slices than `self.batch_size`.
+
+        Notes
+        -----
+        - The method assumes `contiguous_slices` contains at least `self.batch_size` slices.
+          If this condition is not met, it should be validated externally or an error raised.
+        - Slices may have variable lengths, and empty slices are replaced with the last
+          non-empty slice to maintain batch consistency, which may affect statefulness across
+          batches.
+        - Remainders from one iteration are combined with the next block of slices, which may
+          result in batches larger than `self.batch_size` if the combined block exceeds this
+          size.
+        - The process continues until all slices are processed or no non-empty slices remain.
+        - The implementation uses helper functions to sample blocks, concatenate remainders,
+          handle empty slices, and compute minimum lengths for clarity and modularity.
+        """
+
+        def _sample_new_candidate_block(slices: list, idx: int) -> list:
+            """
+            Sample a block of slices from the given index to index + batch size.
+
+            Parameters
+            ----------
+            slices : list
+                List of slices to sample from.
+            idx : int
+                Starting index for sampling.
+
+            Returns
+            -------
+            list
+                A sublist of slices from `idx` to `idx + self.batch_size`, or an empty list
+                if the range is outside the bounds of `slices`.
+            """
+            return slices[idx:idx + self.batch_size]
+
+        def _concat_slices(a: list, b: list, c: int) -> list:
+            """
+            Concatenate corresponding elements from two lists of arrays up to a specified length.
+
+            Parameters
+            ----------
+            a : list
+                First list of arrays to concatenate.
+            b : list
+                Second list of arrays to concatenate.
+            c : int
+                Number of elements to concatenate from each list.
+
+            Returns
+            -------
+            list
+                A list of concatenated arrays, where each element is the concatenation of
+                corresponding arrays from `a` and `b` up to index `c`.
+            """
+            return [concatenate((a[s], b[s])) for s in range(c)]
+
+        def _combine_with_remainder(block: list, rem_block: list) -> list:
+            """
+            Combine a candidate block with a remainder block from a previous iteration.
+
+            Combines a new block of slices with a remainder block, handling cases where the
+            blocks have equal or different lengths. If the remainder exists, it concatenates
+            corresponding slices up to the shorter length and extends with excess slices from
+            the longer block.
+
+            Parameters
+            ----------
+            block : list
+                A list of arrays representing the new candidate block of slices.
+            rem_block : list or None
+                A list of arrays representing the remainder from the previous iteration, or None
+                if no remainder exists.
+
+            Returns
+            -------
+            list
+                A list of arrays combining the input block and remainder, or the input block
+                unchanged if no remainder is provided.
+
+            Notes
+            -----
+            - If `block` is empty and `rem_block` exists, returns `rem_block`.
+            - If `block` and `rem_block` have equal lengths, concatenates corresponding slices.
+            - If lengths differ, concatenates up to the shorter length and extends with excess
+              slices from the longer block (either `block` or `rem_block`).
+            - May result in larger-than-expected batches if the combined length exceeds the
+              intended batch size.
+            """
+            if rem_block is not None:
+                if len(block) == 0:
+                    block = rem_block
+                elif len(block) == len(rem_block):
+                    block = _concat_slices(rem_block, block, len(block))
+                elif len(block) != len(rem_block):
+                    short = min(len(block), len(rem_block))
+                    long = max(len(block), len(rem_block))
+                    block = _concat_slices(rem_block, block, short)
+                    if len(block) < len(rem_block):
+                        block.extend([rem_block[b] for b in range(short, long)])
+                    else:
+                        block.extend([block[b] for b in range(short, long)])
+            return block
+
+        def _get_min_len(block: list) -> int:
+            """
+            Compute the minimum length of arrays in a block of slices.
+
+            Parameters
+            ----------
+            block : list
+                A list of arrays representing a block of slices.
+
+            Returns
+            -------
+            int
+                The minimum length of any array in the block. Returns 0 if the block is empty.
+            """
+            return min([len(s) for s in block])
+
+        def _handle_zero_slices(block: list) -> list:
+            """
+            Replace empty slices in a block with the last non-empty slice.
+
+            If any slice in the block has zero length, it is replaced with the last non-empty
+            slice in the block. If the last slice is empty, it is removed. This process continues
+            until no empty slices remain or the block is empty.
+
+            Parameters
+            ----------
+            block : list
+                A list of arrays representing a block of slices.
+
+            Returns
+            -------
+            list
+                The modified block with empty slices replaced by the last non-empty slice or
+                an empty list if all slices are removed.
+
+            Notes
+            -----
+            - Replacing empty slices with the last non-empty slice may break statefulness
+              across batches for the affected indices.
+            - The process biases the last index toward lower contiguousness over time.
+            """
+            if _get_min_len(block) == 0:
+                missing_entries = [_ for _ in range(len(block)) if len(block[_]) == 0]
+                while len(missing_entries) > 0:
+                    if missing_entries[-1] == len(block)-1:
+                        block.pop()
+                        missing_entries.pop()
+                    else:
+                        block[missing_entries[0]] = block.pop()
+                        missing_entries.pop(0)
+            return block
+
+        remainder = None
+        next_block_at = 0
+        while remainder != []:
+            new_block = _sample_new_candidate_block(contiguous_slices, next_block_at)
+            new_block = _combine_with_remainder(new_block, remainder)
+            new_block = _handle_zero_slices(new_block)
+            if len(new_block) == 0:
+                break
+            min_len = _get_min_len(new_block)
+            for l in range(min_len):
+                new_batch = [b[l] for b in new_block[:self.batch_size]]
+                self.batches.append(new_batch)
+            remainder = []
+            for b in new_block[:self.batch_size]:
+                remainder.append(b[min_len:])
+            for b in new_block[self.batch_size:]:
+                remainder.append(b)
+            next_block_at += self.batch_size
+
+    def _random_drop_start(self, contiguous_slices: list, rng: Generator, drop_max: int = 10) -> list:
+        """
+        Randomly drop elements from the start of each slice in a list of contiguous slices.
+
+        This method randomly trims a number of elements from the beginning of each slice,
+        with the number of elements to drop chosen uniformly from 0 to the minimum of the
+        slice length and `drop_max`. The modified slices are returned.
+
+        Parameters
+        ----------
+        contiguous_slices : list
+            A list of 1D NumPy arrays, each representing a contiguous block of prediction
+            points.
+        rng : numpy.random.Generator
+            A random number generator for sampling the number of elements to drop.
+        drop_max : int, optional
+            The maximum number of elements to drop from the start of each slice (default is 10).
+
+        Returns
+        -------
+        list
+            The modified list of slices with random portions dropped from the start of each slice.
+
+        Notes
+        -----
+        - If a slice is shorter than `drop_max`, the number of elements dropped is limited to
+          the slice's length.
+        - Empty slices remain unchanged, as the minimum of their length and `drop_max` is 0.
+        """
+        for s in range(len(contiguous_slices)):
+            to_drop = rng.integers(0, min(len(contiguous_slices[s]), drop_max))
+            contiguous_slices[s] = contiguous_slices[s][to_drop:]
+
+        return contiguous_slices
+
+    def _expand_contiguous_slices(self, contiguous_slices: list, dilation: int = 1) -> list:
+        """
+        Expand the list of contiguous slices to meet the batch size using a sliding window.
+
+        If the number of contiguous slices is less than the batch size, this method generates
+        additional slices by applying a sliding window with a specified dilation to existing
+        slices until the batch size is met or an error occurs. It handles cases where the
+        input list is empty or insufficient slices can be generated.
+
+        Parameters
+        ----------
+        contiguous_slices : list
+            A list of arrays, where each array contains indices representing a contiguous
+            block of prediction points from the selection matrix.
+        dilation : int, default=1
+            The dilation within a sampling window. Note this is different to `self.slide_stride`,
+            which defines the gaps between sampling windows.
+
+        Returns
+        -------
+        list
+            A list of arrays containing the original and newly generated contiguous slices,
+            expanded to meet or exceed the batch size.
+
+        Raises
+        ------
+        SystemExit
+            If the input `contiguous_slices` is empty or new slices cannot be generated
+            due to insufficient data for the dilation, logs an error and exits with code 101.
+
+        Notes
+        -----
+        The method uses a sliding window approach with a dilation defined by `dilation` to
+        generate new slices from existing ones. It iterates through the input slices, creating
+        new slices by shifting the starting point by the dilation value. A `found` flag tracks
+        whether new slices are successfully created in each iteration to avoid infinite loops.
+        If the batch size cannot be met, an error is logged, and the program exits.
+        """
+        if len(contiguous_slices) == 0:
+            logger.error('No contiguous slices to expand.')
+            exit(101)
+        if len(contiguous_slices) < self.batch_size:
+            tick = 0
+            found = False
+            while len(contiguous_slices) < self.batch_size:
+                if tick >= len(contiguous_slices):
+                    tick = 0
+                    if not found:
+                        break
+                    found = False
+                if dilation < len(contiguous_slices[tick]):
+                    new_slice = contiguous_slices[tick][dilation:]
+                    contiguous_slices.append(new_slice)
+                    found = True
+                tick += 1
+            if len(contiguous_slices) < self.batch_size:
+                logger.error('Cannot construct ordered batches with current dataset, '
+                             'batch size %s and sliding-window-dilation %d',
+                             self.batch_size, dilation)
+                exit(101)
+        return contiguous_slices
+
+    def _get_contiguous_slices(self) -> list:
+        """
+        Generate a list of contiguous slices from the selection matrix.
+
+        This method processes the selection matrix to identify unique instance-slice pairs,
+        gathers relevant prediction points for each pair, sorts them by time steps, and
+        splits them into contiguous blocks based on discontinuities in the indices. The
+        resulting blocks contain dataset-wide position indices.
+
+        Returns
+        -------
+        list
+            A list of arrays, where each array contains indices representing a contiguous
+            block of prediction points from the selection matrix.
+
+        Notes
+        -----
+        The method performs the following steps:
+            1. Indexes the selection matrix with dataset-wide position indices.
+            2. Identifies unique instance-slice pairs in the selection matrix.
+            3. For each pair, extracts and sorts prediction points by time steps.
+            4. Splits the sorted points into contiguous blocks based on index discontinuities.
+            5. Returns a list of these contiguous blocks, with each block containing the
+               dataset-wide position indices.
+        """
+
+        # add indices to selection matrix corresponding to dataset-wide position
+        inx = expand_dims(arange(len(self.selection)), 1)
+        selection = concatenate((self.selection, inx), axis=1)
+
+        # determine the unique set of instance-slices in the selection matrix
+        instance_slice_pairs = unique(selection[:, :2], axis=0)
+
+        # determine the available set of contiguous slices
+        contiguous_slices = []
+        for s in instance_slice_pairs:
             # get subselection
             idx = where((selection[:, 0] == s[0]) & (selection[:, 1] == s[1]))[0]
             s_block = selection[idx]
@@ -784,230 +1188,23 @@ class CustomSampler(Sampler):
             breakpoints = where(diff(s_block[:, 2]) != 1)[0] + 1
             s_block = split(s_block, breakpoints)
 
-            # compile batches from found sub-blocks
-            if tag == 'within':
-                self._contiguous_within(s_block, rng)
-            elif tag == 'between':
-                self._contiguous_between(s_block, rng)
+            # store the dataset-wide indices as new contiguous slices
+            s_block = [t[:, 3] for t in s_block]
+            contiguous_slices.extend(s_block)
 
-        # if shuffle is on we also shuffle the order of batches for mode 1
-        if self.shuffle and tag == 'within':
-            rng.shuffle(self.batches)
+        return contiguous_slices
 
-        if tag == 'between':
-            # compile full batches from remainder batches created in mode 2
-            self._reconcile_remainder()
-            # if shuffle is on we also shuffle successive blocks for mode 2
-            if self.shuffle:
-                self._shuffle_sucblocks(rng)
-
-    def _contiguous_within(self, s_block: list, rng: Generator) -> None:
+    def _check_small(self) -> None:
         """
-        Constructs batches where sequences remain contiguous within each batch.
-
-        Parameters
-        ----------
-        s_block : list
-            List of contiguous blocks of time steps.
-        rng : np.random.Generator or None
-            Random number generator for shuffling, if applicable.
+        Drops small batches if drop_small is enabled and logs the number of dropped batches.
         """
-
-        # for each contiguous sub-block
-        for sb in s_block:
-            sb_batches = []
-            # determine how many sequences to skip at the start
-            skip = 0
-            if self.shuffle:
-                skip = rng.integers(0, min(self.skip_max, len(sb)))
-            # compile batches greedily
-            for b in range(skip, len(sb), self.batch_size):
-                batch = sb[arange(b, min(b + self.batch_size, len(sb))), 3].tolist()
-                sb_batches.append(batch)
-            # if skipped, add back tot start as new batches
-            if self.shuffle:
-                skipped = []
-                for b in range(0, skip, self.batch_size):
-                    batch = sb[arange(b, min(b + self.batch_size, skip)), 3].tolist()
-                    skipped.append(batch)
-                sb_batches = skipped + sb_batches
-            # add results to core list of batches
-            self.batches.extend(sb_batches)
-
-    def _contiguous_between(self, s_block: list, rng: Generator) -> None:
-        """
-        Constructs batches where sequences remain contiguous across batches,
-        not necessarily within each batch.
-
-        Parameters
-        ----------
-        s_block : list
-            List of contiguous blocks of time steps.
-        rng : np.random.Generator or None
-            Random number generator for shuffling, if applicable.
-        """
-
-        def _proc_block(sb: array, skip: int) -> list:
-            """
-            Processes a contiguous sub-block into successive batches.
-
-            Parameters
-            ----------
-            sb : array, shape=[n_samples, 4]
-                Contiguous sub-block of the selection matrix.
-            skip : int
-                Number of initial time steps to skip.
-
-            Returns
-            -------
-            sb_batches : list
-                Processed batches with temporal succession.
-            """
-            sb_batches = []
-            # init a new block of successive batches
-            new_suc_batches = [[] for _ in range(self.succession_length)]
-            s_tick = 0
-            b_tick = 0
-            # for every prediction point in the contiguous sub-block
-            for t in range(skip, len(sb)):
-                # add the sequence ID
-                new_suc_batches[s_tick].append(sb[t][3])
-                s_tick += 1
-                # if enough prediciton points are added to reach succession length, move to next position in batches
-                if s_tick == self.succession_length:
-                    s_tick = 0
-                    b_tick += 1
-                # if last poisition in batches is reached
-                if b_tick >= self.batch_size:
-                    # add new succession block to resulting batches
-                    sb_batches.extend(new_suc_batches)
-                    # re-init a new block of successive batches
-                    new_suc_batches = [[] for _ in range(self.succession_length)]
-                    s_tick = 0
-                    b_tick = 0
-            # if there are prediction points remaining in the candidate succession block add them to
-            if s_tick != 0 or b_tick != 0:
-                sb_batches.extend(new_suc_batches)
-            return sb_batches
-
-        # for each contiguous sub-block
-        for sb in s_block:
-            sb_batches = []
-            # determine how many sequences to skip at the start
-            skip = 0
-            if self.shuffle:
-                skip = rng.integers(0, self.skip_max)
-            # compile batches greedily
-            full_sb_batches = _proc_block(sb, skip)
-            sb_batches.extend(full_sb_batches)
-            # if skipped, add back tot start as new batches
-            if self.shuffle:
-                sb_batches = _proc_block(sb[0:skip], 0) + sb_batches
-            # add results to core list of batches
-            self.batches.extend(sb_batches)
-
-    def _shuffle_sucblocks(self, rng) -> None:
-        """ Shuffles the set of batches that will be iterated over,
-        successive block by successive block."""
-        list_of_blocks = []
-        for s in range(0, len(self.batches), self.succession_length):
-            list_of_blocks.append(self.batches[s:s + self.succession_length])
-        rng.shuffle(list_of_blocks)
-        self.batches = [batch for block in list_of_blocks for batch in block]
-
-    def _reconcile_remainder(self) -> None:
-        """
-        Adjusts batch sizes by separating full batches, attempting to merge smaller batches,
-        and handling unresolvable small batches.
-
-        This function processes the generated batches in Mode 2 to ensure that as many batches
-        as possible reach the specified batch size. It classifies batches into three categories:
-
-        - Full-sized batches that meet the batch_size requirement.
-        - Remainder batches that are smaller than batch_size but can be combined.
-        - True loss batches that are too small to be reconciled.
-
-        The function then attempts to merge remainder batches into full-sized batches where possible,
-        while appending any unresolved batches to the final batch list.
-        """
-
-        # split the core set of batches into the following
-        #  - batches that are already appropriately sized
-        full_batches = []
-        #  - batches that are smaller than batch_size,
-        #    but can be joined with others to create a full sized batch
-        remainder = []
-        #  - batches that are smaller than batch_size,
-        #    and cannot be joined with others to create a full sized batch
-        true_loss = []
-
-        for s in range(0, len(self.batches), self.succession_length):
-            suc_block = self.batches[s:s + self.succession_length]
-            min_length = min(len(b) for b in suc_block)
-            if min_length == self.batch_size:
-                full_batches.extend(suc_block)
-            elif min_length > 0:
-                for b in suc_block:
-                    remainder.append(b[:min_length])
-                    true_loss.append(b[min_length:])
-            elif min_length == 0:
-                true_loss.extend(suc_block)
-            else:
-                logger.error('Something went terribly wrong with the mode 2 batch sampler.')
-                exit(101)
-
-        # store appropriately sized batches
-        self.batches = full_batches
-
-        # combine remainder batches into new full size batches
-        new_full_batches = []
-        for s in range(0, len(remainder), self.succession_length):
-            if s == 0:
-                suc_block0 = remainder[s:s + self.succession_length]
-            l0 = min(len(b) for b in suc_block0)
-            suc_block1 = remainder[s + self.succession_length:s + 2 * self.succession_length]
-            s1_part = self.batch_size - l0
-            new_full_suc_block = [row_a + row_b[:s1_part] for row_a, row_b in zip(suc_block0, suc_block1)]
-            if len(new_full_suc_block) != 0:
-                l_new = min(len(b) for b in new_full_suc_block)
-                if l_new == self.batch_size:
-                    new_full_batches.extend(new_full_suc_block)
-                    suc_block0 = [b[s1_part:] for b in suc_block1]
-                else:
-                    suc_block0 = new_full_suc_block
-            else:
-                true_loss.extend(suc_block0)
-
-        # store new full size batches
-        self.batches = self.batches + new_full_batches
-        # also add final unreconcilable batches too
-        self.batches = self.batches + true_loss
-
-    def _check_small(self, threshold: int = 0.05) -> None:
-        """
-        Drops small batches if drop_small is enabled and logs the number of dropped sequences.
-        """
-        total_before = sum([len(b) for b in self.batches])
+        total_before = len(self.batches)
         if self.drop_small:
             self.batches = [b for b in self.batches if len(b) >= self.batch_size]
-        total_after = sum([len(b) for b in self.batches])
-        if total_before != total_after and threshold < (total_before - total_after)/total_before:
-            logger.warning('%s/%s prediction points dropped from dataloader when dropping batches smaller than %s!',
+        total_after = len(self.batches)
+        if total_before != total_after:
+            logger.info('%s/%s batches dropped from dataloader when dropping batches smaller than %s.',
                            total_before - total_after, total_before, self.batch_size)
-
-    def _check_unique(self) -> None:
-        """
-        Ensures that all selected prediction points are included exactly once in the final batches.
-        """
-        raw_total = len(self.selection)
-        unique_t = []
-        for batch in self.batches:
-            for b in batch:
-                unique_t.append(b)
-        batched_total = len(unique_t)
-        if batched_total != raw_total:
-            logger.error("Uh oh, total batched prediction points do not match total raw prediction points.")
-            exit(101)
 
     def _get_rng(self) -> Generator:
         """
@@ -1028,6 +1225,46 @@ class CustomSampler(Sampler):
         else:
             rng = random.default_rng(self.seed)
         return rng
+
+    def _batch_analyser(self) -> None:
+
+        # ONLY FOR DEBUGGING
+
+        num_pps = len(self.selection)
+        batch_sizes = [len(b) for b in self.batches]
+        coverage = []
+        for pp in range(num_pps):
+            pp_count = 0
+            batch_count = 0
+            for b in self.batches:
+                seen = b.count(pp)
+                pp_count += seen
+                if seen > 0:
+                    batch_count += 1
+            coverage.append([pp_count, batch_count])
+
+        coverage = array(coverage)
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots(2, 2)
+        ax[0, 0].scatter([coverage[:, 0]], [coverage[:, 1]])
+        ax[0, 0].set_xlabel('number of times seen')
+        ax[0, 0].set_ylabel('across this many batches')
+
+        ax[0, 1].hist(batch_sizes)
+        ax[0, 1].set_xlabel('batch sizes')
+
+        ax[1, 0].hist(coverage[:, 0])
+        ax[1, 0].set_xlabel('Prediction point seen')
+
+        ax[1, 1].hist(coverage[:, 1])
+        ax[1, 1].set_xlabel('Present in this many batches')
+
+        plt.tight_layout()
+        plt.show()
+        plt.close()
+
+        exit(101)
 
 
 class CustomDataset(Dataset):
@@ -1082,7 +1319,7 @@ class CustomDataset(Dataset):
 
         self.preloaded_slices = {}
         if preload:
-            logger.info("Preloading relevant slices into memory. This could take a while, but spead up actual training.")
+            logger.info("Preloading relevant slices into memory. This could take a while, but speed up actual training.")
             instances = unique(self.selection_matrix[:, 0], axis=0)
             for i in instances:
                 slices = unique(self.selection_matrix[self.selection_matrix[:, 0] == i, 1])
@@ -1112,13 +1349,16 @@ class CustomDataset(Dataset):
         dict[str, any]
             A dictionary containing
                 -   'x' (Tensor): the input features,
-                -   'y' (Tensor): the one-hot encoded labels,
-                -   's_id' (int): the sample ID 's_id'.
+                -   'y' (Tensor): the target features,
+                -   's_id' (int): the sample ID 's_id'; it's index in the selection matrix.
+                -   'ist_idx' (array): the sample IST index.
         """
 
         if type(idx) is list:
             idx_list = idx
         elif is_tensor(idx):
+            idx_list = idx.tolist()
+        elif isinstance(idx, ndarray):
             idx_list = idx.tolist()
         else:
             # assumes idx is an integer
@@ -1126,9 +1366,13 @@ class CustomDataset(Dataset):
 
         input_x = []
         output_y = []
+        ist_idx = []
         for pp in idx_list:
             # get sample selection
             selection = self.selection_matrix[pp]
+
+            # save sample ist index
+            ist_idx.append(selection)
 
             # get relevant slice information
             if self.preload:
@@ -1146,14 +1390,14 @@ class CustomDataset(Dataset):
             input_x.append(self.x_scaler.transform(x_vals))
             output_y.append(self.y_scaler.transform(y_vals))
 
-        if type(idx) is list or is_tensor(idx):
+        if len(idx_list) > 1:
             input_x = array(input_x)
             output_y = array(output_y)
         else:
             input_x = input_x[0]
             output_y = output_y[0]
 
-        return self._package_output(input_x, output_y, idx)
+        return self._package_output(input_x, output_y, idx, ist_idx)
 
     @staticmethod
     def _sample_and_pad(slice_vals, selection, s_chunk, s_map, pad_mode):
@@ -1172,15 +1416,14 @@ class CustomDataset(Dataset):
             pw = ((0, right - far_right + 1), (0, 0))
             vals = pad(vals, pad_width=pw, mode=pad_mode)
 
-        # vals = random.rand(49, 3)
-
         return vals
 
     @staticmethod
-    def _package_output(input_x, output_y, idx):
+    def _package_output(input_x, output_y, idx, ist_idx):
         """ Package the sample values for a basic regression problem. """
         sample = {'x': from_numpy(input_x).float(),
-                  'y': from_numpy(output_y).float(), 's_id': idx}
+                  'y': from_numpy(output_y).float(),
+                  's_id': idx, 'ist_idx': ist_idx}
         return sample
 
 
@@ -1210,7 +1453,7 @@ class CustomClassificationDataset(CustomDataset):
                          padding_method, preload)
         self.class_set = class_set
 
-    def _package_output(self, input_x, output_y, idx):
+    def _package_output(self, input_x, output_y, idx, ist_idx):
         """ Package the sample values for a basic classification problem. """
 
         if len(output_y.shape) == 2:
@@ -1223,7 +1466,8 @@ class CustomClassificationDataset(CustomDataset):
             output_y = new_output_y
 
         sample = {'x': from_numpy(input_x).float(),
-                  'y': output_y, 's_id': idx}
+                  'y': output_y,
+                  's_id': idx, 'ist_idx': ist_idx}
 
         return sample
 

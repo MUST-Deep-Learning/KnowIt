@@ -326,13 +326,11 @@ data:
   scaling_tag: full
   seed: 123
   shuffle_train: true
-  skip_max: 10
   split_method: chronological
   split_portions:
   - 0.6
   - 0.2
   - 0.2
-  succession_length: 10
   task: regression
 data_dynamics:
   eval_size: 13931
