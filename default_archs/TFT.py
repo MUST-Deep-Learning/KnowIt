@@ -50,7 +50,7 @@ class Model(nn.Module):
                  num_attention_heads: int = 1,
                  dropout: float | None = 0.1,
                  full_attention: bool = False,
-                 hidden_embedding_size: int = 8,
+                 hidden_embedding_size: int = 1,
                  norm_type: str = "LayerNorm",
                  quantiles: list = None,
                  output_activation: str | None = None,
@@ -151,7 +151,6 @@ class Model(nn.Module):
             n_input_dim=self.hidden_embedding_size,
             n_input_features=self.num_model_in_channels,
             depth=self.depth,
-            input_embedding_flags={},
             dropout=self.dropout,
             context_size=self.depth,
             prescalers=self.prescalers,
@@ -161,7 +160,6 @@ class Model(nn.Module):
             n_input_dim=self.hidden_embedding_size,
             n_input_features=self.num_model_in_channels,
             depth=self.depth,
-            input_embedding_flags={},
             dropout=self.dropout,
             context_size=self.depth,
             prescalers=self.prescalers,
@@ -334,7 +332,7 @@ class Model(nn.Module):
         self._encoder_out_weights = encoder_sparse_weights
         self._decoder_out_weights = decoder_sparse_weights
 
-        return out
+        return final_out
 
 ################################# Sub-Modules #################################################
 
@@ -418,10 +416,12 @@ class _ResampleNorm(nn.Module):
         self.trainable = trainable
 
         if self.input_size != self.n_output:
-            self.resample = _TimeDistributedInterpolation(
-                self.n_output, batch_first=True, trainable=False
-            )
-        if self.trainable:
+            # self.resample = _TimeDistributedInterpolation(
+            #     self.n_output, batch_first=True, trainable=False
+            # )
+            self.resample = nn.Linear(self.input_size, self.n_output)
+
+        if self.trainable: #Used for learning which features to suppress and emphasise
             self.mask = nn.Parameter(torch.zeros(self.n_output, dtype=torch.float))
             self.gate = nn.Sigmoid()
         self.norm = self.layer_norm(self.n_output)
@@ -448,11 +448,12 @@ class _AddNorm(nn.Module):
         self.trainable = trainable
 
         if self.n_input != self.residual:
-            self.resample_norm = _TimeDistributedInterpolation(
-                self.n_input,
-                batch_first=True,
-                trainable=False
-            )
+            # self.resample = _TimeDistributedInterpolation(
+            #     self.n_input,
+            #     batch_first=True,
+            #     trainable=False
+            # )
+            self.resample = nn.Linear(self.n_input, self.residual)
         if self.trainable:
             self.mask = nn.Parameter(torch.zeros(self.n_input, dtype=torch.float))
             self.gate = nn.Sigmoid()
@@ -460,7 +461,7 @@ class _AddNorm(nn.Module):
 
     def forward(self, x: torch.Tensor, residual_connect: torch.Tensor):
         if self.n_input != self.residual:
-            residual_connect = self.resample_norm(residual_connect)
+            residual_connect = self.resample(residual_connect)
 
         if self.trainable:
             residual_connect = residual_connect * self.gate(self.mask) * 2.0
@@ -502,7 +503,7 @@ class _GatedResidualNetwork(nn.Module):
         dropout: float = 0.1,
         context_size: int =None,
         residual_connect: bool = True,
-        layer_norm: nn.Module = nn.LayerNorm
+        layer_norm: nn.LayerNorm = nn.LayerNorm,
     ):
 
         super().__init__()
@@ -609,12 +610,36 @@ class _GatedLinearUnit(nn.Module):
 ################################### VSN Block ##########################################
 
 class _VariableSelectionNetwork(nn.Module):
+    """
+    Implements a variable selection network used for prioritizing input features
+    in complex models.
+
+    This class serves as a specialized neural network module designed for variable
+    selection by assigning weights to input features, such that the importance of
+    each input feature in subsequent layers is dynamically determined. The model
+    leverages Gated Residual Networks (GRNs) for processing both individual
+    features and flattened embeddings. The selective weighting mechanism enables
+    dimensionality reduction and improved generalization in tasks requiring input
+    selection.
+
+    Attributes
+    ----------
+    n_input_dim : int
+        Dimensionality of the input features.
+    n_input_features : int
+        Number of input features being processed by the network.
+    depth : int
+        Number of hidden units in each layer of the Gated Residual Networks (GRNs).
+    dropout : float
+        Dropout rate applied within the Gated Residual Networks.
+    context_size : int, optional
+        Size of the context vector used in gated operations, if applicable.
+    """
     def __init__(
         self,
         n_input_dim: int,
         n_input_features: int,
         depth: int,
-        input_embedding_flags: Dict[str, bool] = None,
         dropout: float = 0.1,
         context_size: int = None,
         prescalers: List[nn.Linear] = None,
@@ -623,7 +648,6 @@ class _VariableSelectionNetwork(nn.Module):
         self.n_input_dim = n_input_dim
         self.n_input_features = n_input_features
         self.depth = depth
-        self.input_embedding_flags = input_embedding_flags
         self.dropout = dropout
         self.context_size = context_size
 
@@ -645,12 +669,11 @@ class _VariableSelectionNetwork(nn.Module):
                     self.dropout,
                     residual_connect=False,
                 )
-        single_variable_grns = []
+
         self.single_variable_grns = nn.ModuleList()
         self.prescalers = nn.ModuleList()
 
         for idx in range(self.n_input_features):
-
             self.single_variable_grns.append(_GatedResidualNetwork(
                 n_input=self.n_input_dim,
                 depth=min(self.n_input_dim, self.depth),
