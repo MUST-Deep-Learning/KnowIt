@@ -37,19 +37,26 @@ HP_ranges_dict = {
 class Model(nn.Module):
 
     task_name = None
-    model_out_dim = None
-    final_out_dim = None
+    depth = 16
+    lstm_depth = 16
+    num_attention_heads = 1
+    dropout = 0.1
+    full_attention = True
+    hidden_embedding_size = 16
+    norm_type = None
+    output_activation = None
+    num_targets = None
 
     def __init__(self,
                  input_dim: list,
                  output_dim: list,
                  task_name: str,
                  *,
-                 depth: int = 16,
-                 lstm_depth: int = 1,
-                 num_attention_heads: int = 1,
-                 dropout: float | None = 0.1,
-                 full_attention: bool = False,
+                 depth: int = 64,
+                 lstm_depth: int = 16,
+                 num_attention_heads: int = 4,
+                 dropout: float | None = 0.01,
+                 full_attention: bool = True,
                  hidden_embedding_size: int = 1,
                  norm_type: str = "LayerNorm",
                  quantiles: list = None,
@@ -69,7 +76,6 @@ class Model(nn.Module):
         # self.decoder_steps = num_encoder_steps
 
         self.task_name = task_name
-        self.n_targets, self.n_loss = output_dim
         self.n_targets = n_targets
         self.n_loss = n_loss
         self.depth = depth
@@ -82,9 +88,6 @@ class Model(nn.Module):
         self.output_activation = output_activation
         self.layer_norm = nn.LayerNorm
 
-        # self.reals = input_dim[-1] # Length of real valuead inputs
-        # self.encoder_variables = input_dim[-1] # Input data before prediction
-
         self.batch_size_last = -1
         self.attention_mask = None
 
@@ -94,7 +97,7 @@ class Model(nn.Module):
         self._decoder_sparse_weights = None
 
         # Continuous variable processing
-        self.prescalers = [nn.Linear(1, self.hidden_embedding_size) for _ in range(self.num_model_in_channels)]
+        # self.prescalers = [nn.Linear(1, self.hidden_embedding_size) for _ in range(self.num_model_in_channels)]
         # static_input_sizes = {
         #     str(x): self.input_embeddings.output_size[x]
         #     for x in range(self.static_cat_components)
@@ -153,7 +156,7 @@ class Model(nn.Module):
             depth=self.depth,
             dropout=self.dropout,
             context_size=self.depth,
-            prescalers=self.prescalers,
+            # prescalers=self.prescalers,
         )
 
         self.lstm_decoder_vsn = _VariableSelectionNetwork(
@@ -162,7 +165,7 @@ class Model(nn.Module):
             depth=self.depth,
             dropout=self.dropout,
             context_size=self.depth,
-            prescalers=self.prescalers,
+            # prescalers=self.prescalers,
         )
 
         self.lstm_encoder = LSTM(
@@ -353,53 +356,52 @@ class Model(nn.Module):
 #         return
 
 ##################################### GRU BLOCK ###############################################
-class _TimeDistributedInterpolation(nn.Module):
-    def __init__(
-        self,
-        n_output: int,
-        batch_first: bool = False,
-        trainable: bool = False,
-    ):
-        super().__init__()
-        self.n_output = n_output
-        self.batch_first = batch_first
-        self.trainable = trainable
-
-        if self.trainable:
-            self.mask = Parameter(torch.zeros(self.n_output, dtype=torch.float32))
-            self.gate = Sigmoid()
-
-    def interpolate(self, x):
-        upsampled = F.interpolate(
-            x.unsqueeze(1), self.n_output, mode='linear', align_corners=True
-        ).squeeze(1)
-
-        if self.trainable:
-            upsampled = upsampled * self.gate(self.mask.unsqueeze(0)) * 2.0
-
-        return upsampled
-
-    def forward(self, x):
-        if len(x.size()) <= 2:
-
-            return self.interpolate(x)
-
-        # Squash samples and timesteps into a single axis
-        x_reshape = x.contiguous().view(
-            -1, x.size(-1)
-        )  # (samples * timesteps, input_size)
-
-        y = self.interpolate(x_reshape)
-
-        if self.batch_first:
-            y = y.contiguous().view(
-                x.size(0), -1, y.size(-1)
-            ) # samples, timesteps, output_size
-        else:
-            y = y.view(-1, x.size(1), y.size(-1)) # timesteps, samples, output_size
-
-        return y
-
+# class _TimeDistributedInterpolation(nn.Module):
+#     def __init__(
+#         self,
+#         n_output: int,
+#         batch_first: bool = False,
+#         trainable: bool = False,
+#     ):
+#         super().__init__()
+#         self.n_output = n_output
+#         self.batch_first = batch_first
+#         self.trainable = trainable
+#
+#         if self.trainable:
+#             self.mask = Parameter(torch.zeros(self.n_output, dtype=torch.float32))
+#             self.gate = Sigmoid()
+#
+#     def interpolate(self, x):
+#         upsampled = F.interpolate(
+#             x.unsqueeze(1), self.n_output, mode='linear', align_corners=True
+#         ).squeeze(1)
+#
+#         if self.trainable:
+#             upsampled = upsampled * self.gate(self.mask.unsqueeze(0)) * 2.0
+#
+#         return upsampled
+#
+#     def forward(self, x):
+#         if len(x.size()) <= 2:
+#
+#             return self.interpolate(x)
+#
+#         # Squash samples and timesteps into a single axis
+#         x_reshape = x.contiguous().view(
+#             -1, x.size(-1)
+#         )  # (samples * timesteps, input_size)
+#
+#         y = self.interpolate(x_reshape)
+#
+#         if self.batch_first:
+#             y = y.contiguous().view(
+#                 x.size(0), -1, y.size(-1)
+#             ) # samples, timesteps, output_size
+#         else:
+#             y = y.view(-1, x.size(1), y.size(-1)) # timesteps, samples, output_size
+#
+#         return y
 
 class _ResampleNorm(nn.Module):
     def __init__(
@@ -701,7 +703,7 @@ class _VariableSelectionNetwork(nn.Module):
             weight_inputs = []
             for idx in range(self.n_input_features):
                 variable_embedding = x[:, :, idx].unsqueeze(-1)
-                variable_embedding = self.prescalers[idx](variable_embedding)
+                # variable_embedding = self.prescalers[idx](variable_embedding)
                 weight_inputs.append(variable_embedding)
                 var_outputs.append(self.single_variable_grns[idx](variable_embedding))
             var_outputs = torch.stack(var_outputs, dim=-1)
@@ -715,7 +717,7 @@ class _VariableSelectionNetwork(nn.Module):
 
         elif self.n_input_features == 1:
             variable_embedding = x[:, :, 0].unsqueeze(-1)
-            variable_embedding = self.prescalers[0](variable_embedding)
+            # variable_embedding = self.prescalers[0](variable_embedding)
             out = self.single_variable_grns[0](variable_embedding)
             if out.ndim == 3:
                 sparse_weights = torch.ones(out.size(0), out.size(1), 1, 1, device=out.device)
