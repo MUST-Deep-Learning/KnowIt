@@ -39,6 +39,7 @@ order of these elements are defined by the 'method' argument:
     -   instance-chronological: split on instances in chronological order. The ordering is based on the first (chronologically) time step in the instance.
     -   slice-chronological: split on slices in chronological order. The ordering is based on the first (chronologically) time step in the slice.
     -   slice-random: split on slices in random order
+    -   custom: custom user defined splits, specified at data importing
 
 This means that 'portions' are defined i.t.o the specific 'method'. For examples:
 portions=(0.8, 0.1, 0.1) and method=instance-random means that the prediction points of a random 80% of instances,
@@ -49,6 +50,9 @@ will constitute training data, etc.
 Note that this also means that the provided portions do not necessarily correspond to the portions of prediction points,
 and therefore they might not directly control the number of examples trained and tested on.
 Only for method=random or method=chronological would they.
+
+Also note that if a custom split is defined, as in RawDataConverter, and selected here (method='custom').
+The operations above will not be performed. The splits defined at raw data import will be checked for validity and used instead.
 
 --------
 Limiting
@@ -64,6 +68,8 @@ that occur chronologically.
 
 """
 
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the DataSplitter class for KnowIt.'
 
@@ -88,7 +94,7 @@ class DataSplitter:
         The data extractor object to read data from disk.
     method : str
         Method for data splitting. Options are 'random', 'chronological',
-        'instance-random', 'instance-chronological', 'slice-random', or 'slice-chronological'.
+        'instance-random', 'instance-chronological', 'slice-random', or 'slice-chronological', 'custom'.
     portions : tuple, shape=[3,]
         Tuple of three floats representing the portions for training, validation, and evaluation
         datasets respectively. The sum of these portions should be 1.0.
@@ -111,6 +117,8 @@ class DataSplitter:
         What level to load values from disk with.
         If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
         If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
+    custom_splits: dict | None, default=None
+        A dictionary defining the custom selection matrices.
 
     Attributes
     ----------
@@ -118,7 +126,7 @@ class DataSplitter:
         The selection matrix corresponding to the train set.
     valid_points : array, shape=[n_valid_prediction_points, 3]
         The selection matrix corresponding to the validation set.
-    train_points : array, shape=[n_eval_prediction_points, 3]
+    eval_points : array, shape=[n_eval_prediction_points, 3]
         The selection matrix corresponding to the evaluation set.
 
     Raises
@@ -135,7 +143,8 @@ class DataSplitter:
                  x_map: array, y_map: array,
                  in_chunk: list, out_chunk: list,
                  min_slice: int, in_portion: float = 0.5,
-                 load_level: str = 'instance') -> None:
+                 load_level: str = 'instance',
+                 custom_splits: dict = None) -> None:
 
         # check that defined portions are valid
         if abs(1.0 - sum(portions)) > 1e-6:
@@ -144,7 +153,7 @@ class DataSplitter:
 
         options = ('random', 'chronological',
                    'instance-random', 'instance-chronological',
-                   'slice-random', 'slice-chronological')
+                   'slice-random', 'slice-chronological', 'custom')
         if method not in options:
             logger.error('split_method %s is not recognized; must be one of %s', method, options)
             exit(101)
@@ -157,7 +166,12 @@ class DataSplitter:
                                                                   load_level)
 
         # 2. Split (and limit)
-        self.train_points, self.valid_points, self.eval_points = self._do_split(prediction_points, times,
+        if method == 'custom':
+            self.train_points, self.valid_points, self.eval_points = self._do_custom_split(custom_splits,
+                                                                                           prediction_points,
+                                                                                           limit)
+        else:
+            self.train_points, self.valid_points, self.eval_points = self._do_split(prediction_points, times,
                                                                                 portions, method, limit)
 
     def get_selection(self) -> dict:
@@ -368,6 +382,72 @@ class DataSplitter:
         eval_points = DataSplitter._sample_and_stack(prediction_points, start_stop_indxs, eval_elements)
 
         return train_points, valid_points, eval_points
+
+    @staticmethod
+    def _do_custom_split(custom_splits: dict, prediction_points: array, limit: int) -> tuple:
+        """
+        Process custom data splits and filter them based on prediction points.
+
+        This method validates the provided custom data splits, ensures they contain
+        only the expected keys ('train', 'valid', 'eval'), checks that no dataset
+        limiting is applied, and filters the splits to include only rows present in
+        the provided prediction points. The filtered splits are returned as a tuple.
+
+        Parameters
+        ----------
+        custom_splits : dict
+            Dictionary containing data splits with keys 'train', 'valid', and 'eval'.
+            Each value is a NumPy array of shape (num_prediction_points, 3) containing IST indices.
+        prediction_points : array
+            NumPy array of shape (num_prediction_points, 3) containing valid prediction points to filter the splits.
+            Rows in each split are kept only if they match a row in prediction_points.
+        limit : int
+            Parameter to limit the dataset size. Must be None, as limiting is not
+            supported with custom splits.
+
+        Returns
+        -------
+        tuple
+            A tuple of three NumPy arrays: (train_split, valid_split, eval_split).
+            Each array contains the filtered rows from the corresponding split in
+            custom_splits that match rows in prediction_points.
+
+        Notes
+        -----
+        - The filtering process converts prediction_points to a set of tuples for
+          efficient lookup, then checks each row in the splits against this set.
+        - The row-wise filtering loop may be slow for large datasets and could be
+          optimized if needed (e.g., using vectorized operations).
+        - This method assumes that the arrays in custom_splits and prediction_points
+          have compatible shapes (same number of columns).
+        """
+
+        # Check if all sets are present in the custom split
+        missing_split_components = set(custom_splits) - {'valid', 'train', 'eval'}
+        if len(missing_split_components) > 0:
+            logger.error('Defined set selection %s not in custom splits.',
+                         str(missing_split_components))
+            exit(101)
+
+        # Check that the splits are not to be limited
+        if limit is not None:
+            logger.error("KnowIt does not currently support custom splits and limiting the dataset.")
+            exit(101)
+
+        # Remove custom selected prediction points that are not valid
+        # @TODO this loop can probably be done much faster, TBD if required.
+        converted_prediction_set = set(map(tuple, prediction_points))
+        for data_set in ['train', 'valid', 'eval']:
+            mask = [tuple(row) in converted_prediction_set for row in custom_splits[data_set]]
+            dropped = len(mask) - count_nonzero(mask)
+            if dropped > 0:
+                logger.warning('Dropping %s %s-set prediction points as they do not constitute appropriate prediction points for the current model. '
+                               'This is likely due to slice edge cases not having available input or output features.',
+                               dropped, data_set)
+            custom_splits[data_set] = custom_splits[data_set][mask]
+
+        return custom_splits['train'], custom_splits['valid'], custom_splits['eval']
+
 
     @staticmethod
     def _select_prediction_points(data_extractor: DataExtractor,

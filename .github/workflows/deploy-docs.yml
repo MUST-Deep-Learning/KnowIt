@@ -1,0 +1,52 @@
+name: Build and Deploy Sphinx Docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'  # Trigger only when files in docs/ change
+      - '.github/workflows/deploy-docs.yml'  # Trigger if workflow changes
+      - '**.py' # Trigger for any .py files
+      - '**.md' # Trigger for any .md files
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the main branch
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f docs/requirements.txt ]; then pip install -r docs/requirements.txt; fi
+
+      # Build Sphinx documentation
+      - name: Build Sphinx docs
+        run: |
+          cd docs
+          make html  # Adjust if you use a different build command
+
+      # Create .nojekyll file to prevent Jekyll processing
+      - name: Create .nojekyll
+        run: |
+          touch docs/build/html/.nojekyll
+
+      # Deploy to gh-pages branch
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/build/html
+          force_orphan: true  # Keep only the latest commit in gh-pages
+          commit_message: Deploy docs from ${{ github.sha }}

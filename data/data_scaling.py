@@ -30,6 +30,8 @@ This applies to both inputs and outputs.
 """
 
 from __future__ import annotations
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the DataScaler, ZScale, LinScale, and NoScale classes for KnowIt.'
 

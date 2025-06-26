@@ -20,7 +20,8 @@ https://captum.ai/api/integrated_gradients.html
 """# noqa: INP001, D205, D212, D400, D415
 
 from __future__ import annotations
-
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "randlerabe@gmail.com"
 __description__ = "Implements Captum's Integrated Gradients attribution \
     method."

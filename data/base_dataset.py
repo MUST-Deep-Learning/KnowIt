@@ -71,6 +71,8 @@ The BaseDataset module uses the ``RawDataConverter`` module to convert this data
 into a known structure. See that module for more details.
 """
 from __future__ import annotations
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the BaseDataset class for KnowIt.'
 
@@ -161,6 +163,51 @@ class BaseDataset:
 
         """
         return DataExtractor(self.package_path, self.components, self.instance_names, self.data_structure)
+
+    @classmethod
+    def from_raw(cls, exp_output_dir: str,
+                  raw_data: str | DataFrame, safe_mode: bool,
+                  base_nan_filler: str | None,
+                  nan_filled_components: list | None,
+                  meta: dict | None) -> data.BaseDataset:
+        """Instantiate a BaseDataset object from raw data, either a file path or a DataFrame.
+
+        Parameters
+        ----------
+        exp_output_dir : str
+            The directory path for experiment output.
+        raw_data : str | DataFrame
+            Either a file path to the raw data or a pandas DataFrame containing the raw data.
+        safe_mode : bool
+            A flag indicating whether to operate in safe mode.
+        base_nan_filler : str | None
+            The method used to fill NaNs in the base dataset.
+        nan_filled_components : list | None
+            A list of components in the dataset that should have NaNs filled.
+        meta : dict | None
+            A dictionary containing the required metadata or None.
+            If None, metadata should be provided in file at path.
+
+        Returns
+        -------
+        data.BaseDataset
+            An instance of the BaseDataset class initialized with the provided raw data.
+
+        Notes
+        -----
+        - If `raw_data` is a string, it is treated as a file path and processed via `BaseDataset.from_path`.
+        - If `raw_data` is a pandas DataFrame, it is processed via `BaseDataset.from_df`.
+        - The method delegates to appropriate class methods based on the type of `raw_data`.
+
+        """
+        if isinstance(raw_data, str):
+            return cls.from_path(exp_output_dir, raw_data, safe_mode, base_nan_filler, nan_filled_components, meta)
+        elif isinstance(raw_data, DataFrame):
+            return cls.from_df(raw_data, exp_output_dir, safe_mode, base_nan_filler, nan_filled_components, meta)
+        else:
+            logger.error('Unknown data import type %s. Aborting.', type(data))
+            exit(101)
+
 
     @classmethod
     def from_path(cls, exp_output_dir: str,

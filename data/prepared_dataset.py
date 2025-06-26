@@ -62,6 +62,7 @@ More details can be found in ``DataSplitter``, but we summarize the options here
     - 'slice-chronological': Ignore all distinction between instances, and split on slices chronologically.
     - 'instance-random': Split on instances randomly.
     - 'instance-chronological': Split on instances chronologically.
+    - 'custom': User defined split.
 Note that the data is split ON the relevant level (instance, slice, or timesteps).
 I.e. If you split on instances and there are only 3 instances, then split_portions=(0.6, 0.2, 0.2)
 will be a wild approximation i.t.o actual time steps.
@@ -70,6 +71,9 @@ Note that, if desired, the data is limited during splitting, and the data is lim
 the excess data points from the end of the data block after shuffling or ordering according to time.
 Also note that if the data is limited too much for a given ``split_portion`` to have a single entry,
 an error will occur confirming it.
+
+Note that the 'custom' split has to be constructed during the data importing.
+See the RawDataConverter module for more information.
 
 -------
 Scaling
@@ -126,6 +130,8 @@ This class supports three different modes of temporal contiguity. See the module
 """
 
 from __future__ import annotations
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = ('Contains the PreparedDataset, CustomDataset, and CustomClassificationDataset, '
                    'and CustomSampler class for Knowit.')
@@ -177,7 +183,7 @@ class PreparedDataset(BaseDataset):
         The mini-batch size for training.
     split_method : str
         The method of splitting data. Options are 'random', 'chronological',
-        'instance-random', 'instance-chronological', 'slice-random', or 'slice-chronological'.
+        'instance-random', 'instance-chronological', 'slice-random', 'slice-chronological', or 'custom'.
         See heading for description.
     scaling_method : str | None
         The method for scaling data features. Options are 'z-norm', 'zero-one', or None.
@@ -233,6 +239,8 @@ class PreparedDataset(BaseDataset):
     class_counts : dict
         A dictionary that maps each class ID to its size.
         Only created if task='classification'.
+    custom_splits: dict
+        A dictionary defining the custom selection matrices.
 
     Notes
     -----
@@ -271,6 +279,7 @@ class PreparedDataset(BaseDataset):
     out_shape = None
     class_set = None # only filled if task='classification'
     class_counts = None  # only filled if task='classification'
+    custom_splits = None # only filled if custom_splits are defined at data import
 
     def __init__(self, **kwargs) -> None:
 
@@ -515,6 +524,11 @@ class PreparedDataset(BaseDataset):
         self.in_shape = [self.in_chunk[1] - self.in_chunk[0] + 1, len(self.in_components)]
         self.out_shape = [self.out_chunk[1] - self.out_chunk[0] + 1, len(self.out_components)]
         if self.task == 'classification':
+            if self.out_chunk[0] != self.out_chunk[1]:
+                logger.error('Currently, KnowIt can only perform classification at one specific time step at a time. '
+                             'Please change the out_chunk %s argument to reflect this. Both values must match.',
+                             str(self.out_chunk))
+                exit(101)
             self._get_classes()
             self._count_classes()
             self.out_shape = [1, len(self.class_set)]
@@ -526,7 +540,9 @@ class PreparedDataset(BaseDataset):
                                       self.split_portions,
                                       self.limit, self.x_map, self.y_map,
                                       self.in_chunk, self.out_chunk,
-                                      self.min_slice).get_selection()
+                                      self.min_slice,
+                                      custom_splits=self.custom_splits).get_selection()
+
         self.train_set_size = len(self.selection['train'])
         self.valid_set_size = len(self.selection['valid'])
         self.eval_set_size = len(self.selection['eval'])
@@ -536,6 +552,11 @@ class PreparedDataset(BaseDataset):
 
         # scale the dataset
         logger.info('Preparing data scalers, if relevant.')
+
+        if self.task == 'classification' and self.scaling_tag == 'full':
+            logger.warning('scaling_tag cannot be full for classification tasks. Changing to scaling_tag=in_only.')
+            self.scaling_tag = 'in_only'
+
         self.x_scaler, self.y_scaler = DataScaler(self.get_extractor(),
                                                   self.selection['train'],
                                                   self.scaling_method,

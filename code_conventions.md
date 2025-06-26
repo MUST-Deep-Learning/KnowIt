@@ -66,6 +66,8 @@ Updating and enforcing these conventions is an ongoing task.
 > Every script has the following top-matter:
 > 
 >    - """ Overview of contents... """
+>    - \_\_copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+>    - \_\_licence__ = 'Apache 2.0; see LICENSE file for details.'
 >    - \_\_author__ = 'tiantheunissen@gmail.com, randlerabe@gmail.com'
 >    - \_\_description__ = 'One-liner of the contents.'
 >    - \# external imports
@@ -86,6 +88,9 @@ Updating and enforcing these conventions is an ongoing task.
 
 > Use a single `_` in front of a method name to indicate that it is not meant to be used 
 > outside the current local context (within current class or script).
+ 
+> Variable names for strings representing file paths use the suffix '_path', 
+> and variable names for strings representing directory paths use the suffix '_dir'.
 
 # Helper functions
 

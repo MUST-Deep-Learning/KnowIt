@@ -1,5 +1,7 @@
 """This script contains example visualizations. These serve to illustrate how the outputs of KnowIt can be visualized."""
 
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains various functions to visualize KnowIt data structures.'
 
@@ -85,7 +87,7 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     None
     """
     curves, num_epochs = get_learning_curves(exp_output_dir, model_name)
-    score, metric, result_epoch = get_model_score(model_output_dir(exp_output_dir, model_name))
+    _, _, result_epoch = get_model_score(model_output_dir(exp_output_dir, model_name))
 
     loss_curves = [key for key in curves.keys() if 'perf' not in key]
     perf_curves = [key for key in curves.keys() if 'perf' in key]
@@ -105,9 +107,6 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
         """Helper function to plot curves."""
         for c in curves:
             ax.plot(epoch, curves[c], label=c, marker='.', color=get_color(c))
-        ax.axvline(x=result_epoch, linestyle='--', c='white')
-        check = 0.5 * (ax.get_ylim()[1] - ax.get_ylim()[0]) + ax.get_ylim()[0]
-        ax.text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
         ax.set_xlabel('Epochs')
         ax.set_ylabel(ylabel)
         ax.grid(color=grid_color, alpha=0.5)
@@ -115,12 +114,18 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
 
     # Plot loss curves
     plot_curves(ax[0], {k: curves[k] for k in loss_curves}, epochs, result_epoch, 'Loss')
+    ax[0].axvline(x=result_epoch, linestyle='--', c='white')
+    check = 0.5 * (ax[0].get_ylim()[1] - ax[0].get_ylim()[0]) + ax[0].get_ylim()[0]
+    ax[0].text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
 
     # Plot performance curves if they exist
     for p in range(len(perf_set)):
         for curve in perf_curves:
             if perf_set[p] in curve:
                 plot_curves(ax[p+1], {curve: curves[curve]}, epochs, result_epoch, perf_set[p])
+        ax[p+1].axvline(x=result_epoch, linestyle='--', c='white')
+        check = 0.5 * (ax[p+1].get_ylim()[1] - ax[p+1].get_ylim()[0]) + ax[p+1].get_ylim()[0]
+        ax[p+1].text(result_epoch + 0.1, check, 'model', rotation=90, color='white')
 
 
     # Save the figure
@@ -579,9 +584,9 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
     - The function requires `compile_running_plot_animation` to compile and save animations.
     """
 
-    def scale_alpha(min_val, max_val, val):
+    def scale_alpha(min_val, max_val, val, epsilon=1e-6):
         def lin_scale(f, target_min, target_max, native_min, native_max):
-            return (target_max - target_min) * (f - native_min) / (native_max - native_min) + target_min
+            return (target_max - target_min) * (f - native_min) / (native_max - native_min + epsilon) + target_min
         alpha = lin_scale(val, 0, 1, min_val, max_val)
         return alpha
 

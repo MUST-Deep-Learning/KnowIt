@@ -4,9 +4,9 @@ This guide explains how to import and manage new raw data.
 ## 1. Importing new datasets using Pandas
 
 In order to train models on your data you will need to convert it into a specific format for 
-KnowIt to understand. Your data will need to be compiled into a pickled 
-[``pandas.Dataframe``](https://pandas.pydata.org/docs/reference/frame.html) that meets 
-a number of criteria. It can then be imported using the ``KnowIt.import_dataset(kwarg={'import_data_args': {'path': <path to pickle>, ...}})`` function.
+KnowIt to understand. Your data will need to be compiled into a [``pandas.Dataframe``](https://pandas.pydata.org/docs/reference/frame.html) that meets 
+a number of criteria. It can then be imported using the ``KnowIt.import_dataset(kwarg={'data_import': {'raw_data': <the dataframe>, ...}})`` function.
+You can also provide the data as a path to a pickled dataframe using ``KnowIt.import_dataset(kwarg={'data_import': {'raw_data': <path to pickle>, ...}})``.
 
 The criteria are as follows:
 1. Must be time indexed. (with a [``pandas.DatetimeIndex``](https://pandas.pydata.org/docs/reference/api/pandas.DatetimeIndex.html#pandas.DatetimeIndex), not strings)
@@ -18,11 +18,13 @@ The criteria are as follows:
 3. Must contain no all-NaN columns.
 4. Must contain column headers corresponding to the components defined in the metadata.
 
-
 If instances are desired, they must be defined in the metadata and a corresponding 
 column header 'instance' must be present in the dataframe. 
 This column contains no NaNs, and indicates what instance each time step (row) corresponds to.
 If no instances are define all time steps will be assumed to belong to one single instance.
+
+Similarly, if a custom data split is to be defined (for future training) it should be defined in a separate column in
+the dataframe labeled 'split'. This column should only contain set indicators: 0 (train), 1 (valid), or 2 (eval).
 
 The resulting datastructure will be stored under ``/custom_datasets`` in the relevant custom experiment output directory.
 It can then be used to train a model by passing ``kwargs={'data': {'name': <data name>, ...}, ...}`` when 

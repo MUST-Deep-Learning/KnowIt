@@ -1,6 +1,8 @@
 """ This module contains the main class of the toolkit: KnowIt."""
 
 from __future__ import annotations
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com, randlerabe@gmail.com'
 __description__ = 'Contains the main KnowIt module.'
 
@@ -303,7 +305,7 @@ class KnowIt:
         data_import = relevant_args['data_import']
         data_import['exp_output_dir'] = self.exp_output_dir
         data_import['safe_mode'] = safe_mode
-        return BaseDataset.from_path(**data_import)
+        return BaseDataset.from_raw(**data_import)
 
     def train_model(self, model_name: str, kwargs: dict, *, device: str | None = None,
                     safe_mode: bool | None = None, and_viz: bool | None = None,
@@ -368,6 +370,9 @@ class KnowIt:
         # Add dynamically generated data characteristics to relevant args for model_args storage
         relevant_args['data_dynamics'] = KnowIt._get_data_dynamics(datamodule)
 
+        if trainer_args.pop('rescale_logged_output_metrics'):
+            trainer_args['output_scaler'] = datamodule.y_scaler
+
         # Instantiate trainer and begin training
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
         trainer = KITrainer(state=TrainNew, base_trainer_kwargs=trainer_args,
@@ -381,6 +386,46 @@ class KnowIt:
 
         if and_viz and not trainer_args['logger_status'] and sweep_kwargs is None:
             plot_learning_curves(self.exp_output_dir, model_name)
+
+    def train_model_from_yaml(self, model_name: str, config_path: str, device: str | None = None,
+                    safe_mode: bool | None = None, and_viz: bool | None = None,
+                    preload: bool = True, num_workers: int = 4) -> None:
+        """Trains a model given a config file.
+
+        This function sets up and trains a model using the provided config file model_args.yaml.
+
+        Parameters
+        ----------
+        model_name : str
+            The name of the model to be trained.
+        config_path : str
+            The path to the config file (model_args.yaml) containing the necessary arguments for setting up the data,
+            architecture, and trainer. The config file should be in YAML format.
+            The config file should contain the following keys: 'data', 'arch', and 'trainer'.
+        device : str | None, default=None
+            The device to be used for training. Defaults to the global device setting if not provided.
+        safe_mode : bool | None, default=None
+            If provided, sets the safe mode value for this operation.
+            Defaults to the global safe mode setting if not provided.
+        and_viz : bool | None, default=None
+            If provided, sets the visualization setting for this operation. Defaults to the global
+            visualization setting if not provided.
+        num_workers : int, default = 4
+            Sets the number of workers to use for loading the dataset.
+        preload : bool, default = False
+            Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+
+        Notes
+        ---
+        This function is a wrapper for the train_model function.
+
+        """
+
+        config_args = yaml_to_dict(config_path)
+
+        self.train_model(model_name=model_name, kwargs=config_args,
+                         device=device, safe_mode=safe_mode, and_viz=and_viz,
+                         preload=preload, num_workers=num_workers)
 
     def consolidate_sweep(self, model_name: str, sweep_name: str,
                           selection_by_min: bool = True, safe_mode: bool | None = None,
@@ -558,6 +603,9 @@ class KnowIt:
         trainer_args['model_params'] = trained_model_dict['model_params']
         trainer_args['out_dir'] = model_output_dir(self.exp_output_dir, model_name)
         trainer_args['device'] = device
+
+        if trainer_args.pop('rescale_logged_output_metrics'):
+            trainer_args['output_scaler'] = trained_model_dict['datamodule'].y_scaler
 
         trainer = KITrainer(
             state=EvaluateOnly,
