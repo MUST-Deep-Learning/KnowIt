@@ -604,15 +604,16 @@ class KnowIt:
         # loop through dataloader get trained model predictions, along with sample id's and batch id's
         # for each batch with trained model.
         inx_dict = {}
-        for batch in enumerate(dataloader):
-            x = batch[1]['x']
-            y = batch[1]['y']
-            s_id = batch[1]['s_id']
-
-            x = x.to(pred_device)
+        for batch_id, batch in enumerate(dataloader):
+            y = batch['y']
+            s_id = batch['s_id']
+            batch['x'] = batch['x'].to(pred_device)
             y = y.to(pred_device)
 
-            prediction = trained_model_dict['pt_model'](x)
+            if hasattr(trained_model_dict['pt_model'], 'update_states'):
+                trained_model_dict['pt_model'].update_states(batch['ist_idx'][0], batch['x'].device)
+
+            prediction = trained_model_dict['pt_model'](batch['x'])
 
             prediction = prediction.detach().cpu().numpy()
             y = y.detach().cpu().numpy()
@@ -621,10 +622,10 @@ class KnowIt:
                     prediction = trained_model_dict['datamodule'].y_scaler.inverse_transform(prediction)
                     y = trained_model_dict['datamodule'].y_scaler.inverse_transform(y)
 
-            file_name = relevant_args['predictor']['prediction_set'] + '-' + 'batch_' + str(batch[0]) + '.pickle'
+            file_name = relevant_args['predictor']['prediction_set'] + '-' + 'batch_' + str(batch_id) + '.pickle'
             safe_dump((s_id, prediction, y), os.path.join(save_dir, file_name), safe_mode)
             for s in s_id:
-                inx_dict[s.item()] = batch[0]
+                inx_dict[s.item()] = batch_id
 
         # retrieve (instance, slice, and timestep) indices
         ist_values = trained_model_dict['datamodule'].get_ist_values(relevant_args['predictor']['prediction_set'])
@@ -694,8 +695,7 @@ class KnowIt:
                                         device=device,
                                         i_data=relevant_args['interpreter']['interpretation_set'],
                                         multiply_by_inputs=relevant_args['interpreter']['multiply_by_inputs'],
-                                        seed=relevant_args['interpreter']['seed'],
-                                        batch_size=relevant_args['interpreter']['batch_size'])
+                                        seed=relevant_args['interpreter']['seed'])
 
         data_tag = relevant_args['interpreter']['interpretation_set']
         data_selection_matrix = trained_model_dict['datamodule'].selection[
@@ -704,14 +704,14 @@ class KnowIt:
         i_selection_tag = relevant_args['interpreter']['selection']
         seed = relevant_args['interpreter']['seed']
         predictions_dir = model_predictions_dir(self.exp_output_dir, model_name)
-        i_inx, _, predictions, targets, timestamps = get_interpretation_inx(data_tag, data_selection_matrix,
+        i_inx, predictions, targets, timestamps = get_interpretation_inx(data_tag, data_selection_matrix,
                                                                                  i_size, i_selection_tag,
                                                                                  predictions_dir, seed)
 
         interpret_args['results'] = interpreter.interpret(pred_point_id=i_inx)
         interpret_args['i_inx'] = i_inx
         interpret_args['input_features'] = trained_model_dict['datamodule'].fetch_input_points_manually(
-            interpret_args['interpretation_set'], i_inx)
+            interpret_args['interpretation_set'], i_inx)['x']
 
         interpret_args['input_features'] = interpret_args['input_features'].detach().cpu().numpy()
         if interpret_args['rescale_inputs']:
@@ -724,9 +724,9 @@ class KnowIt:
             interpret_args['predictions'] = predictions[i_inx]
             interpret_args['timestamps'] = timestamps[i_inx]
         else:
-            interpret_args['targets'] = [targets[i] for i in range(i_inx[0], i_inx[1])]
-            interpret_args['predictions'] = [predictions[i] for i in range(i_inx[0], i_inx[1])]
-            interpret_args['timestamps'] = [timestamps[i] for i in range(i_inx[0], i_inx[1])]
+            interpret_args['targets'] = [targets[i] for i in i_inx]
+            interpret_args['predictions'] = [predictions[i] for i in i_inx]
+            interpret_args['timestamps'] = [timestamps[i] for i in i_inx]
 
         save_name = interpretation_name(interpret_args)
         safe_dump(interpret_args, os.path.join(save_dir, save_name), safe_mode)
@@ -1067,7 +1067,7 @@ class KnowIt:
             return IntegratedGrad
         else:
             logger.error('Unknown interpreter %s.',
-                         interpret_args['interpretation method'])
+                         interpret_args['interpretation_method'])
             exit(101)
 
     @staticmethod

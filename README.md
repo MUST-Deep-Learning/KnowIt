@@ -4,7 +4,7 @@
 
 ---
 
-KnowIt (**Know**ledge discovery **I**n **T**ime series data) is a toolkit to build and interpret deep time series models. 
+KnowIt (**Know**ledge discovery **I**n **T**ime series data) is an extendable toolkit to build and interpret deep time series models. 
 It is developed in Python and uses [PyTorch Lightning](https://github.com/Lightning-AI/pytorch-lightning) for model building and [Captum](https://github.com/pytorch/captum) for model interpreting.
 
 ## Installation
@@ -78,14 +78,10 @@ time series data.
  - Data is assumed to be equidistantly sampled and time-indexed time series data. 
 Gaps are removed during preprocessing to construct contiguous blocks of data for model training.
  - Data is stored on and loaded from disk in contiguous slices. These slices have to fit into memory.
- - Currently only support "stateless" model training. This means that temporal dependencies 
-are assumed to not extend beyond the model's input chunk. In other words, information related to 
-the model prediction is not propagated across batches.
 
 ## Coming soon
 
  - Adding Transformer-based models to default architectures
- - Stateful model training
  - Package installation options
  - Testbench for synthetic data experimentation
  - Additional feature attribution visualizations
@@ -108,4 +104,5 @@ This project is made possible due to funding and support from:
 Contributors:
 - **Marthinus Wilhelmus Theunissen** (tiantheunissen@gmail.com)
 - **Randle Rabe** (randlerabe@gmail.com)
+- **Harmen Potgieter** (potgieterharmen@gmail.com)
 

@@ -37,6 +37,7 @@ __description__ = 'Contains the DataScaler, ZScale, LinScale, and NoScale classe
 
 # external imports
 from numpy import (nanmean, nanvar, nanmin, nanmax, array, unique, sqrt, minimum, maximum, logical_and)
+import torch
 
 # internal imports
 from data.base_dataset import DataExtractor
@@ -396,6 +397,10 @@ class LinScale:
             logger.error('LinScale transform not fitted yet.')
             exit(101)
 
+        # TODO: TEMP WORKARAOUND, NEED BETTER SOLUTION
+        if torch.is_tensor(data):
+            data = torch.as_numpy(data)
+
         return ((self.target_max - self.target_min) *
                 ((data - self.native_min) /
                  (self.native_max - self.native_min)) + self.target_min)
@@ -412,6 +417,14 @@ class LinScale:
             logger.error('LinScale transform not fitted yet.')
             exit(101)
 
-        return ((self.native_max - self.native_min) *
+        # TODO: TEMP WORKARAOUND, NEED BETTER SOLUTION
+        if torch.is_tensor(data):
+            native_max = torch.as_tensor(self.native_max)
+            native_min = torch.as_tensor(self.native_min)
+        else:
+            native_max = self.native_max
+            native_min = self.native_min
+
+        return ((native_max - native_min) *
                 ((data - self.target_min) /
-                 (self.target_max - self.target_min)) + self.native_min)
+                 (self.target_max - self.target_min)) + native_min)
