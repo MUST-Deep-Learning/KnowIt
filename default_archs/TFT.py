@@ -1,22 +1,56 @@
+"""
+
+
+------------------------
+VariableSelectionNetwork
+------------------------
+
+--------------------
+GatedResidualNetwork
+--------------------
+
+-----------
+GateAddNorm
+-----------
+
+----------
+FinalBlock
+----------
+
+After the TCN stage we have a tensor T(batch_size, num_input_time_steps, num_output_components).
+
+If task_name = 'regression'
+    -   T is flattened to T(batch_size, num_input_time_steps * num_output_components)
+        a linear layer and output activation is applied, and it is reshaped to the desired output
+        T(batch_size, num_output_time_steps, num_output_components).
+
+If task_name = 'classification'
+    -   T is flattened to T(batch_size, num_input_time_steps * num_output_components)
+        a linear layer is applied, which outputs T(batch_size, num_output_components).
+
+If task_name = 'forecast' (WIP)
+    -   T(batch_size, num_output_time_steps, num_output_components) is return where the
+        num_output_time_steps is the last chunk from num_input_time_steps.
+
+Notes
+-----
+    -
+    -
+    -
+"""
+
 from __future__ import annotations
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
 __licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "potgieterharmen@gmail.com"
 __description__ = "Example of an TFT model architecture."
 
-import torch
-from torch import Tensor
-import torch.nn as nn
-from torch.nn import LSTM, Parameter, Sigmoid
-import torch.nn.functional as F
+from torch import (Tensor, zeros, bool, arange, cat, float, stack, ones, as_tensor, bmm, mean, nn)
+from torch.nn import (Module, LSTM, Parameter, Sigmoid, Linear, ModuleList, LayerNorm, ELU, Dropout, Softmax)
+from torch.nn.functional import glu
+from torch.nn.init import (zeros_, kaiming_uniform_, normal_)
 from typing import Dict, Tuple, List, Optional
-from copy import deepcopy
-import numpy as np
-import math
-
-from torch.nn.functional import layer_norm
-from torch.onnx.symbolic_opset9 import embedding
-from torchvision.prototype.models import depth
+from numpy import arange
 
 from helpers.logger import get_logger
 logger = get_logger()
@@ -29,12 +63,12 @@ HP_ranges_dict = {
     "depth": range(1, 6),
     "lstm_depth": range(1, 6),
     "num_attention_heads": range(1, 6),
-    "dropout": np.arange(0, 1.1, 0.1),
-    "num_static_componenets": range(1, 6),
+    "dropout": arange(0, 1.1, 0.1),
+    "num_static_components": range(1, 6),
     "hidden_continuous_size": range(1, 6),
 }
 
-class Model(nn.Module):
+class Model(Module):
 
     task_name = None
     depth = 16
@@ -42,10 +76,7 @@ class Model(nn.Module):
     num_attention_heads = 1
     dropout = 0.1
     full_attention = True
-    hidden_embedding_size = 16
-    norm_type = None
     output_activation = None
-    num_targets = None
 
     def __init__(self,
                  input_dim: list,
@@ -55,38 +86,29 @@ class Model(nn.Module):
                  depth: int = 64,
                  lstm_depth: int = 16,
                  num_attention_heads: int = 4,
-                 dropout: float | None = 0.01,
+                 dropout: float | None = 0.1,
                  full_attention: bool = True,
-                 hidden_embedding_size: int = 1,
-                 norm_type: str = "LayerNorm",
                  quantiles: list = None,
                  output_activation: str | None = None,
-
-                 ):
+    ) -> None:
 
         super().__init__()
-        n_targets = len(output_dim)
-        n_loss = len(output_dim)
+
         self.num_model_out_time_steps = output_dim[0]
         self.num_model_out_channels = output_dim[1]
         self.num_model_in_time_steps = input_dim[0]
         self.num_model_in_channels = input_dim[1]
         self.decoder_time_steps = output_dim[0]
         self.encoder_time_steps = input_dim[0] - output_dim[0]
-        # self.decoder_steps = num_encoder_steps
 
         self.task_name = task_name
-        self.n_targets = n_targets
-        self.n_loss = n_loss
         self.depth = depth
         self.lstm_depth = lstm_depth
         self.num_attention_heads = num_attention_heads
         self.dropout = dropout
-        self.hidden_embedding_size = hidden_embedding_size  # Vector size of embedding
         self.full_attention = full_attention
 
         self.output_activation = output_activation
-        self.layer_norm = nn.LayerNorm
 
         self.batch_size_last = -1
         self.attention_mask = None
@@ -96,76 +118,21 @@ class Model(nn.Module):
         self._encoder_sparse_weights = None
         self._decoder_sparse_weights = None
 
-        # Continuous variable processing
-        # self.prescalers = [nn.Linear(1, self.hidden_embedding_size) for _ in range(self.num_model_in_channels)]
-        # static_input_sizes = {
-        #     str(x): self.input_embeddings.output_size[x]
-        #     for x in range(self.static_cat_components)
-        # }
-        # # Add static components which does not need embeddings(reals)
-        # static_input_sizes.update(
-        #     {
-        #         str(x): self.hidden_embedding_size
-        #         for x in range(self.static_real_components)
-        #     }
-        # )
-
-        # self.static_covariate_vsn = _VariableSelectionNetwork(
-        #     n_input=static_input_sizes,
-        #     depth=self.depth,
-        #     input_embedding_flags={name: True for name in range(self.static_cat_components)},
-        #     dropout=self.dropout,
-        #     prescalers=self.prescalers
-        # )
-
-        # Static encoders
-        # self.variable_selection_sce = _GatedResidualNetwork(
-        #     n_input=depth,
-        #     depth=self.depth,
-        #     n_output=self.depth,
-        #     dropout=self.dropout,
-        #     )
-        # self.lstm_vs_sce = _GatedResidualNetwork(
-        #     n_input=self.depth,
-        #     depth=self.depth,
-        #     n_output=self.depth,
-        #     dropout=self.dropout,
-        #     )
-        # self.lstm_hidden_sce = _GatedResidualNetwork(
-        #     n_input=self.depth,
-        #     depth=self.depth,
-        #     n_output=self.depth,
-        #     dropout=self.dropout,
-        #     )
-        # self.static_context_enrichment = _GatedResidualNetwork(
-        #     n_input=self.depth,
-        #     depth=self.depth,
-        #     n_output=self.depth,
-        #     dropout=self.dropout,
-        #     )
-        # encoder_input_sizes = {
-        #     str(name): self.hidden_embedding_size for name in range(self.encoder_variables)
-        # }
-        # encoder_input_sizes = [self.hidden_embedding_size for _ in range(self.encoder_variables)]
-        # decoder_input_sizes = [self.hidden_embedding_size for _ in range(self.decoder_variables)]
-
         #Encoder
         self.lstm_encoder_vsn = _VariableSelectionNetwork(
-            n_input_dim=self.hidden_embedding_size,
+            n_input_dim=1,
             n_input_features=self.num_model_in_channels,
             depth=self.depth,
             dropout=self.dropout,
             context_size=self.depth,
-            # prescalers=self.prescalers,
         )
 
         self.lstm_decoder_vsn = _VariableSelectionNetwork(
-            n_input_dim=self.hidden_embedding_size,
+            n_input_dim=1,
             n_input_features=self.num_model_in_channels,
             depth=self.depth,
             dropout=self.dropout,
             context_size=self.depth,
-            # prescalers=self.prescalers,
         )
 
         self.lstm_encoder = LSTM(
@@ -196,7 +163,6 @@ class Model(nn.Module):
             n_output=self.depth,
             dropout=self.dropout,
             context_size=self.depth,
-            layer_norm=self.layer_norm
         )
         self.attention = _InterpretableMultiHeadAttention(
             d_model=self.depth,
@@ -212,7 +178,6 @@ class Model(nn.Module):
             depth=self.depth,
             n_output=self.depth,
             dropout=self.dropout,
-            layer_norm=self.layer_norm,
         )
 
         #Output layer
@@ -220,17 +185,15 @@ class Model(nn.Module):
             n_input=self.depth,
             dropout=None,
         )
-        self.output_layer = nn.Linear(
-            self.depth,
-            self.n_targets * self.n_loss
+
+        self.final_output_layer = FinalBlock(
+            num_model_in_time_steps=self.num_model_in_time_steps,
+            num_model_out_channels=self.num_model_out_channels,
+            num_model_out_time_steps=self.num_model_out_time_steps,
+            output_activation=self.output_activation,
+            depth=self.depth,
+            task=self.task_name
         )
-
-        self.final_output_layer = FinalBlock(self.num_model_in_time_steps, self.num_model_out_channels,
-                                             self.num_model_out_time_steps, self.output_activation, self.depth, self.task_name)
-    @property
-    def num_static_component(self):
-
-        return len(self.static_variables)
 
     @staticmethod
     def get_attention_mask_future(
@@ -239,22 +202,21 @@ class Model(nn.Module):
             batch_size: int,
             device: str,
             full_attention: bool
-    ) -> torch.Tensor:
+    ) -> Tensor:
         if full_attention:
-            decoder_mask = torch.zeros((decoder_length, decoder_length), dtype=torch.bool, device=device)
+            decoder_mask = zeros((decoder_length, decoder_length), dtype=bool, device=device)
         else:
             # attend only to past steps relative to forecasting step in the future
             # indices to which is attended
-            attend_step = torch.arange(decoder_length, device=device)
+            attend_step = arange(decoder_length, device=device)
             # indices for which is predicted
-            predict_step = torch.arange(0, decoder_length, device=device)[:, None]
+            predict_step = arange(0, decoder_length, device=device)[:, None]
             # do not attend to steps to self or after prediction
             decoder_mask = attend_step >= predict_step
 
-        encoder_mask = torch.zeros(batch_size, encoder_length, dtype=torch.bool, device=device)
+        encoder_mask = zeros(batch_size, encoder_length, dtype=bool, device=device)
         # combine masks along attended time - first encoder and then decoder
-        mask = torch.cat(
-            (
+        mask = cat((
                 encoder_mask.unsqueeze(1).expand(-1, decoder_length, -1),
                 decoder_mask.unsqueeze(0).expand(batch_size, -1, -1)
             ),
@@ -265,12 +227,7 @@ class Model(nn.Module):
     def forward(self, x: Tensor) -> Tensor: #, reset_lstm_state: bool = True) -> Tensor:
 
         reset_lstm_state = True
-        # Batch, time, variable
-
         batch_size = x.shape[0]
-        # input_vectors_past = [
-        #     x[..., idx].unsqueeze(-1) for idx in range(self.encoder_variables)
-        # ]
 
         input_vectors_past = x[:,:self.encoder_time_steps,:]
         input_vectors_future = x[:,self.encoder_time_steps:,:]
@@ -291,8 +248,8 @@ class Model(nn.Module):
 
         #LSTM
         if reset_lstm_state or self.hidden_state is None:
-            h0 = torch.zeros(self.lstm_depth, batch_size, self.depth, device=x.device)
-            c0 = torch.zeros(self.lstm_depth, batch_size, self.depth, device=x.device)
+            h0 = zeros(self.lstm_depth, batch_size, self.depth, device=x.device)
+            c0 = zeros(self.lstm_depth, batch_size, self.depth, device=x.device)
         else:
             h0, c0 = self.hidden_state, self.cell_state
 
@@ -300,8 +257,8 @@ class Model(nn.Module):
 
         decoder_out, _ = self.lstm_decoder(input=embeddings_varying_decoder, hx=(hn, cn))
 
-        lstm_layer = torch.cat([encoder_out, decoder_out], dim=1)
-        input_embeddings = torch.cat([embeddings_varying_encoder, embeddings_varying_decoder], dim=1)
+        lstm_layer = cat([encoder_out, decoder_out], dim=1)
+        input_embeddings = cat([embeddings_varying_encoder, embeddings_varying_decoder], dim=1)
 
         self.hidden_state = hn.detach()
         self.cell_state = cn.detach()
@@ -309,9 +266,7 @@ class Model(nn.Module):
         lstm_out = self.lstm_out_gan(lstm_layer, input_embeddings)
 
         # Attention head
-        # static_context_enriched = self.static_context_enrichment(static_embedding)
-
-        attn_in = self.static_enrichment_grn(x=lstm_out) #, context=self.expand_static_context(context=static_context_enriched, time=time_steps))
+        attn_in = self.static_enrichment_grn(x=lstm_out)
 
         attn_out, att_out_weights = self.attention(
             q=attn_in[:, self.encoder_time_steps:],
@@ -323,11 +278,8 @@ class Model(nn.Module):
         attn_out = self.decoder_gan(x=attn_out, residual_connect=attn_in[:, self.encoder_time_steps:])
         decoder_out = self.decoder_grn(x=attn_out)
 
-        #Out
+        #Output
         pre_out_gan = self.pre_out_gan(decoder_out, lstm_out[:, self.encoder_time_steps:])
-
-        # Output layer
-        out = self.output_layer(pre_out_gan)
 
         final_out = self.final_output_layer(pre_out_gan)
 
@@ -339,94 +291,25 @@ class Model(nn.Module):
 
 ################################# Sub-Modules #################################################
 
-# Work in progress
-
-# class _MultiEmbedding(nn.Module):
-#     def __init__(self, embedding_sizes, variable_names):
-#         super().__init__()
-#         self.embedding_sizes = embedding_sizes
-#         self.variable_names = variable_names
-#
-#         self.embeddings = nn.ModuleDict({
-#             name: nn.Embedding(*embedding_sizes[name]) for name in variable_names
-#         })
-#
-#     def forward(self, x: Tensor) -> Tensor:
-#         embeddings = {name: self.embeddings[name](x)}
-#         return
-
-##################################### GRU BLOCK ###############################################
-# class _TimeDistributedInterpolation(nn.Module):
-#     def __init__(
-#         self,
-#         n_output: int,
-#         batch_first: bool = False,
-#         trainable: bool = False,
-#     ):
-#         super().__init__()
-#         self.n_output = n_output
-#         self.batch_first = batch_first
-#         self.trainable = trainable
-#
-#         if self.trainable:
-#             self.mask = Parameter(torch.zeros(self.n_output, dtype=torch.float32))
-#             self.gate = Sigmoid()
-#
-#     def interpolate(self, x):
-#         upsampled = F.interpolate(
-#             x.unsqueeze(1), self.n_output, mode='linear', align_corners=True
-#         ).squeeze(1)
-#
-#         if self.trainable:
-#             upsampled = upsampled * self.gate(self.mask.unsqueeze(0)) * 2.0
-#
-#         return upsampled
-#
-#     def forward(self, x):
-#         if len(x.size()) <= 2:
-#
-#             return self.interpolate(x)
-#
-#         # Squash samples and timesteps into a single axis
-#         x_reshape = x.contiguous().view(
-#             -1, x.size(-1)
-#         )  # (samples * timesteps, input_size)
-#
-#         y = self.interpolate(x_reshape)
-#
-#         if self.batch_first:
-#             y = y.contiguous().view(
-#                 x.size(0), -1, y.size(-1)
-#             ) # samples, timesteps, output_size
-#         else:
-#             y = y.view(-1, x.size(1), y.size(-1)) # timesteps, samples, output_size
-#
-#         return y
-
-class _ResampleNorm(nn.Module):
+class _ResampleNorm(Module):
     def __init__(
         self,
         n_input: int,
         n_output: int,
-        layer_norm: nn.LayerNorm = nn.LayerNorm,
         trainable: bool = True
     ):
         super().__init__()
         self.input_size = n_input
         self.n_output = n_output
-        self.layer_norm = layer_norm
         self.trainable = trainable
 
         if self.input_size != self.n_output:
-            # self.resample = _TimeDistributedInterpolation(
-            #     self.n_output, batch_first=True, trainable=False
-            # )
-            self.resample = nn.Linear(self.input_size, self.n_output)
+            self.resample = Linear(self.input_size, self.n_output)
 
         if self.trainable: #Used for learning which features to suppress and emphasise
-            self.mask = nn.Parameter(torch.zeros(self.n_output, dtype=torch.float))
-            self.gate = nn.Sigmoid()
-        self.norm = self.layer_norm(self.n_output)
+            self.mask = Parameter(zeros(self.n_output, dtype=float))
+            self.gate = Sigmoid()
+        self.norm = LayerNorm(self.n_output)
 
     def forward(self, x):
         if self.input_size != self.n_output:
@@ -437,7 +320,7 @@ class _ResampleNorm(nn.Module):
         x = self.norm(x)
         return x
 
-class _AddNorm(nn.Module):
+class _AddNorm(Module):
     def __init__(
         self,
         n_input: int,
@@ -450,18 +333,15 @@ class _AddNorm(nn.Module):
         self.trainable = trainable
 
         if self.n_input != self.residual:
-            # self.resample = _TimeDistributedInterpolation(
-            #     self.n_input,
-            #     batch_first=True,
-            #     trainable=False
-            # )
-            self.resample = nn.Linear(self.n_input, self.residual)
-        if self.trainable:
-            self.mask = nn.Parameter(torch.zeros(self.n_input, dtype=torch.float))
-            self.gate = nn.Sigmoid()
-        self.norm = nn.LayerNorm(self.n_input)
+            self.resample = Linear(self.n_input, self.residual)
 
-    def forward(self, x: torch.Tensor, residual_connect: torch.Tensor):
+        if self.trainable:
+            self.mask = Parameter(zeros(self.n_input, dtype=float))
+            self.gate = Sigmoid()
+
+        self.norm = LayerNorm(self.n_input)
+
+    def forward(self, x: Tensor, residual_connect: Tensor):
         if self.n_input != self.residual:
             residual_connect = self.resample(residual_connect)
 
@@ -471,7 +351,7 @@ class _AddNorm(nn.Module):
 
         return out
 
-class _GateAddNorm(nn.Module):
+class _GateAddNorm(Module):
     def __init__(
         self,
         n_input: int,
@@ -496,7 +376,7 @@ class _GateAddNorm(nn.Module):
         return x
 
 
-class _GatedResidualNetwork(nn.Module):
+class _GatedResidualNetwork(Module):
     def __init__(
         self,
         n_input: int,
@@ -505,7 +385,6 @@ class _GatedResidualNetwork(nn.Module):
         dropout: float = 0.1,
         context_size: int =None,
         residual_connect: bool = True,
-        layer_norm: nn.LayerNorm = nn.LayerNorm,
     ):
 
         super().__init__()
@@ -517,22 +396,17 @@ class _GatedResidualNetwork(nn.Module):
         self.context_size = context_size
         self.residual_connect = residual_connect
 
-        # if self.n_input != self.n_output:
-        #     residual_size = self.n_input
-        # else:
-        #     residual_size = self.n_output
-
         if self.n_output != self.n_input:
-            self.resample_norm = _ResampleNorm(self.n_input, self.n_output, layer_norm=layer_norm)
+            self.resample_norm = _ResampleNorm(self.n_input, self.n_output)
 
-        self.fc1 = nn.Linear(self.n_input, self.depth)
-        self.elu = nn.ELU()
+        self.fc1 = Linear(self.n_input, self.depth)
+        self.elu = ELU()
 
         if self.context_size is not None:
-            self.context = nn.Linear(self.context_size, self.depth, bias=False)
+            self.context = Linear(self.context_size, self.depth, bias=False)
 
-        self.fc2 = nn.Linear(self.depth, self.depth)
-        self.initialize()
+        self.fc2 = Linear(self.depth, self.depth)
+        init_mod(self)
 
         self.gate_norm = _GateAddNorm(
             n_input = self.depth,
@@ -542,36 +416,25 @@ class _GatedResidualNetwork(nn.Module):
             trainable=False
         )
 
-    def initialize(self):
-        for name, parameters in self.named_parameters():
-            if 'bias' in name:
-                nn.init.zeros_(parameters)
-            elif 'fc1' in name or 'fc2' in name:
-                try:
-                    nn.init.kaiming_uniform_(parameters)
-                except:
-                    nn.init.normal_(parameters)
-
     def forward(self, x, context = None, residual_connect = None):
 
         if residual_connect is None:
             residual_connect = x
 
-        if self.n_input != self.n_output:# and not self.residual_connect:
+        if self.n_input != self.n_output:
             residual_connect = self.resample_norm(residual_connect)
 
         x = self.fc1(x)
         if context != None:
             x = x + context
+
         x = self.elu(x)
         x = self.fc2(x)
-        out = self.gate_norm(
-            x,
-            residual_connect)
+        out = self.gate_norm(x, residual_connect)
 
         return out
 
-class _GatedLinearUnit(nn.Module):
+class _GatedLinearUnit(Module):
     def __init__(
         self,
         n_input: int,
@@ -581,37 +444,26 @@ class _GatedLinearUnit(nn.Module):
         super().__init__()
 
         if dropout is not None:
-            self.dropout = nn.Dropout(dropout)
+            self.dropout = Dropout(dropout)
         else:
             self.dropout = dropout
 
         self.depth = depth or n_input
-        self.fc = nn.Linear(n_input, self.depth * 2)
-        self.initialize()
+        self.fc = Linear(n_input, self.depth * 2)
+        init_mod(self)
 
-    def initialize(self):
-        for name, parameters in self.named_parameters():
-            if 'bias' in name:
-                nn.init.zeros_(parameters)
-            elif 'fc' in name:
-                try:
-                    nn.init.kaiming_uniform_(parameters)
-                except:
-                    nn.init.normal_(parameters)
-
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: Tensor):
         if self.dropout is not None:
             x = self.dropout(x)
 
         x = self.fc(x)
-        out = F.glu(x, dim=-1)
+        out = glu(x, dim=-1)
 
         return out
 
-
 ################################### VSN Block ##########################################
 
-class _VariableSelectionNetwork(nn.Module):
+class _VariableSelectionNetwork(Module):
     """
     Implements a variable selection network used for prioritizing input features
     in complex models.
@@ -644,7 +496,6 @@ class _VariableSelectionNetwork(nn.Module):
         depth: int,
         dropout: float = 0.1,
         context_size: int = None,
-        prescalers: List[nn.Linear] = None,
     ):
         super().__init__()
         self.n_input_dim = n_input_dim
@@ -672,8 +523,8 @@ class _VariableSelectionNetwork(nn.Module):
                     residual_connect=False,
                 )
 
-        self.single_variable_grns = nn.ModuleList()
-        self.prescalers = nn.ModuleList()
+        self.single_variable_grns = ModuleList()
+        self.prescalers = ModuleList()
 
         for idx in range(self.n_input_features):
             self.single_variable_grns.append(_GatedResidualNetwork(
@@ -683,32 +534,20 @@ class _VariableSelectionNetwork(nn.Module):
                 dropout=dropout,
             ))
 
-        if prescalers is not None:
-            self.prescalers = nn.ModuleList(prescalers)
+        self.softmax = Softmax(dim=-1)
 
-        self.softmax = nn.Softmax(dim=-1)
-
-    # @property
-    # def input_size_total(self):
-    #     return sum(self.n_input)
-
-    # @property
-    # def num_inputs(self):
-    #     return len(self.n_input)
-
-    def forward(self, x: Tensor, context: torch.Tensor = None):
+    def forward(self, x: Tensor, context: Tensor = None):
 
         if self.n_input_features > 1:
             var_outputs = []
             weight_inputs = []
             for idx in range(self.n_input_features):
                 variable_embedding = x[:, :, idx].unsqueeze(-1)
-                # variable_embedding = self.prescalers[idx](variable_embedding)
                 weight_inputs.append(variable_embedding)
                 var_outputs.append(self.single_variable_grns[idx](variable_embedding))
-            var_outputs = torch.stack(var_outputs, dim=-1)
+            var_outputs = stack(var_outputs, dim=-1)
 
-            flat_embedding = torch.cat(weight_inputs, dim=-1)
+            flat_embedding = cat(weight_inputs, dim=-1)
             sparse_weights = self.flattened_grn(flat_embedding, context)
             sparse_weights = self.softmax(sparse_weights).unsqueeze(-2)
 
@@ -717,53 +556,24 @@ class _VariableSelectionNetwork(nn.Module):
 
         elif self.n_input_features == 1:
             variable_embedding = x[:, :, 0].unsqueeze(-1)
-            # variable_embedding = self.prescalers[0](variable_embedding)
             out = self.single_variable_grns[0](variable_embedding)
             if out.ndim == 3:
-                sparse_weights = torch.ones(out.size(0), out.size(1), 1, 1, device=out.device)
+                sparse_weights = ones(out.size(0), out.size(1), 1, 1, device=out.device)
             else:
-                sparse_weights = torch.ones(out.size(0), 1, 1, device=out.device)
+                sparse_weights = ones(out.size(0), 1, 1, device=out.device)
 
         else:
-            out = torch.zeros(context.size(), device=context.device)
+            out = zeros(context.size(), device=context.device)
             if out.ndim == 3:
-                sparse_weights = torch.zeros(out.size(0), out.size(1), 1, 0, device=out.device)
+                sparse_weights = zeros(out.size(0), out.size(1), 1, 0, device=out.device)
             else:
-                sparse_weights = torch.ones(out.size(0), 1, 0, device=out.device)
+                sparse_weights = ones(out.size(0), 1, 0, device=out.device)
 
         return out, sparse_weights
 
-class PositionalEncoder(nn.Module):
-    def __init__(
-        self,
-        d_model,
-        max_seq_len=160,
-    ):
-        super().__init__()
-        assert (d_model % 2 == 0), "d_model must be even"
-        self.d_model = d_model
-        pe = torch.zeros(max_seq_len, d_model)
-        for position in range(max_seq_len):
-            for i in range(0, d_model, 2):
-                pe[position, i] = (torch.sin(position / (10000 ** ((2 * i) / d_model))))
-                pe[position, i + 1] = (torch.cos(position / (10000 ** ((2 * (i + 1)) / d_model))))
-
-        pe = pe.unsqueeze(0)
-        self.register_buffer("pe", pe)
-
-    def forward(self, x):
-
-        with torch.no_grad():
-            x = x * math.sqrt(self.d_model)
-            seq_len = x.size(0)
-            pe = self.pe[:, :seq_len].view(seq_len, 1, self.d_model)
-            out = x + pe
-
-            return out
-
 ############################################## Attention head ############################################
 
-class _ScaledDotProductAttention(nn.Module):
+class _ScaledDotProductAttention(Module):
     def __init__(
             self,
             dropout: float = None,
@@ -771,18 +581,18 @@ class _ScaledDotProductAttention(nn.Module):
     ):
         super().__init__()
         if dropout is not None:
-            self.dropout = nn.Dropout(p=dropout)
+            self.dropout = Dropout(p=dropout)
         else:
             self.dropout = dropout
-        self.softmax = nn.Softmax(dim=2)
+        self.softmax = Softmax(dim=2)
         self.scale = scale
 
     def forward(self, q, k, v, mask=None):
 
-        attn = torch.bmm(q, k.permute(0, 2, 1))
+        attn = bmm(q, k.permute(0, 2, 1))
 
         if self.scale:
-            dimension = torch.as_tensor(k.size(-1), dtype=attn.dtype, device=attn.device).sqrt()
+            dimension = as_tensor(k.size(-1), dtype=attn.dtype, device=attn.device).sqrt()
             attn = attn / dimension
 
         if mask is not None:
@@ -792,11 +602,11 @@ class _ScaledDotProductAttention(nn.Module):
 
         if self.dropout is not None:
             attn = self.dropout(attn)
-        out = torch.bmm(attn, v)
+        out = bmm(attn, v)
         return out, attn
 
 
-class _InterpretableMultiHeadAttention(nn.Module):
+class _InterpretableMultiHeadAttention(Module):
     def __init__(
             self,
             n_head: int,
@@ -808,25 +618,17 @@ class _InterpretableMultiHeadAttention(nn.Module):
         self.n_head = n_head
         self.d_model = d_model
         self.d_k = self.d_q = self.d_v = d_model // n_head
-        self.dropout = nn.Dropout(p=dropout)
+        self.dropout = Dropout(p=dropout)
 
-        self.v_layer = nn.Linear(self.d_model, self.d_v)
-        self.q_layer = nn.ModuleList([nn.Linear(self.d_model, self.d_q) for _ in range(n_head)])
-        self.k_layer = nn.ModuleList([nn.Linear(self.d_model, self.d_k) for _ in range(n_head)])
+        self.v_layer = Linear(self.d_model, self.d_v)
+        self.q_layer = ModuleList([Linear(self.d_model, self.d_q) for _ in range(n_head)])
+        self.k_layer = ModuleList([Linear(self.d_model, self.d_k) for _ in range(n_head)])
         self.attention = _ScaledDotProductAttention()
-        self.w_h = nn.Linear(self.d_v, self.d_model, bias=False)
+        self.w_h = Linear(self.d_v, self.d_model, bias=False)
 
-    def initialize(self):
-        for name, parameter in self.named_parameters():
-            if 'bias' not in name:
-                try:
-                    nn.init.kaiming_uniform_(parameter)
-                except:
-                    nn.init.normal_(parameter)
-            else:
-                nn.init.zeros_(parameter)
+        init_mod(self)
 
-    def forward(self, q, v, k, mask=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, q, v, k, mask=None) -> Tuple[Tensor, Tensor]:
         heads = []
         attns = []
 
@@ -839,16 +641,16 @@ class _InterpretableMultiHeadAttention(nn.Module):
             heads.append(head_dropout)
             attns.append(attn)
 
-        head = torch.stack(heads, dim=2) if self.n_head > 1 else heads[0]
-        attn = torch.stack(attns, dim=2)
+        head = stack(heads, dim=2) if self.n_head > 1 else heads[0]
+        attn = stack(attns, dim=2)
 
-        out = torch.mean(head, dim=2) if self.n_head > 1 else head
+        out = mean(head, dim=2) if self.n_head > 1 else head
         out = self.w_h(out)
         out = self.dropout(out)
 
         return out, attn
 
-class FinalBlock(nn.Module):
+class FinalBlock(Module):
     """
     Final processing block for TFT-based models for classification, regression, or forecasting tasks.
 
@@ -922,17 +724,17 @@ class FinalBlock(nn.Module):
                 self.act = getattr(nn, output_activation)
 
         # if task == 'classification':
-        #     self.trans = nn.Linear(self.expected_in_t * self.expected_in_c, self.desired_out_c, bias=False)
+        #     self.trans = Linear(self.expected_in_t * self.expected_in_c, self.desired_out_c, bias=False)
         #     init_mod(self.trans)
         # elif task == 'regression':
-        #     self.trans = nn.Linear(self.expected_in_t * self.expected_in_c,
+        #     self.trans = Linear(self.expected_in_t * self.expected_in_c,
         #                            self.desired_out_c * self.desired_out_t, bias=False)
 
         if task == 'classification':
-            self.trans = nn.Linear(self.depth * self.desired_out_t, self.desired_out_c, bias=False)
+            self.trans = Linear(self.depth * self.desired_out_t, self.desired_out_c, bias=False)
             init_mod(self.trans)
         elif task == 'regression':
-            self.trans = nn.Linear(self.depth * self.desired_out_t, self.desired_out_c * self.desired_out_t, bias=False)
+            self.trans = Linear(self.depth * self.desired_out_t, self.desired_out_c * self.desired_out_t, bias=False)
             init_mod(self.trans)
 
     def classify(self, x):
@@ -1031,8 +833,8 @@ def init_mod(mod):
     for name, parameters in mod.named_parameters():
         if 'weight' in name:
             try:
-                nn.init.kaiming_uniform_(parameters)
+                kaiming_uniform_(parameters)
             except:
-                nn.init.normal_(parameters)
+                normal_(parameters)
         elif 'bias' in name:
-            nn.init.zeros_(parameters)
+            zeros_(parameters)
