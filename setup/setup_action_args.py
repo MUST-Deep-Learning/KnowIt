@@ -7,7 +7,7 @@ The user interacts with KnowIt by sending arguments or paths to external files.
 This script contains a function ``setup_relevant_args`` that checks arguments.
 
  - The presence of required arguments are ensured.
- - Irrelevant arguments are ignored.
+ - Errors are raised if any unknown arguments are encountered.
  - Default values for optional arguments, that are not given, are provided here.
 
 """
@@ -53,8 +53,7 @@ arg_dict = {'data_import':  {'required': ('raw_data',),
                                           'shuffle_train',
                                           'padding_method',
                                           'batch_sampling_mode',
-                                          'succession_length',
-                                          'skip_max'),
+                                          'slide_stride'),
                              'default': {'seed': 123,
                                          'limit': None,
                                          'min_slice': None,
@@ -63,9 +62,8 @@ arg_dict = {'data_import':  {'required': ('raw_data',),
                                          'split_method': 'chronological',
                                          'shuffle_train': True,
                                          'padding_method': 'mean',
-                                         'batch_sampling_mode': 0,
-                                         'succession_length': 10,
-                                         'skip_max': 10}},
+                                         'batch_sampling_mode': 'independent',
+                                         'slide_stride': 1}},
             'trainer':      {'required': ('loss_fn',
                                           'optim',
                                           'max_epochs',
@@ -95,14 +93,12 @@ arg_dict = {'data_import':  {'required': ('raw_data',),
                                             'size',
                                             'multiply_by_inputs',
                                             'seed',
-                                            'batch_size',
                                             'rescale_inputs'),  # whether the inputs are rescaled before storage (when applicable)
                              'default': {'interpretation_set': 'valid',
                                          'selection': 'random',
                                          'size': 100,
                                          'multiply_by_inputs': True,
                                          'seed': 123,
-                                         'batch_size': None,
                                          'rescale_inputs': True}},
             'predictor':      {'required': ('prediction_set',),
                                'optional': ('rescale_outputs', ), # whether the outputs and targets are rescaled before storage (when applicable)
@@ -168,7 +164,7 @@ def setup_type_args(experiment_dict: dict, arg_type: str) -> dict:
     `experiment_dict`, utilizing `arg_dict` as a reference for expected arguments. If a required
     argument is missing, an error is logged, and execution is stopped. Optional arguments are added
     if present, and default values are assigned for any optional arguments not specified. Irrelevant
-    arguments are logged as warnings.
+    arguments are logged as errors.
 
     Parameters
     ----------
@@ -213,9 +209,10 @@ def setup_type_args(experiment_dict: dict, arg_type: str) -> dict:
             if a not in ret_args:
                 ret_args[a] = arg_dict[arg_type]['default'][a]
 
-    # warn if nonsense arguments found
+    # error if nonsense arguments found
     nonsense_args = set(list(experiment_dict[arg_type].keys())) - set(list(ret_args.keys()))
     if len(nonsense_args) > 0:
-        logger.warning('Ignoring irrelevant arguments: %s', str(nonsense_args))
+        logger.error('Unknown arguments found: %s', str(nonsense_args))
+        exit(101)
 
     return ret_args

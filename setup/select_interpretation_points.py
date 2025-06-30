@@ -66,8 +66,10 @@ def get_interpretation_inx(data_tag: str, data_selection_matrix: np.array,
 
     if i_selection_tag == 'all':
         # select all points in data split for interpretation
-        inx = (0, data_size)
-        points, predictions, targets, timestamps = get_predictions(predictions_dir, data_tag, data_size)
+        point_ids = []
+        s_blocks = _get_contiguous_subblocks(data_selection_matrix)
+        for s_block in s_blocks:
+            point_ids.extend(s_block)
     else:
         # find contiguous blocks
         s_blocks = _get_contiguous_subblocks(data_selection_matrix)
@@ -85,15 +87,14 @@ def get_interpretation_inx(data_tag: str, data_selection_matrix: np.array,
             rng = np.random.default_rng(seed)
             block = selected_blocks[rng.choice(len(selected_blocks))]
             start = rng.integers(0, len(block) - i_size)
-            inx = (block[start], block[start + i_size])
+            point_ids = block[start:start + i_size]
         else:
             # select a contiguous subset of a contiguous block based on a specific criterion
-            inx = _special_select(i_size, i_selection_tag, predictions_dir, selected_blocks, data_tag, data_size)
+            point_ids = _special_select(i_size, i_selection_tag, predictions_dir, selected_blocks, data_tag, data_size)
 
-        point_ids = [p for p in np.arange(inx[0], inx[1])]
-        points, predictions, targets, timestamps = get_predictions(predictions_dir, data_tag, data_size, point_ids)
+    points, predictions, targets, timestamps = get_predictions(predictions_dir, data_tag, data_size, point_ids)
 
-    return inx, points, predictions, targets, timestamps
+    return points, predictions, targets, timestamps
 
 
 def get_predictions(predictions_dir: str,
@@ -237,9 +238,8 @@ def _special_select(i_size: int,
 
     Returns
     -------
-    tuple
-        - selected_range : tuple
-            A tuple representing the start and end indices of the selected contiguous subset.
+    array
+        An array representing prediction point indices of the selected contiguous subset.
 
     Raises
     ------
@@ -249,7 +249,8 @@ def _special_select(i_size: int,
 
     points, predictions, targets, timestamps, mae = get_predictions(predictions_dir, data_tag, data_size, w_mae=True)
 
-    block_best = []
+    chunk_score = []
+    chunk = []
     for block in selected_blocks:
         relevant_mae = np.array([mae[b] for b in block])
         relevant_mmae = np.convolve(relevant_mae, np.ones(i_size) / i_size, mode='valid')
@@ -261,11 +262,15 @@ def _special_select(i_size: int,
         else:
             logger.error('Unknown selection tag %s.', selection_tag)
             exit(101)
-        block_best.append([relevant_mmae[select_chunk_inx], block[select_chunk_inx]])
-    block_best = np.array(block_best)
-    best_block_inx = int(block_best[np.argmin(block_best[:, 0])][1])
-
-    selected_range = (best_block_inx, best_block_inx + i_size)
-
-    return selected_range
+        chunk_score.append(relevant_mmae[select_chunk_inx])
+        chunk.append(block[select_chunk_inx:select_chunk_inx + i_size])
+    if selection_tag == 'success':
+        best_chunk = np.argmin(np.array(chunk_score))
+    elif selection_tag == 'failure':
+        best_chunk = np.argmax(np.array(chunk_score))
+    else:
+        logger.error('Unknown selection tag %s.', selection_tag)
+        exit(101)
+    selected_points = chunk[best_chunk]
+    return selected_points
 

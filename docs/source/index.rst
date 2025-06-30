@@ -30,6 +30,7 @@ A codebase for deep time series modeling and interpretation.
 
    markdowns/tutorials/basics/basics_tut_readme
    markdowns/tutorials/basic_sweep/basic_sweep_tut_readme
+   markdowns/tutorials/stateful/stateful_tut_readme
 
 .. toctree::
    :maxdepth: 1
