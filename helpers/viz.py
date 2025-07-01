@@ -611,11 +611,15 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
         # for every relevant instance
         for instance in instances:
             relevant_to_i = np.argwhere(i == instance).squeeze()
+            if len(relevant_to_i.shape) == 0:
+                relevant_to_i = [relevant_to_i.item()]
             s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
             slices = list(set(s))
             # for every relevant (to current instance) slice
             for slice in slices:
                 relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+                if type(relevant_to_s) is not list:
+                    relevant_to_s = [relevant_to_s]
                 y = np.array(feat_att_dict['targets'])[relevant_to_s]
                 y_hat = np.array(feat_att_dict['predictions'])[relevant_to_s]
                 t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
@@ -1161,11 +1165,15 @@ def mean_feat_att_classification(feat_att_dict: dict, save_dir: str, model_args:
         # for every relevant instance
         for instance in instances:
             relevant_to_i = np.argwhere(i == instance).squeeze()
+            if len(relevant_to_i.shape) == 0:
+                relevant_to_i = [relevant_to_i.item()]
             s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
             slices = list(set(s))
             # for every relevant (to current instance) slice
             for slice in slices:
                 relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+                if type(relevant_to_s) is not list:
+                    relevant_to_s = [relevant_to_s]
                 t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
                 t = [c for c in t]
                 feature_attributions = feat_att_dict['results'][logit]['attributions'][relevant_to_s, :, :].abs().detach().cpu().numpy()
