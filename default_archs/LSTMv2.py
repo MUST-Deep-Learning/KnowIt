@@ -280,7 +280,6 @@ class Model(Module):
             hidden = layer(hidden)
         hidden = hidden.reshape(hidden.shape[0], hidden.shape[1] * hidden.shape[2])
         out = self.output_layers(hidden)
-        out = out.view(hidden.shape[0], self.final_out_shape[0], self.final_out_shape[1])
 
         if self.task_name == 'regression':
             out = out.view(hidden.shape[0], self.final_out_shape[0], self.final_out_shape[1])
