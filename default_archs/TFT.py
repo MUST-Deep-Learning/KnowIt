@@ -57,24 +57,19 @@ logger = get_logger()
 
 available_tasks = ("regression", "classification", "forcast")
 
-HP_ranges_dict = {
-    "n_loss": range(1, 6),
-    "n_targets": range(1, 6),
-    "depth": range(1, 6),
-    "lstm_depth": range(1, 6),
-    "num_attention_heads": range(1, 6),
-    "dropout": arange(0, 1.1, 0.1),
-    "num_static_components": range(1, 6),
-    "hidden_continuous_size": range(1, 6),
+HP_ranges_dict = {"depth": range(1, 1025, 1),
+                  "lstm_depth": range(1, 1025, 1),
+                  "num_attention_heads": range(1, 64, 1),
+                  "dropout": arange(0, 1.1, 0.1),
+                  "full_attention": (True, False),
+                  "output_activation": (None, "Sigmoid", "Softmax"),
+                  "decoder_time_steps": range(1, 1025, 1),
+                  "stateful": (False, True),
 }
 
 class Model(Module):
 
     task_name = None
-    depth = 16
-    lstm_depth = 16
-    num_attention_heads = 1
-    dropout = 0.1
     full_attention = True
     output_activation = None
 
@@ -83,13 +78,14 @@ class Model(Module):
                  output_dim: list,
                  task_name: str,
                  *,
-                 depth: int = 64,
+                 depth: int = 16,
                  lstm_depth: int = 16,
                  num_attention_heads: int = 4,
                  dropout: float | None = 0.1,
                  full_attention: bool = True,
-                 quantiles: list = None,
                  output_activation: str | None = None,
+                 decoder_time_steps: int = 6,
+                 stateful: bool = False,
     ) -> None:
 
         super().__init__()
@@ -98,8 +94,8 @@ class Model(Module):
         self.num_model_out_channels = output_dim[1]
         self.num_model_in_time_steps = input_dim[0]
         self.num_model_in_channels = input_dim[1]
-        self.decoder_time_steps = output_dim[0]
-        self.encoder_time_steps = input_dim[0] - output_dim[0]
+        self.decoder_time_steps = decoder_time_steps
+        self.encoder_time_steps = input_dim[0] - decoder_time_steps
 
         self.task_name = task_name
         self.depth = depth
@@ -107,11 +103,13 @@ class Model(Module):
         self.num_attention_heads = num_attention_heads
         self.dropout = dropout
         self.full_attention = full_attention
+        self.state_full = stateful
 
         self.output_activation = output_activation
 
         self.batch_size_last = -1
         self.attention_mask = None
+        self.inference = False
 
         self._attn_out_weights = None
         self._static_covariate_var = None
@@ -187,7 +185,7 @@ class Model(Module):
         )
 
         self.final_output_layer = FinalBlock(
-            num_model_in_time_steps=self.num_model_in_time_steps,
+            num_model_in_time_steps=self.decoder_time_steps,
             num_model_out_channels=self.num_model_out_channels,
             num_model_out_time_steps=self.num_model_out_time_steps,
             output_activation=self.output_activation,
@@ -229,8 +227,12 @@ class Model(Module):
         reset_lstm_state = True
         batch_size = x.shape[0]
 
-        input_vectors_past = x[:,:self.encoder_time_steps,:]
-        input_vectors_future = x[:,self.encoder_time_steps:,:]
+        input_vectors_past = x[:, :self.encoder_time_steps, :]
+        if self.inference:
+            input_vectors_future = zeros((batch_size, self.decoder_time_steps, self.num_model_in_channels),
+                                         device=x.device)
+        else:
+            input_vectors_future = x[:, self.encoder_time_steps:, :]
 
         if batch_size != self.batch_size_last:
             self.attention_mask = self.get_attention_mask_future(
@@ -291,73 +293,12 @@ class Model(Module):
 
 ################################# Sub-Modules #################################################
 
-class _ResampleNorm(Module):
-    def __init__(
-        self,
-        n_input: int,
-        n_output: int,
-        trainable: bool = True
-    ):
-        super().__init__()
-        self.input_size = n_input
-        self.n_output = n_output
-        self.trainable = trainable
-
-        if self.input_size != self.n_output:
-            self.resample = Linear(self.input_size, self.n_output)
-
-        if self.trainable: #Used for learning which features to suppress and emphasise
-            self.mask = Parameter(zeros(self.n_output, dtype=float))
-            self.gate = Sigmoid()
-        self.norm = LayerNorm(self.n_output)
-
-    def forward(self, x):
-        if self.input_size != self.n_output:
-            x = self.resample(x)
-
-        if self.trainable:
-            x = x * self.gate(self.mask) * 2.0
-        x = self.norm(x)
-        return x
-
-class _AddNorm(Module):
-    def __init__(
-        self,
-        n_input: int,
-        residual: int = None,
-        trainable: bool = True,
-    ):
-        super().__init__()
-        self.n_input = n_input
-        self.residual = residual or n_input
-        self.trainable = trainable
-
-        if self.n_input != self.residual:
-            self.resample = Linear(self.n_input, self.residual)
-
-        if self.trainable:
-            self.mask = Parameter(zeros(self.n_input, dtype=float))
-            self.gate = Sigmoid()
-
-        self.norm = LayerNorm(self.n_input)
-
-    def forward(self, x: Tensor, residual_connect: Tensor):
-        if self.n_input != self.residual:
-            residual_connect = self.resample(residual_connect)
-
-        if self.trainable:
-            residual_connect = residual_connect * self.gate(self.mask) * 2.0
-        out = self.norm(x + residual_connect)
-
-        return out
-
 class _GateAddNorm(Module):
     def __init__(
         self,
         n_input: int,
         depth: int = None,
         residual: int = None,
-        trainable: bool = True,
         dropout: float = None,
     ):
         super().__init__()
@@ -365,14 +306,16 @@ class _GateAddNorm(Module):
         self.depth = depth or n_input
         self.residual = residual or self.depth
         self.dropout = dropout
-        self.trainable = trainable
 
         self.glu = _GatedLinearUnit(self.n_input, depth=self.depth, dropout=self.dropout)
-        self.add_norm = _AddNorm(self.depth, residual=self.residual, trainable=self.trainable)
+        self.norm = LayerNorm(self.depth)
 
     def forward(self, x, residual_connect):
         x = self.glu(x)
-        x = self.add_norm(x, residual_connect)
+        if self.depth != self.residual:
+            residual_connect = self.resample(residual_connect)
+
+        x = self.norm(x + residual_connect)
         return x
 
 
@@ -385,7 +328,7 @@ class _GatedResidualNetwork(Module):
         dropout: float = 0.1,
         context_size: int =None,
         residual_connect: bool = True,
-    ):
+    ) -> None:
 
         super().__init__()
 
@@ -397,7 +340,9 @@ class _GatedResidualNetwork(Module):
         self.residual_connect = residual_connect
 
         if self.n_output != self.n_input:
-            self.resample_norm = _ResampleNorm(self.n_input, self.n_output)
+            self.resample = Linear(self.n_input, self.n_output)
+
+        self.norm = LayerNorm(self.n_output)
 
         self.fc1 = Linear(self.n_input, self.depth)
         self.elu = ELU()
@@ -413,7 +358,6 @@ class _GatedResidualNetwork(Module):
             residual=self.n_output,
             depth=self.n_output,
             dropout=self.dropout,
-            trainable=False
         )
 
     def forward(self, x, context = None, residual_connect = None):
@@ -422,7 +366,9 @@ class _GatedResidualNetwork(Module):
             residual_connect = x
 
         if self.n_input != self.n_output:
-            residual_connect = self.resample_norm(residual_connect)
+            residual_connect = self.resample(residual_connect)
+
+        residual_connect = self.norm(residual_connect)
 
         x = self.fc1(x)
         if context != None:
@@ -654,7 +600,7 @@ class FinalBlock(Module):
     """
     Final processing block for TFT-based models for classification, regression, or forecasting tasks.
 
-    This class applies final transformations to the TCN model output to prepare it for a specific task,
+    This class applies final transformations to the TFT model output to prepare it for a specific task,
     such as classification, regression, or forecasting. For classification and regression, the output
     undergoes linear transformation, while for forecasting, it directly returns the selected output steps.
 
@@ -723,18 +669,11 @@ class FinalBlock(Module):
             else:
                 self.act = getattr(nn, output_activation)
 
-        # if task == 'classification':
-        #     self.trans = Linear(self.expected_in_t * self.expected_in_c, self.desired_out_c, bias=False)
-        #     init_mod(self.trans)
-        # elif task == 'regression':
-        #     self.trans = Linear(self.expected_in_t * self.expected_in_c,
-        #                            self.desired_out_c * self.desired_out_t, bias=False)
-
         if task == 'classification':
-            self.trans = Linear(self.depth * self.desired_out_t, self.desired_out_c, bias=False)
+            self.trans = Linear(self.depth * self.expected_in_t, self.desired_out_c, bias=False)
             init_mod(self.trans)
         elif task == 'regression':
-            self.trans = Linear(self.depth * self.desired_out_t, self.desired_out_c * self.desired_out_t, bias=False)
+            self.trans = Linear(self.depth * self.expected_in_t, self.desired_out_c * self.desired_out_t, bias=False)
             init_mod(self.trans)
 
     def classify(self, x):
@@ -744,14 +683,14 @@ class FinalBlock(Module):
         Parameters
         ----------
         x : Tensor
-            Input tensor of shape (batch_size, expected_in_t, expected_in_c).
+            Input tensor of shape (batch_size, expected_in_t, depth).
 
         Returns
         -------
         Tensor
             Classification output tensor, possibly with applied activation function.
         """
-        x = x.reshape(x.shape[0], self.depth * self.desired_out_t)
+        x = x.reshape(x.shape[0], self.depth * self.expected_in_t)
         out = self.trans(x)
         if self.act is not None:
             out = self.act(out)
@@ -764,14 +703,14 @@ class FinalBlock(Module):
         Parameters
         ----------
         x : Tensor
-            Input tensor of shape (batch_size, expected_in_t, expected_in_c).
+            Input tensor of shape (batch_size, expected_in_t, depth).
 
         Returns
         -------
         Tensor
             Regression output tensor, reshaped as (batch_size, desired_out_t, desired_out_c).
         """
-        x = x.reshape(x.shape[0], self.depth * self.desired_out_t)
+        x = x.reshape(x.shape[0], self.depth * self.expected_in_t)
         out = self.trans(x)
         if self.act is not None:
             out = self.act(out)

@@ -164,14 +164,33 @@ class PLModel(pl.LightningModule):
         self.trainer.train_dataloader.batch_sampler.set_epoch(self.current_epoch+1)
 
     def on_train_epoch_start(self):
-        """ Reset the model internal states for new training epoch."""
+        """
+        - Reset the model internal states for the new training epoch.
+        - Sets the model state to training to allow the use of future values during training.
+        """
         if hasattr(self.model, 'force_reset'):
             self.model.force_reset()
 
+        if hasattr(self.model, 'inference'):
+            self.model.inference = False
+
     def on_validation_epoch_start(self):
-        """ Reset the model internal states for new validation epoch."""
+        """
+        - Reset the model internal states for the new validation epoch.
+        - Sets the model state to training to prevent the use of future values during inference.
+        """
         if hasattr(self.model, 'force_reset'):
             self.model.force_reset()
+
+        if hasattr(self.model, 'inference'):
+            self.model.inference = True
+
+    def on_test_epoch_start(self):
+        """
+        - Sets the model state to training to prevent the use of future values during inference.
+        """
+        if hasattr(self.model, 'inference'):
+            self.model.inference = True
 
     def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
         """ Update model internal states if applicable."""
