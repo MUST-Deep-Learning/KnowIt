@@ -86,7 +86,7 @@ def get_interpretation_inx(data_tag: str, data_selection_matrix: np.array,
             # select a random contiguous subset of a random contiguous block
             rng = np.random.default_rng(seed)
             block = selected_blocks[rng.choice(len(selected_blocks))]
-            start = rng.integers(0, len(block) - i_size)
+            start = rng.integers(0, len(block) + 1 - i_size)
             point_ids = block[start:start + i_size]
         else:
             # select a contiguous subset of a contiguous block based on a specific criterion
@@ -254,7 +254,7 @@ def _special_select(i_size: int,
     for block in selected_blocks:
         relevant_mae = np.array([mae[b] for b in block])
         relevant_mmae = np.convolve(relevant_mae, np.ones(i_size) / i_size, mode='valid')
-        consider_range = np.arange(0, len(relevant_mae) - i_size)
+        consider_range = np.arange(0, len(relevant_mae) + 1 - i_size)
         if selection_tag == 'success':
             select_chunk_inx = np.argmin(relevant_mmae[consider_range])
         elif selection_tag == 'failure':

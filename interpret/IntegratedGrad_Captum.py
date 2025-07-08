@@ -272,7 +272,6 @@ class IntegratedGrad(FeatureAttribution):
                 target = self.datamodule.class_set[key]
                 attributions, delta = _extract_attributions(custom_batch, baseline,
                                                           target)
-                attributions = torch.squeeze(attributions, 0)
 
                 results[target] = {
                     "attributions": attributions,
@@ -284,7 +283,6 @@ class IntegratedGrad(FeatureAttribution):
                     target = (out_chunk, out_component)
                     attributions, delta = _extract_attributions(custom_batch, baseline,
                                                               target)
-                    attributions = torch.squeeze(attributions, 0)
 
                     results[target] = {
                         "attributions": attributions,

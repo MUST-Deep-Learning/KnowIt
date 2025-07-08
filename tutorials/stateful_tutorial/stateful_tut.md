@@ -24,13 +24,17 @@ The following sections provide further details in the form of a tutorial on simp
 
 3. [Train a baseline MLP](#3)
 
-4. [Train an oracle MLP](#4)
+4. [Train an MLP with extra history](#4)
 
 5. [Stateful training](#5)
 
 6. [Train a stateful LSTM](#6)
 
-7. ["Long" term memory](#7)
+7. [Train a stateless LSTM](#7)
+
+8. ["Long" term memory](#8)
+
+9. [Conclusion](#9)
 
 ---
 ## 1. Compile dataset <div id="1">
@@ -91,6 +95,9 @@ Using the two methods above, we can generate, compile, store, and visualize the 
 Note that our generated dataset consists of ``10 000`` timesteps and we called it ``k1_running_average``.
 
 ```python
+# import matplotlib for visualization
+import matplotlib.pyplot as plt
+
 x, y = generate_running_average_data(n=10000, k=1)
 new_frame = compile_dataframe(data_name='k1_running_average', 
                               x=x, 
@@ -155,7 +162,7 @@ def get_basic_kwargs(data_name):
 ```
 
 We also construct an instance of ``KnowIt`` connected to a new experiment output 
-directory ``stateful_tut_exp``.
+directory ``stateful_tut_exp`` and import the newly constructed dataset.
 
 ```python
 # import the KnowIt class
@@ -165,6 +172,8 @@ from knowit import KnowIt
 KI = KnowIt(custom_exp_dir='stateful_tut_exp')
 # switch on visualisation by default
 KI.global_args(and_viz=True)
+# import the raw dataset
+KI.import_dataset({'data_import': {'raw_data': 'k1_running_average.pickle'}})
 ```
 
 Finally, we define a method to train the model and produce predictions on the 
@@ -179,6 +188,14 @@ def train_and_predict(model_name, data_args, arch_args, trainer_args):
     KI.generate_predictions(model_name=model_name,
                             kwargs={'predictor': {'prediction_set': 'valid'}})
 ```
+
+Note that we have chosen to use an MLP-based model as our baseline.
+We choose this architecture to first indicate the expected level of performance 
+when a completely stateless model is trained on the data.
+This model has no hope of fitting the true underlying function since it is only 
+presented with the input component at the current point in time and has no mechanism of 
+remembering previous values. We can later compare the performance of a stateful model with 
+the performance of our baseline. 
 
 ---
 ## 3. Train a baseline MLP <div id="3">
@@ -202,7 +219,7 @@ namely ``x(t) and x(t-1)``.
 ![mlp_on_k1.png](mlp_on_k1.png)
 
 ---
-## 4. Train an oracle MLP <div id="4">
+## 4. Train an MLP with extra history <div id="4">
 
 As a sanity check, we also train a model where we provide all the required inputs by adding 
 the time step preceding the current one to the model's input chunk.
@@ -341,7 +358,8 @@ train_and_predict('simple_stateful_lstm_sliding-window', data_args, arch_args, t
 ```
 The resulting model obtained a best validation loss of ``0.0010`` at epoch ``100`` out of ``100``, although 
 it already reached a validation loss of ``0.0052`` before epoch ``50``.
-This level of performance is similar to the oracle MLP, successfully fitting the true 
+This level of performance is similar to the MLP with extra history, 
+successfully fitting the true 
 underlying function, without having access to all the required 
 input features at each parameter update. This is only possible by maintaining and updating a hidden state across batches in contiguous order.
 
@@ -351,7 +369,34 @@ below.
 ![stateful_lstm_k1.png](stateful_lstm_k1.png)
 
 ---
-## 7. "Long" term memory <div id="7">
+## 7. Train a stateless LSTM <div id="7">
+
+As a second sanity check we repeat the previous experiment, but with a stateless LSTM.
+This means that the hidden state will be reset each time a batch is passed through the model.
+
+We do this by using an identical training setup, with the only difference being that we provide 
+the architecture argument `stateful = False`.
+
+```python
+data_args, arch_args, trainer_args = get_basic_kwargs('k1_running_average')
+data_args['batch_sampling_mode'] = 'sliding-window'
+arch_args['name'] = 'LSTMv2'
+trainer_args['max_epochs'] = 100
+arch_args['arch_hps'] = {'stateful': False,
+                         'depth': 1,
+                         'width': 32,
+                         'residual': False,
+                         'layernorm': False}
+train_and_predict('simple_stateful_lstm_sliding-window', data_args, arch_args, trainer_args)
+```
+
+The resulting model obtained a best validation loss of ``0.0203`` at epoch ``4`` out of ``100``.
+This level of performance is similar to the baseline MLP.
+This is expected since both models do not maintain a hidden state across batches, which we 
+have established is required to find the true underlying function.
+
+---
+## 8. "Long" term memory <div id="8">
 
 As a fun final experiment, we repeat the training of the stateful LSTM as defined in Section 6 for 
 varying levels of `k` in the data generating process. We also vary the first term in `in_chunk`; 
@@ -431,7 +476,7 @@ than defined by `in_chunk`, but it might still be worthwhile to use a larger `in
 would be required if we want these conclusion to generalize. This is just a tutorial :)
 
 ---
-## 8. Conclusion <div id="8">
+## 9. Conclusion <div id="9">
 
 In this tutorial we used a very (very) simple dataset to demonstrate how stateful 
 training is handled in the `KnowIt` framework. In a real-world scenario you 

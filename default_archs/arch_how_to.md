@@ -15,8 +15,10 @@ The criteria are as follows:
         - **task_name** (str) = The current task to be performed by the model. 
         - **input_dim** (tuple) = The expected input dimensions of the model (t, c). Where t is the number of time steps (delays) and c is the number of input components. 
         - **output_dim** (tuple) = The expected output dimensions of the model (t, c). Where t is the number of time steps (delays) and c is the number of output components.
+    - If the model is to perform classification, `output_dim` will be of the shape `[1, num_of_classes]`.
     - All other arguments are optional and default values must be provided.
-    -   The class must also have a forward function that receives a Tensor of shape `[batch_size, in_chunk[b] - in_chunk[b], num_in_components]`, as argument.
+    -   The class must also have a forward function that receives a Tensor of shape `[batch_size, in_chunk[b] - in_chunk[a], num_in_components]`, as argument, and produce a Tensor of shape `[batch_size, out_chunk[b] - out_chunk[a], num_out_components]`.
+    - In the case of classification, the forward function must produces an output Tensor of shape `[batch_size, num_classes]`.
     - Additionally, if statefulness is desired, the following two methods must also be defined:
       - ``force_reset()``, accessable from outer scope. This method should reset all hidden and internal states. It is called at the start of train, validation, and testing loops.
       - ``update_states()`` it receives a Tensor of current IST indices of shape `[batch_size, 3]` as argument. This method can be used to handle statefulness. It is called at the start of each batch.
