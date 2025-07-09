@@ -1,0 +1,135 @@
+KnowIt.data.data_splitting
+==========================
+
+.. py:module:: KnowIt.data.data_splitting
+
+.. autoapi-nested-parse::
+
+   ------------
+   DataSplitter
+   ------------
+
+   This module selects a set of prediction points from a provided ``DataExtractor`` object (see ``KnowIt.Basedataset``)
+   that are appropriate for model training and then splits them into a train, validation, and evaluation set.
+   A prediction point is appropriate for model training if:
+       1. Its corresponding slice is larger or equal to the minimum slice length. (optional)
+       2. There would be no missing values in the resulting output feature values.
+       3. The resulting output window would be within its corresponding slice.
+       4. A significant portion (default 0.5) of the resulting input window would be within its corresponding slice.
+
+   ----------------
+   Selection matrix
+   ----------------
+
+   Appropriate prediction points are stored in a "selection matrix".
+   This is an n-row, 3-column matrix where each row corresponds to an appropriate prediction point.
+   The value in each column indicates:
+       1.   The ID of the instance to which the prediction point belongs.
+       2.   The relative position, within said instance, of the slice to which the prediction point belongs.
+       3.   The relative position, within said slice, of the timestep at which a prediction is to be made.
+   This is also the format that the data splits are stored in (i.e. one matrix for each split).
+   We sometimes refer to the three positions above as the "IST" index, as in Instance-Slice-Time,
+   of a prediction point or time step.
+
+   ---------
+   Splitting
+   ---------
+
+   Given a selection matrix of all available prediction points, they need to be split into 3
+   sets according to the proportions given by the "portions" tuple. In practice, they are all
+   split in order (train-then-valid-then-eval), however the elements being split on, and the
+   order of these elements are defined by the 'method' argument:
+       -   random: split on time steps in random order
+       -   chronological (default): split on time steps in chronological order
+       -   instance-random: split on instances in random order
+       -   instance-chronological: split on instances in chronological order. The ordering is based on the first (chronologically) time step in the instance.
+       -   slice-chronological: split on slices in chronological order. The ordering is based on the first (chronologically) time step in the slice.
+       -   slice-random: split on slices in random order
+       -   custom: custom user defined splits, specified at data importing
+
+   This means that 'portions' are defined i.t.o the specific 'method'. For examples:
+   portions=(0.8, 0.1, 0.1) and method=instance-random means that the prediction points of a random 80% of instances,
+   will constitute training data, another random 10% will constitute validation data, and another 10% will constitute
+   evaluation data. Alternatively, if method=random, a random 80% of time steps (regardless of instance or slice),
+   will constitute training data, etc.
+
+   Note that this also means that the provided portions do not necessarily correspond to the portions of prediction points,
+   and therefore they might not directly control the number of examples trained and tested on.
+   Only for method=random or method=chronological would they.
+
+   Also note that if a custom split is defined, as in RawDataConverter, and selected here (method='custom').
+   The operations above will not be performed. The splits defined at raw data import will be checked for validity and used instead.
+
+   --------
+   Limiting
+   --------
+   The user has the option of limiting the number of prediction points in the overall dataset.
+   This is useful for debugging.
+
+   The limiting of the data occurs after the ordering of the elements (by instance, slice, or timestep) and before
+   the data is split. The value of 'limit' is therefore also defined i.t.o 'method'. The data will be limited to
+   the first n elements if limit=n. E.g. if limit=500 and method=instance-random, the data is limited to the first
+   500 random instances, if limit=10000 and method=chronological, the data is limited to the first 10000 prediction points
+   that occur chronologically.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.data.data_splitting.DataSplitter
+
+
+Module Contents
+---------------
+
+.. py:class:: DataSplitter(data_extractor, method, portions, limit, x_map, y_map, in_chunk, out_chunk, min_slice, in_portion = 0.5, load_level = 'instance', custom_splits = None)
+
+   The DataSplitter module is used by PreparedDataset to split the raw data into train/valid/eval sets,
+   and produce the corresponding selection matrices.
+
+   :Parameters: * **data_extractor** (:py:class:`DataExtractor`) -- The data extractor object to read data from disk.
+                * **method** (:py:class:`str`) -- Method for data splitting. Options are 'random', 'chronological',
+                  'instance-random', 'instance-chronological', 'slice-random', or 'slice-chronological', 'custom'.
+                * **portions** (:py:class:`tuple`, :py:class:`shape=[3,]`) -- Tuple of three floats representing the portions for training, validation, and evaluation
+                  datasets respectively. The sum of these portions should be 1.0.
+                * **limit** (:py:class:`int`) -- Maximum number of elements (depends on method) to consider.
+                * **x_map** (:py:class:`array`) -- Mapping for input data components. This defines the indices of desired input components.
+                * **y_map** (:py:class:`array`) -- Mapping for target data components. This defines the indices of desired output components.
+                * **in_chunk** (:py:class:`list`, :py:class:`shape=[2,]`) -- Input data chunk parameters.
+                * **out_chunk** (:py:class:`list`, :py:class:`shape=[2,]`) -- Target data chunk parameters.
+                * **min_slice** (:py:class:`int`) -- Minimum slice length.
+                * **in_portion** (:py:class:`float`, *default* ``0.5``) -- The portions of the input window that must still be within a slice to correspond to an appropriate slice.
+                  Value must be between 0 and 1.
+                * **load_level** (:py:class:`str`, *default* ``'instance'``) -- What level to load values from disk with.
+                  If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
+                  If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
+                * **custom_splits** (:py:class:`dict | None`, *default* :py:obj:`None`) -- A dictionary defining the custom selection matrices.
+
+   :ivar train_points: The selection matrix corresponding to the train set.
+   :vartype train_points: :py:class:`array`, :py:class:`shape=[n_train_prediction_points`, :py:class:`3]`
+   :ivar valid_points: The selection matrix corresponding to the validation set.
+   :vartype valid_points: :py:class:`array`, :py:class:`shape=[n_valid_prediction_points`, :py:class:`3]`
+   :ivar eval_points: The selection matrix corresponding to the evaluation set.
+
+   :vartype eval_points: :py:class:`array`, :py:class:`shape=[n_eval_prediction_points`, :py:class:`3]`
+
+   :raises ValueError: If the sum of the portions does not equal 1.0.
+
+
+   .. py:method:: get_selection()
+
+      Returns the obtained data splits as a dictionary of selection matrices.
+
+      :returns:
+
+                A dictionary containing the following keys:
+                    - 'train' (array): The selection matrix corresponding to the train set.
+                    - 'valid' (array): The selection matrix corresponding to the validation set.
+                    - 'eval' (array): The selection matrix corresponding to the evaluation set.
+      :rtype: :py:class:`dict[str`, :py:class:`array]`
+
+
+
