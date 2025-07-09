@@ -108,17 +108,26 @@ def get_lr_scheduler(
 
 
 def prepare_function(user_args: str | dict[str, Any], *, is_loss: bool) -> (
-        dict[str, Callable[..., float | Tensor]]
+        dict[str, tuple[Callable[..., float | Tensor], bool]]
     ):
-        """Set up and return a user's choice of function.
+        """Set up and return a user's choice of function along with OHE requirement.
 
         Unpacks user_args and fetches the correct functions with any kwargs.
         This is only performed once during the training run.
 
+        Parameters
+        ----------
+        user_args : str | dict[str, Any]
+            User-specified arguments for the function, either as a string or a dictionary.
+        is_loss : bool
+            Flag indicating whether to prepare a loss function or a performance metric.
+
         Returns
         -------
-            functions (dict):   A prepared function suitable for a task in the
-                                trainer module.
+        dict
+            functions (dict): A dictionary where each key is a metric name and each value is a tuple
+                              containing a prepared function suitable for a task in the trainer module
+                              and a boolean indicating whether one-hot encoding is required for the function.
 
         """
         function: dict[str, Callable[..., float|Tensor]] = {}
@@ -129,10 +138,10 @@ def prepare_function(user_args: str | dict[str, Any], *, is_loss: bool) -> (
                     get_loss_function(_metric),
                     **kwargs,
                 )
-                function[_metric] = loss_f
+                function[_metric] = (loss_f, requires_ohe(_metric))
         elif is_loss and not isinstance(user_args, dict):
                 loss_f = get_loss_function(user_args)
-                function[user_args] = loss_f
+                function[user_args] = (loss_f, requires_ohe(user_args))
         elif not is_loss and isinstance(user_args, dict):
             for _metric in user_args:
                 kwargs = user_args[_metric]
@@ -140,12 +149,26 @@ def prepare_function(user_args: str | dict[str, Any], *, is_loss: bool) -> (
                     get_performance_metric(_metric),
                     **kwargs,
                 )
-                function[_metric] = perf_f
+                function[_metric] = (perf_f, requires_ohe(_metric))
         elif not is_loss and not isinstance(user_args, dict):
                 perf_f = get_performance_metric(user_args)
-                function[user_args] = perf_f
+                function[user_args] = (perf_f, requires_ohe(user_args))
 
         return function
+
+def requires_ohe(metric: str) -> bool:
+    """ Returns a bool indicating whether the defined metric requires
+    that the targets be one hot encoded.
+
+    See the following link for details on additional metrics that might need to be added
+    to this list in the future:
+    https://lightning.ai/docs/torchmetrics/stable/
+    """
+
+    if metric in ("accuracy", ):
+        return True
+    else:
+        return False
 
 def get_model_score(model_dir: str) -> tuple:
     """

@@ -15,12 +15,13 @@ https://lightning.ai/docs/pytorch/stable/common/lightning_module.html
 from __future__ import annotations
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
 __licence__ = 'Apache 2.0; see LICENSE file for details.'
-__author__ = "randlerabe@gmail.com"
+__author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com"
 __description__ = "Constructs a Pytorch Lightning model class."
 
 from typing import TYPE_CHECKING, Any, Callable
 
 import pytorch_lightning as pl
+from torch import argmax
 
 from helpers.fetch_torch_mods import (
     get_lr_scheduler,
@@ -155,20 +156,59 @@ class PLModel(pl.LightningModule):
 
         self.save_hyperparameters(ignore=['model'])
 
+    def on_train_epoch_end(self):
+        """ Set the next training epoch number in the CustomSampler.
+
+        This is done to manage potential stochasticity (which is connected to the epoch number).
+
+        """
+        self.trainer.train_dataloader.batch_sampler.set_epoch(self.current_epoch+1)
+
+    def on_train_epoch_start(self):
+        """ Reset the model internal states for new training epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+
+    def on_validation_epoch_start(self):
+        """ Reset the model internal states for new validation epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+
+    def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        """ Update model internal states if applicable."""
+        if batch_idx == 0:
+            if hasattr(self.model, 'force_reset'):
+                self.model.force_reset()
+        else:
+            if hasattr(self.model, 'update_states'):
+                self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+
+    def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        """ Update model internal states if applicable."""
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+
+    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        """ Update model internal states if applicable."""
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+
+    def on_predict_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        """ Update model internal states if applicable."""
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+
     def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
         """Compute loss and optional metrics, log metrics, and return the loss.
 
         Overrides the method in pl.LightningModule.
         """
-        x = batch["x"]
-        y = batch["y"]
-
         forward = getattr(self.model, "forward")  # noqa: B009
-        y_pred = forward(x)
+        y_pred = forward(batch['x'])
 
         # compute loss; depends on whether user gave kwargs
         loss, loss_log_metrics = self._compute_loss(
-            y=y,
+            y=batch['y'],
             y_pred=y_pred,
             loss_label="train_loss",
         )
@@ -178,7 +218,7 @@ class PLModel(pl.LightningModule):
             perf_log_metrics = {}
         else:
             perf_log_metrics = self._compute_performance(
-                y=y,
+                y=batch['y'],
                 y_pred=y_pred,
                 perf_label="train_perf_",
             )
@@ -205,15 +245,13 @@ class PLModel(pl.LightningModule):
 
         Overrides the method in pl.LightningModule.
         """
-        x = batch["x"]
-        y = batch["y"]
 
         forward = getattr(self.model, "forward")  # noqa: B009
-        y_pred = forward(x)
+        y_pred = forward(batch['x'])
 
         # compute loss; depends on whether user gave kwargs
         loss, loss_log_metrics = self._compute_loss(
-            y=y,
+            y=batch['y'],
             y_pred=y_pred,
             loss_label="valid_loss",
         )
@@ -223,7 +261,7 @@ class PLModel(pl.LightningModule):
             perf_log_metrics = {}
         else:
             perf_log_metrics = self._compute_performance(
-                y=y,
+                y=batch['y'],
                 y_pred=y_pred,
                 perf_label="valid_perf_",
             )
@@ -262,15 +300,12 @@ class PLModel(pl.LightningModule):
         }
         current_loader = loaders[dataloader_idx]
 
-        x = batch["x"]
-        y = batch["y"]
-
         forward = getattr(self.model, "forward")  # noqa: B009
-        y_pred = forward(x)
+        y_pred = forward(batch['x'])
 
         # compute loss; depends on whether user gave kwargs
         _, loss_log_metrics = self._compute_loss(
-            y=y,
+            y=batch['y'],
             y_pred=y_pred,
             loss_label=current_loader + "loss",
         )
@@ -280,7 +315,7 @@ class PLModel(pl.LightningModule):
             perf_log_metrics = {}
         else:
             perf_log_metrics = self._compute_performance(
-                y=y,
+                y=batch['y'],
                 y_pred=y_pred,
                 perf_label=current_loader + "perf_",
             )
@@ -393,19 +428,19 @@ class PLModel(pl.LightningModule):
 
         # set up loss function once
         if not hasattr(self, "loss_functions"):
-            self.loss_functions: dict[
-                str,
-                Callable[..., float | Tensor],
-            ] = prepare_function(user_args=self.loss, is_loss=True)
+            self.loss_functions = prepare_function(user_args=self.loss, is_loss=True)
 
         for _function in self.loss_functions:
-            function = self.loss_functions[_function]
+            function, to_ohe = self.loss_functions[_function]
+            if to_ohe:
+                y = argmax(y, dim=1).to(self.device)
             loss = function(input=y_pred, target=y)
             log_metrics[loss_label] = loss
 
             if self.output_scaler is not None:
                 y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
-                y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
+                if not to_ohe:
+                    y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
                 loss_rescaled = function(input=y_pred, target=y)
                 log_metrics[loss_label] = loss_rescaled
 
@@ -456,19 +491,15 @@ class PLModel(pl.LightningModule):
 
         # set up performance functions once
         if not hasattr(self, "perf_functions"):
-            self.perf_functions: dict[
-                str,
-                Callable[..., float | Tensor],
-            ] = prepare_function(
-                user_args=self.performance_metrics,
-                is_loss=False,
-            )
+            self.perf_functions = prepare_function( user_args=self.performance_metrics, is_loss=False)
 
         for _function in self.perf_functions:
-            function = self.perf_functions[_function]
+            function, to_ohe = self.perf_functions[_function]
             if self.output_scaler is not None:
                 y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
                 y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
+            if to_ohe:
+                y = argmax(y, dim=1).to(self.device)
             val = function(preds=y_pred, target=y)
             log_metrics[perf_label + _function] = val
 

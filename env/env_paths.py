@@ -150,7 +150,7 @@ def interpretation_name(interpret_args: dict):
     """ Construct an interpretation name from interpretation arguments. """
     i_name = ''
     for a in ('interpretation_method', 'interpretation_set', 'selection',
-              'size', 'multiply_by_inputs', 'seed', 'i_inx'):
+              'size', 'multiply_by_inputs', 'seed'):
         try:
             i_name += str(interpret_args[a]) + '-'
         except:
