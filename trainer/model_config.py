@@ -21,6 +21,7 @@ __description__ = "Constructs a Pytorch Lightning model class."
 from typing import TYPE_CHECKING, Any, Callable
 
 import pytorch_lightning as pl
+from torch import argmax
 
 from helpers.fetch_torch_mods import (
     get_lr_scheduler,
@@ -446,19 +447,19 @@ class PLModel(pl.LightningModule):
 
         # set up loss function once
         if not hasattr(self, "loss_functions"):
-            self.loss_functions: dict[
-                str,
-                Callable[..., float | Tensor],
-            ] = prepare_function(user_args=self.loss, is_loss=True)
+            self.loss_functions = prepare_function(user_args=self.loss, is_loss=True)
 
         for _function in self.loss_functions:
-            function = self.loss_functions[_function]
+            function, to_ohe = self.loss_functions[_function]
+            if to_ohe:
+                y = argmax(y, dim=1).to(self.device)
             loss = function(input=y_pred, target=y)
             log_metrics[loss_label] = loss
 
             if self.output_scaler is not None:
                 y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
-                y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
+                if not to_ohe:
+                    y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
                 loss_rescaled = function(input=y_pred, target=y)
                 log_metrics[loss_label] = loss_rescaled
 
@@ -509,19 +510,15 @@ class PLModel(pl.LightningModule):
 
         # set up performance functions once
         if not hasattr(self, "perf_functions"):
-            self.perf_functions: dict[
-                str,
-                Callable[..., float | Tensor],
-            ] = prepare_function(
-                user_args=self.performance_metrics,
-                is_loss=False,
-            )
+            self.perf_functions = prepare_function( user_args=self.performance_metrics, is_loss=False)
 
         for _function in self.perf_functions:
-            function = self.perf_functions[_function]
+            function, to_ohe = self.perf_functions[_function]
             if self.output_scaler is not None:
                 y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
                 y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
+            if to_ohe:
+                y = argmax(y, dim=1).to(self.device)
             val = function(preds=y_pred, target=y)
             log_metrics[perf_label + _function] = val
 

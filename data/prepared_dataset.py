@@ -147,7 +147,7 @@ from numpy import (array, random, unique, pad, isnan, arange, expand_dims, conca
                    diff, where, split, ndarray)
 from numpy.random import Generator
 from torch.utils.data import Dataset, DataLoader, Sampler
-from torch import from_numpy, is_tensor, Tensor
+from torch import from_numpy, is_tensor, Tensor, unsqueeze
 from torch import zeros as zeros_tensor
 
 # internal imports
@@ -480,6 +480,9 @@ class PreparedDataset(BaseDataset):
 
         try:
             custom_batch = dataset.__getitem__(idx=point_ids)
+            if len(custom_batch['x'].shape) < 3:
+                custom_batch['x'] = unsqueeze(custom_batch['x'].contiguous(), 0)
+                custom_batch['y'] = unsqueeze(custom_batch['y'].contiguous(), 0)
         except ValueError:
             logger.error('Invalid: ids %s not in choice "%s" (which has range %s)',
                          str(point_ids), set_tag,

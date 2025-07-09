@@ -10,8 +10,8 @@ authors:
 - family-names: "Davel"
   given-names: "Marelie"
   scholar: "https://scholar.google.com/citations?user=Xz-fi1cAAAAJ&hl=en"
-title: "KnowIt: Deep Time Series Modeling and Interpretation (in prep)"
+title: "KnowIt: Deep Time Series Modeling and Interpretation"
 version: 1.0.0
-doi: TBD
-date-released: 2025-03-27
+doi: "https://doi.org/10.48550/arXiv.2507.06009"
+date-released: 2025-07-09
 url: "https://github.com/MUST-Deep-Learning/KnowIt"
