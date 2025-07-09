@@ -16,7 +16,7 @@ The criteria are as follows:
         - **input_dim** (tuple) = The expected input dimensions of the model (t, c). Where t is the number of time steps (delays) and c is the number of input components. 
         - **output_dim** (tuple) = The expected output dimensions of the model (t, c). Where t is the number of time steps (delays) and c is the number of output components.
     - All other arguments are optional and default values must be provided.
-    - The class must also have a forward function that receives a Tensor of shape `[batch_size, in_chunk[b] - in_chunk[b], num_in_components]`, as argument.
+    -  The class must also have a forward function that receives a Tensor of shape `[batch_size, in_chunk[b] - in_chunk[b], num_in_components]`, as argument.
     - Additionally, if statefulness is desired, the following two methods must also be defined:
       - ``force_reset()``, accessable from outer scope. This method should reset all hidden and internal states. It is called at the start of train, validation, and testing loops.
       - ``update_states()`` it receives a Tensor of current IST indices of shape `[batch_size, 3]` as argument. This method can be used to handle statefulness. It is called at the start of each batch.
@@ -24,7 +24,7 @@ The criteria are as follows:
      - It is automatically set to ``True`` at the start of validation and testing loops. 
      - It reset to ``False`` at the start of each training epoch.
 
-- Note that the architecture will have the same name as the script being imported.
+     - Note that the architecture will have the same name as the script being imported.
 
 See default architectures for examples.
 
