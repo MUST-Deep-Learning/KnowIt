@@ -17,7 +17,6 @@ VariableSelectionNetwork
 Learns per-timestep soft attention over temporal input variables.
     - Each variable passes through a shared GatedResidualNetwork.
     - Importance weights are computed using softmax across input variables.
-    - Used separately for encoder and decoder inputs.
 
 --------------------
 GatedResidualNetwork
@@ -48,11 +47,8 @@ The main temporal modeling stage:
     - LSTM Encoder:
         Processes full input sequence.
 
-    - LSTM Decoder:
-        Processes final `decoder_time` steps from input sequence.
-
     - Temporal Self-Attention:
-        Applies attention over decoder steps to capture long-range dependencies.
+        Applies attention over encoder steps to capture long-range dependencies.
 
     - Position-wise GRN:
         Final per-timestep transformation before output.
@@ -63,15 +59,19 @@ FinalBlock
 
 After the TFTCore we obtain a tensor T(batch_size, decoder_steps, model_dim).
 
-If task_name = 'regression':
-    - Linear projection → (batch_size, decoder_steps, target_dim)
-    - Output activation (optional)
+If task_name = 'regression'
+    -   T is flattened to T(batch_size, num_input_time_steps * num_output_components)
+            a linear layer and output activation is applied, and it is reshaped to the desired output
+            T(batch_size, num_output_time_steps, num_output_components).
 
-If task_name = 'classification':
-    - Linear projection → (batch_size, decoder_steps, num_classes)
+If task_name = 'classification'
+    -   T is flattened to T(batch_size, num_input_time_steps * num_output_components)
+            a linear layer is applied, which outputs T(batch_size, num_output_components).
 
-If task_name = 'forecast':
-    - Sequence output over decoder_time steps.
+If task_name = 'forecast' (WIP)
+    -   T(batch_size, num_output_time_steps, num_output_components) is return where the
+           num_output_time_steps is the last chunk from num_input_time_steps.
+
 
 Notes
 -----
@@ -80,9 +80,6 @@ Notes
     - All weights (excluding biases) are initialized with `nn.init.kaiming_uniform_` if dimensions allow,
       otherwise with `nn.init.normal_`.
     - All bias parameters are initialized to zero.
-    - `decoder_time_steps` controls the number of time steps passed to the decoder.
-      It must be > 0 and constitutes the final segment of the input sequence
-      [batch_size, -decoder_time_steps:, num_features].
 """
 
 from __future__ import annotations
@@ -96,9 +93,8 @@ from torch.nn import (Module, LSTM, Parameter, Sigmoid, Linear, ModuleList, Laye
 from torch.nn.functional import glu
 from torch.nn.init import (zeros_, kaiming_uniform_, normal_)
 from typing import Dict, Tuple, List, Optional
-from numpy import arange
-
 from helpers.logger import get_logger
+import numpy as np
 logger = get_logger()
 
 available_tasks = ("regression", "classification", "forcast")
@@ -106,8 +102,7 @@ available_tasks = ("regression", "classification", "forcast")
 HP_ranges_dict = {"depth": range(1, 512, 1),
                   "lstm_depth": range(1, 64, 1),
                   "num_attention_heads": range(1, 4, 1),
-                  "dropout": arange(0, 1.1, 0.1),
-                  "full_attention": (True, False),
+                  "dropout": np.arange(0, 1.1, 0.1),
                   "output_activation": (None, "Sigmoid", "Softmax"),
                   "decoder_time_steps": range(1, 1025, 1),
                   "stateful": (False, True),
@@ -123,12 +118,11 @@ class Model(Module):
     ---------------------
     The model uses a standard encoder-decoder pattern with LSTMs as the backbone,
     augmented by learned variable selection, gating mechanisms, and a multi-head
-    attention block. It optionally includes full or causal attention masking.
+    attention block.
 
     Block Summary:
         - VariableSelectionNetwork: Selects and embeds input features at each time step.
         - LSTM Encoder: Processes historical sequence data.
-        - LSTM Decoder: Processes future steps or zero-padded inputs during inference.
         - GateAddNorm: Combines LSTM output and embeddings.
         - GatedResidualNetwork: Injects static enrichment before attention.
         - Multi-Head Attention: Produces interpretable attention-weighted summaries.
@@ -164,16 +158,11 @@ class Model(Module):
     output_activation : str or None, default=None
         Optional activation to apply to the model's output.
 
-    decoder_time_steps : int, default=10
-        Number of future time steps predicted (used to split encoder/decoder).
-
     stateful : bool, default=False
         Enables persistent LSTM hidden state across batches (not fully implemented).
 
     Notes
     -----
-    - In inference mode, the decoder receives zero-filled inputs.
-    - Attention masking is recomputed dynamically if batch size changes.
     - Hidden states are reset unless `stateful=True`, but persistent state
       handling is not robust.
     - Forecasting mode is marked WIP and may produce unstable outputs.
@@ -186,7 +175,6 @@ class Model(Module):
     """
 
     task_name = None
-    full_attention = True
     output_activation = None
 
     def __init__(self,
@@ -198,9 +186,7 @@ class Model(Module):
                  lstm_depth: int = 4,
                  num_attention_heads: int = 4,
                  dropout: float | None = 0.1,
-                 full_attention: bool = True,
                  output_activation: str | None = None,
-                 decoder_time_steps: int = 10,
                  stateful: bool = False,
     ) -> None:
 
@@ -210,27 +196,17 @@ class Model(Module):
         self.num_model_out_channels = output_dim[1]
         self.num_model_in_time_steps = input_dim[0]
         self.num_model_in_channels = input_dim[1]
-        self.decoder_time_steps = decoder_time_steps
-        self.encoder_time_steps = input_dim[0] - decoder_time_steps
 
         self.task_name = task_name
         self.depth = depth
         self.lstm_depth = lstm_depth
         self.num_attention_heads = num_attention_heads
         self.dropout = dropout
-        self.full_attention = full_attention
+        self.output_activation = output_activation
         self.state_full = stateful
 
-        self.output_activation = output_activation
-
-        self.batch_size_last = -1
-        self.attention_mask = None
-        self.inference = False
-
         self._attn_out_weights = None
-        self._static_covariate_var = None
         self._encoder_sparse_weights = None
-        self._decoder_sparse_weights = None
 
         #Encoder
         self.lstm_encoder_vsn = _VariableSelectionNetwork(
@@ -240,22 +216,7 @@ class Model(Module):
             dropout=self.dropout,
         )
 
-        self.lstm_decoder_vsn = _VariableSelectionNetwork(
-            n_input_dim=1,
-            n_input_features=self.num_model_in_channels,
-            depth=self.depth,
-            dropout=self.dropout,
-        )
-
         self.lstm_encoder = LSTM(
-            input_size=self.depth,
-            hidden_size=self.depth,
-            num_layers=self.lstm_depth,
-            dropout=self.dropout if self.lstm_depth > 1 else 0,
-            batch_first=True,
-        )
-
-        self.lstm_decoder = LSTM(
             input_size=self.depth,
             hidden_size=self.depth,
             num_layers=self.lstm_depth,
@@ -275,15 +236,18 @@ class Model(Module):
             n_output=self.depth,
             dropout=self.dropout,
         )
+
         self.attention = _InterpretableMultiHeadAttention(
             d_model=self.depth,
             n_head=self.num_attention_heads,
             dropout=self.dropout,
         )
+
         self.decoder_gan = _GateAddNorm(
             n_input=self.depth,
             dropout=self.dropout,
         )
+
         self.decoder_grn = _GatedResidualNetwork(
             n_input=self.depth,
             depth=self.depth,
@@ -298,7 +262,7 @@ class Model(Module):
         )
 
         self.final_output_layer = FinalBlock(
-            num_model_in_time_steps=self.decoder_time_steps,
+            num_model_in_time_steps=self.num_model_in_time_steps,
             num_model_out_channels=self.num_model_out_channels,
             num_model_out_time_steps=self.num_model_out_time_steps,
             output_activation=self.output_activation,
@@ -306,95 +270,28 @@ class Model(Module):
             task=self.task_name
         )
 
-    @staticmethod
-    def get_attention_mask_future(
-            encoder_length: int,
-            decoder_length: int,
-            batch_size: int,
-            device: str,
-            full_attention: bool
-    ) -> Tensor:
-        """
-        Constructs a boolean attention mask for encoder-decoder attention in sequence models.
-
-        Parameters
-        ----------
-        encoder_length : int
-            Number of time steps in the encoder sequence.
-
-        decoder_length : int
-            Number of time steps in the decoder sequence (forecast horizon).
-
-        batch_size : int
-            Batch size, used to expand mask across the batch dimension.
-
-        device : str
-            Device identifier (e.g., 'cpu' or 'cuda') for mask tensor allocation.
-
-        full_attention : bool
-            If True, allow decoder to attend to all decoder time steps (no causal masking).
-            If False, enforce causal masking so each decoder step only attends to
-            past and present steps (no peeking into the future).
-
-        Returns
-        -------
-        Tensor
-            A boolean tensor mask of shape (batch_size, decoder_length, encoder_length + decoder_length),
-            where True indicates positions **masked out** (ignored) by the attention mechanism.
-
-        Notes
-        -----
-        - Encoder positions are never masked (fully visible).
-        - Decoder mask depends on `full_attention`:
-          - True: no mask (all False).
-          - False: mask out future decoder steps to enforce causality.
-        - The mask concatenates encoder and decoder masks along the last dimension
-          to produce a combined attention mask for cross-attention.
-        """
-
-        if full_attention:
-            decoder_mask = zeros((decoder_length, decoder_length), dtype=bool, device=device)
-        else:
-            # attend only to past steps relative to forecasting step in the future
-            # indices to which is attended
-            attend_step = arange(decoder_length, device=device)
-            # indices for which is predicted
-            predict_step = arange(0, decoder_length, device=device)[:, None]
-            # do not attend to steps to self or after prediction
-            decoder_mask = attend_step >= predict_step
-
-        encoder_mask = zeros(batch_size, encoder_length, dtype=bool, device=device)
-        # combine masks along attended time - first encoder and then decoder
-        mask = cat((
-                encoder_mask.unsqueeze(1).expand(-1, decoder_length, -1),
-                decoder_mask.unsqueeze(0).expand(batch_size, -1, -1)
-            ),
-            dim=2,
-        )
-        return mask
-
-    def forward(self, x: Tensor) -> Tensor: #, reset_lstm_state: bool = True) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         """
         Perform a forward pass through the model.
 
         Parameters
         ----------
         x : Tensor
-            Input tensor of shape (batch_size, total_time_steps, num_input_channels).
+            Input tensor of shape (batch_size, num_model_in_time_steps, num_model_in_channels).
             The sequence includes both encoder (past) and decoder (future) time steps.
 
         Returns
         -------
         Tensor
             Output tensor shaped according to the task, typically
-            (batch_size, decoder_time_steps, num_output_channels).
+            (batch_size, num_model_out_time_steps, num_model_out_channels).
 
         Details
         -------
         - Splits input into encoder and decoder sequences.
         - Processes both sequences through variable selection networks and LSTMs.
         - Applies gating and residual connections.
-        - Uses multi-head attention on decoder output with masking.
+        - Uses multi-head attention on output
         - Produces final output via output layers, applying activation if specified.
         - Handles stateful LSTM hidden states internally.
         """
@@ -402,26 +299,7 @@ class Model(Module):
         reset_lstm_state = True
         batch_size = x.shape[0]
 
-        input_vectors_past = x[:, :self.encoder_time_steps, :]
-        if self.inference:
-            input_vectors_future = zeros((batch_size, self.decoder_time_steps, self.num_model_in_channels),
-                                         device=x.device)
-        else:
-            input_vectors_future = x[:, self.encoder_time_steps:, :]
-
-        if batch_size != self.batch_size_last:
-            self.attention_mask = self.get_attention_mask_future(
-                self.encoder_time_steps,
-                self.decoder_time_steps,
-                batch_size,
-                x.device,
-                self.full_attention
-            )
-            self.batch_size_last = batch_size
-
-
-        embeddings_varying_encoder, encoder_sparse_weights = self.lstm_encoder_vsn(x=input_vectors_past)
-        embeddings_varying_decoder, decoder_sparse_weights = self.lstm_decoder_vsn(x=input_vectors_future)
+        embeddings_varying_encoder, encoder_sparse_weights = self.lstm_encoder_vsn(x=x)
 
         #LSTM
         if reset_lstm_state or self.hidden_state is None:
@@ -432,37 +310,29 @@ class Model(Module):
 
         encoder_out, (hn, cn) = self.lstm_encoder(input=embeddings_varying_encoder, hx=(h0, c0))
 
-        decoder_out, _ = self.lstm_decoder(input=embeddings_varying_decoder, hx=(hn, cn))
-
-        lstm_layer = cat([encoder_out, decoder_out], dim=1)
-        input_embeddings = cat([embeddings_varying_encoder, embeddings_varying_decoder], dim=1)
-
         self.hidden_state = hn.detach()
         self.cell_state = cn.detach()
 
-        lstm_out = self.lstm_out_gan(lstm_layer, input_embeddings)
+        lstm_out = self.lstm_out_gan(encoder_out, embeddings_varying_encoder)
 
         # Attention head
         attn_in = self.static_enrichment_grn(x=lstm_out)
 
         attn_out, att_out_weights = self.attention(
-            q=attn_in[:, self.encoder_time_steps:],
+            q=attn_in,
             k=attn_in,
             v=attn_in,
-            mask=self.attention_mask,
         )
 
-        attn_out = self.decoder_gan(x=attn_out, residual_connect=attn_in[:, self.encoder_time_steps:])
-        decoder_out = self.decoder_grn(x=attn_out)
+        attn_out = self.decoder_gan(x=attn_out, residual_connect=None)
+        grn_decoder_out = self.decoder_grn(x=attn_out)
 
         #Output
-        pre_out_gan = self.pre_out_gan(decoder_out, lstm_out[:, self.encoder_time_steps:])
-
-        final_out = self.final_output_layer(pre_out_gan)
+        pre_out_gan = self.pre_out_gan(x=grn_decoder_out, residual_connect=None)
+        final_out = self.final_output_layer(x=pre_out_gan)
 
         self._attn_out_weights = att_out_weights
         self._encoder_out_weights = encoder_sparse_weights
-        self._decoder_out_weights = decoder_sparse_weights
 
         return final_out
 
@@ -502,7 +372,6 @@ class _GateAddNorm(Module):
 
     """
 
-
     n_input = None
     depth = None
     residual = None
@@ -522,14 +391,19 @@ class _GateAddNorm(Module):
         self.residual = residual or self.depth
         self.dropout = dropout
 
-        self.glu = _GatedLinearUnit(self.n_input, depth=self.depth, dropout=self.dropout)
+        self.glu = _GatedLinearUnit(
+            n_input=self.n_input,
+            depth=self.depth,
+            dropout=self.dropout
+        )
+
         self.norm = LayerNorm(self.depth)
 
     def forward(self, x, residual_connect) -> Tensor:
         """
         Forward pass applying gated transformation, residual addition, and normalization.
 
-        Parameters
+        Parameters- decoder_time_steps +1
         ----------
         x : Tensor of shape (batch_size, sequence_length, n_input)
             Input tensor to transform.
@@ -542,10 +416,14 @@ class _GateAddNorm(Module):
             The output tensor after gated transformation, residual addition, and layer normalization.
         """
         x = self.glu(x)
-        if self.depth != self.residual:
-            residual_connect = self.resample(residual_connect)
+        if residual_connect is not None:
+            if self.depth != self.residual:
+                residual_connect = self.linear(residual_connect)
 
-        x = self.norm(x + residual_connect)
+            x = self.norm(x + residual_connect)
+        else:
+            x = self.norm(x)
+
         return x
 
 
@@ -592,6 +470,12 @@ class _GatedResidualNetwork(Module):
         gating, residual connection, and normalization.
     """
 
+    n_input = None
+    depth = None
+    n_output = None
+    dropout = None
+    residual_connect = None
+
     def __init__(
         self,
         n_input: int,
@@ -611,7 +495,7 @@ class _GatedResidualNetwork(Module):
         if self.n_output != self.n_input:
             self.linear = Linear(self.n_input, self.n_output)
 
-        self.norm = LayerNorm(self.n_output) # Not in OG
+        self.norm = LayerNorm(self.n_output)
 
         self.fc1 = Linear(self.n_input, self.depth)
         self.elu = ELU()
@@ -686,6 +570,9 @@ class _GatedLinearUnit(Module):
     forward(x)
         Applies dropout (if any), linear transformation, and GLU gating to the input tensor.
     """
+
+    dropout = None
+    depth = None
 
     def __init__(
         self,
@@ -770,6 +657,11 @@ class _VariableSelectionNetwork(Module):
         Returns a weighted sum of GRN outputs and the corresponding feature weights.
     """
 
+    n_input_dim = None
+    n_input_features = None
+    depth = None
+    dropout = None
+
     def __init__(
         self,
         n_input_dim: int,
@@ -786,10 +678,10 @@ class _VariableSelectionNetwork(Module):
 
         if self.n_input_features > 1:
             self.flattened_grn = _GatedResidualNetwork(
-                self.n_input_dim * self.n_input_features,
-                min(self.depth, self.n_input_features),
-                self.n_input_features,
-                self.dropout,
+                n_input=self.n_input_dim * self.n_input_features,
+                depth=min(self.depth, self.n_input_features),
+                n_output=self.n_input_features,
+                dropout=self.dropout,
                 residual_connect=False,
             )
 
@@ -831,9 +723,10 @@ class _VariableSelectionNetwork(Module):
                 variable_embedding = x[:, :, idx].unsqueeze(-1)
                 weight_inputs.append(variable_embedding)
                 var_outputs.append(self.single_variable_grns[idx](variable_embedding))
-            var_outputs = stack(var_outputs, dim=-1)
 
+            var_outputs = stack(var_outputs, dim=-1)
             flat_embedding = cat(weight_inputs, dim=-1)
+
             sparse_weights = self.flattened_grn(flat_embedding)
             sparse_weights = self.softmax(sparse_weights).unsqueeze(-2)
 
@@ -885,9 +778,13 @@ class _ScaledDotProductAttention(Module):
 
     Methods
     -------
-    forward(q, k, v, mask=None)
+    forward(q, k, v)
         Computes attention-weighted values and attention weights from input tensors.
     """
+
+    dropout = None
+    scale = None
+
     def __init__(
         self,
         dropout: float = None,
@@ -899,15 +796,15 @@ class _ScaledDotProductAttention(Module):
             self.dropout = Dropout(p=dropout)
         else:
             self.dropout = dropout
-        self.softmax = Softmax(dim=2)
+
         self.scale = scale
 
-    def forward(self, q, k, v, mask=None) -> Tensor:
+    def forward(self, q, k, v) -> Tensor:
         """
         Forward pass of the scaled dot-product attention mechanism.
 
         Computes attention scores as the dot product between queries and keys,
-        optionally scales them, applies a mask if provided, then normalizes
+        optionally scales them, then normalizes
         with softmax. The resulting attention weights are used to compute
         a weighted sum over the values.
 
@@ -919,8 +816,6 @@ class _ScaledDotProductAttention(Module):
             Key tensor.
         v : Tensor, shape [batch_size, sequence_length, model_depth // number_heads]
             Value tensor.
-        mask : Tensor, optional, shape broadcastable to [batch_size, sequence_length, sequence_length]
-            Boolean mask indicating positions to be masked (e.g., padding or future tokens).
 
         Returns
         -------
@@ -935,13 +830,11 @@ class _ScaledDotProductAttention(Module):
             dimension = as_tensor(k.size(-1), dtype=attn.dtype, device=attn.device).sqrt()
             attn = attn / dimension
 
-        if mask is not None:
-            attn = attn.masked_fill(mask, -1e9)
-
-        attn = self.softmax(attn)
+        attn = Softmax(dim=2)(attn)
 
         if self.dropout is not None:
             attn = self.dropout(attn)
+
         out = bmm(attn, v)
 
         return out, attn
@@ -1001,7 +894,7 @@ class _InterpretableMultiHeadAttention(Module):
 
         init_mod(self)
 
-    def forward(self, q, v, k, mask=None) -> Tuple[Tensor, Tensor]:
+    def forward(self, q, v, k) -> Tuple[Tensor, Tensor]:
         """
         Forward pass for interpretable multi-head attention.
 
@@ -1016,8 +909,6 @@ class _InterpretableMultiHeadAttention(Module):
             Value tensor.
         k : Tensor, shape [batch_size, seq_len, d_model]
             Key tensor.
-        mask : Tensor, optional, shape broadcastable to [batch_size, seq_len, seq_len]
-            Boolean mask indicating positions to ignore during attention.
 
         Returns
         -------
@@ -1034,7 +925,7 @@ class _InterpretableMultiHeadAttention(Module):
         for i in range(self.n_head):
             qs = self.q_layer[i](q)
             ks = self.k_layer[i](k)
-            head, attn = self.attention(qs, ks, vs, mask=mask)
+            head, attn = self.attention(qs, ks, vs)
             head_dropout = self.dropout(head)
             heads.append(head_dropout)
             attns.append(attn)
@@ -1100,6 +991,7 @@ class FinalBlock(Module):
     expected_in_c = None
     desired_out_t = None
     desired_out_c = None
+    depth = None
     task = None
 
     def __init__(self, num_model_in_time_steps, num_model_out_channels,
