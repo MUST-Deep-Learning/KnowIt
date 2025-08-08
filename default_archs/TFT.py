@@ -10,6 +10,9 @@ See:
 [1] "Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting"  
     Lim et al., 2019 — https://arxiv.org/abs/1912.09363
 
+Inspiration for this implementation has been taken from `pytorch-forecasting's TemporalFusionTransformer
+        <https://pytorch-forecasting.readthedocs.io/en/latest/models.html>`_.
+
 ------------------------
 VariableSelectionNetwork
 ------------------------
