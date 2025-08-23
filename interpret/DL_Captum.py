@@ -35,6 +35,7 @@ __description__ = "Implements Captum's DeepLift attribution method."
 import numpy as np
 import torch
 from captum.attr import DeepLift
+from collections import defaultdict
 
 from helpers.logger import get_logger
 from interpret.featureattr import FeatureAttribution
@@ -119,11 +120,13 @@ class DeepL(FeatureAttribution):
         self.dl = DeepLift(self.model, multiply_by_inputs=multiply_by_inputs)
         self.seed = seed
 
-    def generate_baseline_from_data(self, num_baselines: int) -> Tensor:
-        """Return a (single) baseline.
+    def generate_baseline_from_data(self, num_baselines: int) -> tuple:
+        """Return a single baseline and (optionally) its internal state.
 
         Randomly samples a distribution of baselines from the training data
         and then averages over the sample to obtain a single baseline.
+        If possible, also generates an internal baseline by passing the
+        single baseline through the model and obtaining the internal states.
 
         Parameters
         ----------
@@ -132,8 +135,17 @@ class DeepL(FeatureAttribution):
 
         Returns
         -------
-        Tensor
-            A torch tensor of shape (1, in_chunk, in_components)
+        Tuple[Tensor, Optional[Tensor | None]]
+            A tuple containing:
+            - A torch tensor of shape (1, in_chunk, in_components) representing the averaged baseline.
+            - The internal state baseline (if available), otherwise None.
+
+        Notes
+        -----
+        - If the number of available samples in the training data is less than `num_baselines`,
+          the method will use all available samples and log a warning.
+        - The internal state baseline is generated only if the model has the `update_states`, `force_reset`,
+          and `get_internal_states` methods.
         """
         logger.info("Generating baselines.")
 
@@ -159,7 +171,26 @@ class DeepL(FeatureAttribution):
             is_baseline=True,
         )['x']
 
-        return torch.mean(baselines, 0, keepdim=True)
+        x_baseline = torch.mean(baselines, 0, keepdim=True)
+        x_baseline = x_baseline.to(self.device)
+
+        internal_state_baseline = None
+        if (hasattr(self.model, 'update_states') and
+                hasattr(self.model, 'force_reset') and
+                hasattr(self.model, 'get_internal_states')):
+            # manually reset internal states to have the same number of dimensions as number of baselines
+            self.model.force_reset()
+            self.model.update_states(torch.zeros(x_baseline.shape[0]), x_baseline.device)
+            # pass baselines through model to generate internal states
+            _ = self.model(x_baseline)
+            # get baseline internal states
+            internal_state_baseline = self.model.get_internal_states()
+            # manually reset internal states back to default dimensionality
+            self.model.force_reset()
+            self.model.update_states(torch.zeros(1), x_baseline.device)
+            self.model.force_reset()
+
+        return x_baseline, internal_state_baseline
 
     def interpret(
         self,
@@ -209,9 +240,11 @@ class DeepL(FeatureAttribution):
         rapidly, which may therefore obscure model interpretability.
         """
 
-        def _extract_attributions(custom_batch, baseline, target):
+        def _extract_attributions(custom_batch: dict, baseline: Tensor,
+                                  target: tuple, internal_baseline: list | None):
             """ Extract the feature attributions one-by-one and concatenate at the end. """
 
+            # separate prediction points for sequential processing
             pseudo_batches = []
             for p in range(custom_batch['x'].shape[0]):
                 new_batch = {'x': torch.unsqueeze(custom_batch['x'][p], 0),
@@ -219,21 +252,63 @@ class DeepL(FeatureAttribution):
                              's_id': custom_batch['s_id'][p],
                              'ist_idx': np.expand_dims(custom_batch['ist_idx'][p], 0)}
                 pseudo_batches.append(new_batch)
-            full_attributions = []
+
+            # manually reset internal states back to default dimensionality
+            if hasattr(self.model, 'update_states') and hasattr(self.model, 'force_reset'):
+                self.model.force_reset()
+                self.model.update_states(torch.zeros(1), pseudo_batches[0]['x'].device)
+                self.model.force_reset()
+
+            full_attributions = defaultdict(list)
             full_delta = []
-            for pp in pseudo_batches:
-                if hasattr(self.model, 'update_states'):
-                    self.model.update_states(torch.from_numpy(pp['ist_idx']), pp['x'].device)
-                attributions, delta = self.dl.attribute(
-                    inputs=pp['x'],
-                    baselines=baseline,
-                    target=target,
-                    return_convergence_delta=True,
-                )
-                full_attributions.append(attributions)
+            for pp in range(len(pseudo_batches)):
+
+                # if possibility of statefulness, update internal state to current prediction point
+                if hasattr(self.model, 'update_states') and hasattr(self.model, 'force_reset'):
+                    self.model.force_reset()
+                    for qpp in range(0, pp):
+                        self.model.update_states(torch.from_numpy(pseudo_batches[qpp]['ist_idx']),
+                                                 pseudo_batches[qpp]['x'].device)
+                        _ = self.model(pseudo_batches[qpp]['x'])
+
+                if hasattr(self.model, 'get_internal_states'):
+                    # if model has the possibility of being stateful construct input including hidden states
+                    inputs = [pseudo_batches[pp]['x']]
+                    for i in self.model.get_internal_states():
+                        if type(i) is list or type(i) is tuple:
+                            inputs.extend(i)
+                        else:
+                            inputs.append(i)
+                    baselines = [baseline]
+                    for i in internal_baseline:
+                        if type(i) is list or type(i) is tuple:
+                            baselines.extend(i)
+                        else:
+                            baselines.append(i)
+                    attributions, delta = self.dl.attribute(
+                        inputs=tuple(inputs),
+                        baselines=tuple(baselines),
+                        target=target,
+                        return_convergence_delta=True,
+                    )
+                else:
+                    # assume model is not stateful and simply attribute the input
+                    attributions, delta = self.dl.attribute(
+                        inputs=tuple([pseudo_batches[pp]['x']]),
+                        baselines=tuple([baseline]),
+                        target=target,
+                        return_convergence_delta=True,
+                    )
+
+                for a in range(len(attributions)):
+                    full_attributions[a].append(attributions[a])
                 full_delta.append(delta)
-            attributions = torch.cat(full_attributions)
+
+            attributions = {}
+            for a in full_attributions:
+                attributions[a] = torch.cat(full_attributions[a])
             delta = torch.cat(full_delta)
+
             return attributions, delta
 
         # extract explicands using ids
@@ -244,10 +319,9 @@ class DeepL(FeatureAttribution):
 
         # generate a baseline (baseline is computed as an average over a sample
         # distribution)
-        baseline = self.generate_baseline_from_data(
+        baseline, internal_baseline = self.generate_baseline_from_data(
             num_baselines=num_baselines,
         )
-        baseline = baseline.to(self.device)
 
         # determine model output type
         if hasattr(self.datamodule, "class_set") and self.datamodule.class_set is not None:
@@ -266,19 +340,18 @@ class DeepL(FeatureAttribution):
         if is_classification:
             for key in self.datamodule.class_set:
                 target = self.datamodule.class_set[key]
-                attributions, delta = _extract_attributions(custom_batch, baseline,
-                                                          target)
+                attributions, delta = _extract_attributions(custom_batch, baseline, target, internal_baseline)
 
                 results[target] = {
                     "attributions": attributions,
                     "delta": delta,
                 }
+
         else:
             for out_chunk in range(out_shape[0]):
                 for out_component in range(out_shape[1]):
                     target = (out_chunk, out_component)
-                    attributions, delta = _extract_attributions(custom_batch, baseline,
-                                                              target)
+                    attributions, delta = _extract_attributions(custom_batch, baseline, target, internal_baseline)
 
                     results[target] = {
                         "attributions": attributions,
