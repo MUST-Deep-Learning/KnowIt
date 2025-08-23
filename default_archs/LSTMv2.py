@@ -167,9 +167,38 @@ class Model(Module):
             self.output_layers.append(get_output_activation(output_activation))
         self.output_layers = Sequential(*self.output_layers)
 
-    def force_reset(self):
+    def force_reset(self) -> None:
         """ A function for external modules to manually signal that all hidden and internal states need to be reset."""
         self.last_ist_idx = None
+
+    def get_internal_states(self) -> list:
+        """
+        Retrieve the internal states of all LSTMBlock layers.
+
+        This method extracts the hidden states from each LSTMBlock layer, used for interpretations
+        requiring hidden state management. The internal states are reshaped to align with Captum's
+        expectation, where the first axis corresponds to the batch size.
+
+        Returns
+        -------
+        list of tuple
+            A list of tuples, where each tuple contains the hidden state (h_0) and cell state (c_0)
+            for an LSTMBlock layer. Each state is a tensor with shape
+            [batch_size, num_layers, hidden_size].
+
+        Notes
+        -----
+        The original internal states have shape [num_layers, batch_size, hidden_size]. This method
+        swaps the first two axes to produce states with shape [batch_size, num_layers, hidden_size]
+        to comply with Captum's sample-first axis convention.
+        """
+        internal_states = []
+        for layer in self.lstm_layers:
+            (h_0, c_0) = layer.hidden_state
+            h_0 = h_0.reshape(h_0.shape[1], h_0.shape[0], h_0.shape[2])
+            c_0 = c_0.reshape(c_0.shape[1], c_0.shape[0], c_0.shape[2])
+            internal_states.append((h_0, c_0))
+        return internal_states
 
     def _reset_all_layer_states(self, batch_size, device, changed_idx=None) -> None:
         """Reset the hidden and cell states of all LSTMBlock layers.
@@ -244,13 +273,45 @@ class Model(Module):
         else:
             self._reset_all_layer_states(ist_idx.shape[0], device)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def _overwrite_internal_states(self, internal_states: list) -> None:
+        """
+        Overwrite the internal states of all LSTMBlock layers with provided states.
+
+        This method updates the hidden states of each LSTMBlock layer using the provided internal states.
+        The input states are expected to have shape [batch_size, num_layers, hidden_size], as required
+        by Captum, and are reshaped to [num_layers, batch_size, hidden_size] to match the internal
+        representation of the LSTMBlock layers.
+
+        Parameters
+        ----------
+        internal_states : list of tensor
+            A list of tensors containing hidden states (h_0) and cell states (c_0) for each LSTMBlock layer.
+            Each tensor is expected to have shape [batch_size, num_layers, hidden_size].
+
+        Notes
+        -----
+        The provided internal states are reshaped from [batch_size, num_layers, hidden_size] to
+        [num_layers, batch_size, hidden_size] to align with the internal state representation of the
+        LSTMBlock layers, as Captum assumes the first axis corresponds to the batch size.
+        """
+        tick = 0
+        for i in range(0, len(internal_states), 2):
+            (h_0, c_0) = (internal_states[i], internal_states[i+1])
+            h_0 = h_0.reshape(h_0.shape[1], h_0.shape[0], h_0.shape[2])
+            c_0 = c_0.reshape(c_0.shape[1], c_0.shape[0], c_0.shape[2])
+            self.lstm_layers[tick].hidden_state = (h_0, c_0)
+            tick += 1
+
+    def forward(self, x: Tensor, *internal_states) -> Tensor:
         """Forward pass through the model, processing input through LSTM layers and output layers.
 
         Parameters
         ----------
         x : Tensor, shape=[batch_size, in_chunk, in_components]
             An input tensor.
+        internal_states : list of Tensor, optional
+            Variable length argument for internal LSTM states (e.g., hidden and cell states).
+            If provided, it will overwrite current internal states.
 
         Returns
         -------
@@ -269,11 +330,8 @@ class Model(Module):
         - For 'classification', the output is returned as is (assumes activation like softmax is in output_layers).
         """
 
-        if x.shape[0] != self.lstm_layers[0].hidden_state[0].shape[1]:
-            logger.warning('Unplanned reset of hidden state in LSTMv2! '
-                           'This was done due to missmatch in batch size and hidden state expectation. '
-                           'Statefulness at least partially lost.')
-            self._reset_all_layer_states(x.shape[0], x.device)
+        if len(internal_states) > 1:
+            self._overwrite_internal_states(internal_states)
 
         hidden = x
         for i, layer in enumerate(self.lstm_layers):
