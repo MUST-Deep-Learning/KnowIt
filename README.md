@@ -91,7 +91,7 @@ We are open to any suggestions.
 ## Citation
 If you make use of KnowIt, we kindly request that you cite it with the provided citation file.
 
-## Acknowledgments
+## Acknowledgements
 
 This project is made possible due to funding and support from:
 - MUST Deep Learning
