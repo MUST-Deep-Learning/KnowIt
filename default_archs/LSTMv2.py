@@ -7,7 +7,8 @@ Additionally, the architecture can be stateful or stateless.
 LSTMBlock
 ---------
 
-This block consists of 2 to 4 layers.
+This block consists of an lstm layer followed by optional layer normalization,
+dropout, and residual connection.
 * is optional
 
 [lstm] -> [layernorm*] -> [dropout*] -> [residual*]
