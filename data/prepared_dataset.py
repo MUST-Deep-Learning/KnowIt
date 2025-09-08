@@ -1320,6 +1320,11 @@ class CustomDataset(Dataset):
         self.padding_method = padding_method
         self.preload = preload
 
+        if self.in_chunk[0] == self.in_chunk[1] and self.padding_method not in ('constant', 'empty'):
+            logger.error('Data padding method %s with an input chunk size of 1 not supported. '
+                           'Choose padding method from (constant, empty).', self.padding_method)
+            exit(101)
+
         self.preloaded_slices = {}
         if preload:
             logger.info("Preloading relevant slices into memory. This could take a while, but speed up actual training.")
@@ -1404,20 +1409,74 @@ class CustomDataset(Dataset):
 
     @staticmethod
     def _sample_and_pad(slice_vals, selection, s_chunk, s_map, pad_mode):
+        """
+        Sample a block of time series components from a slice and pad as needed.
+
+        This method extracts a sub-sequence of time series data from `slice_vals`
+        according to the range specified in `s_chunk`, anchored at the slice index
+        indicated in `selection`. If the requested range extends beyond the available
+        time steps, the resulting array is padded according to `pad_mode`.
+
+        Parameters
+        ----------
+        slice_vals : ndarray of shape (num_time_steps, num_components)
+            The full time series data for the slice, where rows correspond to time
+            steps and columns to different components.
+
+        selection : ndarray of shape (3,)
+            A selection descriptor, where the third entry (`selection[2]`) represents
+            the index of the current time step around which to sample.
+
+        s_chunk : ndarray of shape (2,) or array-like
+            A two-element array specifying the relative range of time steps to
+            sample, inclusive. For example, `[-2, 2]` samples a window of 5
+            consecutive steps centered at `selection[2]`.
+
+        s_map : ndarray of shape (k,)
+            A 1D array specifying which component indices to extract from
+            `slice_vals`.
+
+        pad_mode : str
+            Padding mode passed to `numpy.pad`. Common modes include `'constant'`,
+            `'edge'`, and `'reflect'`.
+
+        Returns
+        -------
+        vals : ndarray of shape (window_size, len(s_map))
+            The sampled sub-sequence of time series components, padded if the
+            requested window extends outside the bounds of `slice_vals`. The
+            window size is defined as `s_chunk[1] - s_chunk[0] + 1`.
+
+        Notes
+        -----
+        - If the requested range falls completely outside the available time
+          steps, the method returns an array of shape `(window_size, len(s_map))`
+          consisting entirely of padded values.
+        - Padding is applied only along the time dimension. No padding occurs
+          along the component dimension.
+        - This method assumes `pad` refers to `numpy.pad`.
+        """
 
         far_left = 0
         far_right = slice_vals.shape[0]
         left = selection[2] + s_chunk[0]
         right = selection[2] + s_chunk[1]
 
-        vals = slice_vals[max(far_left, left): min(right, far_right) + 1, s_map]
-
-        if left < far_left:
-            pw = ((far_left - left, 0), (0, 0))
+        if right < far_left or left >= far_right:
+            vals = slice_vals[0:0, s_map]
+            pad_size = s_chunk[1] - s_chunk[0] + 1
+            pw = ((pad_size, 0), (0, 0))
             vals = pad(vals, pad_width=pw, mode=pad_mode)
-        if right >= far_right:
-            pw = ((0, right - far_right + 1), (0, 0))
-            vals = pad(vals, pad_width=pw, mode=pad_mode)
+        else:
+            corrected_left = max(far_left, left)
+            corrected_right = min(right, far_right)
+            vals = slice_vals[corrected_left: corrected_right + 1, s_map]
+            if left < far_left:
+                pw = ((far_left - left, 0), (0, 0))
+                vals = pad(vals, pad_width=pw, mode=pad_mode)
+            if right >= far_right:
+                pw = ((0, right - far_right + 1), (0, 0))
+                vals = pad(vals, pad_width=pw, mode=pad_mode)
 
         return vals
 
