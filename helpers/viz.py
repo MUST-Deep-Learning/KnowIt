@@ -399,7 +399,7 @@ def plot_regression_set_prediction(i: any, predictions: dict, targets: dict, dat
     y_hat = predictions[i][1]
     y = targets[i][1]
     y_time = y_hat.shape[1]
-    y_components = y_hat.shape[2]
+    y_components = len(out_components)
 
     for c in range(y_components):
         fig, ax = plt.subplots(1, 1, figsize=large_figsize)
@@ -535,14 +535,88 @@ def plot_feature_attribution(exp_output_dir: str, model_name: str, interpretatio
     save_dir = model_viz_dir(exp_output_dir, model_name)
 
     if model_args['data']['task'] == 'regression':
-        running_animation_regression(feat_att_dict, save_dir, model_args, interpretation_file_name)
-        mean_feat_att_regression(feat_att_dict, save_dir, model_args, interpretation_file_name)
-        running_animation_regression(feat_att_dict, save_dir, model_args, interpretation_file_name, classic=True)
+        if model_args['data']['batch_sampling_mode'] != 'variable_length':
+            running_animation_regression(feat_att_dict, save_dir, model_args, interpretation_file_name)
+            mean_feat_att_regression(feat_att_dict, save_dir, model_args, interpretation_file_name)
+            running_animation_regression(feat_att_dict, save_dir, model_args, interpretation_file_name, classic=True)
+        else:
+            variable_length_feature_att_regression(feat_att_dict, save_dir, model_args, interpretation_file_name, classic=True)
 
     elif model_args['data']['task'] == 'classification':
         running_animation_classification(feat_att_dict, save_dir, model_args, interpretation_file_name)
         mean_feat_att_classification(feat_att_dict, save_dir, model_args, interpretation_file_name)
         running_animation_classification(feat_att_dict, save_dir, model_args, interpretation_file_name, classic=True)
+
+def variable_length_feature_att_regression(feat_att_dict: dict, save_dir: str, model_args: dict,
+                                 interpretation_file_name: str, classic: bool = False) -> None:
+
+    """ WIP! """
+
+    def scale_alpha(min_val, max_val, val, epsilon=1e-6):
+        def lin_scale(f, target_min, target_max, native_min, native_max):
+            return (target_max - target_min) * (f - native_min) / (native_max - native_min + epsilon) + target_min
+        alpha = lin_scale(val, 0, 1, min_val, max_val)
+        return alpha
+
+    interpretation_name = os.path.splitext(interpretation_file_name)[0]
+
+    # get meta info about dataset that was interpreted on
+    in_comps = model_args['data']['in_components']
+    out_comps = model_args['data']['out_components']
+    in_chunk = model_args['data']['in_chunk']
+    out_chunk = model_args['data']['out_chunk']
+    in_scan = np.arange(in_chunk[0], in_chunk[-1] + 1)
+    t_delta = BaseDataset(model_args['data']['meta_path'], model_args['data']['package_path']).time_delta
+    t_delta = np.timedelta64(t_delta)
+
+    # find instances relevant to current interpretation
+    i = np.array([feat_att_dict['timestamps'][t][0] for t in range(len(feat_att_dict['timestamps']))])
+    instances = list(set(i))
+
+    # for every output component
+    for oc in range(len(out_comps)):
+        logit = (0, oc)
+        # for every relevant instance
+        for instance in instances:
+            relevant_to_i = np.argwhere(i == instance).squeeze()
+            if relevant_to_i.size == 1:
+                relevant_to_i = np.array([relevant_to_i])
+            s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
+            slices = list(set(s))
+            # for every relevant (to current instance) slice
+            for slice in slices:
+                relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+                if relevant_to_s.size == 1:
+                    relevant_to_s = np.array([relevant_to_s])
+                y = np.array(feat_att_dict['targets'])[relevant_to_s]
+                y_hat = np.array(feat_att_dict['predictions'])[relevant_to_s]
+                t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
+                ic = feat_att_dict['input_features'][:, relevant_to_s, :]
+                t = [c for c in t]
+
+                fa = feat_att_dict['results'][logit]['attributions'][0][:, relevant_to_s, :]
+
+                fig = plt.figure(figsize=generic_figsize, dpi=generic_dpi)
+                num_rows = 1
+                for _ in fa:
+                    num_rows += 1
+                gs = GridSpec(num_rows, 1, figure=fig)
+
+                ax = fig.add_subplot(gs[0])
+                ax.plot(y, color='red', label='target')
+                ax.plot(y_hat, color='blue', label='prediction')
+
+                ticker = 1
+                for _ in fa:
+                    ax = fig.add_subplot(gs[ticker])
+                    try:
+                        ax.imshow(_)
+                    except:
+                        ax.plot(_)
+
+                plt.show()
+                plt.close()
+
 
 def running_animation_classification(feat_att_dict: dict, save_dir: str, model_args: dict,
                                      interpretation_file_name: str, classic: bool = False) -> None:
