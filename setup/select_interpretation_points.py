@@ -163,21 +163,40 @@ def get_predictions(predictions_dir: str,
             batch = load_from_path(batch_paths[b])
             s_inx = batch[0]
             for p in range(len(s_inx)):
-                s = s_inx[p].item()
-                y_hat = batch[1][p]
-                y = batch[2][p]
-                predictions[s] = y_hat
-                targets[s] = y
-                timestamps[s] = ist_values[s]
+                s = s_inx[p]
+                if len(s_inx.shape) == 1:
+                    # assumes non-variable length data
+                    s = s.item()
+                    predictions[s] = batch[1][p]
+                    targets[s] = batch[2][p]
+                    timestamps[s] = ist_values[s]
+                else:
+                    # assumes variable length data
+                    for ss in s:
+                        ss = ss.item()
+                        position = np.argwhere(batch[0][p] == ss).item()
+                        predictions[ss] = batch[1][p, position].reshape(1, -1)
+                        targets[ss] = batch[2][p, position].reshape(1, -1)
+                        timestamps[ss] = ist_values[ss]
     else:
         for point in point_ids:
             batch_id = batch_map[point]
             batch_path = batch_paths[batch_id]
             batch = load_from_path(batch_path)
-            position = np.argwhere(batch[0] == point).item()
-            predictions[point] = batch[1][position]
-            targets[point] = batch[2][position]
-            timestamps[point] = ist_values[point]
+            if len(batch[0].shape) == 1:
+                # assumes non-variable length data
+                position = np.argwhere(batch[0] == point).item()
+                predictions[point] = batch[1][position]
+                targets[point] = batch[2][position]
+                timestamps[point] = ist_values[point]
+            else:
+                # assumes variable length data
+                # TODO: revise this loop (it is used for interpretation of variable length data)
+                for s in batch[0]:
+                    position = np.argwhere(batch[0] == point)
+                    predictions[point] = batch[1][position[0], position[1]].reshape(1, -1)
+                    targets[point] = batch[2][position[0], position[1]].reshape(1, -1)
+                    timestamps[point] = ist_values[point]
 
     if point_ids is None and len(predictions) != data_size:
         logger.error('Could not find all relevant prediction points for interpretation selection.')
