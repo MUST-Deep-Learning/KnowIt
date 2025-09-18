@@ -22,6 +22,7 @@ Notes
     - The LSTM is capable of handling regression or classification tasks.
     - All LSTMBlocks have bias parameters.
     - All LSTMBlocks have the same number of hidden units, defined by the ``width`` parameter.
+    - Can also run in `variable length` mode, where the number of timesteps in the input and output are equal.
 
 """ # noqa: INP001, D415, D400, D212, D205
 
@@ -84,6 +85,9 @@ class Model(Module):
         If True, uses bidirectional LSTMBlocks.
     residual : bool, default=False
         If True, applies residual connections in LSTMBlocks if sizes match.
+    variable_length : bool, default=False
+        If True, assumes incoming batches are of shape [batch_size, variable, in_components] and
+        output must be of shape [batch_size, variable, out_chunk * out_components].
 
     Attributes
     ----------
@@ -132,7 +136,8 @@ class Model(Module):
         hc_init_method: str = 'zeros',
         layernorm: bool = True,
         bidirectional: bool = False,
-        residual: bool = True
+        residual: bool = True,
+        variable_length: bool = False
     ) -> None:
         super().__init__()
 
@@ -141,6 +146,7 @@ class Model(Module):
         self.model_out_dim = int(prod(output_dim))
         self.final_out_shape = output_dim
         self.stateful = stateful
+        self.variable_length = variable_length
 
         self.lstm_layers = ModuleList()
         direction = 2 if bidirectional else 1
@@ -159,13 +165,16 @@ class Model(Module):
                 )
             )
 
-        self.output_layers = []
-        self.output_layers.append(Linear(in_features=direction * width * input_dim[-2],
-                                        out_features=self.model_out_dim,
-                                        bias=False))
-        if output_activation is not None:
-            self.output_layers.append(get_output_activation(output_activation))
-        self.output_layers = Sequential(*self.output_layers)
+        if not self.variable_length:
+            self.output_layers = []
+            self.output_layers.append(Linear(in_features=direction * width * input_dim[-2],
+                                            out_features=self.model_out_dim,
+                                            bias=False))
+            if output_activation is not None:
+                self.output_layers.append(get_output_activation(output_activation))
+            self.output_layers = Sequential(*self.output_layers)
+        else:
+            self.output_layers = nn.Linear(width, self.model_out_dim)
 
     def force_reset(self) -> None:
         """ A function for external modules to manually signal that all hidden and internal states need to be reset."""
@@ -224,6 +233,15 @@ class Model(Module):
         """
         for layer in self.lstm_layers:
             layer.hidden_state = (layer.hidden_state[0].detach(), layer.hidden_state[1].detach())
+
+    def hard_set_states(self, ist_idx) -> None:
+        """
+        A function for external modules to manually set the IST indices for stateful training.
+        This is called at the start of batches right after the internal states are updated with `update_states`.
+        If variable length data is processed this will be the IST indices corresponding to the end of the current batch,
+        otherwise it will correspond to the beginning (and be redundant).
+        """
+        self.last_ist_idx = ist_idx.clone()
 
     def update_states(self, ist_idx, device) -> None:
         """Manage hidden state continuity for stateful processing based on batch indices.
@@ -336,11 +354,14 @@ class Model(Module):
         hidden = x
         for i, layer in enumerate(self.lstm_layers):
             hidden = layer(hidden)
-        hidden = hidden.reshape(hidden.shape[0], hidden.shape[1] * hidden.shape[2])
+
+        if not self.variable_length:
+            hidden = hidden.reshape(hidden.shape[0], hidden.shape[1] * hidden.shape[2])
         out = self.output_layers(hidden)
 
         if self.task_name == 'regression':
-            out = out.view(hidden.shape[0], self.final_out_shape[0], self.final_out_shape[1])
+            if not self.variable_length:
+                out = out.view(hidden.shape[0], self.final_out_shape[0], self.final_out_shape[1])
         elif self.task_name == 'classification':
             pass
         else:
