@@ -175,28 +175,40 @@ class PLModel(pl.LightningModule):
             self.model.force_reset()
 
     def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Update model internal states if applicable."""
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
         if batch_idx == 0:
             if hasattr(self.model, 'force_reset'):
                 self.model.force_reset()
         else:
             if hasattr(self.model, 'update_states'):
                 self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+            if hasattr(self.model, 'hard_set_states'):
+                self.model.hard_set_states(batch['ist_idx'][-1])
 
     def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Update model internal states if applicable."""
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
         if hasattr(self.model, 'update_states'):
             self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
 
     def on_validation_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Update model internal states if applicable."""
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
         if hasattr(self.model, 'update_states'):
             self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
 
     def on_predict_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Update model internal states if applicable."""
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
         if hasattr(self.model, 'update_states'):
             self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
 
     def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
         """Compute loss and optional metrics, log metrics, and return the loss.
