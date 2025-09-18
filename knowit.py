@@ -32,7 +32,7 @@ from helpers.file_dir_procs import (yaml_to_dict, safe_dump, safe_copy)
 from helpers.viz import (plot_learning_curves, plot_set_predictions, plot_feature_attribution)
 from helpers.fetch_torch_mods import get_model_score
 from setup.setup_action_args import setup_relevant_args
-from setup.select_interpretation_points import get_interpretation_inx, get_predictions
+from setup.select_interpretation_points import get_interpretation_inx
 from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
 from setup.import_custom_arch import import_custom_arch, complies
 from data.base_dataset import BaseDataset
@@ -612,6 +612,8 @@ class KnowIt:
 
             if hasattr(trained_model_dict['pt_model'], 'update_states'):
                 trained_model_dict['pt_model'].update_states(batch['ist_idx'][0], batch['x'].device)
+            if hasattr(trained_model_dict['pt_model'], 'hard_set_states'):
+                trained_model_dict['pt_model'].hard_set_states(batch['ist_idx'][-1])
 
             prediction = trained_model_dict['pt_model'](batch['x'])
 
@@ -625,7 +627,11 @@ class KnowIt:
             file_name = relevant_args['predictor']['prediction_set'] + '-' + 'batch_' + str(batch_id) + '.pickle'
             safe_dump((s_id, prediction, y), os.path.join(save_dir, file_name), safe_mode)
             for s in s_id:
-                inx_dict[s.item()] = batch_id
+                try:
+                    inx_dict[s.item()] = batch_id
+                except:
+                    for _ in s:
+                        inx_dict[_.item()] = batch_id
 
         # retrieve (instance, slice, and timestep) indices
         ist_values = trained_model_dict['datamodule'].get_ist_values(relevant_args['predictor']['prediction_set'])
@@ -680,6 +686,11 @@ class KnowIt:
 
         trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir, self.available_datasets(),
                                                         self.available_archs(), model_name, device, w_pt_model=False)
+
+        if trained_model_dict['datamodule'].batch_sampling_mode == 'variable_length':
+            logger.error('Interpretation is currently not supported for batch sampling mode %s.',
+                         str(trained_model_dict['datamodule'].batch_sampling_mode))
+            exit(101)
 
         # TODO: If the call in the previous line is done with w_pt_model=True,
         #  the actual Pytorch model will also be returned under the key 'pt_model'.
