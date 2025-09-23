@@ -9,6 +9,7 @@ __description__ = 'Contains various functions to visualize KnowIt data structure
 import os
 from collections import defaultdict
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 import numpy as np
 from datetime import datetime
 from sklearn.metrics import ConfusionMatrixDisplay
@@ -611,11 +612,15 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
         # for every relevant instance
         for instance in instances:
             relevant_to_i = np.argwhere(i == instance).squeeze()
+            if len(relevant_to_i.shape) == 0:
+                relevant_to_i = [relevant_to_i.item()]
             s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
             slices = list(set(s))
             # for every relevant (to current instance) slice
             for slice in slices:
                 relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+                if type(relevant_to_s) is int or relevant_to_s.size == 1:
+                    relevant_to_s = np.array([relevant_to_s])
                 y = np.array(feat_att_dict['targets'])[relevant_to_s]
                 y_hat = np.array(feat_att_dict['predictions'])[relevant_to_s]
                 t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
@@ -629,14 +634,14 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
                     new_plot_data['pp_tick'] = t[ts_tick]
                     new_plot_data['chunk_0_tick'] = t[ts_tick] + t_delta * in_scan[0]
                     new_plot_data['chunk_1_tick'] = t[ts_tick] + t_delta * in_scan[-1]
-                    min_f = feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().min().item()
-                    max_f = feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().max().item()
-                    upper_threshold = np.percentile(feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().detach().cpu().numpy(), 95)
+                    min_f = feat_att_dict['results'][logit]['attributions'][0][ts, :, :].abs().min().item()
+                    max_f = feat_att_dict['results'][logit]['attributions'][0][ts, :, :].abs().max().item()
+                    upper_threshold = np.percentile(feat_att_dict['results'][logit]['attributions'][0][ts, :, :].abs().detach().cpu().numpy(), 95)
                     ic_curves = defaultdict(list)
                     new_plot_data['ic_curve_attributions'] = defaultdict(list)
                     for ic in range(len(in_comps)):
                         for in_delay in range(1 + in_chunk[1] - in_chunk[0]):
-                            feature_attribution_val = feat_att_dict['results'][logit]['attributions'][ts, in_delay, ic].abs().cpu().item()
+                            feature_attribution_val = feat_att_dict['results'][logit]['attributions'][0][ts, in_delay, ic].abs().cpu().item()
                             alpha = scale_alpha(min_f, max_f, feature_attribution_val)
                             if feature_attribution_val > upper_threshold:
                                 alpha=2.
@@ -646,6 +651,18 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
                                 new_plot_data['in_scan'] = in_scan
                                 new_plot_data['ic_curve_attributions'][ic].append(feature_attribution_val)
                             ic_curves[ic].append([t[ts_tick] + t_delta * in_scan[in_delay], feat_att_dict['input_features'][ts, in_delay, ic].item()])
+
+                    # check for additional internal attributions and add to plot data
+                    num_feat_att = len(feat_att_dict['results'][logit]['attributions'])
+                    if num_feat_att > 1:
+                        new_plot_data['internal_state_attribution'] = [feat_att_dict
+                                                                       ['results']
+                                                                       [logit]
+                                                                       ['attributions']
+                                                                       [l]
+                                                                       [ts, :, :].cpu().detach().numpy()
+                                                                       for l in range(1, num_feat_att)]
+
                     new_plot_data['ic_curves'] = ic_curves
                     plot_data.append(new_plot_data)
                     ts_tick += 1
@@ -706,9 +723,9 @@ def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args:
     - The helper function `compile_running_plot_animation` is required to compile and save the animations.
     """
 
-    def scale_alpha(min_val, max_val, val):
+    def scale_alpha(min_val, max_val, val, epsilon=1e-6):
         def lin_scale(f, target_min, target_max, native_min, native_max):
-            return (target_max - target_min) * (f - native_min) / (native_max - native_min) + target_min
+            return (target_max - target_min) * (f - native_min) / (native_max - native_min + epsilon) + target_min
         alpha = lin_scale(val, 0, 1, min_val, max_val)
         return alpha
 
@@ -757,14 +774,14 @@ def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args:
                         new_plot_data['pp_tick'] = t[ts_tick]
                         new_plot_data['chunk_0_tick'] = t[ts_tick] + t_delta * in_scan[0]
                         new_plot_data['chunk_1_tick'] = t[ts_tick] + t_delta * in_scan[-1]
-                        min_f = feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().min().item()
-                        max_f = feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().max().item()
-                        upper_threshold = np.percentile(feat_att_dict['results'][logit]['attributions'][ts, :, :].abs().detach().cpu().numpy(), 95)
+                        min_f = feat_att_dict['results'][logit]['attributions'][0][ts, :, :].abs().min().item()
+                        max_f = feat_att_dict['results'][logit]['attributions'][0][ts, :, :].abs().max().item()
+                        upper_threshold = np.percentile(feat_att_dict['results'][logit]['attributions'][0][ts, :, :].abs().detach().cpu().numpy(), 95)
                         ic_curves = defaultdict(list)
                         new_plot_data['ic_curve_attributions'] = defaultdict(list)
                         for ic in range(len(in_comps)):
                             for in_delay in range(1 + in_chunk[1] - in_chunk[0]):
-                                feature_attribution_val = feat_att_dict['results'][logit]['attributions'][ts, in_delay, ic].abs().cpu().item()
+                                feature_attribution_val = feat_att_dict['results'][logit]['attributions'][0][ts, in_delay, ic].abs().cpu().item()
                                 alpha = scale_alpha(min_f, max_f, feature_attribution_val)
                                 if feature_attribution_val > upper_threshold:
                                     alpha=2.
@@ -774,6 +791,18 @@ def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args:
                                     new_plot_data['in_scan'] = in_scan
                                     new_plot_data['ic_curve_attributions'][ic].append(feature_attribution_val)
                                 ic_curves[ic].append([t[ts_tick] + t_delta * in_scan[in_delay], feat_att_dict['input_features'][ts, in_delay, ic].item()])
+
+                        # check for additional internal attributions and add to plot data
+                        num_feat_att = len(feat_att_dict['results'][logit]['attributions'])
+                        if num_feat_att > 1:
+                            new_plot_data['internal_state_attribution'] = [feat_att_dict
+                                                                           ['results']
+                                                                           [logit]
+                                                                           ['attributions']
+                                                                           [l]
+                                                                           [ts, :, :].cpu().detach().numpy()
+                                              for l in range(1, num_feat_att)]
+
                         new_plot_data['ic_curves'] = ic_curves
                         plot_data.append(new_plot_data)
                         ts_tick += 1
@@ -877,6 +906,11 @@ def compile_running_plot_animation(plot_data: list, save_path: str, in_comps: li
         for d in range(len(ic_dots)):
             return_val.append(ic_dots[d])
 
+        if 'internal_state_attribution' in plot_data[0].keys():
+            internal_state = p['internal_state_attribution']
+            max_internal_att = [round(abs(i).max().item(), 2) for i in internal_state]
+            title.set_text('Max Abs Internal State Attribution: ' + str(max_internal_att))
+
         return return_val
 
     colors = get_full_color_cycle(in_comps)
@@ -906,6 +940,12 @@ def compile_running_plot_animation(plot_data: list, save_path: str, in_comps: li
             else:
                 ic_dots.append(ax.plot(t[ts], f[ts], c=colors[ic])[0])
                 ic_dots[-1].set(alpha=1.0, marker='*', markersize=20.)
+
+    if 'internal_state_attribution' in plot_data[0].keys():
+        internal_state = plot_data[0]['internal_state_attribution']
+        max_internal_att = [round(abs(i).max().item(), 2) for i in internal_state]
+        title = ax.set_title('Max Abs Internal State Attribution: ' + str(max_internal_att), loc='left')
+
 
     ax.set_xlabel('prediction points')
     ax.set_ylabel('feature value')
@@ -969,6 +1009,22 @@ def compile_classic_plot_animation(plot_data: list, save_path: str, in_comps: li
             custom_names.append(in_comps[c])
         return custom_lines, custom_names
 
+    def get_feature_att_range(feat_atts):
+        """ Finds the minimum and maximum feature attribution value across all prediction points, including
+            internal feature attribution values (if present). """
+        min_val, max_val = None, None
+        for pp in feat_atts:
+            for ic in pp['ic_curves']:
+                val1 = pp['ic_curve_attributions'][ic]
+                min_val = min(val1) if min_val is None or min(val1) < min_val else min_val
+                max_val = min(val1) if max_val is None or min(val1) > max_val else max_val
+                if 'internal_state_attribution' in plot_data[0].keys():
+                    for i in range(len(pp['internal_state_attribution'])):
+                        val2 = pp['internal_state_attribution'][i]
+                        min_val = val2.min().item() if min_val is None or val2.min().item() < min_val else min_val
+                        max_val = val2.max().item() if max_val is None or val2.max().item() > max_val else max_val
+        return min_val, max_val
+
     def update(step):
         """Updates plot elements to animate each frame based on current time step data."""
         p = plot_data[step]
@@ -994,16 +1050,27 @@ def compile_classic_plot_animation(plot_data: list, save_path: str, in_comps: li
             return_val.append(ic_curves[ic])
         return_val.append(feat_att_map)
 
+        if 'internal_state_attribution' in plot_data[0].keys():
+            for i in range(len(p['internal_state_attribution'])):
+                new_y = p['internal_state_attribution'][i].squeeze()
+                new_x = np.array([t for t in range(len(new_y))])
+                ia_curves[i][0].set_data((new_x, new_y))
+                return_val.append(ia_curves[i][0])
+
         return return_val
 
     colors = get_full_color_cycle(in_comps)
     custom_lines, custom_names = construct_custom_legend(in_comps, colors)
 
     # create initial plot
-    fig, axes = plt.subplots(2, 1, figsize=generic_figsize, dpi=generic_dpi)
+    fig = plt.figure(figsize=generic_figsize, dpi=generic_dpi)
+    num_rows = 2
+    if 'internal_state_attribution' in plot_data[0].keys():
+        num_rows += 1
+    gs = GridSpec(num_rows, 1, figure=fig)
     p = plot_data[0]
-    ax = axes[0]
-    fax = axes[1]
+    ax = fig.add_subplot(gs[0, 0])
+    fax = fig.add_subplot(gs[1, 0])
     prediction_curve = ax.plot(p['prediction_curve'][0], p['prediction_curve'][1], c=get_color('predicted'),)[0]
     target_curve = ax.plot(p['target_curve'][0], p['target_curve'][1], c=get_color('target'))[0]
     pp_tick = ax.axvline(x=p['pp_tick'], color="grey", linestyle='-', alpha=0.5)
@@ -1018,7 +1085,8 @@ def compile_classic_plot_animation(plot_data: list, save_path: str, in_comps: li
         ic_curves.append(ax.plot(t, f, c=colors[ic], alpha=0.9)[0])
         h_map.append(p['ic_curve_attributions'][ic])
     h_map = np.array(h_map)
-    feat_att_map = fax.imshow(h_map, cmap=generic_cmap, aspect='auto')
+    min_val, max_val = get_feature_att_range(plot_data)
+    feat_att_map = fax.imshow(h_map, cmap=generic_cmap, aspect='auto', vmin=min_val, vmax=max_val)
     fax.set_xlabel('input delay')
     id_ticks, id_ticklabels = get_tick_params(p['in_scan'])
     fax.set_xticks(id_ticks)
@@ -1029,8 +1097,21 @@ def compile_classic_plot_animation(plot_data: list, save_path: str, in_comps: li
     cax = divider.append_axes('right', size='5%', pad=0.05)
     cbar = fig.colorbar(feat_att_map, cax=cax, orientation='vertical')
     cbar.set_label('feature attribution')
+
+    if 'internal_state_attribution' in plot_data[0].keys():
+        internal_att_ax = fig.add_subplot(gs[2, 0])
+        ia_curves = []
+        for i in range(len(plot_data[0]['internal_state_attribution'])):
+            ia_curves.append(internal_att_ax.plot(plot_data[0]['internal_state_attribution'][i].squeeze(),
+                                                    label='internal state ' + str(i)))
+        internal_att_ax.legend()
+        internal_att_ax.set_xlabel('hidden dimensions')
+        internal_att_ax.set_ylabel('feature attribution')
+        internal_att_ax.set_ylim(min_val - 0.01, max_val + 0.01)
+
     ax.set_xlabel('prediction points')
     ax.set_ylabel('feature value')
+    plt.tight_layout()
     animation_fig = animation.FuncAnimation(fig, update,
                                             frames=len(plot_data),
                                             interval=200,
@@ -1104,7 +1185,7 @@ def mean_feat_att_regression(feat_att_dict: dict, save_dir: str, model_args: dic
                         relevant_to_s = np.array([relevant_to_s])
                     t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
                     t = [c for c in t]
-                    feature_attributions = feat_att_dict['results'][logit]['attributions'][relevant_to_s, :, :].abs().detach().cpu().numpy()
+                    feature_attributions = feat_att_dict['results'][logit]['attributions'][0][relevant_to_s, :, :].abs().detach().cpu().numpy()
                     file_name = interpretation_name + '_simple_mean-i=' + str(instance) + '-s=' + str(
                         slice) + '-logit=' + str(logit) + '.png'
                     plot_save_path = os.path.join(save_dir, file_name)
@@ -1161,14 +1242,18 @@ def mean_feat_att_classification(feat_att_dict: dict, save_dir: str, model_args:
         # for every relevant instance
         for instance in instances:
             relevant_to_i = np.argwhere(i == instance).squeeze()
+            if len(relevant_to_i.shape) == 0:
+                relevant_to_i = [relevant_to_i.item()]
             s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
             slices = list(set(s))
             # for every relevant (to current instance) slice
             for slice in slices:
                 relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+                if type(relevant_to_s) is int or relevant_to_s.size == 1:
+                    relevant_to_s = np.array([relevant_to_s])
                 t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
                 t = [c for c in t]
-                feature_attributions = feat_att_dict['results'][logit]['attributions'][relevant_to_s, :, :].abs().detach().cpu().numpy()
+                feature_attributions = feat_att_dict['results'][logit]['attributions'][0][relevant_to_s, :, :].abs().detach().cpu().numpy()
                 file_name = interpretation_name + '_simple_mean-i=' + str(instance) + '-s=' + str(
                     slice) + '-logit=' + str(logit) + '.png'
                 plot_save_path = os.path.join(save_dir, file_name)

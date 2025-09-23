@@ -27,9 +27,9 @@ Titles in quotations are user defined or determined dynamically during experimen
     │    ├── <lightning_logs>
     │    ├── <predictions>
     │    ├── <interpretations>
-    │    │   ├── ["DeepLiftShap-eval-success-100-True-123-(15557, 15657).pickle"]
+    │    │   ├── ["DeepLiftShap-eval-success-100-True-123.pickle"]
     │    │   ├── ...
-    │    │   └── ["IntegratedGradients-eval-success-50-True-123-(15140, 15190).pickle"]
+    │    │   └── ["IntegratedGradients-eval-success-50-True-123.pickle"]
     │    ├── <visualizations>
     │    │   ├── ["visualization_one.png"]
     │    │   ├── ...
@@ -179,7 +179,6 @@ Titles in quotations are user defined or determined dynamically during experimen
         - **size** is the number of prediction points interpreted on
         - **mbi** is whether the feature attributions are multiplied by input
         - **seed** is the seed used for random selection
-        - **inx_range** is the index range of the set of prediction in the data split
     
     The pickle file contains a dictionary containing all the same information as in the file name, in addition to:
         - results : dict
@@ -189,7 +188,7 @@ Titles in quotations are user defined or determined dynamically during experimen
         - timestamps : list[size, ]
     
     The item corresponding to the "results" key is a dictionary where each key corresponds to an output logit of the model.
-    That is, a two-value tuple where the first value refers to an output delay index and the second values refers to an output component index.
+    That is, a two-value tuple where the first value refers to an output delay index and the second value refers to an output component index.
     The value that corresponds to each logit is also a dictionary containing two keys: attributions, and deltas.
     The former contains the feature attribution values at each prediction point for the current logit and the latter contains 
     the deltas from the Captum feature attribution method used. This is illustrated in the diagram below.
@@ -201,6 +200,9 @@ Titles in quotations are user defined or determined dynamically during experimen
     │   └── delta
     │          └── Tensor[size * num_baselines, ]
     ├── ...
+
+    Note that the value corresponding to the "attributions" key is actually a dictionary with as many entries as input tensors.
+    This usually only contains a single entry, but can have multiple for cases like stateful models that receive an input and additional internal states.
 
     The item corresponding to the "input_features" key is a Tensor containing the exact input feature values used for interpretation.
     
