@@ -90,7 +90,7 @@ from torch.nn.utils import weight_norm
 from helpers.logger import get_logger
 logger = get_logger()
 
-available_tasks = ('regression', 'classification', 'forecasting')
+available_tasks = ('regression', 'classification', 'forecasting', 'vl_regression')
 
 # The ranges for each hyperparameter (used later for Knowit Tuner module)
 HP_ranges_dict = {'depth': range(-1, 21, 1),
@@ -431,6 +431,9 @@ class FinalBlock(nn.Module):
         out = out.reshape(out.shape[0], self.desired_out_t, self.desired_out_c)
         return out
 
+    def vl_regress(self, x):
+        return x
+
     def forward(self, x):
         """
         Return output for an input batch, based on the specified task type.
@@ -459,6 +462,8 @@ class FinalBlock(nn.Module):
             return self.regress(x)
         elif self.task == 'forecasting':
             return x[:, -self.desired_out_t:, :]
+        elif self.task == 'vl_regression':
+            return self.vl_regress(x)
         else:
             logger.error(self.task + " not a valid task type!")
             raise ValueError(f"Invalid task type: {self.task}")

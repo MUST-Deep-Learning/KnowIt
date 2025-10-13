@@ -196,7 +196,7 @@ class TrainNew(BaseTrainer):
         self.trainer = PLTrainer(
             **self.trainer_kwargs,
             **optional_pl_kwargs,
-            reload_dataloaders_every_n_epochs=1
+            reload_dataloaders_every_n_epochs=1,
         )
 
     def _save_model_state(self) -> ModelCheckpoint:

@@ -375,9 +375,12 @@ class KnowIt:
 
         # Instantiate trainer and begin training
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
+        train_loader = datamodule.get_dataloader('train', preload=preload, num_workers=num_workers)
+        optional_pl_kwargs['log_every_n_steps'] = min(len(train_loader.batch_sampler), 50)
+
         trainer = KITrainer(state=TrainNew, base_trainer_kwargs=trainer_args,
                             optional_pl_kwargs=optional_pl_kwargs)
-        trainer.fit(dataloaders=(datamodule.get_dataloader('train', preload=preload, num_workers=num_workers),
+        trainer.fit(dataloaders=(train_loader,
                                  datamodule.get_dataloader('valid', preload=preload, num_workers=num_workers),
                                  datamodule.get_dataloader('eval', preload=False, num_workers=num_workers)))
 
@@ -687,11 +690,6 @@ class KnowIt:
         trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir, self.available_datasets(),
                                                         self.available_archs(), model_name, device, w_pt_model=False)
 
-        if trained_model_dict['datamodule'].batch_sampling_mode == 'variable_length':
-            logger.error('Interpretation is currently not supported for batch sampling mode %s.',
-                         str(trained_model_dict['datamodule'].batch_sampling_mode))
-            exit(101)
-
         # TODO: If the call in the previous line is done with w_pt_model=True,
         #  the actual Pytorch model will also be returned under the key 'pt_model'.
         #  This can then be passed to interpreter_class below.
@@ -880,7 +878,7 @@ class KnowIt:
         data_args['meta_path'] = meta_path
         data_args['package_path'] = package_path
 
-        if data_args['task'] in ('regression', 'classification'):
+        if data_args['task'] in ('regression', 'classification', 'vl_regression'):
             datamodule = PreparedDataset(**data_args)
         else:
             logger.error('Unknown task type %s.', data_args['task'])

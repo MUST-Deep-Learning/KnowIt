@@ -443,9 +443,12 @@ class PLModel(pl.LightningModule):
             self.loss_functions = prepare_function(user_args=self.loss, is_loss=True)
 
         for _function in self.loss_functions:
-            function, to_ohe = self.loss_functions[_function]
+            function, to_ohe, to_flatten = self.loss_functions[_function]
             if to_ohe:
                 y = argmax(y, dim=1).to(self.device)
+            if to_flatten:
+                y = y.flatten(start_dim=1, end_dim=-1).to(self.device)
+                y_pred = y_pred.flatten(start_dim=1, end_dim=-1).to(self.device)
             loss = function(input=y_pred, target=y)
             log_metrics[loss_label] = loss
 
@@ -506,12 +509,15 @@ class PLModel(pl.LightningModule):
             self.perf_functions = prepare_function( user_args=self.performance_metrics, is_loss=False)
 
         for _function in self.perf_functions:
-            function, to_ohe = self.perf_functions[_function]
+            function, to_ohe, to_flatten = self.perf_functions[_function]
             if self.output_scaler is not None:
                 y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
                 y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
             if to_ohe:
                 y = argmax(y, dim=1).to(self.device)
+            if to_flatten:
+                y = y.flatten(start_dim=1, end_dim=-1).to(self.device)
+                y_pred = y_pred.flatten(start_dim=1, end_dim=-1).to(self.device)
             val = function(preds=y_pred, target=y)
             log_metrics[perf_label + _function] = val
 

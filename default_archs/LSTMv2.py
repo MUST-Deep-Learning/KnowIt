@@ -22,7 +22,7 @@ Notes
     - The LSTM is capable of handling regression or classification tasks.
     - All LSTMBlocks have bias parameters.
     - All LSTMBlocks have the same number of hidden units, defined by the ``width`` parameter.
-    - Can also run in `variable length` mode, where the number of timesteps in the input and output are equal.
+    - Can also run in `variable length` mode (i.e. task='vl_regression'), where the number of timesteps in the input and output are equal.
 
 """ # noqa: INP001, D415, D400, D212, D205
 
@@ -41,7 +41,7 @@ from helpers.logger import get_logger
 
 logger = get_logger()
 
-available_tasks = ("regression", "classification")
+available_tasks = ("regression", "classification", "vl_regression")
 
 HP_ranges_dict = {"width": range(2, 1025, 1),
                   "depth": range(2, 1025, 1),
@@ -85,9 +85,6 @@ class Model(Module):
         If True, uses bidirectional LSTMBlocks.
     residual : bool, default=False
         If True, applies residual connections in LSTMBlocks if sizes match.
-    variable_length : bool, default=False
-        If True, assumes incoming batches are of shape [batch_size, variable, in_components] and
-        output must be of shape [batch_size, variable, out_chunk * out_components].
 
     Attributes
     ----------
@@ -137,7 +134,6 @@ class Model(Module):
         layernorm: bool = True,
         bidirectional: bool = False,
         residual: bool = True,
-        variable_length: bool = False
     ) -> None:
         super().__init__()
 
@@ -146,7 +142,6 @@ class Model(Module):
         self.model_out_dim = int(prod(output_dim))
         self.final_out_shape = output_dim
         self.stateful = stateful
-        self.variable_length = variable_length
 
         self.lstm_layers = ModuleList()
         direction = 2 if bidirectional else 1
@@ -165,7 +160,7 @@ class Model(Module):
                 )
             )
 
-        if not self.variable_length:
+        if not self.task_name == 'vl_regression':
             self.output_layers = []
             self.output_layers.append(Linear(in_features=direction * width * input_dim[-2],
                                             out_features=self.model_out_dim,
@@ -355,12 +350,12 @@ class Model(Module):
         for i, layer in enumerate(self.lstm_layers):
             hidden = layer(hidden)
 
-        if not self.variable_length:
+        if not self.task_name == 'vl_regression':
             hidden = hidden.reshape(hidden.shape[0], hidden.shape[1] * hidden.shape[2])
         out = self.output_layers(hidden)
 
-        if self.task_name == 'regression':
-            if not self.variable_length:
+        if self.task_name in ('regression', 'vl_regression'):
+            if not self.task_name == 'vl_regression':
                 out = out.view(hidden.shape[0], self.final_out_shape[0], self.final_out_shape[1])
         elif self.task_name == 'classification':
             pass

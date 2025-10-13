@@ -138,10 +138,10 @@ def prepare_function(user_args: str | dict[str, Any], *, is_loss: bool) -> (
                     get_loss_function(_metric),
                     **kwargs,
                 )
-                function[_metric] = (loss_f, requires_ohe(_metric))
+                function[_metric] = (loss_f, requires_ohe(_metric), requires_flatten(_metric))
         elif is_loss and not isinstance(user_args, dict):
                 loss_f = get_loss_function(user_args)
-                function[user_args] = (loss_f, requires_ohe(user_args))
+                function[user_args] = (loss_f, requires_ohe(user_args), requires_flatten(user_args))
         elif not is_loss and isinstance(user_args, dict):
             for _metric in user_args:
                 kwargs = user_args[_metric]
@@ -149,10 +149,10 @@ def prepare_function(user_args: str | dict[str, Any], *, is_loss: bool) -> (
                     get_performance_metric(_metric),
                     **kwargs,
                 )
-                function[_metric] = (perf_f, requires_ohe(_metric))
+                function[_metric] = (perf_f, requires_ohe(_metric), requires_flatten(_metric))
         elif not is_loss and not isinstance(user_args, dict):
                 perf_f = get_performance_metric(user_args)
-                function[user_args] = (perf_f, requires_ohe(user_args))
+                function[user_args] = (perf_f, requires_ohe(user_args), requires_flatten(user_args))
 
         return function
 
@@ -166,6 +166,20 @@ def requires_ohe(metric: str) -> bool:
     """
 
     if metric in ("accuracy", ):
+        return True
+    else:
+        return False
+
+def requires_flatten(metric: str) -> bool:
+    """ Returns a bool indicating whether the defined metric requires
+    that the targets be flattened.
+
+    See the following link for details on additional metrics that might need to be added
+    to this list in the future:
+    https://lightning.ai/docs/torchmetrics/stable/
+    """
+
+    if metric in ("r2_score", ):
         return True
     else:
         return False

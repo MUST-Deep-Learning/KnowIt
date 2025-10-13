@@ -92,8 +92,11 @@ class DeepL(FeatureAttribution):
     seed : int
         The seed used by Numpy for random sampling of baselines.
 
-    dls : DeepLift
+    dl : DeepLift
         The DeepLift instance from Captum for feature attribution.
+
+    rescale_outputs : bool, default=True
+        Whether to rescale the outputs of the model when storing the outputs corresponding to the attributions.
     """
 
     def __init__(
@@ -119,8 +122,9 @@ class DeepL(FeatureAttribution):
 
         self.dl = DeepLift(self.model, multiply_by_inputs=multiply_by_inputs)
         self.seed = seed
+        self.rescale_outputs = True
 
-    def generate_baseline_from_data(self, num_baselines: int) -> tuple:
+    def generate_baseline_from_data(self, num_baselines: int, num_prediction_points: int = None) -> tuple:
         """Return a single baseline and (optionally) its internal state.
 
         Randomly samples a distribution of baselines from the training data
@@ -132,6 +136,9 @@ class DeepL(FeatureAttribution):
         ----------
         num_baselines : int
             The total number of baselines to sample.
+        num_prediction_points : int, optional
+            The number of prediction points to be interpreted.
+            Used to repeat average baseline in case of variable length inputs.
 
         Returns
         -------
@@ -171,7 +178,11 @@ class DeepL(FeatureAttribution):
             is_baseline=True,
         )['x']
 
-        x_baseline = torch.mean(baselines, 0, keepdim=True)
+        if self.datamodule.batch_sampling_mode != 'variable_length':
+            x_baseline = torch.mean(baselines, 0, keepdim=True)
+        else:
+            x_baseline = torch.mean(baselines, 1, keepdim=True)
+            x_baseline = x_baseline.repeat(1, num_prediction_points, 1)
         x_baseline = x_baseline.to(self.device)
 
         internal_state_baseline = None
@@ -261,6 +272,7 @@ class DeepL(FeatureAttribution):
 
             full_attributions = defaultdict(list)
             full_delta = []
+            full_i_predictions = []
             for pp in range(len(pseudo_batches)):
 
                 # if possibility of statefulness, update internal state to current prediction point
@@ -285,12 +297,28 @@ class DeepL(FeatureAttribution):
                             baselines.extend(i)
                         else:
                             baselines.append(i)
+
                     attributions, delta = self.dl.attribute(
                         inputs=tuple(inputs),
                         baselines=tuple(baselines),
                         target=target,
                         return_convergence_delta=True,
                     )
+
+                    # get actual model output corresponding to feature attributions
+                    if hasattr(self.model, 'update_states') and hasattr(self.model, 'force_reset'):
+                        self.model.force_reset()
+                        for qpp in range(0, pp+1):
+                            self.model.update_states(torch.from_numpy(pseudo_batches[qpp]['ist_idx']),
+                                                     pseudo_batches[qpp]['x'].device)
+                            model_output = self.model(pseudo_batches[qpp]['x'])
+
+                        model_output = model_output.detach().cpu().numpy()
+                        if self.rescale_outputs:
+                            if self.datamodule.scaling_tag == 'full':
+                                model_output = self.datamodule.y_scaler.inverse_transform(model_output)
+                        full_i_predictions.append(model_output)
+
                 else:
                     # assume model is not stateful and simply attribute the input
                     attributions, delta = self.dl.attribute(
@@ -299,6 +327,13 @@ class DeepL(FeatureAttribution):
                         target=target,
                         return_convergence_delta=True,
                     )
+
+                    # get actual model output corresponding to feature attributions
+                    model_output = self.model(pseudo_batches[pp]['x']).detach().cpu().numpy()
+                    if self.rescale_outputs:
+                        if self.datamodule.scaling_tag == 'full':
+                            model_output = self.datamodule.y_scaler.inverse_transform(model_output)
+                    full_i_predictions.append(model_output)
 
                 for a in range(len(attributions)):
                     full_attributions[a].append(attributions[a])
@@ -309,7 +344,7 @@ class DeepL(FeatureAttribution):
                 attributions[a] = torch.cat(full_attributions[a])
             delta = torch.cat(full_delta)
 
-            return attributions, delta
+            return attributions, delta, full_i_predictions
 
         # extract explicands using ids
         custom_batch = super()._fetch_points_from_datamodule(pred_point_id)
@@ -320,7 +355,7 @@ class DeepL(FeatureAttribution):
         # generate a baseline (baseline is computed as an average over a sample
         # distribution)
         baseline, internal_baseline = self.generate_baseline_from_data(
-            num_baselines=num_baselines,
+            num_baselines=num_baselines, num_prediction_points=len(pred_point_id)
         )
 
         # determine model output type
@@ -340,22 +375,36 @@ class DeepL(FeatureAttribution):
         if is_classification:
             for key in self.datamodule.class_set:
                 target = self.datamodule.class_set[key]
-                attributions, delta = _extract_attributions(custom_batch, baseline, target, internal_baseline)
+                attributions, delta, i_predictions = _extract_attributions(custom_batch, baseline, target, internal_baseline)
 
                 results[target] = {
                     "attributions": attributions,
                     "delta": delta,
+                    "i_predictions": i_predictions,
                 }
 
         else:
-            for out_chunk in range(out_shape[0]):
-                for out_component in range(out_shape[1]):
-                    target = (out_chunk, out_component)
-                    attributions, delta = _extract_attributions(custom_batch, baseline, target, internal_baseline)
+            if self.datamodule.batch_sampling_mode not in ('variable_length', 'variable_length_inference'):
+                for out_chunk in range(out_shape[0]):
+                    for out_component in range(out_shape[1]):
+                        target = (out_chunk, out_component)
+                        attributions, delta, i_predictions = _extract_attributions(custom_batch, baseline, target, internal_baseline)
 
-                    results[target] = {
-                        "attributions": attributions,
-                        "delta": delta,
-                    }
+                        results[target] = {
+                            "attributions": attributions,
+                            "delta": delta,
+                            "i_predictions": i_predictions,
+                        }
+            else:
+                for out_component in range(out_shape[1]):
+                    for t in range(custom_batch['x'].shape[1]):
+                        target = (t, out_component)
+                        attributions, delta, i_predictions = _extract_attributions(custom_batch, baseline, target, internal_baseline)
+
+                        results[target] = {
+                            "attributions": attributions,
+                            "delta": delta,
+                            "i_predictions": i_predictions,
+                        }
 
         return results
