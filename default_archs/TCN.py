@@ -234,6 +234,11 @@ class Model(nn.Module):
             logger.warning('Kernel size %s < dilation base %s. There will be holes in the receptive field of TCN.',
                            str(self.kernel_size), str(self.dilation_base))
 
+        if self.depth == -1 and self.task_name in ('vl_regression', ):
+            logger.error('CNN depth=-1 and task_name in (vl_regression, ). '
+                         'Depth cannot be automatically set for variable length inputs.')
+            exit(101)
+
         self.num_model_in_time_steps = input_dim[0]
         self.num_model_in_channels = input_dim[1]
         self.num_model_out_time_steps = output_dim[0]

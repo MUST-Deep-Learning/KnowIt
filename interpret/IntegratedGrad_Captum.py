@@ -319,6 +319,7 @@ class IntegratedGrad(FeatureAttribution):
                         if self.rescale_outputs:
                             if self.datamodule.scaling_tag == 'full':
                                 model_output = self.datamodule.y_scaler.inverse_transform(model_output)
+                        model_output = model_output.squeeze(axis=0)
                         full_i_predictions.append(model_output)
 
                 else:
@@ -335,6 +336,7 @@ class IntegratedGrad(FeatureAttribution):
                     if self.rescale_outputs:
                         if self.datamodule.scaling_tag == 'full':
                             model_output = self.datamodule.y_scaler.inverse_transform(model_output)
+                    model_output = model_output.squeeze(axis=0)
                     full_i_predictions.append(model_output)
 
                 for a in range(len(attributions)):

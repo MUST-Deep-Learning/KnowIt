@@ -393,7 +393,7 @@ class LinScale:
         data : array, shape=[n_components,]
             The data to be transformed with Linear scaling.
         """
-        if not self.native_min or not self.native_max:
+        if self.native_min is None or self.native_max is None:
             logger.error('LinScale transform not fitted yet.')
             exit(101)
 
