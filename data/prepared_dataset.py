@@ -31,12 +31,11 @@ a specific other set of features-over-time. The specifics are defined as follows
 Note that this might seem cumbersome, but it allows us to easily define several different types of tasks.
 For example:
 
-- regression (heartrate from an 11-time step window given three instantaneous biometrics)
+- regression (predict heartrate from an 11 time-step window given three instantaneous biometrics)
     - in_components = [biometric1, biometric2, biometric2]
     - out_components = [heart rate]
     - in_chunk = [-5, 5]
     - out_chunk = [0, 0]
-
 - autoregressive univariate forecasting (predict a stock's value in 5 time steps given last 21 time steps)
     - in_components = [stock,]
     - out_components = [stock,]
@@ -47,6 +46,34 @@ For example:
     - out_components = [positive_call,]
     - in_chunk = [-2, 2]
     - out_chunk = [0, 0]
+
+--------------------------
+Variable length processing
+--------------------------
+
+The ``PreparedDataset`` can also be defined in a "variable length" configuration.
+This means that instead of receiving and producing chunks of a specific number of time steps,
+the model will receive a variable number of time steps and produce an identical number of time steps as output.
+The input- and output components don't need to be the same. Not all architectures can facilitate this configuration.
+Currently, only ``LSTMv2``, ``TCN``, and ``CNN`` supports it.
+
+This configuration is selected by defining ``task=vl_regression``, ``batch_sampling_mode=variable_length``,
+selecting an appropriate architecture, and ensuring that the size of ``in_chunk`` and ``out_chunk`` are both 1.
+Classification tasks are not currently supported for this configuration.
+
+Examples of tasks that can be defined with this configuration include:
+
+- regression (predict heartrate from the change in three instantaneous biometrics over time)
+    - in_components = [biometric1, biometric2, biometric2]
+    - out_components = [heart rate]
+    - in_chunk = [0, 0]
+    - out_chunk = [0, 0]
+- autoregressive univariate forecasting (predict a stock's value in 5 time steps given its value in the past)
+    - in_components = [stock,]
+    - out_components = [stock,]
+    - in_chunk = [0, 0]
+    - out_chunk = [5, 5]
+
 
 --------------------
 Splitting & Limiting
@@ -72,7 +99,7 @@ the excess data points from the end of the data block after shuffling or orderin
 Also note that if the data is limited too much for a given ``split_portion`` to have a single entry,
 an error will occur confirming it.
 
-Note that the 'custom' split has to be constructed during the data importing.
+Note that a 'custom' split can be constructed during the data importing.
 See the ``RawDataConverter`` module for more information.
 
 -------
@@ -80,10 +107,10 @@ Scaling
 -------
 
 After the data is split, a scaler is fit to the train set data
-which will be applied to all data being extracted for model training.
+which will be applied to all data being extracted for model training or inference.
 This is done with the ``DataScaler`` module and the corresponding ``scaling_method`` and ``scaling_tag``,
 data keyword arguments. More details can be found there, but we summarize the options here:
-    - scaling_method='z-norm': Features are scaled by subtracting the mean and dividing by the std.
+    - scaling_method='z-norm': Features are scaled by subtracting the mean and dividing by the standard deviation.
     - scaling_method='zero-one': Features are scaled linearly to be in the range (0, 1).
     - scaling_method=None: No scaling occurs.
     - scaling_tag='in_only': Only the input features will be scaled.
@@ -121,6 +148,13 @@ CustomClassificationDataset
 If the task is a classification task a ``CustomClassificationDataset`` will be used instead of ``CustomDataset``.
 ``CustomClassificationDataset`` inherits from ``CustomDataset`` and adds some classification specific methods.
 
+-------------------------------------
+CustomVariableLengthRegressionDataset
+-------------------------------------
+
+If the task is a variable length regression task a ``CustomVariableLengthRegressionDataset`` will be used instead of ``CustomDataset``.
+``CustomVariableLengthRegressionDataset`` inherits from ``CustomDataset`` and adds some variable length regression specific methods.
+
 -------------
 CustomSampler
 -------------
@@ -139,8 +173,8 @@ from __future__ import annotations
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
 __licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
-__description__ = ('Contains the PreparedDataset, CustomDataset, and CustomClassificationDataset, '
-                   'and CustomSampler class for Knowit.')
+__description__ = ('Contains the PreparedDataset, CustomSampler, CustomDataset, and CustomClassificationDataset, '
+                   'and CustomVariableLengthRegressionDataset class for Knowit.')
 
 # external imports
 from numpy import (array, random, unique, pad, isnan, arange, expand_dims, concatenate,
@@ -214,6 +248,9 @@ class PreparedDataset(BaseDataset):
         Either 'independent', 'sliding-window', 'inference', or 'variable_length', as described in the CustomSampler module.
     slide_stride : int
         The stride used for the sliding-window approach, if selected.
+    variable_sequence_length_limit : int, default=None
+        If non-None value given and 'batch_sampling_mode' is either 'variable_length' or 'variable_length_inference',
+        the sequence lengths within a batch will be limited to the given value.
 
     Attributes
     ----------
@@ -268,6 +305,7 @@ class PreparedDataset(BaseDataset):
     min_slice = None
     batch_sampling_mode = None
     slide_stride = None
+    variable_sequence_length_limit = None
 
     # to be filled automatically
     x_map = None
@@ -702,13 +740,10 @@ class CustomSampler(Sampler):
         - mode='inference': Same as 'sliding-window', but no shuffling, expansion for batch sizing, and striding.
         - mode='variable_length': Similar to 'sliding-window' but the sequence lengths will be variable within batches.
         - mode='variable_length_inference': Same as 'variable_length', but no shuffling or expansion for batch sizing.
-        - shuffle=False: Batches are constructed in dataset order as per the "selection" array.
-        For variable length modes, slices will also be samples in descending order of length.
+        - shuffle=False: Batches are constructed in dataset order as per the "selection" array. For variable length modes, slices will also be samples in descending order of length.
         - shuffle=True:
             - mode='independent': Sequences within and across batches are randomly shuffled.
-            - mode='sliding-window' or 'variable_length': Slices are shuffled before and after expansion,
-            and a random number of prediction points (between 0 and 10) at the start of each slice
-            are dropped before batches are constructed.
+            - mode='sliding-window' or 'variable_length': Slices are shuffled before and after expansion, and a random number of prediction points (between 0 and 10) at the start of each slice are dropped before batches are constructed.
     """
 
     def __init__(self,
@@ -804,7 +839,7 @@ class CustomSampler(Sampler):
             elif self.mode == 'variable_length_inference':
                 self._create_vl_inference_batches()
             else:
-                logger.error('Unknown sampler mode %s. Expected (independent, sliding-window, inference, or variable_length).',
+                logger.error('Unknown sampler mode %s. Expected (independent, sliding-window, inference, variable_length, or variable_length_inference).',
                              self.mode)
                 exit(101)
 
@@ -1750,10 +1785,9 @@ class CustomClassificationDataset(CustomDataset):
 
 class CustomVariableLengthRegressionDataset(CustomDataset):
     """A custom dataset for deep time series regression models that take variable length input,
-    using KnowIt's data extraction protocols. Inherits from CustomDataset.
+    using KnowIt's data extraction protocols. Inherits from CustomDataset,
+    using KnowIts data extraction protocols.
     """
-    class_set = {}
-    class_counts = {}
 
     def __init__(self, data_extractor, selection_matrix,
                  x_map, y_map,
