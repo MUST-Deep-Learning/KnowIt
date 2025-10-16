@@ -631,7 +631,7 @@ def variable_length_feature_att_regression(feat_att_dict: dict,
                     fa = feat_att_dict['results'][logit]['attributions'][0][:, relevant_to_s, :].cpu().detach().numpy().squeeze()
                     fa = fa.transpose()
                     plot_data['fa'].append(fa)
-                    i_prediction = feat_att_dict['results'][logit]['i_predictions'][0][relevant_to_s, :].squeeze()
+                    i_prediction = feat_att_dict['results'][logit]['i_predictions'][0][relevant_to_s, oc].squeeze()
                     plot_data['ip'].append(i_prediction)
                 compile_variable_length_plot_animation(plot_data, plot_save_path, in_comps)
 
