@@ -170,9 +170,9 @@ def requires_ohe(metric: str) -> bool:
     else:
         return False
 
-def requires_flatten(metric: str) -> bool:
-    """ Returns a bool indicating whether the defined metric requires
-    that the targets be flattened.
+def requires_flatten(metric: str) -> tuple:
+    """ Returns a tuple indicating whether the defined metric requires
+    that the targets be flattened along with from-to-what dimensions to flatten.
 
     See the following link for details on additional metrics that might need to be added
     to this list in the future:
@@ -180,9 +180,9 @@ def requires_flatten(metric: str) -> bool:
     """
 
     if metric in ("r2_score", ):
-        return True
+        return True, (0, 1)
     else:
-        return False
+        return False, None
 
 def get_model_score(model_dir: str) -> tuple:
     """

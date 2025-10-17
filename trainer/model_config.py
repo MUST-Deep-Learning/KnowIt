@@ -446,9 +446,9 @@ class PLModel(pl.LightningModule):
             function, to_ohe, to_flatten = self.loss_functions[_function]
             if to_ohe:
                 y = argmax(y, dim=1).to(self.device)
-            if to_flatten:
-                y = y.flatten(start_dim=1, end_dim=-1).to(self.device)
-                y_pred = y_pred.flatten(start_dim=1, end_dim=-1).to(self.device)
+            if to_flatten[0]:
+                y = y.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
+                y_pred = y_pred.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
             loss = function(input=y_pred, target=y)
             log_metrics[loss_label] = loss
 
@@ -515,9 +515,9 @@ class PLModel(pl.LightningModule):
                 y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
             if to_ohe:
                 y = argmax(y, dim=1).to(self.device)
-            if to_flatten:
-                y = y.flatten(start_dim=1, end_dim=-1).to(self.device)
-                y_pred = y_pred.flatten(start_dim=1, end_dim=-1).to(self.device)
+            if to_flatten[0]:
+                y = y.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
+                y_pred = y_pred.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
             val = function(preds=y_pred, target=y)
             log_metrics[perf_label + _function] = val
 
