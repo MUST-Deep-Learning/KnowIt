@@ -342,8 +342,11 @@ class RawDataConverter:
 
         # check if dataframe is time indexed
         if not isinstance(self.df.index, DatetimeIndex):
-            logger.error('Raw data not time indexed.')
-            exit(101)
+            try:
+                self._convert_index_to_datetime()
+            except:
+                logger.error('Raw data not time indexed and the index cannot be converted to DatetimeIndex.')
+                exit(101)
 
         # check for all-nan columns
         all_nan = array([self.df[c].isnull().values.all().any() for c in required_components])
@@ -363,6 +366,11 @@ class RawDataConverter:
                 logger.error('All custom split tags must be 0, 1, or 2.')
                 exit(101)
             self.defines_custom_split = True
+
+    def _convert_index_to_datetime(self) -> None:
+        """Convert the index to datetime format."""
+
+        self.df.index = self.df.index.astype('datetime')
 
     def _check_meta(self) -> None:
         """Check that the metadata is correctly provided.

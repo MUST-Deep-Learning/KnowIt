@@ -14,6 +14,7 @@ import gzip
 import lzma
 import shutil
 import csv
+import pandas
 
 # internal imports
 from helpers.logger import get_logger
@@ -289,10 +290,11 @@ def load_from_path(path: str) -> any:
             with lzma.open(path, 'rb') as handle:
                 result = pickle.load(handle)
         elif file_ext == '.csv':
-            result = []
-            with open(path, 'r') as handle:
-                reader = csv.DictReader(handle)
-                result.extend(reader)  # Adds each line in reader as a dict to the result list
+            result = pandas.read_csv(path, index_col=0, parse_dates=True)
+        elif file_ext == '.json':
+            result = pandas.read_json(path, orient='index')
+        elif file_ext == '.parquet':
+            result = pandas.read_parquet(path)
         else:
             logger.error('Unknown file extension: %s. Unable to load file. Aborting.', file_ext)
             exit(101)

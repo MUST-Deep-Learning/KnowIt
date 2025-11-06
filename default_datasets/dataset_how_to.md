@@ -30,6 +30,15 @@ The resulting datastructure will be stored under ``/custom_datasets`` in the rel
 It can then be used to train a model by passing ``kwargs={'data': {'name': <data name>, ...}, ...}`` when 
 calling the ``KI.train_model`` function.
 
+The following file types are currently supported:
+- .pickle
+- .csv 
+- .json
+- .parquet 
+
+**Note** When importing a custom dataset make sure that it fits into the systems memory, as the whole dataset is loaded into 
+memory before being partitioned and saved into more manageable chunks.   
+
 ## 2. Useful functions
 
 Use ``KI.available_datasets()`` to see what datasets are available after importing.
