@@ -664,7 +664,7 @@ def compile_variable_length_plot_animation(plot_data: dict, save_path: str, in_c
         pp_tick.set_xdata(plot_data['t'][step])
         pp_tick_target.set_xdata(plot_data['t_shifted_output'][step])
         feat_att_map.set_data(plot_data['fa'][step])
-        return_val = [pp_tick, feat_att_map]
+        return_val = [pp_tick, pp_tick_target, feat_att_map]
         return return_val
 
     colors = get_full_color_cycle(in_comps)
