@@ -20,6 +20,8 @@ from torch.optim import lr_scheduler
 from torchmetrics import functional as mf
 import pandas as pd
 
+from helpers.logger import get_logger
+logger = get_logger()
 
 def get_loss_function(loss: str) -> Callable[..., float | Tensor]:
     """Return user's choice of loss function.
@@ -210,10 +212,18 @@ def get_model_score(model_dir: str) -> tuple:
     ckpt_name = next(iter(ckpt_name))
     ckpt_path = os.path.join(model_dir, ckpt_name)
     ckpt = torch.load(f=ckpt_path)
-    keys = list(ckpt["callbacks"].keys())[0]
+    keys = list(ckpt["callbacks"].keys())
 
-    best_score = ckpt["callbacks"][keys]["best_model_score"]
-    metric = ckpt["callbacks"][keys]["monitor"]
+    callback_key = None
+    for key in keys:
+        if key.startswith("ModelCheckpoint"):
+            callback_key = key
+    if callback_key is None:
+        logger.error("No ModelCheckpoint callback key found in the checkpoint file. Cannot get model score. Aborting.")
+        exit(101)
+
+    best_score = ckpt["callbacks"][callback_key]["best_model_score"]
+    metric = ckpt["callbacks"][callback_key]["monitor"]
     epoch = ckpt["epoch"]
     if best_score is not None:
         best_score = best_score.item()
