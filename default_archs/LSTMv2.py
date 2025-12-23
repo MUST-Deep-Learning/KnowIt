@@ -459,7 +459,7 @@ class LSTMBlock(Module):
 
         self.dropout = Dropout(dropout) if dropout > 0 else Identity()
 
-        self.reset_states(batch_size=1, device='cuda')
+        # self.reset_states(batch_size=1, device='cuda')
 
     def reset_states(self, batch_size, device, changed_idx=None) -> None:
         """Initialize or reset the hidden and cell states of the LSTM.
