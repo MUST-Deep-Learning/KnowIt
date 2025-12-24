@@ -23,7 +23,7 @@ import pandas as pd
 # imports imports
 from env.env_paths import (learning_data_path,
                            model_args_path, model_predictions_dir,
-                           model_interpretations_dir, model_viz_dir, model_output_dir)
+                           model_interpretations_dir, model_viz_dir, model_output_dir, data_paths)
 from data.base_dataset import BaseDataset
 from setup.select_interpretation_points import get_predictions
 from helpers.file_dir_procs import yaml_to_dict, load_from_path
@@ -557,6 +557,10 @@ def plot_feature_attribution(exp_output_dir: str, model_name: str, interpretatio
     file_path = os.path.join(interpretation_dir, interpretation_file_name)
     feat_att_dict = load_from_path(file_path)
     save_dir = model_viz_dir(exp_output_dir, model_name)
+
+    meta_path, package_path = data_paths(model_args['data']['name'], exp_output_dir)
+    model_args['data']['meta_path'] = meta_path
+    model_args['data']['package_path'] = package_path
 
     if model_args['data']['task'] == 'regression':
         running_animation_regression(feat_att_dict, save_dir, model_args, interpretation_file_name)

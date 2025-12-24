@@ -21,12 +21,10 @@ from wandb.cli.cli import sweep
 from env.env_user import temp_exp_dir
 from env.env_paths import (ckpt_path, model_output_dir, model_args_path,
                            model_interpretations_dir,
-                           model_predictions_dir, default_dataset_dir,
-                           custom_dataset_dir, default_archs_dir, custom_arch_dir,
-                           custom_dataset_meta_path, dataset_meta_path, arch_path,
-                           custom_arch_path, root_exp_dir, arch_name,
+                           model_predictions_dir, default_archs_dir, custom_arch_dir,
+                           arch_path, custom_arch_path, root_exp_dir, arch_name,
                            interpretation_name, model_run_dir, model_sweep_dir,
-                           custom_dataset_package_path, dataset_package_path)
+                           list_available_datasets, data_paths)
 from helpers.logger import get_logger
 from helpers.file_dir_procs import (yaml_to_dict, safe_dump, safe_copy)
 from helpers.viz import (plot_learning_curves, plot_set_predictions, plot_feature_attribution)
@@ -165,17 +163,7 @@ class KnowIt:
             The function first checks if the dataset name exists in the custom datasets. If not found, it then
             checks in the default datasets. If the dataset name is not found in either, it logs an error and exits.
         """
-        dataset_dict = self.available_datasets()
-        if name in dataset_dict['custom']:
-            meta_path = custom_dataset_meta_path(name, self.exp_output_dir)
-            package_path = custom_dataset_package_path(name, self.exp_output_dir)
-        elif name in dataset_dict['defaults']:
-            meta_path = dataset_meta_path(name)
-            package_path = dataset_package_path(name)
-        else:
-            logger.error('Dataset name %s not found. Aborting.', name)
-            exit(101)
-
+        meta_path, package_path = data_paths(name, self.exp_output_dir)
         datamodule = BaseDataset(meta_path, package_path)
         summary = {'dataset_name': datamodule.name,
                    'components': datamodule.components,
@@ -221,20 +209,9 @@ class KnowIt:
 
         Notes
         -----
-            The function looks for dataset files with the '.pickle' extension in both the default
-            dataset directory and the custom dataset directory specified by the experiment output
-            directory.
+            This is a wrapper for `env.env_paths.list_available_datasets`.
         """
-        default_datasets = os.listdir(default_dataset_dir)
-        custom_datasets = os.listdir(custom_dataset_dir(self.exp_output_dir))
-        data_dict = {'defaults': [], 'custom': []}
-        for d in default_datasets:
-            if d.endswith('_meta.pickle'):
-                data_dict['defaults'].append(d.split('_meta.pickle')[0])
-        for d in custom_datasets:
-            if d.endswith('_meta.pickle'):
-                data_dict['custom'].append(d.split('_meta.pickle')[0])
-        return data_dict
+        return list_available_datasets(self.exp_output_dir)
 
     def available_archs(self) -> dict:
         """Returns a dictionary showing the available architectures for the current instance of KnowIt.
@@ -358,7 +335,7 @@ class KnowIt:
         relevant_args = setup_relevant_args(kwargs, required_types=('data', 'arch', 'trainer', ))
 
         # Set up required data modules, Models, and trainner arguments
-        datamodule = KnowIt._get_datamodule(self.exp_output_dir, self.available_datasets(), relevant_args['data'])
+        datamodule = KnowIt._get_datamodule(self.exp_output_dir, relevant_args['data'])
         model, model_params = KnowIt._get_arch_setup(self.exp_output_dir, self.available_archs(),
                                                      relevant_args['arch'], datamodule.in_shape,
                                                      datamodule.out_shape)
@@ -523,7 +500,7 @@ class KnowIt:
         ckpt_file = ckpt_path(exp_output_dir=self.exp_output_dir, name=model_name)
 
         trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir,
-                                                        self.available_datasets(), self.available_archs(),
+                                                        self.available_archs(),
                                                         model_name, device, w_pt_model=True)
 
         trainer_args = trained_model_dict['model_args']['trainer']
@@ -593,7 +570,7 @@ class KnowIt:
         relevant_args = setup_relevant_args(kwargs, required_types=('predictor',))
 
         # get details on trained model and construct appropriate dataloader
-        trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir, self.available_datasets(),
+        trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir,
                                                         self.available_archs(), model_name, device, w_pt_model=True)
         dataloader = trained_model_dict['datamodule'].get_dataloader(relevant_args['predictor']['prediction_set'],
                                                                      analysis=True)
@@ -687,8 +664,9 @@ class KnowIt:
 
         save_dir = model_interpretations_dir(self.exp_output_dir, model_name, safe_mode)
 
-        trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir, self.available_datasets(),
-                                                        self.available_archs(), model_name, device, w_pt_model=False)
+        trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir,
+                                                        self.available_archs(),
+                                                        model_name, device, w_pt_model=False)
 
         # TODO: If the call in the previous line is done with w_pt_model=True,
         #  the actual Pytorch model will also be returned under the key 'pt_model'.
@@ -744,7 +722,7 @@ class KnowIt:
             plot_feature_attribution(self.exp_output_dir, model_name, save_name)
 
     @staticmethod
-    def _load_trained_model(exp_output_dir: str, available_datasets: dict, available_archs: dict,
+    def _load_trained_model(exp_output_dir: str, available_archs: dict,
                             model_name: str, device, w_pt_model: bool = False) -> dict:
         """Load a trained model along with details on its construction.
 
@@ -755,8 +733,6 @@ class KnowIt:
         ----------
         exp_output_dir : str
             The directory containing the experiment outputs.
-        available_datasets : dict
-            A dictionary with keys 'custom' and 'defaults' listing the available datasets.
         available_archs : dict
             A dictionary listing the available model architectures.
         model_name : str
@@ -779,7 +755,7 @@ class KnowIt:
                 - 'pt_model' (torch.nn.Module, optional): The loaded PyTorch model, included if w_pt_model is True.
         """
         model_args: dict = yaml_to_dict(model_args_path(exp_output_dir, model_name))
-        datamodule = KnowIt._get_datamodule(exp_output_dir, available_datasets, model_args['data'])
+        datamodule = KnowIt._get_datamodule(exp_output_dir, model_args['data'])
         model, model_params = KnowIt._get_arch_setup(exp_output_dir, available_archs,
                                                      model_args['arch'], datamodule.in_shape,
                                                      datamodule.out_shape)
@@ -840,7 +816,7 @@ class KnowIt:
         return pt_model
 
     @staticmethod
-    def _get_datamodule(exp_output_dir: str, available_datasets: dict, data_args: dict) -> PreparedDataset:
+    def _get_datamodule(exp_output_dir: str, data_args: dict) -> PreparedDataset:
         """Retrieve the appropriate data module based on the provided data arguments.
 
         This method determines the data path based on whether the dataset is custom or default and
@@ -850,8 +826,6 @@ class KnowIt:
         ----------
         exp_output_dir : str
             The directory containing the experiment outputs.
-        available_datasets : dict
-            A dictionary with keys 'custom' and 'defaults' listing the available datasets.
         data_args : dict
             A dictionary containing the arguments needed to set up the data module. Must include:
             - 'name': The name of the dataset.
@@ -866,20 +840,11 @@ class KnowIt:
         -----
         The dataset is chosen from the custom experiment directory before trying the default directory.
         """
-        if data_args['name'] in available_datasets['custom']:
-            meta_path = custom_dataset_meta_path(data_args['name'], exp_output_dir)
-            package_path = custom_dataset_package_path(data_args['name'], exp_output_dir)
-        elif data_args['name'] in available_datasets['defaults']:
-            meta_path = dataset_meta_path(data_args['name'])
-            package_path = dataset_package_path(data_args['name'])
-        else:
-            logger.error('Unknown dataset name %s. Aborting.', data_args['name'])
-            exit(101)
-        data_args['meta_path'] = meta_path
-        data_args['package_path'] = package_path
+        meta_path, package_path = data_paths(data_args['name'], exp_output_dir)
+        additional_args = {'meta_path': meta_path, 'package_path': package_path}
 
         if data_args['task'] in ('regression', 'classification', 'vl_regression'):
-            datamodule = PreparedDataset(**data_args)
+            datamodule = PreparedDataset(**{**data_args, **additional_args})
         else:
             logger.error('Unknown task type %s.', data_args['task'])
             exit(101)
