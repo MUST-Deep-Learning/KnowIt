@@ -197,6 +197,9 @@ class TrainNew(BaseTrainer):
             **self.trainer_kwargs,
             **optional_pl_kwargs,
             reload_dataloaders_every_n_epochs=1,
+            devices=1,
+            num_nodes=1,
+            use_distributed_sampler=False,
         )
 
     def _save_model_state(self) -> ModelCheckpoint:
@@ -364,7 +367,10 @@ class ContinueTraining(BaseTrainer):
         self.trainer = PLTrainer(
             **self.trainer_kwargs,
             **optional_pl_kwargs,
-            reload_dataloaders_every_n_epochs=1
+            reload_dataloaders_every_n_epochs=1,
+            devices=1,
+            num_nodes=1,
+            use_distributed_sampler=False,
         )
 
     def _save_model_state(self) -> ModelCheckpoint:
@@ -477,7 +483,10 @@ class EvaluateOnly(BaseTrainer):
         self.trainer = PLTrainer(
             **self.trainer_kwargs,
             **optional_pl_kwargs, # optional_pl_kwargs={}
-            reload_dataloaders_every_n_epochs=1
+            reload_dataloaders_every_n_epochs=1,
+            devices=1,
+            num_nodes=1,
+            use_distributed_sampler=False,
         )
 
     def _save_model_state(self) -> None:
@@ -543,6 +552,9 @@ class CustomTrainer(BaseTrainer):
         self.trainer = PLTrainer(
             **self.trainer_kwargs,
             **optional_pl_kwargs,
+            devices=1,
+            num_nodes=1,
+            use_distributed_sampler=False,
         )
 
     def custom_method(self):
