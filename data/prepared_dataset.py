@@ -245,11 +245,11 @@ class PreparedDataset(BaseDataset):
         If None, no slice selection is performed.
     batch_sampling_mode : str | None
         The sampling mode for generating batches in the CustomSampler class.
-        Either 'independent', 'sliding-window', 'inference', or 'variable_length', as described in the CustomSampler module.
+        Either 'independent', 'sliding-window', or 'variable_length', as described in the CustomSampler module.
     slide_stride : int
         The stride used for the sliding-window approach, if selected.
-    variable_sequence_length_limit : int, default=None
-        If non-None value given and 'batch_sampling_mode' is either 'variable_length' or 'variable_length_inference',
+    variable_sequence_length_limit : int | None
+        If non-None value given and 'batch_sampling_mode' is 'variable_length',
         the sequence lengths within a batch will be limited to the given value.
 
     Attributes
@@ -1786,7 +1786,7 @@ class CustomClassificationDataset(CustomDataset):
 class CustomVariableLengthRegressionDataset(CustomDataset):
     """A custom dataset for deep time series regression models that take variable length input,
     using KnowIt's data extraction protocols. Inherits from CustomDataset,
-    using KnowIts data extraction protocols.
+    using KnowIt's data extraction protocols.
     """
 
     def __init__(self, data_extractor, selection_matrix,
