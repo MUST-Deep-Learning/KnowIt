@@ -60,6 +60,7 @@ Notes
     - All conv layers have bias parameters.
     - All non-bias weights are initialized with nn.init.kaiming_uniform_(parameters) if dimension allow, otherwise nn.init.normal_(parameters) is used.
     - All bias weights are initialized with nn.init.zeros_(parameters).
+    - Can also run in `variable length` mode (i.e. task='vl_regression'), where the number of timesteps in the input and output are equal.
 
 """ # noqa: INP001, D415, D400, D212, D205
 
@@ -108,8 +109,7 @@ class Model(nn.Module):
         `out_chunk` corresponds to the number of output time steps, and `out_components` refers to
         the number of output features or channels.
     task_name : str
-        The type of task being performed by the model. Supported tasks include
-        'classification', 'regression', and 'forecasting'.
+        The type of task (classification, regression, or vl_regression).
     depth : int, default=-1
         The desired number of convolutional blocks to include in the CNN stage.
         If depth=-1, the minimum depth to ensure that the receptive field is larger than

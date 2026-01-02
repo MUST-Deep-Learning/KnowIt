@@ -32,7 +32,7 @@ __licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "tiantheunissen@gmail.com, randlerabe@gmail.com"
 __description__ = "Contains an example of a LSTM architecture."
 
-from numpy import arange, prod
+from numpy import arange, prod, array
 from torch import Tensor, zeros, randn, randn_like, nn, ones, cat
 from torch.nn import (LSTM, Linear, Module, LayerNorm,
                       Dropout, ModuleList, Sequential, Identity)
@@ -66,7 +66,7 @@ class Model(Module):
     output_dim : list[int], shape=[out_chunk, out_components]
         The shape of the output data. The "time axis" is along the first dimension.
     task_name : str
-        The type of task (classification or regression).
+        The type of task (classification, regression, or vl_regression).
     width : int, default=256
         The number of features in the hidden state of each LSTMBlock.
     depth : int, default=2
@@ -172,15 +172,15 @@ class Model(Module):
             self.output_layers = nn.Linear(width, self.model_out_dim)
 
     def force_reset(self) -> None:
-        """ A function for external modules to manually signal that all hidden and internal states need to be reset."""
+        """ A function for external modules to manually signal that all internal states need to be reset."""
         self.last_ist_idx = None
 
     def get_internal_states(self) -> list:
         """
         Retrieve the internal states of all LSTMBlock layers.
 
-        This method extracts the hidden states from each LSTMBlock layer, used for interpretations
-        requiring hidden state management. The internal states are reshaped to align with Captum's
+        This method extracts the internal states from each LSTMBlock layer, used for interpretations
+        requiring internal state management. The internal states are reshaped to align with Captum's
         expectation, where the first axis corresponds to the batch size.
 
         Returns
@@ -204,7 +204,7 @@ class Model(Module):
             internal_states.append((h_0, c_0))
         return internal_states
 
-    def _reset_all_layer_states(self, batch_size, device, changed_idx=None) -> None:
+    def _reset_all_layer_states(self, batch_size: int, device: str, changed_idx: Tensor | None = None) -> None:
         """Reset the hidden and cell states of all LSTMBlock layers.
 
         Parameters
@@ -213,7 +213,7 @@ class Model(Module):
             The batch size for the hidden and cell states.
         device : str
             The device to place the hidden and cell states on (e.g., 'cuda' or 'cpu').
-        changed_idx : torch.Tensor, default=None
+        changed_idx : Tensor, default=None
             Boolean mask tensor of shape (batch_size,) indicating which batch indices to reset.
         """
         for layer in self.lstm_layers:
@@ -229,21 +229,26 @@ class Model(Module):
         for layer in self.lstm_layers:
             layer.hidden_state = (layer.hidden_state[0].detach(), layer.hidden_state[1].detach())
 
-    def hard_set_states(self, ist_idx) -> None:
+    def hard_set_states(self, ist_idx: Tensor) -> None:
         """
         A function for external modules to manually set the IST indices for stateful training.
         This is called at the start of batches right after the internal states are updated with `update_states`.
         If variable length data is processed this will be the IST indices corresponding to the end of the current batch,
         otherwise it will correspond to the beginning (and be redundant).
-        """
-        self.last_ist_idx = ist_idx.clone()
-
-    def update_states(self, ist_idx, device) -> None:
-        """Manage hidden state continuity for stateful processing based on batch indices.
 
         Parameters
         ----------
-        ist_idx : torch.Tensor
+        ist_idx : Tensor
+            Tensor of shape (batch_size, 3) containing batch indices for tracking sequence continuity.
+        """
+        self.last_ist_idx = ist_idx.clone()
+
+    def update_states(self, ist_idx: Tensor, device: str) -> None:
+        """Manage internal state continuity for stateful processing based on batch indices.
+
+        Parameters
+        ----------
+        ist_idx : Tensor
             Tensor of shape (batch_size, 3) containing batch indices for tracking sequence continuity.
         device : str
             The device to place the hidden and cell states on (e.g., 'cuda' or 'cpu').
@@ -316,7 +321,7 @@ class Model(Module):
             tick += 1
 
     def forward(self, x: Tensor, *internal_states) -> Tensor:
-        """Forward pass through the model, processing input through LSTM layers and output layers.
+        """Forward pass through the model, processing inputs through LSTM layers and output layers.
 
         Parameters
         ----------

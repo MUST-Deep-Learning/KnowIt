@@ -1738,7 +1738,7 @@ class CustomDataset(Dataset):
 
 
 class CustomClassificationDataset(CustomDataset):
-    """A custom dataset for deep time series classification models, using KnowIts data extraction protocols.
+    """A custom dataset for deep time series classification models, using KnowIt's data extraction protocols.
     Inherits from CustomDataset.
     """
     class_set = {}
@@ -1784,9 +1784,8 @@ class CustomClassificationDataset(CustomDataset):
 
 
 class CustomVariableLengthRegressionDataset(CustomDataset):
-    """A custom dataset for deep time series regression models that take variable length input,
-    using KnowIt's data extraction protocols. Inherits from CustomDataset,
-    using KnowIt's data extraction protocols.
+    """A custom dataset for deep time series regression models that take variable length input, using KnowIt's data extraction protocols.
+    Inherits from CustomDataset.
     """
 
     def __init__(self, data_extractor, selection_matrix,
