@@ -62,6 +62,86 @@ def custom_dataset_package_path(name: str, exp_output_dir: str):
     # return os.path.join(custom_dataset_dir(exp_output_dir), name + '_package.parquet')
     return os.path.join(custom_dataset_dir(exp_output_dir), name)
 
+
+def list_available_datasets(exp_output_dir: str):
+    """Returns a dictionary showing the available datasets in the given experiment path.
+
+    This function lists all available datasets from the default and custom dataset
+    directories. It returns a dictionary with two keys: 'defaults' and 'custom', each
+    containing a list of dataset names without file extensions.
+
+    Returns
+    -------
+    data_dict : dict[str, list]
+        A dictionary listing default and custom dataset options.
+        The dictionary includes the following keys:
+            - 'defaults' (list): The names of available default datasets.
+            - 'custom' (list): The names of available custom datasets.
+
+    Notes
+    -----
+        The function looks for dataset files with the '.pickle' extension in both the default
+        dataset directory and the custom dataset directory specified by the experiment output
+        directory.
+    """
+
+    default_datasets = os.listdir(default_dataset_dir)
+    custom_datasets = os.listdir(custom_dataset_dir(exp_output_dir))
+    data_dict = {'defaults': [], 'custom': []}
+    for d in default_datasets:
+        if d.endswith('_meta.pickle'):
+            data_dict['defaults'].append(d.split('_meta.pickle')[0])
+    for d in custom_datasets:
+        if d.endswith('_meta.pickle'):
+            data_dict['custom'].append(d.split('_meta.pickle')[0])
+    return data_dict
+
+
+def data_paths(name: str, exp_output_dir: str):
+    """
+    Return the metadata and package file paths for a given dataset name.
+
+    This function checks whether the specified dataset name corresponds to a
+    custom dataset (stored in the experiment output directory) or a default
+    dataset (stored in the global datasets directory). It then returns the
+    appropriate metadata and package paths. If the dataset name is not found
+    in either location, the function logs an error and terminates the process.
+
+    Parameters
+    ----------
+    name : str
+        The name of the dataset whose paths should be retrieved.
+    exp_output_dir : str
+        The path to the experiment output directory containing custom datasets.
+
+    Returns
+    -------
+    meta_path : str
+        The full path to the dataset's metadata file.
+    package_path : str
+        The full path to the dataset's package directory.
+
+    Notes
+    -----
+    Custom datasets take precedence over default datasets if a name collision occurs.
+    The metadata file is expected to have a ``'_meta.pickle'`` extension, while the
+    package path points to the dataset directory (not necessarily a single file).
+    """
+
+    available_datasets = list_available_datasets(exp_output_dir)
+    if name in available_datasets['custom']:
+        meta_path = custom_dataset_meta_path(name, exp_output_dir)
+        package_path = custom_dataset_package_path(name, exp_output_dir)
+    elif name in available_datasets['defaults']:
+        meta_path = dataset_meta_path(name)
+        package_path = dataset_package_path(name)
+    else:
+        logger.error('Unknown dataset name %s. Aborting.', name)
+        exit(101)
+
+    return meta_path, package_path
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 #   ARCHITECTURES
 # ----------------------------------------------------------------------------------------------------------------------
