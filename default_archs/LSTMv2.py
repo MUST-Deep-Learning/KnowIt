@@ -326,7 +326,7 @@ class Model(Module):
         Parameters
         ----------
         x : Tensor, shape=[batch_size, in_chunk, in_components]
-            An input tensor.
+            An input tensor. See below for shape exception.
         internal_states : list of Tensor, optional
             Variable length argument for internal LSTM states (e.g., hidden and cell states).
             If provided, it will overwrite current internal states.
@@ -339,13 +339,14 @@ class Model(Module):
         Raises
         ------
         SystemExit
-            If `task_name` is neither 'regression' nor 'classification', exits with code 101.
+            If `task_name` is neither 'regression', 'classification', nor 'vl_regression', exits with code 101.
 
         Notes
         -----
         - The input is processed sequentially through each LSTMBlock, followed by reshaping and output layers.
         - For 'regression', the output is reshaped to match `final_out_shape`.
         - For 'classification', the output is returned as is (assumes activation like softmax is in output_layers).
+        - For 'vl_regression', the input tensor x will have the shape [batch_size, *, in_components], where * is variable length.
         """
 
         if len(internal_states) > 1:

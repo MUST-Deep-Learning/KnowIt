@@ -304,12 +304,16 @@ class Model(nn.Module):
         Parameters
         ----------
         x : Tensor, shape=[batch_size, in_chunk, in_components]
-            An input tensor.
+            An input tensor. See below for shape exception.
 
         Returns
         -------
         Tensor, shape=[batch_size, out_chunk, out_components] or [batch_size, num_classes]
             Model output.
+
+        Notes
+        -----
+        - For 'vl_regression', the input tensor x will have the shape [batch_size, *, in_components], where * is variable length.
 
         """
         return self.network(x)
