@@ -22,7 +22,8 @@ The criteria are as follows:
     - Additionally, if statefulness is desired, the following two methods must also be defined:
       - ``force_reset()``, accessable from outer scope. This method should reset all hidden and internal states. It is called at the start of train, validation, and testing loops.
       - ``update_states()`` it receives a Tensor of current IST indices of shape `[batch_size, 3]` as argument. This method can be used to handle statefulness. It is called at the start of each batch.
-      Note that the architecture will have the same name as the script being imported.
+      
+    - Note that the architecture will have the same name as the script being imported.
 
 See default architectures for examples.
 
