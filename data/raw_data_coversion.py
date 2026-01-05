@@ -49,7 +49,7 @@ __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the RawDataConverter class for Knowit.'
 
 # external imports
-from pandas import DatetimeIndex, concat, DataFrame, Timedelta
+from pandas import DatetimeIndex, concat, DataFrame, Timedelta, to_datetime
 from pandas.api.types import is_numeric_dtype
 from numpy import array, sum, argwhere, hstack, vstack
 from datetime import timedelta
@@ -341,12 +341,11 @@ class RawDataConverter:
             exit(101)
 
         # check if dataframe is time indexed
-        if not isinstance(self.df.index, DatetimeIndex):
-            try:
-                self._convert_index_to_datetime()
-            except:
-                logger.error('Raw data not time indexed and the index cannot be converted to DatetimeIndex.')
-                exit(101)
+        try:
+            self._convert_index_to_datetime()
+        except:
+            logger.error('Raw data not time indexed and the index cannot be converted to DatetimeIndex.')
+            exit(101)
 
         # check for all-nan columns
         all_nan = array([self.df[c].isnull().values.all().any() for c in required_components])
@@ -368,9 +367,12 @@ class RawDataConverter:
             self.defines_custom_split = True
 
     def _convert_index_to_datetime(self) -> None:
-        """Convert the index to datetime format."""
+        """Convert the index of the dataframe to datetime format if needed."""
 
-        self.df.index = self.df.index.astype('datetime')
+        if not isinstance(self.df.index, DatetimeIndex):
+            logger.warning('Found non-datetime index in dataframe. Automatically converting index to DatetimeIndex. '
+                           'See https://pandas.pydata.org/docs/reference/api/pandas.to_datetime.html for details on conversion.')
+            self.df.index = to_datetime(self.df.index)
 
     def _check_meta(self) -> None:
         """Check that the metadata is correctly provided.
