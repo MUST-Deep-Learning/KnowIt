@@ -20,6 +20,8 @@ from torch.optim import lr_scheduler
 from torchmetrics import functional as mf
 import pandas as pd
 
+from helpers.logger import get_logger
+logger = get_logger()
 
 def get_loss_function(loss: str) -> Callable[..., float | Tensor]:
     """Return user's choice of loss function.
@@ -138,10 +140,10 @@ def prepare_function(user_args: str | dict[str, Any], *, is_loss: bool) -> (
                     get_loss_function(_metric),
                     **kwargs,
                 )
-                function[_metric] = (loss_f, requires_ohe(_metric))
+                function[_metric] = (loss_f, requires_ohe(_metric), requires_flatten(_metric))
         elif is_loss and not isinstance(user_args, dict):
                 loss_f = get_loss_function(user_args)
-                function[user_args] = (loss_f, requires_ohe(user_args))
+                function[user_args] = (loss_f, requires_ohe(user_args), requires_flatten(user_args))
         elif not is_loss and isinstance(user_args, dict):
             for _metric in user_args:
                 kwargs = user_args[_metric]
@@ -149,10 +151,10 @@ def prepare_function(user_args: str | dict[str, Any], *, is_loss: bool) -> (
                     get_performance_metric(_metric),
                     **kwargs,
                 )
-                function[_metric] = (perf_f, requires_ohe(_metric))
+                function[_metric] = (perf_f, requires_ohe(_metric), requires_flatten(_metric))
         elif not is_loss and not isinstance(user_args, dict):
                 perf_f = get_performance_metric(user_args)
-                function[user_args] = (perf_f, requires_ohe(user_args))
+                function[user_args] = (perf_f, requires_ohe(user_args), requires_flatten(user_args))
 
         return function
 
@@ -169,6 +171,20 @@ def requires_ohe(metric: str) -> bool:
         return True
     else:
         return False
+
+def requires_flatten(metric: str) -> tuple:
+    """ Returns a tuple indicating whether the defined metric requires
+    that the targets be flattened along with from-to-what dimensions to flatten.
+
+    See the following link for details on additional metrics that might need to be added
+    to this list in the future:
+    https://lightning.ai/docs/torchmetrics/stable/
+    """
+
+    if metric in ("r2_score", ):
+        return True, (0, 1)
+    else:
+        return False, None
 
 def get_model_score(model_dir: str) -> tuple:
     """
@@ -196,10 +212,18 @@ def get_model_score(model_dir: str) -> tuple:
     ckpt_name = next(iter(ckpt_name))
     ckpt_path = os.path.join(model_dir, ckpt_name)
     ckpt = torch.load(f=ckpt_path)
-    keys = list(ckpt["callbacks"].keys())[0]
+    keys = list(ckpt["callbacks"].keys())
 
-    best_score = ckpt["callbacks"][keys]["best_model_score"]
-    metric = ckpt["callbacks"][keys]["monitor"]
+    callback_key = None
+    for key in keys:
+        if key.startswith("ModelCheckpoint"):
+            callback_key = key
+    if callback_key is None:
+        logger.error("No ModelCheckpoint callback key found in the checkpoint file. Cannot get model score. Aborting.")
+        exit(101)
+
+    best_score = ckpt["callbacks"][callback_key]["best_model_score"]
+    metric = ckpt["callbacks"][callback_key]["monitor"]
     epoch = ckpt["epoch"]
     if best_score is not None:
         best_score = best_score.item()

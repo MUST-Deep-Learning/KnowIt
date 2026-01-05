@@ -41,6 +41,12 @@ Additionally, some interpreters can call it to help manage the statefulness thro
 By keeping track of the ``ist_idx`` values between calls of ``update_states(ist_idx, device)`` the architecture can reset 
 only the part of the internal state that corresponds to breaks in contiguousness.
 
+A ``hard_set_states(ist_idx)`` should set the current ``ist_idx`` values to the given ones.
+If defined, KnowIt will call this method at the start of train, validation, and testing loops, 
+right after ``update_states(ist_idx, device)`` is called. 
+This function is only relevant if variable length data is modelled and statefulness is desired.
+It is required to move the IST indices to the end of the variable length batch.
+
 A ``force_reset()`` method signals to the architecture that all internal states should be reset the next time 
 ``update_states(ist_idx, device)`` is called regardless of contiguousness.
 If defined, KnowIt will call this method at the start of train, validation, and testing loops.
