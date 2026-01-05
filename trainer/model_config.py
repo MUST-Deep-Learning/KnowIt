@@ -170,7 +170,7 @@ class PLModel(pl.LightningModule):
             self.model.force_reset()
 
     def on_validation_epoch_start(self):
-        """ Reset the model internal states for new training epoch."""
+        """ Reset the model internal states for new validation epoch."""
         if hasattr(self.model, 'force_reset'):
             self.model.force_reset()
 
