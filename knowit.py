@@ -721,6 +721,98 @@ class KnowIt:
         if and_viz:
             plot_feature_attribution(self.exp_output_dir, model_name, save_name)
 
+    def export(self, model_name: str, *, dataloaders: dict = {}, preload: bool = True, num_workers: int = 4,
+               device: str | None=None, ret_model: bool = False, ret_lightning: bool = False, ret_dataloader: bool = False,
+               ret_args: bool = False, ret_scaling_args: bool = False) -> dict:
+
+        """
+        Load a trained model, prepare specified dataloaders, and return requested components.
+
+        This function facilitates loading of a trained model based on its name, setting up
+        specified dataloaders, and optionally returning the model itself, its arguments, or
+        the dataloaders based on the input configuration.
+
+        Parameters
+        ----------
+        model_name : str
+            The name of the trained model to be interpreted.
+        dataloaders : dict, default={}
+            A dictionary of dataset configurations to create relevant dataloaders.
+        preload : bool, default=True
+            Specifies whether to preload the raw relevant instances into memory when sampling
+            feature values.
+        num_workers : int, default=4
+            The number of workers to utilize for dataset loading operations.
+        device : str or None, default=None
+            The computation device to be used during model loading and execution
+            (e.g., 'cuda', 'cpu'). If `None`, the global device is used.
+        ret_model : bool, default=False
+            Indicates whether the trained model should be included in the returned dictionary.
+        ret_lightning : bool, default=False
+            Specifies whether to return the Lightning module version of the model,
+            if `ret_model` is set to True, else the pytorch model is returned.
+        ret_dataloader : bool, default=False
+            Specifies whether the requested dataloaders should be included in the returned
+            dictionary.
+        ret_args : bool, default=False
+            Indicates if the model's hyperparameters should be included in the returned dictionary.
+        ret_scaling_args: bool, default=False
+            Indicates if the 'x_scaler' and 'y_scaler' arguments should be included in the returned dictionary.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the requested components:
+
+            - 'model' (if `ret_model` is True): The trained PyTorch or Lightning model.
+            - 'dataloaders' (if `ret_dataloader` is True and dataloaders contain one or more of
+              {'train', 'valid', 'eval'}): The specified dataloaders for the datasets.
+            - 'model_args' (if `ret_args` is True): The hyperparameters or configuration arguments
+              of the model.
+            - 'scaling_args' (if `ret_scaling_args` is True): The scaling arguments of the model.
+        """
+
+        if device is None:
+            device = self.global_device
+
+        ret_dict = dict()
+        if not ret_model and not ret_dataloader and not ret_args and not ret_scaling_args:
+            logger.error('Unspecified modules to return. Returning empty dictionary.')
+            return ret_dict
+
+        trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir,
+                                                        self.available_archs(), model_name, device, w_pt_model=True)
+
+        if ret_model and not ret_lightning:
+            ret_dict['model'] = trained_model_dict['pt_model']
+        elif ret_model and ret_lightning:
+            ret_dict['model'] = trained_model_dict['model']
+
+        if ret_args:
+            ret_dict['model_args'] = trained_model_dict['model_args']
+
+        if ret_scaling_args:
+            ret_dict['scaling_args'] = {'x_scaler': trained_model_dict['datamodule'].x_scaler,
+                                        'y_scaler': trained_model_dict['datamodule'].y_scaler}
+
+        ret_dataloaders = {}
+        if ret_dataloader and dataloaders:
+            for key in dataloaders:
+                if key in {'train', 'valid', 'eval'}:
+                    ret_dataloaders[key] =  trained_model_dict['datamodule'].get_dataloader(key, analysis=True,
+                                                                                            preload=preload,
+                                                                                            num_workers=num_workers)
+                else:
+                    logger.error("Please specify the dataloaders as one or more of {'train', 'valid', 'eval'}")
+                    exit(101)
+            ret_dict['dataloaders'] = ret_dataloaders
+        elif ret_dataloader and not dataloaders:
+            logger.error("Unspecified dataloaders to return. Please specify the dataloaders as one or more of "
+                         "{'train', 'valid', 'eval'}")
+            exit(101)
+
+        return ret_dict
+
     @staticmethod
     def _load_trained_model(exp_output_dir: str, available_archs: dict,
                             model_name: str, device, w_pt_model: bool = False) -> dict:
