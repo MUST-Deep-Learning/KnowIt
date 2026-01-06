@@ -157,35 +157,14 @@ def get_learning_curves(exp_output_dir: str, model_name: str) -> tuple:
         Number of epochs trained for.
     """
 
-    # get raw curve data from lightning logs
-    curve_data = load_from_path(learning_data_path(exp_output_dir, model_name))
-
-    # compile curve data into metric-wise dictionary
-    curves = defaultdict(dict)
-    for row in curve_data:
-        for c in row:
-            if row['epoch'] not in curves[c] or curves[c][row['epoch']] == '':
-                curves[c][row['epoch']] = row[c]
-    curves = dict(curves)
-
-    # determine number of epochs trained for, and drop irrelevant metrics
-    num_epochs = len(curves['epoch'])
-    curves.pop('step')
-    curves.pop('epoch')
-    curve_names = list(curves.keys())
-    for c in curve_names:
-        if 'result' in c:
-            curves.pop(c)
-
-    # For each metric, make a list of float values in order of epochs
-    for c in curves:
-        new_curve = []
-        for val in curves[c]:
-            try:
-                new_curve.append(float(curves[c][val]))
-            except:
-                new_curve.append(None)
-        curves[c] = new_curve
+    curve_data = load_from_path(learning_data_path(exp_output_dir, model_name)).reset_index()
+    num_epochs = len(set(curve_data['epoch']))
+    curves = {}
+    for metric in curve_data.columns.difference(['epoch', 'step']).tolist():
+        curves[metric] = curve_data[curve_data[metric].notna()][metric].tolist()
+        if len(curves[metric]) != num_epochs:
+            logger.error('Could not find %s values for all epochs when generating learning curve.', metric)
+            exit(101)
 
     return curves, num_epochs
 
