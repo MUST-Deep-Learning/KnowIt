@@ -7,7 +7,8 @@ Additionally, the architecture can be stateful or stateless.
 LSTMBlock
 ---------
 
-This block consists of 2 to 4 layers.
+This block consists of an lstm layer followed by optional layer normalization,
+dropout, and residual connection.
 * is optional
 
 [lstm] -> [layernorm*] -> [dropout*] -> [residual*]
@@ -22,6 +23,7 @@ Notes
     - The LSTM is capable of handling regression or classification tasks.
     - All LSTMBlocks have bias parameters.
     - All LSTMBlocks have the same number of hidden units, defined by the ``width`` parameter.
+    - Can also run in `variable length` mode (i.e. task='vl_regression'), where the number of timesteps in the input and output are equal.
 
 """ # noqa: INP001, D415, D400, D212, D205
 
@@ -31,7 +33,7 @@ __licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "tiantheunissen@gmail.com, randlerabe@gmail.com"
 __description__ = "Contains an example of a LSTM architecture."
 
-from numpy import arange, prod
+from numpy import arange, prod, array
 from torch import Tensor, zeros, randn, randn_like, nn, ones, cat
 from torch.nn import (LSTM, Linear, Module, LayerNorm,
                       Dropout, ModuleList, Sequential, Identity)
@@ -40,7 +42,7 @@ from helpers.logger import get_logger
 
 logger = get_logger()
 
-available_tasks = ("regression", "classification")
+available_tasks = ("regression", "classification", "vl_regression")
 
 HP_ranges_dict = {"width": range(2, 1025, 1),
                   "depth": range(2, 1025, 1),
@@ -65,7 +67,7 @@ class Model(Module):
     output_dim : list[int], shape=[out_chunk, out_components]
         The shape of the output data. The "time axis" is along the first dimension.
     task_name : str
-        The type of task (classification or regression).
+        The type of task (classification, regression, or vl_regression).
     width : int, default=256
         The number of features in the hidden state of each LSTMBlock.
     depth : int, default=2
@@ -132,7 +134,7 @@ class Model(Module):
         hc_init_method: str = 'zeros',
         layernorm: bool = True,
         bidirectional: bool = False,
-        residual: bool = True
+        residual: bool = True,
     ) -> None:
         super().__init__()
 
@@ -159,19 +161,51 @@ class Model(Module):
                 )
             )
 
-        self.output_layers = []
-        self.output_layers.append(Linear(in_features=direction * width * input_dim[-2],
-                                        out_features=self.model_out_dim,
-                                        bias=False))
-        if output_activation is not None:
-            self.output_layers.append(get_output_activation(output_activation))
-        self.output_layers = Sequential(*self.output_layers)
+        if not self.task_name == 'vl_regression':
+            self.output_layers = []
+            self.output_layers.append(Linear(in_features=direction * width * input_dim[-2],
+                                            out_features=self.model_out_dim,
+                                            bias=False))
+            if output_activation is not None:
+                self.output_layers.append(get_output_activation(output_activation))
+            self.output_layers = Sequential(*self.output_layers)
+        else:
+            self.output_layers = nn.Linear(width, self.model_out_dim)
 
-    def force_reset(self):
-        """ A function for external modules to manually signal that all hidden and internal states need to be reset."""
+    def force_reset(self) -> None:
+        """ A function for external modules to manually signal that all internal states need to be reset."""
         self.last_ist_idx = None
 
-    def _reset_all_layer_states(self, batch_size, device, changed_idx=None) -> None:
+    def get_internal_states(self) -> list:
+        """
+        Retrieve the internal states of all LSTMBlock layers.
+
+        This method extracts the internal states from each LSTMBlock layer, used for interpretations
+        requiring internal state management. The internal states are reshaped to align with Captum's
+        expectation, where the first axis corresponds to the batch size.
+
+        Returns
+        -------
+        list of tuple
+            A list of tuples, where each tuple contains the hidden state (h_0) and cell state (c_0)
+            for an LSTMBlock layer. Each state is a tensor with shape
+            [batch_size, num_layers, hidden_size].
+
+        Notes
+        -----
+        The original internal states have shape [num_layers, batch_size, hidden_size]. This method
+        swaps the first two axes to produce states with shape [batch_size, num_layers, hidden_size]
+        to comply with Captum's sample-first axis convention.
+        """
+        internal_states = []
+        for layer in self.lstm_layers:
+            (h_0, c_0) = layer.hidden_state
+            h_0 = h_0.reshape(h_0.shape[1], h_0.shape[0], h_0.shape[2])
+            c_0 = c_0.reshape(c_0.shape[1], c_0.shape[0], c_0.shape[2])
+            internal_states.append((h_0, c_0))
+        return internal_states
+
+    def _reset_all_layer_states(self, batch_size: int, device: str, changed_idx: Tensor | None = None) -> None:
         """Reset the hidden and cell states of all LSTMBlock layers.
 
         Parameters
@@ -180,7 +214,7 @@ class Model(Module):
             The batch size for the hidden and cell states.
         device : str
             The device to place the hidden and cell states on (e.g., 'cuda' or 'cpu').
-        changed_idx : torch.Tensor, default=None
+        changed_idx : Tensor, default=None
             Boolean mask tensor of shape (batch_size,) indicating which batch indices to reset.
         """
         for layer in self.lstm_layers:
@@ -196,12 +230,26 @@ class Model(Module):
         for layer in self.lstm_layers:
             layer.hidden_state = (layer.hidden_state[0].detach(), layer.hidden_state[1].detach())
 
-    def update_states(self, ist_idx, device) -> None:
-        """Manage hidden state continuity for stateful processing based on batch indices.
+    def hard_set_states(self, ist_idx: Tensor) -> None:
+        """
+        A function for external modules to manually set the IST indices for stateful training.
+        This is called at the start of batches right after the internal states are updated with `update_states`.
+        If variable length data is processed this will be the IST indices corresponding to the end of the current batch,
+        otherwise it will correspond to the beginning (and be redundant).
 
         Parameters
         ----------
-        ist_idx : torch.Tensor
+        ist_idx : Tensor
+            Tensor of shape (batch_size, 3) containing batch indices for tracking sequence continuity.
+        """
+        self.last_ist_idx = ist_idx.clone()
+
+    def update_states(self, ist_idx: Tensor, device: str) -> None:
+        """Manage internal state continuity for stateful processing based on batch indices.
+
+        Parameters
+        ----------
+        ist_idx : Tensor
             Tensor of shape (batch_size, 3) containing batch indices for tracking sequence continuity.
         device : str
             The device to place the hidden and cell states on (e.g., 'cuda' or 'cpu').
@@ -244,13 +292,45 @@ class Model(Module):
         else:
             self._reset_all_layer_states(ist_idx.shape[0], device)
 
-    def forward(self, x: Tensor) -> Tensor:
-        """Forward pass through the model, processing input through LSTM layers and output layers.
+    def _overwrite_internal_states(self, internal_states: list) -> None:
+        """
+        Overwrite the internal states of all LSTMBlock layers with provided states.
+
+        This method updates the hidden states of each LSTMBlock layer using the provided internal states.
+        The input states are expected to have shape [batch_size, num_layers, hidden_size], as required
+        by Captum, and are reshaped to [num_layers, batch_size, hidden_size] to match the internal
+        representation of the LSTMBlock layers.
+
+        Parameters
+        ----------
+        internal_states : list of tensor
+            A list of tensors containing hidden states (h_0) and cell states (c_0) for each LSTMBlock layer.
+            Each tensor is expected to have shape [batch_size, num_layers, hidden_size].
+
+        Notes
+        -----
+        The provided internal states are reshaped from [batch_size, num_layers, hidden_size] to
+        [num_layers, batch_size, hidden_size] to align with the internal state representation of the
+        LSTMBlock layers, as Captum assumes the first axis corresponds to the batch size.
+        """
+        tick = 0
+        for i in range(0, len(internal_states), 2):
+            (h_0, c_0) = (internal_states[i], internal_states[i+1])
+            h_0 = h_0.reshape(h_0.shape[1], h_0.shape[0], h_0.shape[2])
+            c_0 = c_0.reshape(c_0.shape[1], c_0.shape[0], c_0.shape[2])
+            self.lstm_layers[tick].hidden_state = (h_0, c_0)
+            tick += 1
+
+    def forward(self, x: Tensor, *internal_states) -> Tensor:
+        """Forward pass through the model, processing inputs through LSTM layers and output layers.
 
         Parameters
         ----------
         x : Tensor, shape=[batch_size, in_chunk, in_components]
-            An input tensor.
+            An input tensor. See below for shape exception.
+        internal_states : list of Tensor, optional
+            Variable length argument for internal LSTM states (e.g., hidden and cell states).
+            If provided, it will overwrite current internal states.
 
         Returns
         -------
@@ -260,29 +340,30 @@ class Model(Module):
         Raises
         ------
         SystemExit
-            If `task_name` is neither 'regression' nor 'classification', exits with code 101.
+            If `task_name` is neither 'regression', 'classification', nor 'vl_regression', exits with code 101.
 
         Notes
         -----
         - The input is processed sequentially through each LSTMBlock, followed by reshaping and output layers.
         - For 'regression', the output is reshaped to match `final_out_shape`.
         - For 'classification', the output is returned as is (assumes activation like softmax is in output_layers).
+        - For 'vl_regression', the input tensor x will have the shape [batch_size, *, in_components], where * is variable length.
         """
 
-        if x.shape[0] != self.lstm_layers[0].hidden_state[0].shape[1]:
-            logger.warning('Unplanned reset of hidden state in LSTMv2! '
-                           'This was done due to missmatch in batch size and hidden state expectation. '
-                           'Statefulness at least partially lost.')
-            self._reset_all_layer_states(x.shape[0], x.device)
+        if len(internal_states) > 1:
+            self._overwrite_internal_states(internal_states)
 
         hidden = x
         for i, layer in enumerate(self.lstm_layers):
             hidden = layer(hidden)
-        hidden = hidden.reshape(hidden.shape[0], hidden.shape[1] * hidden.shape[2])
+
+        if not self.task_name == 'vl_regression':
+            hidden = hidden.reshape(hidden.shape[0], hidden.shape[1] * hidden.shape[2])
         out = self.output_layers(hidden)
 
-        if self.task_name == 'regression':
-            out = out.view(hidden.shape[0], self.final_out_shape[0], self.final_out_shape[1])
+        if self.task_name in ('regression', 'vl_regression'):
+            if not self.task_name == 'vl_regression':
+                out = out.view(hidden.shape[0], self.final_out_shape[0], self.final_out_shape[1])
         elif self.task_name == 'classification':
             pass
         else:
@@ -385,7 +466,7 @@ class LSTMBlock(Module):
 
         self.dropout = Dropout(dropout) if dropout > 0 else Identity()
 
-        self.reset_states(batch_size=1, device='cuda')
+        # self.reset_states(batch_size=1, device='cuda')
 
     def reset_states(self, batch_size, device, changed_idx=None) -> None:
         """Initialize or reset the hidden and cell states of the LSTM.

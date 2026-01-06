@@ -6,7 +6,6 @@ This guide explains how to import and manage new raw data.
 In order to train models on your data you will need to convert it into a specific format for 
 KnowIt to understand. Your data will need to be compiled into a [``pandas.Dataframe``](https://pandas.pydata.org/docs/reference/frame.html) that meets 
 a number of criteria. It can then be imported using the ``KnowIt.import_dataset(kwarg={'data_import': {'raw_data': <the dataframe>, ...}})`` function.
-You can also provide the data as a path to a pickled dataframe using ``KnowIt.import_dataset(kwarg={'data_import': {'raw_data': <path to pickle>, ...}})``.
 
 The criteria are as follows:
 1. Must be time indexed. (with a [``pandas.DatetimeIndex``](https://pandas.pydata.org/docs/reference/api/pandas.DatetimeIndex.html#pandas.DatetimeIndex), not strings)
@@ -29,6 +28,19 @@ the dataframe labeled 'split'. This column should only contain set indicators: 0
 The resulting datastructure will be stored under ``/custom_datasets`` in the relevant custom experiment output directory.
 It can then be used to train a model by passing ``kwargs={'data': {'name': <data name>, ...}, ...}`` when 
 calling the ``KI.train_model`` function.
+
+You can also provide the data as a path using ``KnowIt.import_dataset(kwarg={'data_import': {'raw_data': <path to dataframe>, 'meta': <the meta arguments>}})``.
+The following file types are currently supported:
+- .pickle
+- .csv 
+- .parquet
+- .json (with orient = 'index'; see https://pandas.pydata.org/docs/reference/api/pandas.read_json.html)
+
+
+The `meta` argument is only strictly required for the latter three formats. For .pickle it can be included in the ``Dataframe.attrs`` dictionary of the pickled dataframe.
+
+**Note** When importing a custom dataset make sure that it fits into system memory, as the whole dataset is loaded into 
+memory before being partitioned and saved into more manageable chunks.   
 
 ## 2. Useful functions
 

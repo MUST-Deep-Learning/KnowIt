@@ -31,12 +31,11 @@ a specific other set of features-over-time. The specifics are defined as follows
 Note that this might seem cumbersome, but it allows us to easily define several different types of tasks.
 For example:
 
-- regression (heartrate from an 11-time step window given three instantaneous biometrics)
+- regression (predict heartrate from an 11 time-step window given three instantaneous biometrics)
     - in_components = [biometric1, biometric2, biometric2]
     - out_components = [heart rate]
     - in_chunk = [-5, 5]
     - out_chunk = [0, 0]
-
 - autoregressive univariate forecasting (predict a stock's value in 5 time steps given last 21 time steps)
     - in_components = [stock,]
     - out_components = [stock,]
@@ -47,6 +46,34 @@ For example:
     - out_components = [positive_call,]
     - in_chunk = [-2, 2]
     - out_chunk = [0, 0]
+
+--------------------------
+Variable length processing
+--------------------------
+
+The ``PreparedDataset`` can also be defined in a "variable length" configuration.
+This means that instead of receiving and producing chunks of a specific number of time steps,
+the model will receive a variable number of time steps and produce an identical number of time steps as output.
+The input- and output components don't need to be the same. Not all architectures can facilitate this configuration.
+Currently, only ``LSTMv2``, ``TCN``, and ``CNN`` supports it.
+
+This configuration is selected by defining ``task=vl_regression``, ``batch_sampling_mode=variable_length``,
+selecting an appropriate architecture, and ensuring that the size of ``in_chunk`` and ``out_chunk`` are both 1.
+Classification tasks are not currently supported for this configuration.
+
+Examples of tasks that can be defined with this configuration include:
+
+- regression (predict heartrate from the change in three instantaneous biometrics over time)
+    - in_components = [biometric1, biometric2, biometric2]
+    - out_components = [heart rate]
+    - in_chunk = [0, 0]
+    - out_chunk = [0, 0]
+- autoregressive univariate forecasting (predict a stock's value in 5 time steps given its value in the past)
+    - in_components = [stock,]
+    - out_components = [stock,]
+    - in_chunk = [0, 0]
+    - out_chunk = [5, 5]
+
 
 --------------------
 Splitting & Limiting
@@ -72,7 +99,7 @@ the excess data points from the end of the data block after shuffling or orderin
 Also note that if the data is limited too much for a given ``split_portion`` to have a single entry,
 an error will occur confirming it.
 
-Note that the 'custom' split has to be constructed during the data importing.
+Note that a 'custom' split can be constructed during the data importing.
 See the ``RawDataConverter`` module for more information.
 
 -------
@@ -80,10 +107,10 @@ Scaling
 -------
 
 After the data is split, a scaler is fit to the train set data
-which will be applied to all data being extracted for model training.
+which will be applied to all data being extracted for model training or inference.
 This is done with the ``DataScaler`` module and the corresponding ``scaling_method`` and ``scaling_tag``,
 data keyword arguments. More details can be found there, but we summarize the options here:
-    - scaling_method='z-norm': Features are scaled by subtracting the mean and dividing by the std.
+    - scaling_method='z-norm': Features are scaled by subtracting the mean and dividing by the standard deviation.
     - scaling_method='zero-one': Features are scaled linearly to be in the range (0, 1).
     - scaling_method=None: No scaling occurs.
     - scaling_tag='in_only': Only the input features will be scaled.
@@ -121,6 +148,13 @@ CustomClassificationDataset
 If the task is a classification task a ``CustomClassificationDataset`` will be used instead of ``CustomDataset``.
 ``CustomClassificationDataset`` inherits from ``CustomDataset`` and adds some classification specific methods.
 
+-------------------------------------
+CustomVariableLengthRegressionDataset
+-------------------------------------
+
+If the task is a variable length regression task a ``CustomVariableLengthRegressionDataset`` will be used instead of ``CustomDataset``.
+``CustomVariableLengthRegressionDataset`` inherits from ``CustomDataset`` and adds some variable length regression specific methods.
+
 -------------
 CustomSampler
 -------------
@@ -130,7 +164,7 @@ when ``PreparedDataset.get_dataloader()`` is called to generate a dataloader.
 This class supports three different modes of temporal contiguity.
     - 'independent': Time is contiguous within sequences (i.e. prediction points) but not enforced within or across batches.
     - 'sliding-window': Time is contiguous within sequences and across batches, as far as possible.
-    - 'inference': Time is contiguous within sequences and across batches, as far as possible. Also ensures that all prediction points occur exactly once across batches.
+    - 'variable_length': Time is contiguous within sequences and across batches, as far as possible. Batches are also variable (but uniform) in length.
 See the ``CustomSampler`` module for details.
 
 """
@@ -139,8 +173,8 @@ from __future__ import annotations
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
 __licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
-__description__ = ('Contains the PreparedDataset, CustomDataset, and CustomClassificationDataset, '
-                   'and CustomSampler class for Knowit.')
+__description__ = ('Contains the PreparedDataset, CustomSampler, CustomDataset, and CustomClassificationDataset, '
+                   'and CustomVariableLengthRegressionDataset class for Knowit.')
 
 # external imports
 from numpy import (array, random, unique, pad, isnan, arange, expand_dims, concatenate,
@@ -211,9 +245,12 @@ class PreparedDataset(BaseDataset):
         If None, no slice selection is performed.
     batch_sampling_mode : str | None
         The sampling mode for generating batches in the CustomSampler class.
-        Either 'independent' or 'sliding-window' or 'inference', as described in the CustomSampler module.
+        Either 'independent', 'sliding-window', or 'variable_length', as described in the CustomSampler module.
     slide_stride : int
         The stride used for the sliding-window approach, if selected.
+    variable_sequence_length_limit : int | None
+        If non-None value given and 'batch_sampling_mode' is 'variable_length',
+        the sequence lengths within a batch will be limited to the given value.
 
     Attributes
     ----------
@@ -268,6 +305,7 @@ class PreparedDataset(BaseDataset):
     min_slice = None
     batch_sampling_mode = None
     slide_stride = None
+    variable_sequence_length_limit = None
 
     # to be filled automatically
     x_map = None
@@ -309,6 +347,7 @@ class PreparedDataset(BaseDataset):
         self.task = kwargs['task']
         self.batch_sampling_mode = kwargs['batch_sampling_mode']
         self.slide_stride = kwargs['slide_stride']
+        self.variable_sequence_length_limit = kwargs['variable_sequence_length_limit']
 
         # Initiate the data preparation
         random.seed(self.seed)
@@ -330,19 +369,34 @@ class PreparedDataset(BaseDataset):
             A PyTorch derived Dataset for the specified dataset split.
         """
         if self.task == 'regression':
+            if self.batch_sampling_mode in ('variable_length', 'variable_length_inference'):
+                logger.error('Batch sampling mode %s is not supported for regression tasks. '
+                             'Did you mean to perform variable length regression (vl_regression)?',
+                             str(self.batch_sampling_mode))
+                exit(101)
             dataset = CustomDataset(self.get_extractor(), self.selection[set_tag],
                           self.x_map, self.y_map,
                           self.x_scaler, self.y_scaler,
                           self.in_chunk, self.out_chunk,
-                          self.padding_method,
-                          preload=preload)
+                          self.padding_method, preload=preload)
         elif self.task == 'classification':
+            if self.batch_sampling_mode in ('variable_length', 'variable_length_inference'):
+                logger.error('Batch sampling mode %s is not supported for classification tasks.',
+                             str(self.batch_sampling_mode))
+                exit(101)
             dataset = CustomClassificationDataset(self.get_extractor(), self.selection[set_tag],
                                                   self.x_map, self.y_map,
                                                   self.x_scaler, self.y_scaler,
                                                   self.in_chunk, self.out_chunk,
-                                                  self.class_set, self.padding_method,
+                                                  self.class_set,
+                                                  self.padding_method,
                                                   preload=preload)
+        elif self.task == 'vl_regression':
+            dataset = CustomVariableLengthRegressionDataset(self.get_extractor(), self.selection[set_tag],
+                                    self.x_map, self.y_map,
+                                    self.x_scaler, self.y_scaler,
+                                    self.in_chunk, self.out_chunk,
+                                    self.padding_method, preload=preload)
         else:
             logger.error('Unknown task: %s', self.task)
             exit(101)
@@ -384,13 +438,22 @@ class PreparedDataset(BaseDataset):
         and batch_sampling_mode will be set to `inference`.
         """
 
+        if self.task == 'vl_regression' and self.batch_sampling_mode not in ('variable_length', 'variable_length_inference'):
+            logger.error('batch_sampling_mode=%s is not supported for variable length tasks. '
+                         'Please ensure batch_sampling_mode=variable_length if task=vl_regression.',
+                         str(self.batch_sampling_mode))
+            exit(101)
+
         if set_tag == 'train' and not analysis:
             shuffle = self.shuffle_train
             drop_small = True
         else:
             shuffle = False
             drop_small = False
-            self.batch_sampling_mode = 'inference'
+            if self.batch_sampling_mode == 'variable_length':
+                self.batch_sampling_mode = 'variable_length_inference'
+            else:
+                self.batch_sampling_mode = 'inference'
 
         sampler = CustomSampler(selection=self.selection[set_tag],
                                 batch_size=self.batch_size,
@@ -399,7 +462,8 @@ class PreparedDataset(BaseDataset):
                                 mode=self.batch_sampling_mode,
                                 drop_small=drop_small,
                                 shuffle=shuffle,
-                                slide_stride=self.slide_stride)
+                                slide_stride=self.slide_stride,
+                                variable_sequence_length_limit=self.variable_sequence_length_limit)
 
         dataset = self.get_dataset(set_tag, preload=preload)
 
@@ -632,13 +696,16 @@ class CustomSampler(Sampler):
     seed : int, default=None
         Random seed for reproducibility.
     mode : str, default='independent'
-        Either 'independent', 'sliding-window' or 'inference', as described below.
+        Either 'independent', 'sliding-window', 'inference', 'variable_length' or 'variable_length_inference' as described below.
     drop_small : bool, default=True
         Whether to drop batches smaller than batch_size.
     shuffle : bool, default=True
         Whether to apply shuffling.
     slide_stride : int, default=1
         The stride used for the sliding-window approach, if selected.
+    variable_sequence_length_limit : int, default=None
+        If non-None value given and 'mode' is either 'variable_length' or 'variable_length_inference',
+        the sequence lengths within a batch will be limited to the given value.
 
     Attributes
     ----------
@@ -651,13 +718,16 @@ class CustomSampler(Sampler):
     seed : int, default=None
         Random seed for reproducibility.
     mode : str, default='independent'
-        Either 'independent' or 'sliding-window' or 'inference', as described below.
+        Either 'independent', 'sliding-window', 'inference', 'variable_length' or 'variable_length_inference' as described below.
     drop_small : bool, default=True
         Whether to drop batches smaller than batch_size.
     shuffle : bool, default=True
         Whether to apply shuffling.
     slide_stride : int, default=1
         The stride used for the sliding-window approach, if selected.
+    variable_sequence_length_limit : int, default=None
+        If non-None value given and 'mode' is either 'variable_length' or 'variable_length_inference',
+        the sequence lengths within a batch will be limited to the given value.
     batches : list
         The current set of batches that will be iterated over.
     epoch : int
@@ -668,12 +738,12 @@ class CustomSampler(Sampler):
         - mode='independent': Time is contiguous within sequences but not across batches.
         - mode='sliding-window': A sliding window approach is used to ensure that time is contiguous within sequences and across batches.
         - mode='inference': Same as 'sliding-window', but no shuffling, expansion for batch sizing, and striding.
-        - shuffle=False: Batches are constructed in dataset order as per the "selection" array.
+        - mode='variable_length': Similar to 'sliding-window' but the sequence lengths will be variable within batches.
+        - mode='variable_length_inference': Same as 'variable_length', but no shuffling or expansion for batch sizing.
+        - shuffle=False: Batches are constructed in dataset order as per the "selection" array. For variable length modes, slices will also be samples in descending order of length.
         - shuffle=True:
             - mode='independent': Sequences within and across batches are randomly shuffled.
-            - mode='sliding-window': Slices are shuffled before and after expansion,
-            and a random number of prediction points (between 0 and 10) at the start of each slice
-            are dropped before batches are constructed.
+            - mode='sliding-window' or 'variable_length': Slices are shuffled before and after expansion, and a random number of prediction points (between 0 and 10) at the start of each slice are dropped before batches are constructed.
     """
 
     def __init__(self,
@@ -684,7 +754,8 @@ class CustomSampler(Sampler):
                  mode: str = 'independent',
                  drop_small: bool = True,
                  shuffle: bool = True,
-                 slide_stride: int = 1) -> None:
+                 slide_stride: int = 1,
+                 variable_sequence_length_limit: int = None) -> None:
 
         self.selection = selection
         self.batch_size = batch_size
@@ -694,6 +765,7 @@ class CustomSampler(Sampler):
         self.drop_small = drop_small
         self.shuffle = shuffle
         self.slide_stride = slide_stride
+        self.variable_sequence_length_limit = variable_sequence_length_limit
 
         self.batches = []
         self.epoch = -1
@@ -749,6 +821,8 @@ class CustomSampler(Sampler):
         - 'independent': Generates batches without enforcing temporal continuity.
         - 'sliding-window': Generates batches using a sliding window approach for temporal consistency.
         - 'inference': Prepares batches for model inference.
+        - 'variable_length': Prepares variable length batches for model training.
+        - 'variable_length_inference': Prepares variable length batches for model inference.
 
         Additional checks are performed to ensure that batches meet size requirements.
         """
@@ -760,8 +834,12 @@ class CustomSampler(Sampler):
                 self._create_sliding_window_batches()
             elif self.mode == 'inference':
                 self._create_inference_batches()
+            elif self.mode == 'variable_length':
+                self._create_vl_batches()
+            elif self.mode == 'variable_length_inference':
+                self._create_vl_inference_batches()
             else:
-                logger.error('Unknown sampler mode %s. Expected (independent, sliding-window, or inference).',
+                logger.error('Unknown sampler mode %s. Expected (independent, sliding-window, inference, variable_length, or variable_length_inference).',
                              self.mode)
                 exit(101)
 
@@ -846,6 +924,176 @@ class CustomSampler(Sampler):
 
         # initiate batch sampling from contiguous slices
         self._block_sample_contiguous_batches(contiguous_slices)
+
+    def _create_vl_batches(self) -> None:
+        """
+        Create and compile variable-length batches from contiguous slices.
+
+        This method prepares training batches by first retrieving
+        contiguous slices, expanding them to match the batch size, and
+        optionally applying several randomization steps if `self.shuffle` is enabled.
+        The resulting slices are then compiled into uniform-length mini-batches using
+        :meth:`_compile_vl_batches`.
+
+        The workflow is as follows:
+          1. Retrieve contiguous slices.
+          2. If shuffling is enabled:
+             - Initialize a random number generator (RNG).
+             - Shuffle the contiguous slices.
+          3. Expand slices to satisfy the batch size requirement.
+          4. If shuffling is enabled:
+             - Shuffle the expanded slices again.
+             - Apply a random offset to the start of slices (drop points).
+          5. Compile the prepared slices into batches.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            The method updates the instance attribute `self.batches` in place.
+
+        Notes
+        -----
+        - Shuffling affects three stages: initial slices, expanded slices, and
+          optional random start-point dropping.
+        - The final batch construction is delegated to
+          :meth:`_compile_vl_batches`.
+
+        """
+
+        self.batches = []
+
+        # if shuffle is on prepare rng
+        rng = None
+        if self.shuffle:
+            rng = self._get_rng()
+
+        # retrieve contiguous slices
+        contiguous_slices = self._get_contiguous_slices()
+
+        # shuffle slices if shuffle is on
+        if self.shuffle:
+            rng.shuffle(contiguous_slices)
+
+        # expand contiguous slices to satisfy batch size
+        contiguous_slices = self._expand_contiguous_slices(contiguous_slices)
+
+        # shuffle expanded slices too, if shuffle is on
+        if self.shuffle:
+            rng.shuffle(contiguous_slices)
+
+        # if shuffle is on, drop a random number of prediction points at the start of slices
+        if self.shuffle:
+            contiguous_slices = self._random_drop_start(contiguous_slices, rng)
+
+        self.batches = self._compile_vl_batches(contiguous_slices)
+
+    def _create_vl_inference_batches(self) -> None:
+        """
+        Create variable-length batches for inference.
+
+        This method prepares batches specifically for inference by retrieving
+        contiguous slices, sorting them in descending order of
+        length, and compiling them into uniform-length mini-batches using
+        :meth:`_compile_vl_batches`.
+
+        Unlike training batch creation, no randomization or shuffling is applied.
+        Sorting by length ensures that longer sequences are grouped first, which
+        can improve efficiency during inference.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            The method updates the instance attribute `self.batches` in place.
+
+        Notes
+        -----
+        - Sorting slices by length helps minimize truncation overhead
+          when compiling batches.
+        - The final batch construction is handled by :meth:`_compile_vl_batches`.
+
+        """
+
+        self.batches = []
+        contiguous_slices = self._get_contiguous_slices()
+        contiguous_slices.sort(key=len, reverse=True)
+        self.batches = self._compile_vl_batches(contiguous_slices)
+
+    def _compile_vl_batches(self, slices: list) -> list:
+        """
+        Compile variable-length slices into uniform mini-batches.
+
+        This method groups a list of variable-length slices into batches of
+        equalized length by trimming them to the minimum length within each
+        candidate batch, or `self.variable_sequence_length_limit` if defined.
+        Remaining slice segments beyond the trimmed length
+        are recursively reprocessed until all input slices are consumed.
+
+        The batching process ensures that:
+          - Each batch contains slices truncated to the minimum length of
+            the batch (or `self.variable_sequence_length_limit`).
+          - Residual segments (after truncation) are re-queued for later batching.
+          - Empty slots in a candidate batch are filled with pending slices when possible.
+
+        Parameters
+        ----------
+        slices : list of list
+            A list of variable-length sequences (e.g., tokenized text, arrays, or
+            subsequences) to be grouped into uniform-length batches.
+
+        Returns
+        -------
+        list of list
+            A list of batches, where each batch is a list of truncated sequences
+            of equal length. Residual fragments are iteratively compiled until
+            no slices remain.
+
+        Notes
+        -----
+        - The batch size is determined by `self.batch_size`.
+        - Candidate batches may be smaller than `self.batch_size` if not enough
+          slices remain at the end of processing.
+
+        """
+
+        def _fill_empty(batch, to_compile):
+            """
+            Replace empty sequences in a batch with items from `to_compile`.
+            Drop any that remain empty if no replacements are available.
+            """
+            new_batch = []
+            for seq in batch:
+                if len(seq) == 0:
+                    if to_compile:
+                        new_batch.append(to_compile.pop(0))
+                else:
+                    new_batch.append(seq)
+            return new_batch, to_compile
+
+        batches = []
+        to_compile = slices.copy()
+
+        while to_compile:
+            candidate_batch, to_compile = _fill_empty(to_compile[:self.batch_size],
+                                                      to_compile[self.batch_size:])
+            if candidate_batch:
+                if self.variable_sequence_length_limit is not None:
+                    min_len = min(min(len(s), self.variable_sequence_length_limit) for s in candidate_batch)
+                else:
+                    min_len = min(len(s) for s in candidate_batch)
+                new_batch = [s[:min_len] for s in candidate_batch]
+                rest_batch = [s[min_len:] for s in candidate_batch]
+                batches.append(new_batch)
+                to_compile = rest_batch + to_compile
+
+        return batches
 
     def _block_sample_contiguous_batches(self, contiguous_slices: list) -> None:
         """
@@ -1320,6 +1568,11 @@ class CustomDataset(Dataset):
         self.padding_method = padding_method
         self.preload = preload
 
+        if self.in_chunk[0] == self.in_chunk[1] and self.padding_method not in ('constant', 'empty'):
+            logger.error('Data padding method %s with an input chunk size of 1 not supported. '
+                           'Choose padding method from (constant, empty).', self.padding_method)
+            exit(101)
+
         self.preloaded_slices = {}
         if preload:
             logger.info("Preloading relevant slices into memory. This could take a while, but speed up actual training.")
@@ -1404,20 +1657,74 @@ class CustomDataset(Dataset):
 
     @staticmethod
     def _sample_and_pad(slice_vals, selection, s_chunk, s_map, pad_mode):
+        """
+        Sample a block of time series components from a slice and pad as needed.
+
+        This method extracts a sub-sequence of time series data from `slice_vals`
+        according to the range specified in `s_chunk`, anchored at the slice index
+        indicated in `selection`. If the requested range extends beyond the available
+        time steps, the resulting array is padded according to `pad_mode`.
+
+        Parameters
+        ----------
+        slice_vals : ndarray of shape (num_time_steps, num_components)
+            The full time series data for the slice, where rows correspond to time
+            steps and columns to different components.
+
+        selection : ndarray of shape (3,)
+            A selection descriptor, where the third entry (`selection[2]`) represents
+            the index of the current time step around which to sample.
+
+        s_chunk : ndarray of shape (2,) or array-like
+            A two-element array specifying the relative range of time steps to
+            sample, inclusive. For example, `[-2, 2]` samples a window of 5
+            consecutive steps centered at `selection[2]`.
+
+        s_map : ndarray of shape (k,)
+            A 1D array specifying which component indices to extract from
+            `slice_vals`.
+
+        pad_mode : str
+            Padding mode passed to `numpy.pad`. Common modes include `'constant'`,
+            `'edge'`, and `'reflect'`.
+
+        Returns
+        -------
+        vals : ndarray of shape (window_size, len(s_map))
+            The sampled sub-sequence of time series components, padded if the
+            requested window extends outside the bounds of `slice_vals`. The
+            window size is defined as `s_chunk[1] - s_chunk[0] + 1`.
+
+        Notes
+        -----
+        - If the requested range falls completely outside the available time
+          steps, the method returns an array of shape `(window_size, len(s_map))`
+          consisting entirely of padded values.
+        - Padding is applied only along the time dimension. No padding occurs
+          along the component dimension.
+        - This method assumes `pad` refers to `numpy.pad`.
+        """
 
         far_left = 0
         far_right = slice_vals.shape[0]
         left = selection[2] + s_chunk[0]
         right = selection[2] + s_chunk[1]
 
-        vals = slice_vals[max(far_left, left): min(right, far_right) + 1, s_map]
-
-        if left < far_left:
-            pw = ((far_left - left, 0), (0, 0))
+        if right < far_left or left >= far_right:
+            vals = slice_vals[0:0, s_map]
+            pad_size = s_chunk[1] - s_chunk[0] + 1
+            pw = ((pad_size, 0), (0, 0))
             vals = pad(vals, pad_width=pw, mode=pad_mode)
-        if right >= far_right:
-            pw = ((0, right - far_right + 1), (0, 0))
-            vals = pad(vals, pad_width=pw, mode=pad_mode)
+        else:
+            corrected_left = max(far_left, left)
+            corrected_right = min(right, far_right)
+            vals = slice_vals[corrected_left: corrected_right + 1, s_map]
+            if left < far_left:
+                pw = ((far_left - left, 0), (0, 0))
+                vals = pad(vals, pad_width=pw, mode=pad_mode)
+            if right >= far_right:
+                pw = ((0, right - far_right + 1), (0, 0))
+                vals = pad(vals, pad_width=pw, mode=pad_mode)
 
         return vals
 
@@ -1431,7 +1738,7 @@ class CustomDataset(Dataset):
 
 
 class CustomClassificationDataset(CustomDataset):
-    """A custom dataset for deep time series classification models, using KnowIts data extraction protocols.
+    """A custom dataset for deep time series classification models, using KnowIt's data extraction protocols.
     Inherits from CustomDataset.
     """
     class_set = {}
@@ -1453,7 +1760,8 @@ class CustomClassificationDataset(CustomDataset):
         super().__init__(data_extractor, selection_matrix, x_map, y_map,
                          x_scaler, y_scaler,
                          in_chunk, out_chunk,
-                         padding_method, preload)
+                         padding_method,
+                         preload)
         self.class_set = class_set
 
     def _package_output(self, input_x, output_y, idx, ist_idx):
@@ -1470,6 +1778,46 @@ class CustomClassificationDataset(CustomDataset):
 
         sample = {'x': from_numpy(input_x).float(),
                   'y': output_y,
+                  's_id': idx, 'ist_idx': ist_idx}
+
+        return sample
+
+
+class CustomVariableLengthRegressionDataset(CustomDataset):
+    """A custom dataset for deep time series regression models that take variable length input, using KnowIt's data extraction protocols.
+    Inherits from CustomDataset.
+    """
+
+    def __init__(self, data_extractor, selection_matrix,
+                 x_map, y_map,
+                 x_scaler, y_scaler,
+                 in_chunk, out_chunk,
+                 padding_method,
+                 preload: bool = False) -> None:
+
+        if in_chunk[0] != in_chunk[1]:
+            logger.error('For variable length input modeling, input chunk size must be 1.')
+            exit(101)
+
+        if out_chunk[0] != out_chunk[1]:
+            logger.error('For variable length input modeling, output chunk size must be 1.')
+            exit(101)
+
+        super().__init__(data_extractor, selection_matrix, x_map, y_map,
+                         x_scaler, y_scaler,
+                         in_chunk, out_chunk,
+                         padding_method,
+                         preload)
+
+    def _package_output(self, input_x, output_y, idx, ist_idx):
+        """ Package the sample values for a basic variable length regression problem. """
+
+        if len(input_x.shape) == 3:
+            input_x = input_x.squeeze(axis=1)
+            output_y = output_y.squeeze(axis=1)
+
+        sample = {'x': from_numpy(input_x).float(),
+                  'y': from_numpy(output_y).float(),
                   's_id': idx, 'ist_idx': ist_idx}
 
         return sample

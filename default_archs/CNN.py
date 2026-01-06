@@ -60,6 +60,7 @@ Notes
     - All conv layers have bias parameters.
     - All non-bias weights are initialized with nn.init.kaiming_uniform_(parameters) if dimension allow, otherwise nn.init.normal_(parameters) is used.
     - All bias weights are initialized with nn.init.zeros_(parameters).
+    - Can also run in `variable length` mode (i.e. task='vl_regression'), where the number of timesteps in the input and output are equal.
 
 """ # noqa: INP001, D415, D400, D212, D205
 
@@ -77,7 +78,7 @@ from torch.nn.utils.parametrizations import weight_norm
 from helpers.logger import get_logger
 logger = get_logger()
 
-available_tasks = ('regression', 'classification', 'forecasting')
+available_tasks = ('regression', 'classification', 'forecasting', 'vl_regression')
 
 # The ranges for each hyperparameter (used later for Knowit Tuner module)
 HP_ranges_dict = {'depth': range(-1, 21, 1),
@@ -108,8 +109,7 @@ class Model(nn.Module):
         `out_chunk` corresponds to the number of output time steps, and `out_components` refers to
         the number of output features or channels.
     task_name : str
-        The type of task being performed by the model. Supported tasks include
-        'classification', 'regression', and 'forecasting'.
+        The type of task (classification, regression, or vl_regression).
     depth : int, default=-1
         The desired number of convolutional blocks to include in the CNN stage.
         If depth=-1, the minimum depth to ensure that the receptive field is larger than
@@ -220,6 +220,11 @@ class Model(nn.Module):
             logger.warning('Kernel size %s < dilation base %s. There will be holes in the receptive field of CNN.',
                            str(self.kernel_size), str(self.dilation_base))
 
+        if self.depth == -1 and self.task_name in ('vl_regression', ):
+            logger.error('CNN depth=-1 and task_name in (vl_regression, ). '
+                         'Depth cannot be automatically set for variable length inputs.')
+            exit(101)
+
         self.num_model_in_time_steps = input_dim[0]
         self.num_model_in_channels = input_dim[1]
         self.num_model_out_time_steps = output_dim[0]
@@ -285,12 +290,16 @@ class Model(nn.Module):
         Parameters
         ----------
         x : Tensor, shape=[batch_size, in_chunk, in_components]
-            An input tensor.
+            An input tensor. See below for shape exception.
 
         Returns
         -------
         Tensor, shape=[batch_size, out_chunk, out_components] or [batch_size, num_classes]
             Model output.
+
+        Notes
+        -----
+        - For 'vl_regression', the input tensor x will have the shape [batch_size, *, in_components], where * is variable length.
 
         """
         return self.network(x)
@@ -417,6 +426,9 @@ class FinalBlock(nn.Module):
         out = out.reshape(out.shape[0], self.desired_out_t, self.desired_out_c)
         return out
 
+    def vl_regress(self, x):
+        return x
+
     def forward(self, x):
         """
         Return output for an input batch, based on the specified task type.
@@ -445,6 +457,8 @@ class FinalBlock(nn.Module):
             return self.regress(x)
         elif self.task == 'forecasting':
             return x[:, -self.desired_out_t:, :]
+        elif self.task == 'vl_regression':
+            return self.vl_regress(x)
         else:
             logger.error(self.task + " not a valid task type!")
             raise ValueError(f"Invalid task type: {self.task}")

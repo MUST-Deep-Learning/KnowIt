@@ -175,28 +175,40 @@ class PLModel(pl.LightningModule):
             self.model.force_reset()
 
     def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Update model internal states if applicable."""
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
         if batch_idx == 0:
             if hasattr(self.model, 'force_reset'):
                 self.model.force_reset()
         else:
             if hasattr(self.model, 'update_states'):
                 self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+            if hasattr(self.model, 'hard_set_states'):
+                self.model.hard_set_states(batch['ist_idx'][-1])
 
     def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Update model internal states if applicable."""
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
         if hasattr(self.model, 'update_states'):
             self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
 
     def on_validation_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Update model internal states if applicable."""
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
         if hasattr(self.model, 'update_states'):
             self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
 
     def on_predict_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Update model internal states if applicable."""
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
         if hasattr(self.model, 'update_states'):
             self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
 
     def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
         """Compute loss and optional metrics, log metrics, and return the loss.
@@ -431,9 +443,12 @@ class PLModel(pl.LightningModule):
             self.loss_functions = prepare_function(user_args=self.loss, is_loss=True)
 
         for _function in self.loss_functions:
-            function, to_ohe = self.loss_functions[_function]
+            function, to_ohe, to_flatten = self.loss_functions[_function]
             if to_ohe:
                 y = argmax(y, dim=1).to(self.device)
+            if to_flatten[0]:
+                y = y.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
+                y_pred = y_pred.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
             loss = function(input=y_pred, target=y)
             log_metrics[loss_label] = loss
 
@@ -494,12 +509,15 @@ class PLModel(pl.LightningModule):
             self.perf_functions = prepare_function( user_args=self.performance_metrics, is_loss=False)
 
         for _function in self.perf_functions:
-            function, to_ohe = self.perf_functions[_function]
+            function, to_ohe, to_flatten = self.perf_functions[_function]
             if self.output_scaler is not None:
                 y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
                 y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
             if to_ohe:
                 y = argmax(y, dim=1).to(self.device)
+            if to_flatten[0]:
+                y = y.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
+                y_pred = y_pred.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
             val = function(preds=y_pred, target=y)
             log_metrics[perf_label + _function] = val
 
