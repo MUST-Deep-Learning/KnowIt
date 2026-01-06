@@ -17,12 +17,13 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from PIL import Image
 import matplotlib.animation as animation
 from matplotlib.lines import Line2D
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import pandas as pd
 
 # imports imports
 from env.env_paths import (learning_data_path,
                            model_args_path, model_predictions_dir,
-                           model_interpretations_dir, model_viz_dir, model_output_dir)
+                           model_interpretations_dir, model_viz_dir, model_output_dir, data_paths)
 from data.base_dataset import BaseDataset
 from setup.select_interpretation_points import get_predictions
 from helpers.file_dir_procs import yaml_to_dict, load_from_path
@@ -52,6 +53,8 @@ generic_dpi = 200
 quick_dpi = 100
 generic_cmap = 'plasma'
 color_cycle = ['green', 'orange', 'purple', 'cyan', 'pink', 'yellow']
+
+to_center_fa = True
 
 def get_color(tag: str) -> str:
     """ Returns a color based on a given string tag. """
@@ -244,10 +247,21 @@ def plot_set_predictions(exp_output_dir: str, model_name: str, data_tag: str) ->
     # fill gaps where necessary
     predictions, targets = compile_predictions_for_plot(predictions, targets, timestamps, instances)
 
+    # shift the prediction and target timestamps if out chunk does not start at the current point in time
+    out_chunk = model_args['data']['out_chunk']
+    if out_chunk[0] != 0:
+        # Assumes compiled predictions are contiguous time blocks
+        time_delta = predictions[0][0][1] - predictions[0][0][0]
+        for i in predictions:
+            predictions[i][0] += time_delta * out_chunk[0]
+        for i in targets:
+            targets[i][0] += time_delta * out_chunk[0]
+
+
     # call the relevant plot function for each instance separately
     save_dir = model_viz_dir(exp_output_dir, model_name)
     for i in instances:
-        if model_args['data']['task'] == 'regression':
+        if model_args['data']['task'] in ('regression', 'vl_regression'):
             plot_regression_set_prediction(i, predictions, targets, data_tag,
                                       model_args['data']['out_components'], save_dir)
         elif model_args['data']['task'] == 'classification':
@@ -399,16 +413,26 @@ def plot_regression_set_prediction(i: any, predictions: dict, targets: dict, dat
     y_hat = predictions[i][1]
     y = targets[i][1]
     y_time = y_hat.shape[1]
-    y_components = y_hat.shape[2]
+    y_components = len(out_components)
+
+    if y_time > 1:
+        colors = get_full_color_cycle([_ for _ in range(y_time)])
+    else:
+        colors = [predicted_color]
 
     for c in range(y_components):
         fig, ax = plt.subplots(1, 1, figsize=large_figsize)
         for t in range(y_time):
-            map = ax.plot(x, y[:, t, c],
-                          label='Target ' + out_components[c] + ' step ' + str(t), color=target_color)
+
+            # Assumes compiled predictions are contiguous time blocks
+            time_delta = predictions[0][0][1] - predictions[0][0][0]
+            shifted_x = x + (t * time_delta)
+            ax.plot(shifted_x, y[:, t, c],
+                    label='Target ' + out_components[c] + ' step ' + str(t), color=target_color)
             mae = np.nanmean(np.abs(y[:, t, c] - y_hat[:, t, c]))
-            ax.plot(x, y_hat[:, t, c],
-                    label='Predicted ' + out_components[c] + ' step ' + str(t) + ' (mae=' + str(mae) + ')', color=predicted_color)
+            ax.plot(shifted_x, y_hat[:, t, c],
+                    label='Predicted ' + out_components[c] + ' step ' + str(t) + ' (mae=' + str(mae) + ')', color=colors[t])
+
         ax.set_title(data_tag + ' instance: ' + str(i), fontsize=20)
         ax.set_xlabel('t', fontsize=20)
         ax.set_ylabel(str(out_components[c]) + '(t)', fontsize=20)
@@ -534,15 +558,174 @@ def plot_feature_attribution(exp_output_dir: str, model_name: str, interpretatio
     feat_att_dict = load_from_path(file_path)
     save_dir = model_viz_dir(exp_output_dir, model_name)
 
+    meta_path, package_path = data_paths(model_args['data']['name'], exp_output_dir)
+    model_args['data']['meta_path'] = meta_path
+    model_args['data']['package_path'] = package_path
+
     if model_args['data']['task'] == 'regression':
         running_animation_regression(feat_att_dict, save_dir, model_args, interpretation_file_name)
         mean_feat_att_regression(feat_att_dict, save_dir, model_args, interpretation_file_name)
         running_animation_regression(feat_att_dict, save_dir, model_args, interpretation_file_name, classic=True)
-
     elif model_args['data']['task'] == 'classification':
         running_animation_classification(feat_att_dict, save_dir, model_args, interpretation_file_name)
         mean_feat_att_classification(feat_att_dict, save_dir, model_args, interpretation_file_name)
         running_animation_classification(feat_att_dict, save_dir, model_args, interpretation_file_name, classic=True)
+    elif model_args['data']['task'] == 'vl_regression':
+        variable_length_feature_att_regression(feat_att_dict, save_dir, model_args, interpretation_file_name)
+    else:
+        logger.error('Unknown task type %s for feature attribution.', model_args['data']['task'])
+        exit(101)
+
+def variable_length_feature_att_regression(feat_att_dict: dict,
+                                           save_dir: str,
+                                           model_args: dict,
+                                           interpretation_file_name: str) -> None:
+
+    interpretation_name = os.path.splitext(interpretation_file_name)[0]
+
+    # get meta info about dataset that was interpreted on
+    in_comps = model_args['data']['in_components']
+    out_comps = model_args['data']['out_components']
+
+    # find instances relevant to current interpretation
+    i = np.array([feat_att_dict['timestamps'][t][0] for t in range(len(feat_att_dict['timestamps']))])
+    instances = list(set(i))
+
+    # for every relevant instance
+    for instance in instances:
+        relevant_to_i = np.argwhere(i == instance).squeeze()
+        if relevant_to_i.size == 1:
+            relevant_to_i = np.array([relevant_to_i])
+        s = np.array([feat_att_dict['timestamps'][pp][1] for pp in relevant_to_i])
+        slices = list(set(s))
+        # for every relevant (to current instance) slice
+        for slice in slices:
+            relevant_to_s = relevant_to_i[np.argwhere(s == slice).squeeze()]
+            if relevant_to_s.size == 1:
+                relevant_to_s = np.array([relevant_to_s])
+
+            y = np.array(feat_att_dict['targets'])[relevant_to_s]
+            y_hat = np.array(feat_att_dict['predictions'])[relevant_to_s]
+            t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
+
+            ic = feat_att_dict['input_features'][:, relevant_to_s, :]
+            t = [c for c in t]
+            # for every output component
+            for oc in range(len(out_comps)):
+                plot_data = {}
+                plot_data['t'] = t
+
+                # EXPERIMENTAL
+                # shift the prediction and target timestamps if out chunk does not start at the current point in time
+                time_delta = t[1] - t[0]
+                plot_data['t_shifted_output'] = [_ + time_delta * model_args['data']['out_chunk'][0] for _ in t]
+                plot_data['t_shifted_input'] = [_ + time_delta * model_args['data']['in_chunk'][0] for _ in t]
+                # EXPERIMENTAL
+
+                plot_data['y_hat'] = y_hat[:, :, oc]
+                plot_data['y'] = y[:, :, oc]
+                plot_data['ic'] = ic
+                plot_data['fa'] = []
+                plot_data['ip'] = []
+                file_name = interpretation_name + '_vl-i=' + str(instance) + '-s=' + str(
+                    slice) + '-oc=' + str(out_comps[oc]) + '.gif'
+                plot_save_path = os.path.join(save_dir, file_name)
+                for td in relevant_to_s:
+                    logit = (td, oc)
+                    fa = feat_att_dict['results'][logit]['attributions'][0][:, relevant_to_s, :].cpu().detach().numpy().squeeze()
+                    fa = fa.transpose()
+                    plot_data['fa'].append(fa)
+                    i_prediction = feat_att_dict['results'][logit]['i_predictions'][0][relevant_to_s, oc].squeeze()
+                    plot_data['ip'].append(i_prediction)
+                compile_variable_length_plot_animation(plot_data, plot_save_path, in_comps)
+
+def compile_variable_length_plot_animation(plot_data: dict, save_path: str, in_comps: list) -> None:
+
+    def construct_custom_legend(in_comps, colors):
+        """Creates a custom legend with prediction, target, and input component labels."""
+        custom_lines = [Line2D([0], [0], color=get_color('predicted'), lw=4)]
+        custom_names = ['prediction']
+        custom_lines.append(Line2D([0], [0], color=get_color('target'), lw=4))
+        custom_names.append('target')
+        custom_lines.append(Line2D([0], [0], color='white', lw=4, linestyle=':'))
+        custom_names.append('i_prediction')
+        for c in range(len(in_comps)):
+            custom_lines.append(Line2D([0], [0], color=colors[c], lw=4))
+            custom_names.append(in_comps[c])
+        return custom_lines, custom_names
+
+    def get_feature_att_range(plot_data):
+        """ Finds the minimum and maximum feature attribution value across all prediction points, including
+            internal feature attribution values (if present). """
+        min_val, max_val = None, None
+        for pp in plot_data['fa']:
+            min_val = pp.min() if min_val is None or pp.min() < min_val else min_val
+            max_val = pp.max() if max_val is None or pp.max() > max_val else max_val
+        return min_val, max_val
+
+    def update(step):
+        """Updates plot elements to animate each frame based on current time step data."""
+        pp_tick.set_xdata(plot_data['t'][step])
+        pp_tick_target.set_xdata(plot_data['t_shifted_output'][step])
+        feat_att_map.set_data(plot_data['fa'][step])
+        return_val = [pp_tick, pp_tick_target, feat_att_map]
+        return return_val
+
+    colors = get_full_color_cycle(in_comps)
+    custom_lines, custom_names = construct_custom_legend(in_comps, colors)
+
+    # create initial plot
+    fig = plt.figure(figsize=generic_figsize, dpi=generic_dpi)
+    num_rows = 2
+    gs = GridSpec(num_rows, 1, figure=fig)
+    ax = fig.add_subplot(gs[0, 0])
+    fax = fig.add_subplot(gs[1, 0])
+    prediction_curve = ax.plot(plot_data['t_shifted_output'], plot_data['y_hat'].squeeze(), c=get_color('predicted'),)[0]
+    target_curve = ax.plot(plot_data['t_shifted_output'], plot_data['y'].squeeze(), c=get_color('target'),)[0]
+    i_prediction_curve = ax.plot(plot_data['t_shifted_output'], plot_data['ip'][0], c='white', linestyle='--')[0]
+    pp_tick_target = ax.axvline(x=plot_data['t_shifted_output'][0], color="white", linestyle='--')
+    pp_tick = ax.axvline(x=plot_data['t'][0], color="grey", linestyle='-', alpha=0.5)
+    ax.legend(custom_lines, custom_names)
+    ic_curves = []
+    for ic in range(len(in_comps)):
+        t = plot_data['t_shifted_input']
+        f = plot_data['ic'][:, :, ic].squeeze()
+        ic_curves.append(ax.plot(t, f, c=colors[ic], alpha=0.9)[0])
+    min_val, max_val = get_feature_att_range(plot_data)
+
+    selected_cmap = generic_cmap
+    if to_center_fa:
+        abs_max = max(abs(max_val), abs(min_val))
+        min_val, max_val = -abs_max, abs_max
+        selected_cmap = custom_cmap
+
+    feat_att_map = fax.imshow(plot_data['fa'][0], cmap=selected_cmap, aspect='auto', vmin=min_val, vmax=max_val)
+    fax.set_xlabel('time (input)')
+
+    id_ticks, id_ticklabels = get_tick_params(np.array(plot_data['t_shifted_input']))
+    fax.set_xticks(id_ticks)
+    fax.set_xticklabels(id_ticklabels)
+    fax.set_yticks([x for x in range(len(in_comps))])
+
+    fax.set_yticks([x for x in range(len(in_comps))])
+    fax.set_yticklabels(in_comps)
+    divider = make_axes_locatable(fax)
+    cax = divider.append_axes('right', size='5%', pad=0.05)
+    cbar = fig.colorbar(feat_att_map, cax=cax, orientation='vertical')
+    cbar.set_label('feature attribution')
+
+    ax.set_xlabel('time')
+    ax.set_ylabel('feature value')
+    plt.tight_layout()
+    animation_fig = animation.FuncAnimation(fig, update,
+                                            frames=len(plot_data['fa']),
+                                            interval=200,
+                                            blit=True,
+                                            repeat_delay=10,
+                                            repeat=True, )
+
+    animation_fig.save(save_path, writer="pillow")
+    plt.close()
 
 def running_animation_classification(feat_att_dict: dict, save_dir: str, model_args: dict,
                                      interpretation_file_name: str, classic: bool = False) -> None:
@@ -623,6 +806,7 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
                     relevant_to_s = np.array([relevant_to_s])
                 y = np.array(feat_att_dict['targets'])[relevant_to_s]
                 y_hat = np.array(feat_att_dict['predictions'])[relevant_to_s]
+                i_y_hat = np.array(feat_att_dict['results'][logit]['i_predictions'])[relevant_to_s]#.squeeze(axis=1)
                 t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
                 t = [c for c in t]
                 plot_data = []
@@ -630,18 +814,19 @@ def running_animation_classification(feat_att_dict: dict, save_dir: str, model_a
                 for ts in relevant_to_s:
                     new_plot_data = {}
                     new_plot_data['prediction_curve'] = (t, y_hat[:, logit])
+                    new_plot_data['i_prediction_curve'] = (t, i_y_hat[:, logit])
                     new_plot_data['target_curve'] = (t, y[:, logit])
                     new_plot_data['pp_tick'] = t[ts_tick]
                     new_plot_data['chunk_0_tick'] = t[ts_tick] + t_delta * in_scan[0]
                     new_plot_data['chunk_1_tick'] = t[ts_tick] + t_delta * in_scan[-1]
-                    min_f = feat_att_dict['results'][logit]['attributions'][0][ts, :, :].abs().min().item()
-                    max_f = feat_att_dict['results'][logit]['attributions'][0][ts, :, :].abs().max().item()
-                    upper_threshold = np.percentile(feat_att_dict['results'][logit]['attributions'][0][ts, :, :].abs().detach().cpu().numpy(), 95)
+                    min_f = feat_att_dict['results'][logit]['attributions'][0][ts, :, :].min().item()
+                    max_f = feat_att_dict['results'][logit]['attributions'][0][ts, :, :].max().item()
+                    upper_threshold = np.percentile(feat_att_dict['results'][logit]['attributions'][0][ts, :, :].detach().cpu().numpy(), 95)
                     ic_curves = defaultdict(list)
                     new_plot_data['ic_curve_attributions'] = defaultdict(list)
                     for ic in range(len(in_comps)):
                         for in_delay in range(1 + in_chunk[1] - in_chunk[0]):
-                            feature_attribution_val = feat_att_dict['results'][logit]['attributions'][0][ts, in_delay, ic].abs().cpu().item()
+                            feature_attribution_val = feat_att_dict['results'][logit]['attributions'][0][ts, in_delay, ic].cpu().item()
                             alpha = scale_alpha(min_f, max_f, feature_attribution_val)
                             if feature_attribution_val > upper_threshold:
                                 alpha=2.
@@ -763,6 +948,7 @@ def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args:
                         relevant_to_s = np.array([relevant_to_s])
                     y = np.array(feat_att_dict['targets'])[relevant_to_s]
                     y_hat = np.array(feat_att_dict['predictions'])[relevant_to_s]
+                    i_y_hat = np.array(feat_att_dict['results'][logit]['i_predictions'])[relevant_to_s]
                     t = np.array(feat_att_dict['timestamps'])[relevant_to_s][:, 2]
                     t = [c for c in t]
                     plot_data = []
@@ -770,18 +956,23 @@ def running_animation_regression(feat_att_dict: dict, save_dir: str, model_args:
                     for ts in relevant_to_s:
                         new_plot_data = {}
                         new_plot_data['prediction_curve'] = (t, y_hat[:, out_delay, oc])
+                        new_plot_data['i_prediction_curve'] = (t, i_y_hat[:, out_delay, oc])
                         new_plot_data['target_curve'] = (t, y[:, out_delay, oc])
                         new_plot_data['pp_tick'] = t[ts_tick]
                         new_plot_data['chunk_0_tick'] = t[ts_tick] + t_delta * in_scan[0]
                         new_plot_data['chunk_1_tick'] = t[ts_tick] + t_delta * in_scan[-1]
-                        min_f = feat_att_dict['results'][logit]['attributions'][0][ts, :, :].abs().min().item()
-                        max_f = feat_att_dict['results'][logit]['attributions'][0][ts, :, :].abs().max().item()
-                        upper_threshold = np.percentile(feat_att_dict['results'][logit]['attributions'][0][ts, :, :].abs().detach().cpu().numpy(), 95)
+                        min_f = feat_att_dict['results'][logit]['attributions'][0][ts, :, :].min().item()
+                        max_f = feat_att_dict['results'][logit]['attributions'][0][ts, :, :].max().item()
+                        upper_threshold = np.percentile(
+                            feat_att_dict['results'][logit]['attributions'][0][ts, :, :].detach().cpu().numpy(), 95)
+
                         ic_curves = defaultdict(list)
                         new_plot_data['ic_curve_attributions'] = defaultdict(list)
                         for ic in range(len(in_comps)):
                             for in_delay in range(1 + in_chunk[1] - in_chunk[0]):
-                                feature_attribution_val = feat_att_dict['results'][logit]['attributions'][0][ts, in_delay, ic].abs().cpu().item()
+                                feature_attribution_val = feat_att_dict['results'][logit]['attributions'][0][
+                                    ts, in_delay, ic].cpu().item()
+
                                 alpha = scale_alpha(min_f, max_f, feature_attribution_val)
                                 if feature_attribution_val > upper_threshold:
                                     alpha=2.
@@ -852,23 +1043,14 @@ def compile_running_plot_animation(plot_data: list, save_path: str, in_comps: li
     - The function requires `pillow` for .gif saving.
     """
 
-    def get_full_color_cycle(options):
-        """"Generates a color cycle list for input components based on the given color options."""
-        colors = []
-        c_tick = 0
-        for c in range(len(options)):
-            colors.append(color_cycle[c_tick])
-            c_tick += 1
-            if c_tick == len(color_cycle) - 1:
-                c_tick = 0
-        return colors
-
     def construct_custom_legend(in_comps, colors):
         """Creates a custom legend with prediction, target, and input component labels."""
         custom_lines = [Line2D([0], [0], color=get_color('predicted'), lw=4)]
         custom_names = ['prediction']
         custom_lines.append(Line2D([0], [0], color=get_color('target'), lw=4))
         custom_names.append('target')
+        custom_lines.append(Line2D([0], [0], color='white', lw=4, linestyle=':'))
+        custom_names.append('i_prediction')
         for c in range(len(in_comps)):
             custom_lines.append(Line2D([0], [0], color=colors[c], lw=4))
             custom_names.append(in_comps[c])
@@ -881,6 +1063,8 @@ def compile_running_plot_animation(plot_data: list, save_path: str, in_comps: li
         prediction_curve.set_ydata(p['prediction_curve'][1])
         target_curve.set_xdata(p['target_curve'][0])
         target_curve.set_ydata(p['target_curve'][1])
+        i_prediction_curve.set_xdata(p['i_prediction_curve'][0])
+        i_prediction_curve.set_ydata(p['i_prediction_curve'][1])
         pp_tick.set_xdata(p['pp_tick'])
         chunk_0_tick.set_xdata(p['chunk_0_tick'])
         chunk_1_tick.set_xdata(p['chunk_1_tick'])
@@ -900,7 +1084,7 @@ def compile_running_plot_animation(plot_data: list, save_path: str, in_comps: li
                     ic_dots[ticker].set(alpha=1.0, marker='*', markersize=20.)
                 ticker += 1
 
-        return_val = [prediction_curve, target_curve, pp_tick, chunk_0_tick, chunk_1_tick]
+        return_val = [prediction_curve, target_curve, i_prediction_curve, pp_tick, chunk_0_tick, chunk_1_tick]
         for ic in range(len(ic_curves)):
             return_val.append(ic_curves[ic])
         for d in range(len(ic_dots)):
@@ -922,6 +1106,7 @@ def compile_running_plot_animation(plot_data: list, save_path: str, in_comps: li
 
     prediction_curve = ax.plot(p['prediction_curve'][0], p['prediction_curve'][1], c=get_color('predicted'),)[0]
     target_curve = ax.plot(p['target_curve'][0], p['target_curve'][1], c=get_color('target'))[0]
+    i_prediction_curve = ax.plot(p['i_prediction_curve'][0], p['i_prediction_curve'][1], c='white', linestyle=':')[0]
     pp_tick = ax.axvline(x=p['pp_tick'], color="grey", linestyle='-', alpha=0.5)
     chunk_0_tick = ax.axvline(x=p['chunk_0_tick'], color="grey", linestyle='--', alpha=0.5)
     chunk_1_tick = ax.axvline(x=p['chunk_1_tick'], color="grey", linestyle='--', alpha=0.5)
@@ -987,16 +1172,6 @@ def compile_classic_plot_animation(plot_data: list, save_path: str, in_comps: li
     - A color bar indicating feature attribution intensity is displayed alongside the animation.
 
     """
-    def get_full_color_cycle(options):
-        """"Generates a color cycle list for input components based on the given color options."""
-        colors = []
-        c_tick = 0
-        for c in range(len(options)):
-            colors.append(color_cycle[c_tick])
-            c_tick += 1
-            if c_tick == len(color_cycle) - 1:
-                c_tick = 0
-        return colors
 
     def construct_custom_legend(in_comps, colors):
         """Creates a custom legend with prediction, target, and input component labels."""
@@ -1004,25 +1179,29 @@ def compile_classic_plot_animation(plot_data: list, save_path: str, in_comps: li
         custom_names = ['prediction']
         custom_lines.append(Line2D([0], [0], color=get_color('target'), lw=4))
         custom_names.append('target')
+        custom_lines.append(Line2D([0], [0], color='white', lw=4, linestyle=':'))
+        custom_names.append('i_prediction')
         for c in range(len(in_comps)):
             custom_lines.append(Line2D([0], [0], color=colors[c], lw=4))
             custom_names.append(in_comps[c])
         return custom_lines, custom_names
 
-    def get_feature_att_range(feat_atts):
+    def get_feature_att_range(feat_atts, mode='input'):
         """ Finds the minimum and maximum feature attribution value across all prediction points, including
             internal feature attribution values (if present). """
         min_val, max_val = None, None
         for pp in feat_atts:
             for ic in pp['ic_curves']:
-                val1 = pp['ic_curve_attributions'][ic]
-                min_val = min(val1) if min_val is None or min(val1) < min_val else min_val
-                max_val = min(val1) if max_val is None or min(val1) > max_val else max_val
-                if 'internal_state_attribution' in plot_data[0].keys():
-                    for i in range(len(pp['internal_state_attribution'])):
-                        val2 = pp['internal_state_attribution'][i]
-                        min_val = val2.min().item() if min_val is None or val2.min().item() < min_val else min_val
-                        max_val = val2.max().item() if max_val is None or val2.max().item() > max_val else max_val
+                if mode == 'input':
+                    val1 = pp['ic_curve_attributions'][ic]
+                    min_val = min(val1) if min_val is None or min(val1) < min_val else min_val
+                    max_val = max(val1) if max_val is None or max(val1) > max_val else max_val
+                elif mode == 'internal':
+                    if 'internal_state_attribution' in plot_data[0].keys():
+                        for i in range(len(pp['internal_state_attribution'])):
+                            val2 = pp['internal_state_attribution'][i]
+                            min_val = val2.min().item() if min_val is None or val2.min().item() < min_val else min_val
+                            max_val = val2.max().item() if max_val is None or val2.max().item() > max_val else max_val
         return min_val, max_val
 
     def update(step):
@@ -1032,6 +1211,8 @@ def compile_classic_plot_animation(plot_data: list, save_path: str, in_comps: li
         prediction_curve.set_ydata(p['prediction_curve'][1])
         target_curve.set_xdata(p['target_curve'][0])
         target_curve.set_ydata(p['target_curve'][1])
+        i_prediction_curve.set_xdata(p['i_prediction_curve'][0])
+        i_prediction_curve.set_ydata(p['i_prediction_curve'][1])
         pp_tick.set_xdata(p['pp_tick'])
         chunk_0_tick.set_xdata(p['chunk_0_tick'])
         chunk_1_tick.set_xdata(p['chunk_1_tick'])
@@ -1045,7 +1226,7 @@ def compile_classic_plot_animation(plot_data: list, save_path: str, in_comps: li
         h_map = np.array(h_map)
         feat_att_map.set_data(h_map)
 
-        return_val = [prediction_curve, target_curve, pp_tick, chunk_0_tick, chunk_1_tick]
+        return_val = [prediction_curve, target_curve, i_prediction_curve, pp_tick, chunk_0_tick, chunk_1_tick]
         for ic in range(len(ic_curves)):
             return_val.append(ic_curves[ic])
         return_val.append(feat_att_map)
@@ -1071,8 +1252,9 @@ def compile_classic_plot_animation(plot_data: list, save_path: str, in_comps: li
     p = plot_data[0]
     ax = fig.add_subplot(gs[0, 0])
     fax = fig.add_subplot(gs[1, 0])
-    prediction_curve = ax.plot(p['prediction_curve'][0], p['prediction_curve'][1], c=get_color('predicted'),)[0]
+    prediction_curve = ax.plot(p['prediction_curve'][0], p['prediction_curve'][1], c=get_color('predicted'))[0]
     target_curve = ax.plot(p['target_curve'][0], p['target_curve'][1], c=get_color('target'))[0]
+    i_prediction_curve = ax.plot(p['i_prediction_curve'][0], p['i_prediction_curve'][1], c='white', linestyle=':')[0]
     pp_tick = ax.axvline(x=p['pp_tick'], color="grey", linestyle='-', alpha=0.5)
     chunk_0_tick = ax.axvline(x=p['chunk_0_tick'], color="grey", linestyle='--', alpha=0.5)
     chunk_1_tick = ax.axvline(x=p['chunk_1_tick'], color="grey", linestyle='--', alpha=0.5)
@@ -1085,8 +1267,13 @@ def compile_classic_plot_animation(plot_data: list, save_path: str, in_comps: li
         ic_curves.append(ax.plot(t, f, c=colors[ic], alpha=0.9)[0])
         h_map.append(p['ic_curve_attributions'][ic])
     h_map = np.array(h_map)
-    min_val, max_val = get_feature_att_range(plot_data)
-    feat_att_map = fax.imshow(h_map, cmap=generic_cmap, aspect='auto', vmin=min_val, vmax=max_val)
+    min_val, max_val = get_feature_att_range(plot_data, mode='input')
+    selected_cmap = generic_cmap
+    if to_center_fa:
+        abs_max = max(abs(max_val), abs(min_val))
+        min_val, max_val = -abs_max, abs_max
+        selected_cmap = custom_cmap
+    feat_att_map = fax.imshow(h_map, cmap=selected_cmap, aspect='auto', vmin=min_val, vmax=max_val)
     fax.set_xlabel('input delay')
     id_ticks, id_ticklabels = get_tick_params(p['in_scan'])
     fax.set_xticks(id_ticks)
@@ -1099,6 +1286,7 @@ def compile_classic_plot_animation(plot_data: list, save_path: str, in_comps: li
     cbar.set_label('feature attribution')
 
     if 'internal_state_attribution' in plot_data[0].keys():
+        min_val, max_val = get_feature_att_range(plot_data, mode='internal')
         internal_att_ax = fig.add_subplot(gs[2, 0])
         ia_curves = []
         for i in range(len(plot_data[0]['internal_state_attribution'])):
@@ -1302,6 +1490,11 @@ def plot_mean(t: list, feature_attributions: np.array, save_path: str, in_comps:
     mean_across_comp = np.mean(feature_attributions, axis=2)
     max_mean = max(np.max(mean_across_pp), np.max(mean_across_delays), np.max(mean_across_comp))
     min_mean = min(np.min(mean_across_pp), np.min(mean_across_delays), np.min(mean_across_comp))
+    selected_cmap = generic_cmap
+    # if to_center_fa:
+    #     abs_max = max(abs(max_mean), abs(min_mean))
+    #     min_mean, max_mean = -abs_max, abs_max
+    #     selected_cmap = custom_cmap
 
     # determine prediction point and input delay ticks
     t = np.array(t)
@@ -1313,7 +1506,7 @@ def plot_mean(t: list, feature_attributions: np.array, save_path: str, in_comps:
 
     # plot cross prediction point heatmap and set visual parameters
     map1 = ax[0, 0].imshow(mean_across_pp.transpose(),
-                           aspect='auto', cmap=generic_cmap,
+                           aspect='auto', cmap=selected_cmap,
                            vmax=max_mean, vmin=min_mean)
     ax[0, 0].set_yticks([y for y in range(len(in_comps))])
     ax[0, 0].set_yticklabels(in_comps)
@@ -1328,7 +1521,7 @@ def plot_mean(t: list, feature_attributions: np.array, save_path: str, in_comps:
 
     # plot cross input delay heatmap and set visual parameters
     ax[0, 1].imshow(mean_across_delays.transpose(),
-                           aspect='auto', cmap=generic_cmap,
+                           aspect='auto', cmap=selected_cmap,
                            vmax=max_mean, vmin=min_mean)
     ax[0, 1].set_yticks([y for y in range(len(in_comps))])
     ax[0, 1].set_yticklabels(in_comps)
@@ -1341,7 +1534,7 @@ def plot_mean(t: list, feature_attributions: np.array, save_path: str, in_comps:
 
     # plot cross input component heatmap and set visual parameters
     ax[1, 0].imshow(mean_across_comp,
-                           aspect='auto', cmap=generic_cmap,
+                           aspect='auto', cmap=selected_cmap,
                            vmax=max_mean, vmin=min_mean)
     ax[1, 0].set_yticks(pp_ticks)
     ax[1, 0].set_yticklabels(pp_ticklabels)
@@ -1378,7 +1571,19 @@ def plot_mean(t: list, feature_attributions: np.array, save_path: str, in_comps:
 # MISC
 # ----------------------------------------------------------------------------------------------------------------------
 
+def get_full_color_cycle(options):
+    """"Generates a color cycle list for input components based on the given color options."""
+    colors = []
+    c_tick = 0
+    for c in range(len(options)):
+        colors.append(color_cycle[c_tick])
+        c_tick += 1
+        if c_tick == len(color_cycle):
+            c_tick = 0
+    return colors
+
 def get_tick_params(points, num_ticks=5):
+
     if len(points) > 10:
         step = int(len(points) / num_ticks)
         ticks = np.array([x for x in range(step, len(points), step)])
@@ -1386,7 +1591,41 @@ def get_tick_params(points, num_ticks=5):
     else:
         ticks = [tick for tick in range(len(points))]
         ticklabels = points
+
+    if ticklabels.dtype in ('object', ):
+        try:
+            ticklabels = minimal_time_labels(ticklabels)
+        except:
+            pass
     return ticks, ticklabels
+
+def minimal_time_labels(times, to_keep=3):
+    dt_index = pd.to_datetime(times)
+
+    # All possible components in order
+    components = [
+        ("year", "%Y", dt_index.year),
+        ("month", "%b", dt_index.month),
+        ("day", "%d", dt_index.day),
+        ("hour", "%H", dt_index.hour),
+        ("minute", "%M", dt_index.minute),
+        ("second", "%S", dt_index.second),
+        ("ms", "%f", dt_index.microsecond // 1000),   # show millis
+        ("us", "%f", (dt_index.microsecond % 1000)),  # show micros
+        ("ns", "%f", dt_index.nanosecond),            # show nanos
+    ]
+
+    # Which components vary
+    vary = [len(vals.unique()) > 1 for _, _, vals in components]
+    first_vary = np.where(vary)[0]
+
+    fmt_parts = []
+    for i, (name, fmt, vals) in enumerate(components):
+        if i > first_vary - to_keep and len(fmt_parts) < to_keep:
+            fmt_parts.append(fmt)
+
+    fmt = ":".join(fmt_parts)
+    return [ts.strftime(fmt) for ts in dt_index]
 
 def create_gif(save_dir, image_paths, name='animate.gif'):
 
@@ -1425,3 +1664,27 @@ def create_gif(save_dir, image_paths, name='animate.gif'):
     # plt.save(save_path, animation_fig)
 
     plt.close()
+
+def get_custom_cmap():
+    N = 1024
+
+    vals = np.zeros((N, 4))
+
+    cap = int(N / 2)
+    # r
+    vals[:cap, 0] = np.linspace(1, 0, cap)
+    # g
+    vals[cap:, 1] = np.linspace(0, 1, cap)
+    # rest up with g
+    vals[cap:, 0] = np.linspace(0, 0.8, cap) * np.linspace(0, 0.8, cap)
+    vals[cap:, 2] = np.linspace(0, 0.8, cap) * np.linspace(0, 0.8, cap)
+    # rest down with r
+    vals[:cap, 1] = np.linspace(0.8, 0, cap) * np.linspace(0.8, 0, cap)
+    vals[:cap, 2] = np.linspace(0.8, 0, cap) * np.linspace(0.8, 0, cap)
+
+    vals[:, 3] = 1.
+
+    newcmp = ListedColormap(vals)
+    return newcmp
+
+custom_cmap = get_custom_cmap()
