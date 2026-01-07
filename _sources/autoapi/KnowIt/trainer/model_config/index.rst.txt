@@ -1,0 +1,190 @@
+KnowIt.trainer.model_config
+===========================
+
+.. py:module:: KnowIt.trainer.model_config
+
+.. autoapi-nested-parse::
+
+   -------
+   PLModel
+   -------
+
+   The "PLModel" class is required in order to be able to use Pytorch Lightning's
+   Trainer. It initializes a Pytorch model and defines the train, validation, and
+   test steps as well as the optimizers and any learning rate schedulers.
+
+   For more information, see Pytorch Lightning's documentation here:
+   https://lightning.ai/docs/pytorch/stable/common/lightning_module.html
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.trainer.model_config.PLModel
+
+
+Module Contents
+---------------
+
+.. py:class:: PLModel(loss, learning_rate, optimizer, learning_rate_scheduler, performance_metrics, model, model_params, output_scaler = None)
+
+   Bases: :py:obj:`pytorch_lightning.LightningModule`
+
+
+   Wrapper class to prepare model for Pytorch Lightning's Trainer.
+
+   The class initializes a Pytorch model and defines the training,
+   validation, and test steps over a batch. The optimizer configuration is
+   also set inside this class. This is required for Pytorch Lightning's
+   Trainer.
+
+   :Parameters: * **loss** (:py:class:`str`, :py:class:`dict[str`, :py:class:`Any]`) -- The loss function to be used during training. The string must match the
+                  name in Pytorch's functional library. See:
+                  https://pytorch.org/docs/stable/nn.functional.html#loss-functions
+                * **learning_rate** (:py:class:`float`) -- The learning rate to be used during training.
+                * **optimizer** (:py:class:`str | dict[str`, :py:class:`Any]`) -- The optimizer to be used during training. The string must match the
+                  name in Pytorch's optimizer library. See:
+                  https://pytorch.org/docs/stable/nn.functional.html#loss-functions
+                * **learning_rate_scheduler** (:py:class:`None | str | dict[str`, :py:class:`Any]`, *default* :py:obj:`None`) -- The learning rate scheduler to be used during training. If not None, a
+                  dictionary must be given of the form
+
+                      ``{scheduler: scheduler_kwargs}``
+
+                  where
+                      scheduler:  A string that specifies the Pytorch scheduler to be
+                      used. Must match names found here:
+                      https://pytorch.org/docs/stable/optim.html#module-torch.optim.lr_scheduler
+
+                      scheduler_kwargs: A dictionary of kwargs required for 'scheduler'.
+                * **performance_metrics** (:py:class:`None | str | dict[str`, :py:class:`Any]`, *default* :py:obj:`None`) -- Performance metrics to be logged during training. If type=dict, then
+                  the dictionary must be given of the form
+
+                      ``{metric: metric_kwargs}``
+
+                  where
+                      metric: A string that specifies the TORCHMETRICS metric to be
+                      used. Must match the functional interface names found here:
+                      https://lightning.ai/docs/torchmetrics/stable/
+
+                      metric_kwargs: A dictionary of kwargs required for 'metric'.
+                * **model** (:py:class:`Module`) -- An unitialized Pytorch model class defined in the user's model direc-
+                  tory.
+                * **model_params** (:py:class:`dict[str`, :py:class:`Any]`) -- The parameters needed to instantiate the above Pytorch model class.
+                * **output_scaler** (:py:class:`None | object`, *default* :py:obj:`None`) -- The scaling object to rescale the model outputs to original ranges (if applicable)
+                  during performance calculations. Must have an appropriate `inverse_transform` function.
+                  If None, no rescaling is performed. Note, only applicable to logged metrics,
+                  gradients are still calculated with scaled outputs (if applicable).
+
+   :ivar loss: Stores the name of the loss function to be used during training and any
+               additional kwargs if needed.
+
+   :vartype loss: :py:class:`str`, :py:class:`dict[str`, :py:class:`Any]`
+   :ivar lr: Stores the value of the learning rate to be used during training.
+
+   :vartype lr: :py:class:`float`
+   :ivar lr_scheduler: Stores the name of the learning rate scheduler to be used during
+                       training and any additional kwargs if needed.
+
+   :vartype lr_scheduler: :py:class:`None | str | dict[str`, :py:class:`Any]`
+   :ivar optimizer: Stores the name of the optimizer to be used during training and any
+                    additional kwargs if needed.
+
+   :vartype optimizer: :py:class:`str | dict[str`, :py:class:`Any]`
+   :ivar performance_metrics: Stores the name of the performance metric(s) to be used during training
+                              and any additional kwargs if needed.
+
+   :vartype performance_metrics: :py:class:`None | str | dict[str`, :py:class:`Any]`, *default* :py:obj:`None`
+   :ivar output_scaler: The scaling object to rescale the model outputs to original ranges (if applicable)
+                        during performance calculations. Must have an appropriate `inverse_transform` function.
+                        If None, no rescaling is performed. Note, only applicable to logged metrics,
+                        gradients are still calculated with scaled outputs (if applicable).
+
+   :vartype output_scaler: :py:class:`None | object`, *default* :py:obj:`None`
+   :ivar model: An initialized Pytorch model.
+   :vartype model: :py:class:`Module`
+
+
+   .. py:method:: on_train_epoch_end()
+
+      Set the next training epoch number in the CustomSampler.
+
+      This is done to manage potential stochasticity (which is connected to the epoch number).
+
+
+
+
+   .. py:method:: on_train_epoch_start()
+
+      Reset the model internal states for new training epoch.
+
+
+
+   .. py:method:: on_validation_epoch_start()
+
+      Reset the model internal states for new validation epoch.
+
+
+
+   .. py:method:: on_test_batch_start(batch, batch_idx, dataloader_idx=0)
+
+      Update model internal states if applicable. Also hard sets the internal states to the
+      final prediction point in the batch in case of variable length inputs.
+
+
+
+   .. py:method:: on_train_batch_start(batch, batch_idx, dataloader_idx=0)
+
+      Update model internal states if applicable. Also hard sets the internal states to the
+      final prediction point in the batch in case of variable length inputs.
+
+
+
+   .. py:method:: on_validation_batch_start(batch, batch_idx, dataloader_idx=0)
+
+      Update model internal states if applicable. Also hard sets the internal states to the
+      final prediction point in the batch in case of variable length inputs.
+
+
+
+   .. py:method:: on_predict_batch_start(batch, batch_idx, dataloader_idx=0)
+
+      Update model internal states if applicable. Also hard sets the internal states to the
+      final prediction point in the batch in case of variable length inputs.
+
+
+
+   .. py:method:: training_step(batch, batch_idx)
+
+      Compute loss and optional metrics, log metrics, and return the loss.
+
+      Overrides the method in pl.LightningModule.
+
+
+
+   .. py:method:: validation_step(batch, batch_idx)
+
+      Compute loss and optional metrics, log metrics, and return the loss.
+
+      Overrides the method in pl.LightningModule.
+
+
+
+   .. py:method:: test_step(batch, batch_idx, dataloader_idx)
+
+      Compute loss and optional metrics, log metrics and return the log.
+
+      Overrides the method in pl.LightningModule.
+
+
+
+   .. py:method:: configure_optimizers()
+
+      Return configured optimizer and optional learning rate scheduler.
+
+      Overrides the method in pl.LightningModule.
+
+
+

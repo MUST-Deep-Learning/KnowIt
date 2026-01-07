@@ -1,0 +1,75 @@
+KnowIt.setup.setup_action_args
+==============================
+
+.. py:module:: KnowIt.setup.setup_action_args
+
+.. autoapi-nested-parse::
+
+   ----------------
+   Action arguments
+   ----------------
+
+   The user interacts with KnowIt by sending arguments or paths to external files.
+   This script contains a function ``setup_relevant_args`` that checks arguments.
+
+    - The presence of required arguments are ensured.
+    - Errors are raised if any unknown arguments are encountered.
+    - Default values for optional arguments, that are not given, are provided here.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   KnowIt.setup.setup_action_args.setup_relevant_args
+   KnowIt.setup.setup_action_args.setup_type_args
+
+
+Module Contents
+---------------
+
+.. py:function:: setup_relevant_args(experiment_dict, required_types = None)
+
+   Set up relevant arguments from `experiment_dict` based on specified types.
+
+   This function verifies that `experiment_dict` includes required argument types, if provided.
+   It then initializes and returns a dictionary of arguments only for valid types by calling
+   `setup_type_args`. If an argument type in `experiment_dict` is not recognized, a warning is
+   issued.
+
+   :Parameters: * **experiment_dict** (:py:class:`dict`) -- Dictionary containing experimental argument configurations by type.
+                * **required_types** (:py:class:`tuple`, *optional*) -- Tuple of argument types that must be present in `experiment_dict`. If any required types
+                  are missing, an error is logged, and execution is stopped.
+
+   :returns: Dictionary of argument configurations for valid types in `experiment_dict`.
+   :rtype: :py:class:`dict`
+
+   :raises SystemExit: If required types are specified but not all are found in `experiment_dict`.
+
+   .. warning:: Logs a warning for any unrecognized argument types in `experiment_dict`.
+
+
+.. py:function:: setup_type_args(experiment_dict, arg_type)
+
+   Compiles relevant arguments for a given argument type from `experiment_dict`.
+
+   This function retrieves required and optional arguments for the specified `arg_type` from
+   `experiment_dict`, utilizing `arg_dict` as a reference for expected arguments. If a required
+   argument is missing, an error is logged, and execution is stopped. Optional arguments are added
+   if present, and default values are assigned for any optional arguments not specified. Irrelevant
+   arguments are logged as errors.
+
+   :Parameters: * **experiment_dict** (:py:class:`dict`) -- Dictionary containing configurations for different argument types.
+                * **arg_type** (:py:class:`str`) -- The specific type of arguments to compile from `experiment_dict`.
+
+   :returns: Dictionary of relevant arguments for `arg_type`, including required arguments, optional
+             arguments (if available), and defaults where applicable.
+   :rtype: :py:class:`dict`
+
+   :raises SystemExit: If any required arguments are missing from `experiment_dict` for the specified `arg_type`.
+
+   .. warning:: Logs a warning for any unrecognized arguments in `experiment_dict` that do not match `arg_dict`.
+
+

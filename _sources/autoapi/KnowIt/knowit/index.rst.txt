@@ -1,0 +1,350 @@
+KnowIt.knowit
+=============
+
+.. py:module:: KnowIt.knowit
+
+.. autoapi-nested-parse::
+
+   This module contains the main class of the toolkit: KnowIt.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.knowit.KnowIt
+
+
+Module Contents
+---------------
+
+.. py:class:: KnowIt(custom_exp_dir = None, *, safe_mode = True, overwrite = False)
+
+   This is the main class that manages the current experiment directory
+   and operates all submodules according to user-specified arguments.
+
+   :Parameters: * **custom_exp_dir** (:py:class:`str | None`, *default* :py:obj:`None`) -- Custom directory for the experiment output. If not provided, a temporary directory will be created.
+                * **safe_mode** (:py:class:`bool`, *default* :py:obj:`True`) -- Local safe mode setting for the current experiment directory, determining file protection behavior.
+                * **overwrite** (:py:class:`bool`, *default* :py:obj:`False`) -- Flag indicating whether to overwrite the existing experiment directory if it exists.
+
+   :ivar exp_output_dir: Stores the directory where experiment outputs will be stored.
+   :vartype exp_output_dir: :py:class:`str | None`, *default* :py:obj:`None`
+   :ivar temp_exp_dir_obj: A placeholder for a temporary experiment directory, if a custom directory is not provided.
+   :vartype temp_exp_dir_obj: :py:class:`tempfile.TemporaryDirectory | None`, *default* :py:obj:`None`
+   :ivar global_safe_mode: Global setting for safe mode, which determines whether existing files should be protected.
+   :vartype global_safe_mode: :py:class:`bool`, *default* :py:obj:`True`
+   :ivar global_device: Global setting for the device to be used for operations (e.g. 'cpu' or 'gpu').
+   :vartype global_device: :py:class:`str`, *default* ``'gpu'``
+   :ivar global_and_viz: Global setting for visualization, determining whether results should also be visualized.
+
+   :vartype global_and_viz: :py:class:`bool`, *default* :py:obj:`False`
+
+   .. rubric:: Notes
+
+   If `custom_exp_dir` is provided, it sets up the experiment directory at the specified location.
+   Otherwise, it creates a temporary directory for the experiment.
+
+
+   .. py:method:: global_args(*, device = None, safe_mode = None, and_viz = None, verbose = False)
+
+      Modifies and/or return global arguments according to user arguments.
+
+      This function allows the modification of global settings such as the device,
+      safe mode, and visualization settings. It also returns the current values of these settings.
+
+      :Parameters: * **device** (:py:class:`str | None`, *default* :py:obj:`None`) -- If provided, sets the global device to be used for operations (e.g. 'cpu' or 'gpu').
+                   * **safe_mode** (:py:class:`bool | None`, *default* :py:obj:`None`) -- If provided, sets the global safe mode value, which determines whether existing files should be protected.
+                   * **and_viz** (:py:class:`bool | None`, *default* :py:obj:`None`) -- If provided, sets the global visualization setting, determining whether results should also be visualized.
+                   * **verbose** (:py:class:`bool`, *default* :py:obj:`False`) -- If provided, sets the global verbose setting, determining whether messages below warnings should be logged.
+
+      :returns: **global_args_dict** -- A dictionary containing the current global arguments.
+                The dictionary includes the following keys:
+                    - 'global_device' (str): The current device setting for global operations.
+                    - 'global_and_viz' (bool): The current setting for global visualization.
+                    - 'global_safe_mode' (bool): The current setting for global safe mode.
+                    - 'global_verbose' (bool): The current setting for global verbose.
+      :rtype: :py:class:`dict[str`, :py:class:`Any]`
+
+
+
+   .. py:method:: summarize_dataset(name)
+
+      Summarizes the dataset corresponding to the given name.
+
+      :Parameters: **name** (:py:class:`str`) -- The name of the dataset to summarize. It can be either a custom dataset or a default dataset.
+                   Use KnowIt.available_datasets to see options.
+
+      :returns: **summary** -- A dictionary containing the summary of the dataset.
+                The dictionary includes the following keys:
+                    - 'dataset_name' (str): The current device setting for global operations.
+                    - 'components' (list): The current setting for global visualization.
+                    - 'instances' (list): The current setting for global safe mode.
+                    - 'time_delta' (datetime.time): The current setting for global safe mode.
+      :rtype: :py:class:`dict[str`, :py:class:`Any]`
+
+      .. rubric:: Notes
+
+      The function first checks if the dataset name exists in the custom datasets. If not found, it then
+      checks in the default datasets. If the dataset name is not found in either, it logs an error and exits.
+
+
+
+   .. py:method:: import_arch(new_arch_path, *, safe_mode = None)
+
+      Imports a new architecture from the specified path.
+
+      This function imports a custom architecture from the given path and stores it
+      in the experiment output directory. The operation can be performed in safe mode
+      to protect existing files.
+
+      :Parameters: * **new_arch_path** (:py:class:`str`) -- The file path to the new architecture that needs to be imported.
+                   * **safe_mode** (:py:class:`bool | None`, *default* :py:obj:`None`) -- If provided, sets the safe mode value for this operation. Safe mode determines
+                     whether existing files should be protected from being overwritten. If not provided,
+                     the global safe mode setting will be used.
+
+
+
+   .. py:method:: available_datasets()
+
+      Returns a dictionary showing the available datasets for the current instance of KnowIt.
+
+      This function lists all available datasets from the default and custom dataset
+      directories. It returns a dictionary with two keys: 'defaults' and 'custom', each
+      containing a list of dataset names without file extensions.
+
+      :returns: **data_dict** -- A dictionary listing default and custom dataset options.
+                The dictionary includes the following keys:
+                    - 'defaults' (list): The names of available default datasets.
+                    - 'custom' (list): The names of available custom datasets.
+      :rtype: :py:class:`dict[str`, :py:class:`list]`
+
+      .. rubric:: Notes
+
+      This is a wrapper for `env.env_paths.list_available_datasets`.
+
+
+
+   .. py:method:: available_archs()
+
+      Returns a dictionary showing the available architectures for the current instance of KnowIt.
+
+      This function lists all available architectures from the default and custom architecture
+      directories. It returns a dictionary with two keys: 'defaults' and 'custom', each containing
+      a list of architecture names without file extensions.
+
+      :returns: **arch_dict** -- A dictionary listing default and custom architecture options.
+                The dictionary includes the following keys:
+                    - 'defaults' (list): The names of available default architectures.
+                    - 'custom' (list): The names of available custom architectures.
+      :rtype: :py:class:`dict[str`, :py:class:`list]`
+
+      .. rubric:: Notes
+
+      The function looks for architecture files with the '.py' extension in both the default
+      architecture directory and the custom architecture directory specified by the experiment
+      output directory.
+
+
+
+   .. py:method:: import_dataset(kwargs, *, safe_mode = None)
+
+      Imports the dataset and returns it as a BaseDataset object.
+
+      This function imports a dataset using the provided arguments and returns it as a
+      BaseDataset object. The function expects the dictionary to contain specific keys
+      required for data import.
+
+      :Parameters: * **kwargs** (:py:class:`dict`) -- A dictionary containing the arguments for data import. It must include the key
+                     'data_import'.
+                   * **safe_mode** (:py:class:`bool | None`, *default* :py:obj:`None`) -- If provided, sets the safe mode value for this operation. Safe mode determines
+                     whether existing files should be protected from being overwritten. If not provided,
+                     the global safe mode setting will be used.
+
+      :returns: The imported dataset as a BaseDataset object.
+      :rtype: :py:class:`BaseDataset`
+
+      :raises KeyError: If 'data_import' is not present in the provided dictionary.
+
+      .. rubric:: Notes
+
+      See setup.setup_action_args.py for details on the arguments required in args['data_import'].
+
+
+
+   .. py:method:: train_model(model_name, kwargs, *, device = None, safe_mode = None, and_viz = None, sweep_kwargs = None, preload = True, num_workers = 4)
+
+      Trains a model given user arguments.
+
+      This function sets up and trains a model using the provided arguments and configurations.
+      It checks and uses global settings for the device, safe mode, and visualization unless
+      overridden by the provided arguments.
+
+      :Parameters: * **model_name** (:py:class:`str`) -- The name of the model to be trained.
+                   * **kwargs** (:py:class:`dict`) -- A dictionary containing the necessary arguments for setting up the data, architecture,
+                     and trainer. Expected keys are 'data', 'arch', and 'trainer'.
+                   * **device** (:py:class:`str | None`, *default* :py:obj:`None`) -- The device to be used for training. Defaults to the global device setting if not provided.
+                   * **safe_mode** (:py:class:`bool | None`, *default* :py:obj:`None`) -- If provided, sets the safe mode value for this operation.
+                     Defaults to the global safe mode setting if not provided.
+                   * **and_viz** (:py:class:`bool | None`, *default* :py:obj:`None`) -- If provided, sets the visualization setting for this operation. Defaults to the global
+                     visualization setting if not provided.
+                   * **sweep_kwargs** (:py:class:`dict | None`, *default* :py:obj:`None`) -- Optional kwargs if a hyperparameter sweep is being performed.
+                     If provided, must contain kwargs (sweep_name: str, run_name: str, and log_to_local: bool).
+                   * **num_workers** (:py:class:`int`, *default* :py:class:`= 4`) -- Sets the number of workers to use for loading the dataset.
+                   * **preload** (:py:class:`bool`, *default* :py:class:`= False`) -- Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+
+      .. rubric:: Notes
+
+      See setup.setup_action_args.py for details on the arguments required in args.
+
+      Optional visualization is not done if busy with sweep.
+
+
+
+   .. py:method:: train_model_from_yaml(model_name, config_path, device = None, safe_mode = None, and_viz = None, preload = True, num_workers = 4)
+
+      Trains a model given a config file.
+
+      This function sets up and trains a model using the provided config file model_args.yaml.
+
+      :Parameters: * **model_name** (:py:class:`str`) -- The name of the model to be trained.
+                   * **config_path** (:py:class:`str`) -- The path to the config file (model_args.yaml) containing the necessary arguments for setting up the data,
+                     architecture, and trainer. The config file should be in YAML format.
+                     The config file should contain the following keys: 'data', 'arch', and 'trainer'.
+                   * **device** (:py:class:`str | None`, *default* :py:obj:`None`) -- The device to be used for training. Defaults to the global device setting if not provided.
+                   * **safe_mode** (:py:class:`bool | None`, *default* :py:obj:`None`) -- If provided, sets the safe mode value for this operation.
+                     Defaults to the global safe mode setting if not provided.
+                   * **and_viz** (:py:class:`bool | None`, *default* :py:obj:`None`) -- If provided, sets the visualization setting for this operation. Defaults to the global
+                     visualization setting if not provided.
+                   * **num_workers** (:py:class:`int`, *default* :py:class:`= 4`) -- Sets the number of workers to use for loading the dataset.
+                   * **preload** (:py:class:`bool`, *default* :py:class:`= False`) -- Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+
+      .. rubric:: Notes
+
+      This function is a wrapper for the train_model function.
+
+
+
+   .. py:method:: consolidate_sweep(model_name, sweep_name, selection_by_min = True, safe_mode = None, wipe_after = False)
+
+      Consolidates the results of a hyperparameter sweep by selecting the best run
+      and copying its artifacts into the model's main directory.
+
+      This method evaluates all runs within the specified sweep directory, selects the best run based
+      on the scoring metric, and safely transfers the relevant files to the model's main directory.
+      Optionally, it can wipe the sweep directory after consolidation.
+
+      :Parameters: * **model_name (str)** (:py:class:`Name` of :py:class:`the model associated with the sweep.`)
+                   * **sweep_name (str)** (:py:class:`Name` of :py:class:`the hyperparameter sweep` to :py:class:`consolidate.`)
+                   * **selection_by_min (bool, optional)** (:py:class:`If True`, :py:class:`selects the run with the minimum score;`) -- otherwise, selects the run with the maximum score. Defaults to True.
+                   * **safe_mode (bool | None, optional)** (:py:class:`If True`, :py:class:`prevents deletion` of :py:class:`files during consolidation.`) -- If None, defaults to `self.global_safe_mode`. Defaults to None.
+                   * **wipe_after (bool, optional)** (:py:class:`If True`, :py:class:`deletes the sweep directory after consolidation.`) -- Ignored if `safe_mode` is True. Defaults to False.
+
+      .. rubric:: Notes
+
+      - The function assumes the model's output directory structure follows specific conventions.
+      - Uses `get_model_score` to evaluate the performance of each run.
+      - Safe copy ensures overwriting is controlled by the `safe_mode` flag.
+
+
+
+   .. py:method:: run_model_eval(model_name, device = None, preload = True, num_workers = 4)
+
+      Run model evaluation over dataloaders.
+
+      Given a trained model name, evaluates the model on the train, valid-
+      ation, and evaluation dataloaders. Prints the evaluation metrics to the
+      terminal and saves the metrics in the metrics.csv file in the lightning
+      _logs folder.
+
+      :Parameters: * **model_name** (:py:class:`str`) -- The names of the trained model.
+                   * **device** (:py:class:`str | None`) -- The device to use for the evaluation (cpu or gpu).
+                   * **num_workers** (:py:class:`int`, *default* :py:class:`= 4`) -- Sets the number of workers to use for loading the dataset.
+                   * **preload** (:py:class:`bool`, *default* :py:class:`= False`) -- Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+
+
+
+   .. py:method:: generate_predictions(model_name, kwargs, *, device = None, safe_mode = None, and_viz = None)
+
+      Generates predictions using a trained model and saves them to disk.
+
+      This method loads a trained model, retrieves a dataloader for the specified prediction set,
+      and generates predictions for each batch of data. The predictions, along with the sample IDs
+      and ground truth labels, are saved to disk. Additionally, a dictionary mapping sample IDs
+      to batch indices is created and saved. Optionally, visualizations can be generated based on
+      the predictions.
+
+      :Parameters: * **model_name** (:py:class:`str`) -- The name of the trained model to use for generating predictions.
+                   * **kwargs** (:py:class:`dict`) -- A dictionary of arguments required for setting up the prediction process.
+                     Must include a 'predictor' key with relevant settings.
+                   * **device** (:py:class:`str | None`, *default* :py:obj:`None`) -- The device to be used for prediction. Defaults to the global device setting if not provided.
+                   * **safe_mode** (:py:class:`bool | None`, *default* :py:obj:`None`) -- Whether to operate in safe mode, which affects how data is saved. If not provided,
+                     the global safe mode setting is used.
+                   * **and_viz** (:py:class:`bool | None`, *default* :py:obj:`None`) -- Whether to generate visualizations based on the predictions. If not provided,
+                     the global visualization setting is used.
+
+      .. rubric:: Notes
+
+      See setup.setup_action_args.py for details on the arguments required in args['predictor'].
+
+
+
+   .. py:method:: interpret_model(model_name, kwargs, *, device = None, safe_mode = None, and_viz = None)
+
+      Interpret a trained model and save the interpretation results.
+
+      This method loads a trained model, sets up the interpretation process, and generates interpretations
+      for the specified prediction points. The interpretation results are saved to disk.
+      Optionally, visualizations based on the interpretation can be generated.
+
+      :Parameters: * **model_name** (:py:class:`str`) -- The name of the trained model to be interpreted.
+                   * **kwargs** (:py:class:`dict`) -- A dictionary of arguments required for setting up the interpretation process.
+                     Must include an 'interpreter' key with relevant settings.
+                   * **device** (:py:class:`str`, *default* :py:obj:`None`) -- The device to use for computation (e.g., 'cpu', 'cuda'). If not provided, the global device
+                     setting is used.
+                   * **safe_mode** (:py:class:`bool`, *default* :py:obj:`None`) -- Whether to operate in safe mode, which affects how data is saved. If not provided,
+                     the global safe mode setting is used.
+                   * **and_viz** (:py:class:`bool`, *default* :py:obj:`None`) -- Whether to generate visualizations based on the interpretation. If not provided,
+                     the global visualization setting is used.
+
+      .. rubric:: Notes
+
+      See setup.setup_action_args.py for details on the arguments required in args['interpreter'].
+
+
+
+   .. py:method:: export(model_name, *, data_tag = None, preload = True, num_workers = 4, device = None, ret_model = False, ret_hps = False, ret_data_specifics = False)
+
+      Exports various components related to a trained model for external analysis.
+
+      The returned dictionary can contain the trained model, dataloader, hyperparameters,
+      and/or specific details about the batches within the dataloader.
+
+      :Parameters: * **model_name** (:py:class:`str`) -- The name of the trained model for which exported components are desired.
+                   * **data_tag** (:py:class:`str`, *default* :py:obj:`None`) -- Specifies the dataloader to return. Options: 'train', 'valid', 'eval', or None.
+                     If None, no dataloader is returned.
+                   * **preload** (:py:class:`bool`, *default* :py:obj:`True`) -- Specifies whether to preload the raw relevant instances into memory when sampling
+                     feature values. Only applicable if `data_tag` is not None.
+                   * **num_workers** (:py:class:`int`, *default* ``4``) -- The number of workers to utilize for dataset loading operations.
+                     Only applicable if `data_tag` is not None.
+                   * **device** (:py:class:`str` or :py:obj:`None`, *default* :py:obj:`None`) -- The computation device to be used during model loading and execution
+                     (e.g., 'cuda', 'cpu'). If `None`, the global device is used.
+                   * **ret_model** (:py:class:`bool`, *default* :py:obj:`False`) -- Indicates whether the trained model should be returned.
+                   * **ret_hps** (:py:class:`bool`, *default* :py:obj:`False`) -- Indicates if the model's hyperparameters should be returned.
+                   * **ret_data_specifics** (:py:class:`bool`, *default* :py:obj:`False`) -- Indicates if additional details about the data should be returned.
+
+      :returns: A dictionary containing the requested components:
+
+                - 'model' (if `ret_model` is True): The trained PyTorch model.
+                - 'dataloader' (if `data_tag` is one of {'train', 'valid', 'eval'}):
+                   The specified dataloader for the specified split.
+                - 'model_args' (if `ret_hps` is True): The hyperparameters and configuration arguments
+                  of the model.
+                - 'scaling_args' (if `ret_data_specifics` is True): The `x_scaler` and `y_scaler` modules for feature rescaling.
+                - 'ist_vals' (if `ret_data_specifics` is True): The IST values for the entire data split.
+                - 'instance_names' (if `ret_data_specifics` is True): The instance names.
+      :rtype: :py:class:`dict`
+
+
+
