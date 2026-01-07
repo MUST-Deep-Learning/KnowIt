@@ -401,6 +401,8 @@ class KnowIt:
 
         """
 
+        # @TODO Consider global args here too (e.g. device, safe_mode, and_viz etc.)
+
         config_args = yaml_to_dict(config_path)
 
         self.train_model(model_name=model_name, kwargs=config_args,
@@ -722,85 +724,84 @@ class KnowIt:
             plot_feature_attribution(self.exp_output_dir, model_name, save_name)
 
     def export(self, model_name: str, *, data_tag: str = None, preload: bool = True, num_workers: int = 4,
-               device: str | None = None, ret_model: str = None, ret_args: bool = False,
-               ret_scaling_args: bool = False) -> dict:
+               device: str | None = None, ret_model: bool = False, ret_hps: bool = False,
+               ret_data_specifics: bool = False) -> dict:
 
         """
-        Load a trained model, prepare specified dataloaders, and return requested components.
+        Exports various components related to a trained model for external analysis.
 
-        This function facilitates loading of a trained model based on its name, setting up
-        specified dataloaders, and optionally returning the model itself, its arguments, or
-        the dataloaders based on the input configuration.
+        The returned dictionary can contain the trained model, dataloader, hyperparameters,
+        and/or specific details about the batches within the dataloader.
 
         Parameters
         ----------
         model_name : str
-            The name of the trained model to be interpreted.
+            The name of the trained model for which exported components are desired.
         data_tag : str, default=None
-            Specifies the dataloader to return. (e.g, 'train', 'valid', 'test')
+            Specifies the dataloader to return. Options: 'train', 'valid', 'eval', or None.
+            If None, no dataloader is returned.
         preload : bool, default=True
             Specifies whether to preload the raw relevant instances into memory when sampling
-            feature values.
+            feature values. Only applicable if `data_tag` is not None.
         num_workers : int, default=4
             The number of workers to utilize for dataset loading operations.
+            Only applicable if `data_tag` is not None.
         device : str or None, default=None
             The computation device to be used during model loading and execution
             (e.g., 'cuda', 'cpu'). If `None`, the global device is used.
-        ret_model : str, default=None
-            Indicates whether the trained model should be included in the returned dictionary and returns either
-            the lightning or pytorch model (e.g. 'pytorch', 'lightning').
-        ret_args : bool, default=False
-            Indicates if the model's hyperparameters should be included in the returned dictionary.
-        ret_scaling_args: bool, default=False
-            Indicates if the 'x_scaler' and 'y_scaler' arguments should be included in the returned dictionary.
+        ret_model : bool, default=False
+            Indicates whether the trained model should be returned.
+        ret_hps : bool, default=False
+            Indicates if the model's hyperparameters should be returned.
+        ret_data_specifics: bool, default=False
+            Indicates if additional details about the data should be returned.
 
         Returns
         -------
         dict
             A dictionary containing the requested components:
 
-            - 'model' (if `ret_model` is True): The trained PyTorch or Lightning model.
+            - 'model' (if `ret_model` is True): The trained PyTorch model.
             - 'dataloader' (if `data_tag` is one of {'train', 'valid', 'eval'}):
-               The specified dataloader for the dataset the model was trained on.
-            - 'model_args' (if `ret_args` is True): The hyperparameters or configuration arguments
+               The specified dataloader for the specified split.
+            - 'model_args' (if `ret_hps` is True): The hyperparameters and configuration arguments
               of the model.
-            - 'scaling_args' (if `ret_scaling_args` is True): The scaling arguments of the model.
+            - 'scaling_args' (if `ret_data_specifics` is True): The `x_scaler` and `y_scaler` modules for feature rescaling.
+            - 'ist_vals' (if `ret_data_specifics` is True): The IST values for the entire data split.
+            - 'instance_names' (if `ret_data_specifics` is True): The instance names.
         """
 
         if device is None:
             device = self.global_device
 
-        ret_dict = dict()
-        if ret_model is None and data_tag is None and not ret_args and not ret_scaling_args:
-            logger.error('Unspecified modules to return.')
+        if data_tag not in {'train', 'valid', 'eval', None}:
+            logger.error("data_tag not in {'train', 'valid', 'eval', None}.")
             exit(101)
+
+        ret_dict = dict()
+        if not ret_model and data_tag is None and not ret_hps and not ret_data_specifics:
+            logger.warning('No export components defined.')
+            return ret_dict
 
         trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir,
-                                                        self.available_archs(), model_name, device, w_pt_model=True)
+                                                        self.available_archs(), model_name, device, w_pt_model=ret_model)
 
-        if ret_model == 'pytorch':
+        if ret_model:
             ret_dict['model'] = trained_model_dict['pt_model']
-        elif ret_model == 'lightning':
-            ret_dict['model'] = trained_model_dict['model']
-        elif ret_model not in {'pytorch', 'lightning', None}:
-            logger.error("Unspecified model to return. Please use one of {'pytorch', 'lightning', None}")
-            exit(101)
 
-        if ret_args:
+        if ret_hps:
             ret_dict['model_args'] = trained_model_dict['model_args']
 
-        if ret_scaling_args:
-            ret_dict['scaling_args'] = {'x_scaler': trained_model_dict['datamodule'].x_scaler,
-                                        'y_scaler': trained_model_dict['datamodule'].y_scaler}
-
         if data_tag in {'train', 'valid', 'eval'}:
-            ret_dataloader =  trained_model_dict['datamodule'].get_dataloader(data_tag, analysis=True,
+            ret_dict['dataloader'] =  trained_model_dict['datamodule'].get_dataloader(data_tag, analysis=True,
                                                                                     preload=preload,
                                                                                     num_workers=num_workers)
-            ret_dict['dataloader'] = ret_dataloader
-        elif data_tag not in {'train', 'valid', 'eval', None}:
-            logger.error("Please specify the dataloaders as one or more of {'train', 'valid', 'eval', None}")
-            exit(101)
+
+        if ret_data_specifics:
+            ret_dict['scaling_args'] = {'x_scaler': trained_model_dict['datamodule'].x_scaler,
+                                        'y_scaler': trained_model_dict['datamodule'].y_scaler}
+            ret_dict['ist_vals'] = trained_model_dict['datamodule'].get_ist_values(data_tag)
+            ret_dict['instance_names'] = trained_model_dict['datamodule'].instance_names
 
         return ret_dict
 
