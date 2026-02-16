@@ -170,7 +170,7 @@ class Model(Module):
                 self.output_layers.append(get_output_activation(output_activation))
             self.output_layers = Sequential(*self.output_layers)
         else:
-            self.output_layers = nn.Linear(width, self.model_out_dim)
+            self.output_layers = nn.Linear(direction * width, self.model_out_dim)
 
     def force_reset(self) -> None:
         """ A function for external modules to manually signal that all internal states need to be reset."""
