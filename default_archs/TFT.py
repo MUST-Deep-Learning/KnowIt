@@ -1,10 +1,17 @@
 """
-This module implements a simplified Temporal Fusion Transformer (TFT) architecture for
-sequence-to-sequence modeling with only temporal inputs.
+This module implements a simplified Temporal Fusion Transformer (TFT) architecture.
 
-Unlike the original TFT, this version omits all static input processing and static context encoding.
-It is tailored for forecasting, regression, or classification tasks over temporal sequences,
-using temporal variable selection, LSTM-based encoding/decoding, and temporal self-attention.
+Unlike the original TFT,
+this version omits the encoding of exogenous inputs (e.g. static covariates or future known inputs).
+It is tailored for regression, classification, or variable length regression tasks,
+using temporal variable selection, gating mechanisms, LSTM-based encoding, and Interpretable Multi-Head Attention.
+
+The following diagram depicts the overall architecture:
+
+    X → [EmbeddingLayer] → [VariableSelectionNetwork] → [LSTM]* → [GateAddNorm] →
+    [InterpretableMultiHeadAttention]* → [GateAddNorm] → [GatedResidualNetwork] → [Dense] → Y
+
+"*" indicates a skip connection going bypassing this module from the past to the next.
 
 See:
 [1] "Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting"  
@@ -13,67 +20,87 @@ See:
 Inspiration for this implementation has been taken from `pytorch-forecasting's TemporalFusionTransformer
         <https://pytorch-forecasting.readthedocs.io/en/latest/models.html>`_.
 
-------------------------
-VariableSelectionNetwork
-------------------------
+Note: The LSTM stage of the TFT makes use of the default LSTMv2 architecture within KnowIt. All stateful processing is handled by
+this underlying LSTM module.
 
-Learns per-timestep soft attention over temporal input variables.
-    - Each variable passes through a shared GatedResidualNetwork.
-    - Importance weights are computed using softmax across input variables.
+--------------
+EmbeddingLayer
+--------------
 
---------------------
-GatedResidualNetwork
---------------------
+Performs the initial embedding of input components into a representation space for further processing.
+Linear embeddings are done in one of two modes:
 
-A gated feedforward block:
-    [Linear] → [ELU] → [Linear] → [Gating + Residual + Norm]
+* independent (default): input components are independently embedded,
+* mixed: the embedding of each input component depends on all other input component.
 
-    - Enables non-linear transformations with gating control.
-    - Residual connection allows gradient flow and feature reuse.
-    - LayerNorm stabilizes outputs.
+----
+Gate
+----
+
+    → [Dropout] → [Linear] → [GLU] →
+
+The main gating mechanism in the TFT.
+It consists of a linear layer and a Gated Linear Unit (GLU) function,
+with optional dropout before the linear layer.
+
+This module is used as a basic building block by other modules in the architecture.
 
 -----------
 GateAddNorm
 -----------
 
-Applies gating, residual connection, and normalization:
-    Output = LayerNorm(residual + gate * candidate)
+    → → [Gate] → [LayerNorm] →
+        → → → → → → → ↑
 
-Used after GRNs and attention to improve stability.
+Applies the gating mechanism, an optional residual connection from outside the module, and layer normalization.
 
-----------
-TFTCore
-----------
+This module is used as both a building block and as part of the main architectural flow.
+Specifically, it is used after the LSTM encoder and Attention blocks to skip over these components
+and dynamically calibrate the complexity of the overall architecture.
 
-The main temporal modeling stage:
+--------------------
+GatedResidualNetwork
+--------------------
 
-    - LSTM Encoder:
-        Processes full input sequence.
+    → → [Linear] → [ELU] → [Linear] → [GateAddNorm] →
+      ↓ → → → → → → → → → → → → → → → → → → ↑
 
-    - Temporal Self-Attention:
-        Applies attention over encoder steps to capture long-range dependencies.
+A gated feedforward block:
+    - Enables non-linear transformations with gating control.
+    - Residual connection allows gradient flow and feature reuse.
+    - LayerNorm stabilizes outputs.
 
-    - Position-wise GRN:
-        Final per-timestep transformation before output.
+This module is used as both a building block and as part of the main architectural flow.
+Specifically, it is used towards the end of the architecture as a final feedforward stage.
 
-----------
-FinalBlock
-----------
+------------------------
+VariableSelectionNetwork
+------------------------
 
-After the TFTCore we obtain a tensor T(batch_size, decoder_steps, model_dim).
+    → → → [GatedResidualNetwork] → → → → → → → → [Weighted sum] →
+      ↓ → [GatedResidualNetwork] → [Softmax] → → → → → ↑
 
-If task_name = 'regression'
-    -   T is flattened to T(batch_size, num_input_time_steps * num_output_components)
-            a linear layer and output activation is applied, and it is reshaped to the desired output
-            T(batch_size, num_output_time_steps, num_output_components).
+This module performs a feature selection step before passing on the input to the LSTM encoder.
+Specifically, a weighted sum of (processed by GatedResidualNetwork) input values are returned,
+where the weights are determined by a variable selection mechanism done by a different dedicated
+GatedResidualNetwork and a softmax function.
 
-If task_name = 'classification'
-    -   T is flattened to T(batch_size, num_input_time_steps * num_output_components)
-            a linear layer is applied, which outputs T(batch_size, num_output_components).
+-------------------------
+ScaledDotProductAttention
+-------------------------
 
-If task_name = 'forecast' (WIP)
-    -   T(batch_size, num_output_time_steps, num_output_components) is return where the
-           num_output_time_steps is the last chunk from num_input_time_steps.
+Performs basic dot product self attention.
+Optionally incorporates attention dropout and causality masking.
+
+-------------------------------
+InterpretableMultiHeadAttention
+-------------------------------
+
+Performs interpretable multi-head attention, where the query and key operations are done for each head separately,
+but heads share a value component. This is said to improve the interpretability of the resulting attention weights.
+
+While the LSTM is meant to model local information (and encode positional information) the
+InterpretableMultiHeadAttention module is intended to capture long-term dependencies in the data.
 
 
 Notes
@@ -88,19 +115,23 @@ Notes
 from __future__ import annotations
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
 __licence__ = 'Apache 2.0; see LICENSE file for details.'
-__author__ = "potgieterharmen@gmail.com"
+__author__ = "potgieterharmen@gmail.com, tiantheunissen@gmail.com"
 __description__ = "Example of an TFT model architecture."
 
-from torch import (Tensor, zeros, bool, arange, cat, float, stack, ones, as_tensor, bmm, mean, nn)
-from torch.nn import (Module, LSTM, Parameter, Sigmoid, Linear, ModuleList, LayerNorm, ELU, Dropout, Softmax)
-from torch.nn.functional import glu
+import torch.nn.functional
+from torch import (Tensor, zeros, bool, arange, cat, float, stack, ones, as_tensor, bmm, mean, nn, tril, finfo)
+from torch.nn import (Module, LSTM, Parameter, Sigmoid, Linear, ModuleList, LayerNorm, ELU, Dropout, Softmax, Identity, Sequential)
+from torch.nn.functional import glu, softmax
+from numpy import prod
 from torch.nn.init import (zeros_, kaiming_uniform_, normal_)
 from typing import Dict, Tuple, List, Optional
 from helpers.logger import get_logger
 import numpy as np
+from default_archs.LSTMv2 import Model as KnowItLSTM
+
 logger = get_logger()
 
-available_tasks = ("regression", "classification", "forcast")
+available_tasks = ("regression", "classification", "vl_regression")
 
 HP_ranges_dict = {"depth": range(1, 512, 1),
                   "lstm_depth": range(1, 64, 1),
@@ -113,440 +144,264 @@ HP_ranges_dict = {"depth": range(1, 512, 1),
 
 class Model(Module):
     """
-    A hybrid temporal model combining variable selection, LSTM encoding/decoding,
-    gated residual processing, and interpretable attention. Supports regression,
-    classification, and (WIP) forecasting tasks.
+    Temporal Fusion Transformer (TFT)-style model.
 
-    Architecture Overview
-    ---------------------
-    The model uses a standard encoder-decoder pattern with LSTMs as the backbone,
-    augmented by learned variable selection, gating mechanisms, and a multi-head
-    attention block.
+    This module implements a streamlined Temporal Fusion Transformer architecture
+    consisting of:
 
-    Block Summary:
-        - VariableSelectionNetwork: Selects and embeds input features at each time step.
-        - LSTM Encoder: Processes historical sequence data.
-        - GateAddNorm: Combines LSTM output and embeddings.
-        - GatedResidualNetwork: Injects static enrichment before attention.
-        - Multi-Head Attention: Produces interpretable attention-weighted summaries.
-        - FinalBlock: Maps the decoded output to task-specific predictions.
+    - Per-feature embedding via ``EmbeddingLayer``
+    - Feature-wise selection through a ``VariableSelectionNetwork``
+    - Recurrent sequence modeling using a custom ``LSTM`` encoder
+    - Static skip connections using ``GateAddNorm``
+    - Interpretable multi-head self-attention
+    - Decoder refinement via ``GatedResidualNetwork``
+    - Task-dependent output projection layer
+
+    The model supports standard regression, variable-length regression
+    (``'vl_regression'``), and classification tasks.
 
     Parameters
     ----------
-    input_dim : list[int]
-        Shape of the input sequence as [num_time_steps, num_features].
-
-    output_dim : list[int]
-        Shape of the output sequence as [num_time_steps, num_features].
-
+    input_dim : list[int], shape=[in_chunk_size, in_components]
+        The shape of the input data. The "time axis" is along the first dimension.
+        If variable length data is processed, then in_chunk_size must be 1.
+    output_dim : list[int], shape=[out_chunk_size, out_components]
+        The shape of the output data. The "time axis" is along the first dimension.
+        If variable length data is processed, then out_chunk_size must be 1.
     task_name : str
-        One of {"regression", "classification", "forecast"}. Defines the output format.
-
-    depth : int, default=16
-        Dimensionality of intermediate representations.
-
+        The type of task ('classification', 'regression', or 'vl_regression').
+    embedding_mode : str, default='independent'
+        Embedding strategy. Must be either "independent" or "mixed".
+        The former will embed input components independently and the latter will mix information during embedding.
+    hidden_dim : int, default=32
+        Hidden dimensionality used throughout embeddings, attention,
+        and gated residual blocks.
     lstm_depth : int, default=4
-        Number of stacked LSTM layers for both encoder and decoder.
-
+        Number of stacked LSTM layers in the encoder. See LSTMv2 for details.
+    lstm_width : int, default=64
+        Internal width of the LSTM layers. See LSTMv2 for details.
+    lstm_hc_init_method : str, default='zeros'
+        Initialization strategy for LSTM hidden and cell states. See LSTMv2 for details.
+    lstm_layernorm : bool, default=True
+        If True, applies layer normalization inside the LSTM. See LSTMv2 for details.
+    lstm_bidirectional : bool, default=False
+        If True, uses a bidirectional LSTM encoder. See LSTMv2 for details.
     num_attention_heads : int, default=4
-        Number of attention heads in the multi-head attention layer.
-
-    dropout : float or None, default=0.1
-        Dropout probability applied throughout the model.
-
-    full_attention : bool, default=True
-        If True, decoder attention can access all decoder positions.
-        If False, attention is limited to causal (past) steps only.
-
+        Number of heads in the interpretable multi-head attention module.
+    dropout : float or None, default=0.2
+        Dropout probability applied throughout the network. If None,
+        dropout is disabled.
     output_activation : str or None, default=None
-        Optional activation to apply to the model's output.
+        Optional activation applied after the final linear output layer
+        (only used for non-``'vl_regression'`` tasks).
+    lstm_stateful : bool, default=True
+        If True, the LSTM maintains internal states across forward passes.
 
-    stateful : bool, default=False
-        Enables persistent LSTM hidden state across batches (not fully implemented).
-
-    Notes
-    -----
-    - Hidden states are reset unless `stateful=True`, but persistent state
-      handling is not robust.
-    - Forecasting mode is marked WIP and may produce unstable outputs.
-    - All submodules assume consistent input dimensionality (`depth`).
-    - The final output shape depends on `task_name`:
-        - "regression": (B, T_out, C_out)
-        - "classification": (B, C_out)
-        - "forecast" (WIP): (B, T_out, C_out)
-
+    Attributes
+    ----------
+    embedder : EmbeddingLayer
+        Per-variable embedding module.
+    vsn : VariableSelectionNetwork
+        Learns dynamic feature importance weights.
+    lstm_encoder : LSTMV2
+        Recurrent sequence encoder.
+    attention : InterpretableMultiHeadAttention
+        Self-attention mechanism operating over temporal dimension.
+    decoder_grn : GatedResidualNetwork
+        Decoder refinement block.
+    output_layers : torch.nn.Module
+        Final task-dependent projection layers.
     """
-
-    task_name = None
-    output_activation = None
 
     def __init__(self,
                  input_dim: list,
                  output_dim: list,
                  task_name: str,
                  *,
-                 depth: int = 16,
+                 embedding_mode: str = 'independent',
+                 hidden_dim: int = 32,
                  lstm_depth: int = 4,
+                 lstm_width: int = 64,
+                 lstm_hc_init_method: str='zeros',
+                 lstm_layernorm: bool = True,
+                 lstm_bidirectional: bool = False,
                  num_attention_heads: int = 4,
-                 dropout: float | None = 0.1,
+                 dropout: float | None = 0.2,
                  output_activation: str | None = None,
-                 stateful: bool = False,
+                 lstm_stateful: bool = True,
     ) -> None:
 
         super().__init__()
 
-        self.num_model_out_time_steps = output_dim[0]
-        self.num_model_out_channels = output_dim[1]
-        self.num_model_in_time_steps = input_dim[0]
-        self.num_model_in_channels = input_dim[1]
-
         self.task_name = task_name
-        self.depth = depth
-        self.lstm_depth = lstm_depth
+        self.model_in_dim = input_dim[-1]
+        self.model_out_dim = int(prod(output_dim))
+        self.final_out_shape = output_dim
+
+        self.hidden_dim = hidden_dim
         self.num_attention_heads = num_attention_heads
         self.dropout = dropout
         self.output_activation = output_activation
-        self.state_full = stateful
 
-        self._attn_out_weights = None
-        self._encoder_sparse_weights = None
+        self.embedder = EmbeddingLayer(n_inputs=self.model_in_dim,
+                                       hidden_dim=self.hidden_dim,
+                                       mode=embedding_mode)
 
-        #Encoder
-        self.lstm_encoder_vsn = _VariableSelectionNetwork(
-            n_input_dim=1,
-            n_input_features=self.num_model_in_channels,
-            depth=self.depth,
+        self.vsn = VariableSelectionNetwork(
+            n_inputs=self.model_in_dim,
+            hidden_dim=self.hidden_dim,
             dropout=self.dropout,
         )
 
-        self.lstm_encoder = LSTM(
-            input_size=self.depth,
-            hidden_size=self.depth,
-            num_layers=self.lstm_depth,
-            dropout=self.dropout if self.lstm_depth > 1 else 0,
-            batch_first=True,
-        )
+        self.lstm_encoder = KnowItLSTM(input_dim=[1, self.hidden_dim],
+                                       output_dim=[1, self.hidden_dim],
+                                       task_name='vl_regression',
+                                       stateful=lstm_stateful,
+                                       depth=lstm_depth,
+                                       dropout=self.dropout if self.dropout is not None else 0.0,
+                                       width=lstm_width,
+                                       hc_init_method=lstm_hc_init_method,
+                                       layernorm=lstm_layernorm,
+                                       bidirectional=lstm_bidirectional,
+                                       residual=False) # <- False since there is a residual connection in TFT
 
-        self.lstm_out_gan = _GateAddNorm(
-            n_input=self.depth,
+        self.lstm_out_gan = GateAddNorm(
+            n_inputs=self.hidden_dim,
             dropout=self.dropout,
         )
 
-        # Decoder
-        self.static_enrichment_grn = _GatedResidualNetwork(
-            n_input=self.depth,
-            depth=self.depth,
-            n_output=self.depth,
+        self.attention = InterpretableMultiHeadAttention(
+            hidden_dim=self.hidden_dim,
+            n_heads=self.num_attention_heads,
             dropout=self.dropout,
         )
 
-        self.attention = _InterpretableMultiHeadAttention(
-            d_model=self.depth,
-            n_head=self.num_attention_heads,
+        self.decoder_gan = GateAddNorm(
+            n_inputs=self.hidden_dim,
             dropout=self.dropout,
         )
 
-        self.decoder_gan = _GateAddNorm(
-            n_input=self.depth,
+        self.decoder_grn = GatedResidualNetwork(
+            n_inputs=self.hidden_dim,
+            hidden_dim=self.hidden_dim,
+            n_outputs=self.hidden_dim,
             dropout=self.dropout,
         )
 
-        self.decoder_grn = _GatedResidualNetwork(
-            n_input=self.depth,
-            depth=self.depth,
-            n_output=self.depth,
-            dropout=self.dropout,
-        )
+        if not self.task_name == 'vl_regression':
+            self.output_layers = []
+            self.output_layers.append(Linear(in_features=self.hidden_dim * input_dim[-2],
+                                            out_features=self.model_out_dim,
+                                            bias=False))
+            if output_activation is not None:
+                self.output_layers.append(get_output_activation(output_activation))
+            self.output_layers = Sequential(*self.output_layers)
+        else:
+            self.output_layers = nn.Linear(self.hidden_dim, self.model_out_dim)
 
-        #Output layer
-        self.pre_out_gan = _GateAddNorm(
-            n_input=self.depth,
-            dropout=None,
-        )
-
-        self.final_output_layer = FinalBlock(
-            num_model_in_time_steps=self.num_model_in_time_steps,
-            num_model_out_channels=self.num_model_out_channels,
-            num_model_out_time_steps=self.num_model_out_time_steps,
-            output_activation=self.output_activation,
-            depth=self.depth,
-            task=self.task_name
-        )
-
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Tensor, *internal_states) -> Tensor:
         """
-        Perform a forward pass through the model.
+        Forward pass of the TFT model.
+
+        The computation pipeline consists of:
+
+        1. Feature-wise embedding
+        2. Variable selection
+        3. LSTM encoding
+        4. Residual gating
+        5. Interpretable multi-head attention
+        6. Decoder gated residual refinement
+        7. Task-specific output projection
+
+        If multiple ``internal_states`` are provided, they overwrite the
+        internal states of the stateful LSTM before processing.
 
         Parameters
         ----------
-        x : Tensor
-            Input tensor of shape (batch_size, num_model_in_time_steps, num_model_in_channels).
-            The sequence includes both encoder (past) and decoder (future) time steps.
+        x : torch.Tensor
+            Input tensor of shape (batch_size, time_steps, n_features).
+        *internal_states : tuple of torch.Tensor, optional
+            Optional hidden and cell states used to overwrite the internal
+            LSTM states before forward propagation. Only used when the
+            encoder is stateful.
 
         Returns
         -------
-        Tensor
-            Output tensor shaped according to the task, typically
-            (batch_size, num_model_out_time_steps, num_model_out_channels).
+        torch.Tensor
+            Model output tensor.
 
-        Details
-        -------
-        - Splits input into encoder and decoder sequences.
-        - Processes both sequences through variable selection networks and LSTMs.
-        - Applies gating and residual connections.
-        - Uses multi-head attention on output
-        - Produces final output via output layers, applying activation if specified.
-        - Handles stateful LSTM hidden states internally.
+            - For ``'regression'``:
+              Shape (batch_size, output_dim[0], output_dim[1])
+            - For ``'vl_regression'``:
+              Shape (batch_size, time_steps, model_out_dim)
+            - For ``'classification'``:
+              Shape (batch_size, model_out_dim)
+
+        Raises
+        ------
+        SystemExit
+            If an unsupported ``task_name`` is provided.
         """
 
-        reset_lstm_state = True
-        batch_size = x.shape[0]
+        if len(internal_states) > 1:
+            self.lstm_encoder._overwrite_internal_states(internal_states)
 
-        embeddings_varying_encoder, encoder_sparse_weights = self.lstm_encoder_vsn(x=x)
+        # EmbeddingLayer
+        x_embedded = self.embedder(x)
 
-        #LSTM
-        if reset_lstm_state or self.hidden_state is None:
-            h0 = zeros(self.lstm_depth, batch_size, self.depth, device=x.device)
-            c0 = zeros(self.lstm_depth, batch_size, self.depth, device=x.device)
-        else:
-            h0, c0 = self.hidden_state, self.cell_state
+        # VariableSelectionNetwork
+        embeddings_varying_encoder, _ = self.vsn(x=x_embedded)
 
-        encoder_out, (hn, cn) = self.lstm_encoder(input=embeddings_varying_encoder, hx=(h0, c0))
+        # LSTM
+        encoder_out = self.lstm_encoder(embeddings_varying_encoder)
 
-        self.hidden_state = hn.detach()
-        self.cell_state = cn.detach()
+        # First GateAddNorm
+        lstm_out = self.lstm_out_gan(encoder_out, residual_connect=embeddings_varying_encoder)
 
-        lstm_out = self.lstm_out_gan(encoder_out, embeddings_varying_encoder)
+        # Attention
+        attn_out, _ = self.attention(lstm_out)
 
-        # Attention head
-        attn_in = self.static_enrichment_grn(x=lstm_out)
+        # Second GateAddNorm
+        attn_out = self.decoder_gan(x=attn_out, residual_connect=lstm_out)
 
-        attn_out, att_out_weights = self.attention(
-            q=attn_in,
-            k=attn_in,
-            v=attn_in,
-        )
-
-        attn_out = self.decoder_gan(x=attn_out, residual_connect=None)
+        # GatedResidualNetwork
         grn_decoder_out = self.decoder_grn(x=attn_out)
 
-        #Output
-        pre_out_gan = self.pre_out_gan(x=grn_decoder_out, residual_connect=None)
-        final_out = self.final_output_layer(x=pre_out_gan)
+        # Dense
+        if not self.task_name == 'vl_regression':
+            grn_decoder_out = grn_decoder_out.reshape(grn_decoder_out.shape[0], grn_decoder_out.shape[1] * grn_decoder_out.shape[2])
+        out = self.output_layers(grn_decoder_out)
 
-        self._attn_out_weights = att_out_weights
-        self._encoder_out_weights = encoder_sparse_weights
-
-        return final_out
-
-################################# Sub-Modules #################################################
-
-class _GateAddNorm(Module):
-    """
-    Gated residual block with optional projection and layer normalization.
-
-    This module applies a Gated Linear Unit (GLU) transformation to the input tensor,
-    adds a residual connection (projected if necessary to match dimensions), and
-    normalizes the result using LayerNorm.
-
-    Parameters
-    ----------
-    n_input : int
-        Number of input features (last dimension of `x`).
-    depth : int, optional
-        Output feature dimension after GLU transformation. Defaults to `n_input`.
-    residual : int, optional
-        Dimensionality of the residual input. If different from `depth`, a linear projection
-        is applied to align dimensions. Defaults to `depth`.
-    dropout : float, optional
-        Dropout rate applied inside the GLU. If None, no dropout is applied.
-
-    Attributes
-    ----------
-    glu : _GatedLinearUnit
-        The GLU transformation module.
-    norm : LayerNorm
-        Layer normalization applied after residual addition.
-
-    Methods
-    -------
-    forward(x, residual_connect)
-        Applies GLU, adds residual connection (with projection if needed), and normalizes output.
-
-    """
-
-    n_input = None
-    depth = None
-    residual = None
-    dropout = None
-
-    def __init__(
-        self,
-        n_input: int,
-        depth: int = None,
-        residual: int = None,
-        dropout: float = None,
-    ) -> None:
-        super().__init__()
-
-        self.n_input = n_input
-        self.depth = depth or n_input
-        self.residual = residual or self.depth
-        self.dropout = dropout
-
-        self.glu = _GatedLinearUnit(
-            n_input=self.n_input,
-            depth=self.depth,
-            dropout=self.dropout
-        )
-
-        self.norm = LayerNorm(self.depth)
-
-    def forward(self, x, residual_connect) -> Tensor:
-        """
-        Forward pass applying gated transformation, residual addition, and normalization.
-
-        Parameters- decoder_time_steps +1
-        ----------
-        x : Tensor of shape (batch_size, sequence_length, n_input)
-            Input tensor to transform.
-        residual_connect : Tensor of shape (batch_size, sequence_length, residual)
-            Residual tensor to add after transformation. Projected if necessary.
-
-        Returns
-        -------
-        Tensor of shape (batch_size, sequence_length, depth)
-            The output tensor after gated transformation, residual addition, and layer normalization.
-        """
-        x = self.glu(x)
-        if residual_connect is not None:
-            if self.depth != self.residual:
-                residual_connect = self.linear(residual_connect)
-
-            x = self.norm(x + residual_connect)
+        if self.task_name in ('regression', 'vl_regression'):
+            if not self.task_name == 'vl_regression':
+                out = out.view(grn_decoder_out.shape[0], self.final_out_shape[0], self.final_out_shape[1])
+        elif self.task_name == 'classification':
+            pass
         else:
-            x = self.norm(x)
-
-        return x
-
-
-class _GatedResidualNetwork(Module):
-    """
-    Gated Residual Network (GRN) module with optional residual projection and normalization.
-
-    This module implements a GRN block that consists of two linear layers with ELU activation,
-    followed by a gated residual connection with layer normalization. It supports projecting
-    the residual input to match the output dimension if needed.
-
-    Parameters
-    ----------
-    n_input : int
-        Number of input features.
-    depth : int
-        Hidden layer dimensionality within the GRN block.
-    n_output : int
-        Number of output features. Residual input is projected if this differs from `n_input`.
-    dropout : float, optional (default=0.1)
-        Dropout rate applied in the gated residual normalization block.
-    residual_connect : bool, optional (default=True)
-        Whether to use residual connections.
-
-    Attributes
-    ----------
-    linear : Linear, optional
-        Linear layer projecting residual input if `n_input` != `n_output`.
-    norm : LayerNorm
-        Layer normalization applied to the residual connection.
-    fc1 : Linear
-        First linear layer in the GRN block.
-    elu : ELU
-        ELU activation function.
-    fc2 : Linear
-        Second linear layer in the GRN block.
-    gate_norm : _GateAddNorm
-        Gated residual block that applies gating, residual addition, and normalization.
-
-    Methods
-    -------
-    forward(x, residual_connect=None)
-        Forward pass through the GRN, applying linear transformations, activation,
-        gating, residual connection, and normalization.
-    """
-
-    n_input = None
-    depth = None
-    n_output = None
-    dropout = None
-    residual_connect = None
-
-    def __init__(
-        self,
-        n_input: int,
-        depth: int,
-        n_output: int,
-        dropout: float = 0.1,
-        residual_connect: bool = True,
-    ) -> None:
-        super().__init__()
-
-        self.n_input = n_input
-        self.depth = depth
-        self.n_output = n_output
-        self.dropout = dropout
-        self.residual_connect = residual_connect
-
-        if self.n_output != self.n_input:
-            self.linear = Linear(self.n_input, self.n_output)
-
-        self.norm = LayerNorm(self.n_output)
-
-        self.fc1 = Linear(self.n_input, self.depth)
-        self.elu = ELU()
-        self.fc2 = Linear(self.depth, self.depth)
-        init_mod(self)
-
-        self.gate_norm = _GateAddNorm(
-            n_input = self.depth,
-            residual=self.n_output,
-            depth=self.n_output,
-            dropout=self.dropout,
-        )
-
-    def forward(self, x, residual_connect = None) -> Tensor:
-        """
-        Forward pass through the Gated Residual Network.
-
-        Parameters
-        ----------
-        x : Tensor of shape (batch_size, sequence_length, n_input)
-            Input tensor.
-        residual_connect : Tensor of shape (batch_size, sequence_length, n_input) or None, optional
-            Residual tensor to be added. If None, defaults to `x`.
-
-        Returns
-        -------
-        Tensor of shape (batch_size, sequence_length, n_output)
-            Output tensor after processing through GRN block with gated residual connection and normalization.
-        """
-
-        if residual_connect is None:
-            residual_connect = x
-
-        if self.n_input != self.n_output:
-            residual_connect = self.linear(residual_connect)
-
-        residual_connect = self.norm(residual_connect)
-
-        x = self.fc1(x)
-        x = self.elu(x)
-        x = self.fc2(x)
-        out = self.gate_norm(x, residual_connect)
+            logger.error('Unknown task name %s, for LSTM.', self.task_name)
+            exit(101)
 
         return out
 
-class _GatedLinearUnit(Module):
+    def force_reset(self) -> None:
+        """ Wrapper for the underlying LSTM's corresponding function."""
+        self.lstm_encoder.force_reset()
+
+    def get_internal_states(self) -> list:
+        """ Wrapper for the underlying LSTM's corresponding function."""
+        return self.lstm_encoder.get_internal_states()
+
+    def hard_set_states(self, ist_idx: Tensor) -> None:
+        """ Wrapper for the underlying LSTM's corresponding function."""
+        self.lstm_encoder.hard_set_states(ist_idx)
+
+    def update_states(self, ist_idx: Tensor, device: str) -> None:
+        """ Wrapper for the underlying LSTM's corresponding function."""
+        self.lstm_encoder.update_states(ist_idx, device)
+
+class Gate(Module):
     """
-    Gated Linear Unit (GLU) module with optional dropout.
+    A gating mechanism using Gated Linear Unit (GLU) activations with optional dropout.
 
     This module applies a linear transformation to the input, doubling the output
     features to produce gates and values, then uses the GLU activation function to
@@ -554,17 +409,17 @@ class _GatedLinearUnit(Module):
 
     Parameters
     ----------
-    n_input : int
+    n_inputs : int
         Number of input features.
-    depth : int
-        Output feature dimension after gating (half of linear layer output features).
-    dropout : float, optional (default=0.1)
+    n_outputs : int, optional (default=None)
+        Number of output features. If None, them the number of outputs will be the number of inputs.
+    dropout : float, optional (default=None)
         Dropout probability applied before the linear transformation. If None, no dropout is applied.
 
     Attributes
     ----------
     fc : Linear
-        Linear layer producing gates and values with output dimension `depth * 2`.
+        Linear layer producing gates and values with output dimension `n_outputs * 2`.
     dropout : Dropout or None
         Dropout layer applied before linear transformation.
 
@@ -575,13 +430,12 @@ class _GatedLinearUnit(Module):
     """
 
     dropout = None
-    depth = None
 
     def __init__(
         self,
-        n_input: int,
-        depth: int,
-        dropout: float = 0.1,
+        n_inputs: int,
+        n_outputs: int = None,
+        dropout: float = None,
     ) ->None:
         super().__init__()
 
@@ -590,13 +444,14 @@ class _GatedLinearUnit(Module):
         else:
             self.dropout = dropout
 
-        self.depth = depth or n_input
-        self.fc = Linear(n_input, self.depth * 2)
+        n_outputs = n_outputs or n_inputs
+        self.fc = Linear(n_inputs, n_outputs * 2)
+
         init_mod(self)
 
     def forward(self, x: Tensor) -> Tensor:
         """
-        Forward pass of the Gated Linear Unit.
+        Forward pass of the Gating mechanism.
 
         Parameters
         ----------
@@ -617,88 +472,348 @@ class _GatedLinearUnit(Module):
 
         return out
 
-################################### VSN Block ##########################################
 
-class _VariableSelectionNetwork(Module):
+class GateAddNorm(Module):
     """
-    Variable Selection Network for dynamic feature selection for the TFT.
+    Gates the input (using *Gate*), implements a residual connection, and applies layer normalization.
 
-    This module assigns dynamic, data-dependent importance weights to input features,
-    enabling the model to focus on the most relevant variables at each time step.
-    It uses a combination of per-variable Gated Residual Networks (GRNs) to transform
-    each input separately and a joint GRN on the flattened embedding to compute
-    soft attention weights over all input features.
-
-    This approach improves interpretability and efficiency in models like the
-    Temporal Fusion Transformer (TFT), especially when dealing with high-dimensional
-    and mixed-type inputs.
+    This module applies a *Gate* transformation to the input tensor,
+    adds a residual connection (projected if necessary to match dimensions), and
+    normalizes the result using LayerNorm.
 
     Parameters
     ----------
-    n_input_dim : int
-        Dimensionality of each individual input feature (i.e., feature size).
-    n_input_features : int
-        Total number of input features (variables).
-    depth : int
-        Number of hidden units used inside each GRN.
+    n_inputs : int
+        Number of input features (last dimension of `x`).
+    n_outputs : int, optional
+        Number of output features. Defaults to `n_input`.
+    n_residuals : int, optional
+        Dimensionality of the residual input. If different from `n_outputs`, a linear projection
+        is applied to align dimensions. Defaults to `n_outputs`.
     dropout : float, optional
-        Dropout probability used within the GRNs. Default is 0.1.
+        Dropout rate applied inside the GLU. If None, no dropout is applied.
 
     Attributes
     ----------
-    flattened_grn : _GatedResidualNetwork
-        GRN applied to the concatenated feature embeddings, used to generate feature importance weights.
-    single_variable_grns : ModuleList
-        List of GRNs applied independently to each feature.
-    softmax : Softmax
-        Softmax function for converting attention scores into a probability distribution.
+    gate : Gate
+        The Gate transformation module.
+    norm : LayerNorm
+        Layer normalization applied after residual addition.
 
     Methods
     -------
-    forward(x)
-        Applies per-variable GRNs and computes attention-based feature selection.
-        Returns a weighted sum of GRN outputs and the corresponding feature weights.
+    forward(x, residual_connect)
+        Applies *Gate*, adds residual connection (with projection if needed), and normalizes output.
+
     """
 
-    n_input_dim = None
-    n_input_features = None
-    depth = None
-    dropout = None
+    n_outputs = None
+    n_residuals = None
 
     def __init__(
         self,
-        n_input_dim: int,
-        n_input_features: int,
-        depth: int,
-        dropout: float = 0.1,
+        n_inputs: int,
+        n_outputs: int = None,
+        n_residuals: int = None,
+        dropout: float = None,
     ) -> None:
         super().__init__()
 
-        self.n_input_dim = n_input_dim
-        self.n_input_features = n_input_features
-        self.depth = depth
-        self.dropout = dropout
+        self.n_outputs = n_outputs or n_inputs
+        self.n_residuals = n_residuals or self.n_outputs
 
-        if self.n_input_features > 1:
-            self.flattened_grn = _GatedResidualNetwork(
-                n_input=self.n_input_dim * self.n_input_features,
-                depth=min(self.depth, self.n_input_features),
-                n_output=self.n_input_features,
-                dropout=self.dropout,
-                residual_connect=False,
+        self.gate = Gate(
+            n_inputs=n_inputs,
+            n_outputs=self.n_outputs,
+            dropout=dropout
+        )
+
+        self.projection = None
+        if self.n_outputs != self.n_residuals:
+            self.projection = Linear(n_residuals, n_outputs)
+
+        self.norm = LayerNorm(self.n_outputs)
+
+    def forward(self, x, residual_connect) -> Tensor:
+        """
+        Forward pass applying *Gate* transformation, residual addition, and normalization.
+
+        Parameters
+        ----------
+        x : Tensor of shape (batch_size, sequence_length, n_input)
+            Input tensor to transform.
+        residual_connect : Tensor of shape (batch_size, sequence_length, n_residuals)
+            Residual tensor to add after transformation. Projected if necessary.
+
+        Returns
+        -------
+        Tensor of shape (batch_size, sequence_length, n_outputs)
+            The output tensor after gated transformation, residual addition, and layer normalization.
+        """
+        x = self.gate(x)
+        if residual_connect is not None:
+            if self.projection is not None:
+                residual_connect = self.projection(residual_connect)
+            x = self.norm(x + residual_connect)
+        else:
+            x = self.norm(x)
+
+        return x
+
+
+class GatedResidualNetwork(Module):
+    """
+    This module implements a Gated Residual Network (GRN) block that consists of
+    two linear layers with ELU activations inbetween, followed by a *GateAddNorm* module.
+    There is a residual connection to the *GateAddNorm* module.
+
+    Parameters
+    ----------
+    n_inputs : int
+        Number of input features (last dimension of `x`).
+    hidden_dim : int
+        Hidden layer dimensionality within the GRN block.
+    n_outputs : int, optional
+        Number of output features. Defaults to `n_input`.
+    dropout : float, optional (default=None)
+        Dropout rate applied in the gated residual normalization block.
+
+    Methods
+    -------
+    forward(x, residual_connect=None)
+        Forward pass through the GRN, applying linear transformations, activation,
+        gating, residual connection, and normalization.
+    """
+
+    def __init__(
+        self,
+        n_inputs: int,
+        hidden_dim: int,
+        n_outputs: int,
+        dropout: float = None,
+    ) -> None:
+        super().__init__()
+
+        self.fc1 = Linear(n_inputs, hidden_dim)
+        self.elu = ELU()
+        # Note this second layer is probably redundant since the gating mechanisms also
+        # starts with a linear layer, but keeping in to be consistent with source material.
+        self.fc2 = Linear(hidden_dim, hidden_dim)
+        init_mod(self)
+
+        self.gate_norm = GateAddNorm(
+            n_inputs = hidden_dim,
+            n_residuals = n_inputs,
+            n_outputs = n_outputs,
+            dropout=dropout,
+        )
+
+    def forward(self, x) -> Tensor:
+        """
+        Forward pass through the Gated Residual Network.
+
+        Parameters
+        ----------
+        x : Tensor of shape (batch_size, sequence_length, n_input)
+            Input tensor.
+
+        Returns
+        -------
+        Tensor of shape (batch_size, sequence_length, n_output)
+            Output tensor after processing through GRN block with gated residual connection and normalization.
+        """
+
+        h = self.fc1(x)
+        h = self.elu(h)
+        h = self.fc2(h)
+        out = self.gate_norm(h, x)
+
+        return out
+
+
+class EmbeddingLayer(Module):
+    """
+    Embedding layer supporting independent or fully mixed feature embedding.
+
+    This module embeds a multivariate time series input of shape
+    (batch_size, time_steps, input_components) into a structured
+    representation of shape
+
+        (batch_size, time_steps, input_components, hidden_dim)
+
+    Two embedding strategies are supported:
+
+    1. "independent"
+        Each input component is embedded separately using its own
+        Linear(1 → hidden_dim) layer. No cross-feature interaction occurs
+        during embedding.
+
+    2. "mixed"
+        All input components at each time step are jointly projected using
+        a single Linear(n_inputs → n_inputs * hidden_dim) layer. The output
+        is then reshaped to recover a per-feature embedding structure.
+
+        In this mode, each feature embedding depends on the full input
+        feature vector at that time step.
+
+    Parameters
+    ----------
+    n_inputs : int
+        Number of input components (features) in the last dimension of
+        the input tensor.
+    hidden_dim : int
+        Dimensionality of the embedding space for each input component.
+    mode : str, default="independent"
+        Embedding strategy. Must be either "independent" or "mixed".
+
+    Attributes
+    ----------
+    embedders : nn.ModuleList
+        Present when mode="independent". Contains n_inputs separate
+        Linear(1, hidden_dim) layers.
+    embedder : nn.Linear
+        Present when mode="mixed". A single Linear layer mapping
+        n_inputs → n_inputs * hidden_dim.
+
+    Notes
+    -----
+    Input tensor shape:
+        (batch_size, time_steps, input_components)
+
+    Output tensor shape (both modes):
+        (batch_size, time_steps, input_components, hidden_dim)
+
+    In "mixed" mode, the parameter count scales approximately as:
+
+        n_inputs × (n_inputs × hidden_dim)
+
+    which grows quadratically with the number of input components.
+    """
+
+    def __init__(
+        self,
+        n_inputs: int,
+        hidden_dim: int,
+        mode: str = "independent",
+    ) -> None:
+        super().__init__()
+
+        self.mode = mode
+        self.n_inputs = n_inputs
+        self.hidden_dim = hidden_dim
+
+        if mode == "independent":
+            self.embedders = nn.ModuleList(
+                [nn.Linear(1, hidden_dim) for _ in range(n_inputs)]
             )
 
-        self.single_variable_grns = ModuleList()
+        elif mode == "mixed":
+            self.embedder = nn.Linear(
+                n_inputs,
+                n_inputs * hidden_dim
+            )
 
-        for idx in range(self.n_input_features):
-            self.single_variable_grns.append(_GatedResidualNetwork(
-                n_input=self.n_input_dim,
-                depth=min(self.n_input_dim, self.depth),
-                n_output=self.depth,
-                dropout=dropout,
-            ))
+        else:
+            logger.error("mode must be 'independent' or 'mixed'")
+            exit(101)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Apply the embedding transformation.
+
+        Parameters
+        ----------
+        x : Tensor
+            Input tensor of shape
+            (batch_size, time_steps, input_components).
+
+        Returns
+        -------
+        Tensor
+            Embedded tensor of shape
+            (batch_size, time_steps, input_components, hidden_dim).
+
+            - In "independent" mode, each feature is embedded separately.
+            - In "mixed" mode, each feature embedding depends on the
+              entire feature vector at the corresponding time step.
+        """
+
+        if self.mode == "independent":
+            x_embedded = []
+            for j, layer in enumerate(self.embedders):
+                x_j = x[:, :, j:j + 1]
+                x_j_emb = layer(x_j)
+                x_embedded.append(x_j_emb)
+
+            return stack(x_embedded, dim=2)
+
+        else:
+            B, T, _ = x.shape
+
+            x_proj = self.embedder(x)
+            x_proj = x_proj.view(
+                B, T,
+                self.n_inputs,
+                self.hidden_dim
+            )
+
+            return x_proj
+
+
+class VariableSelectionNetwork(nn.Module):
+    """
+    Variable Selection Network (VSN).
+
+    Implements a component-wise variable selection mechanism.
+    Each input component is processed by a component-specific nonlinear transformation.
+    A joint gating network computes importance weights across features, which
+    are used to produce a weighted aggregation of feature representations.
+
+    Parameters
+    ----------
+    n_inputs : int
+        Number of input components.
+    hidden_dim : int
+        Dimensionality of the shared hidden representation space.
+    dropout : float, optional
+        Dropout rate applied within internal GatedResidualNetwork modules.
+
+    Notes
+    -----
+    - Cross-feature interaction occurs within the variable selection
+      network.
+    - Selection weights are normalized using a softmax over the feature
+      dimension.
+    - The output is a convex combination of processed feature representations.
+    """
+
+
+    def __init__(
+        self,
+        n_inputs: int,
+        hidden_dim: int,
+        dropout: float = None,
+    ) -> None:
+        super().__init__()
+
+        self.n_inputs = n_inputs
+        self.hidden_dim = hidden_dim
+
+        self.variable_selector = GatedResidualNetwork(n_inputs=n_inputs * hidden_dim,
+                                                      hidden_dim=n_inputs * hidden_dim, # <- Chosen heuristically, can be an HP later
+                                                      n_outputs=n_inputs,
+                                                      dropout=dropout)
 
         self.softmax = Softmax(dim=-1)
+
+        self.non_linear_procs = ModuleList()
+        for idx in range(n_inputs):
+            self.non_linear_procs.append(GatedResidualNetwork(
+                n_inputs=hidden_dim,
+                hidden_dim=hidden_dim,
+                n_outputs=hidden_dim,
+                dropout=dropout,
+            ))
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -706,78 +821,88 @@ class _VariableSelectionNetwork(Module):
 
         Parameters
         ----------
-        x : Tensor
-            Input tensor of shape (batch_size, sequence_length, n_input).
+        x : torch.Tensor
+            Input tensor of shape (B, T, F, H), where
+            B is the batch size,
+            T is the sequence length,
+            F is the number of input features.
+            H is the number of hidden dimensions.
 
         Returns
         -------
-        out : Tensor
-            Output tensor of shape (batch_size, sequence_length, depth), where each time step
-            contains a weighted combination of the transformed features.
-        sparse_weights : Tensor
-            Tensor of shape (batch_size, sequence_length, 1, n_input_features) containing the
-            soft attention weights assigned to each input feature.
+        torch.Tensor
+            Aggregated feature representation of shape
+            (B, T, hidden_dim).
+        output : Tensor
+            Aggregated feature representation of shape
+            (B, T, hidden_dim).
+        variable_selection : Tensor
+            Tensor of shape (B, T, n_inputs) containing the
+            soft attention weights assigned to each input component.
+            Meant for interpretability.
+
+        Notes
+        -----
+        The forward computation consists of:
+
+        1. Independent per-feature projection into the shared
+           representation space.
+        2. Computation of context-dependent variable selection weights.
+        3. Feature-wise nonlinear processing.
+        4. Softmax-weighted aggregation across the feature dimension.
         """
 
-        if self.n_input_features > 1:
-            var_outputs = []
-            weight_inputs = []
-            for idx in range(self.n_input_features):
-                variable_embedding = x[:, :, idx].unsqueeze(-1)
-                weight_inputs.append(variable_embedding)
-                var_outputs.append(self.single_variable_grns[idx](variable_embedding))
+        B, T, F, H = x.shape
 
-            var_outputs = stack(var_outputs, dim=-1)
-            flat_embedding = cat(weight_inputs, dim=-1)
+        # calculate the variable selection weights
+        x_flattened = x.reshape(B, T, F * self.hidden_dim)
+        variable_selection = self.variable_selector(x_flattened)
+        variable_selection = self.softmax(variable_selection)
 
-            sparse_weights = self.flattened_grn(flat_embedding)
-            sparse_weights = self.softmax(sparse_weights).unsqueeze(-2)
+        # process the inputs
+        procd_outputs = []
+        for j, layer in enumerate(self.non_linear_procs):
+            x_j = x[:, :, j, :]
+            x_j_out = layer(x_j)
+            procd_outputs.append(x_j_out)
+        procd_outputs = stack(procd_outputs, dim=2)
 
-            out = var_outputs * sparse_weights
-            out = out.sum(dim=-1)
+        # weight the processed inputs by the variable selection weights
+        variable_selection = variable_selection.unsqueeze(-1)
+        weighted = procd_outputs * variable_selection
+        output = weighted.sum(dim=2)
 
-        elif self.n_input_features == 1:
-            variable_embedding = x[:, :, 0].unsqueeze(-1)
-            out = self.single_variable_grns[0](variable_embedding)
-            if out.ndim == 3:
-                sparse_weights = ones(out.size(0), out.size(1), 1, 1, device=out.device)
-            else:
-                sparse_weights = ones(out.size(0), 1, 1, device=out.device)
+        return output, variable_selection
 
-        else:
-            out = zeros(x.size(), device=x.device)
-            if out.ndim == 3:
-                sparse_weights = zeros(out.size(0), out.size(1), 1, 0, device=out.device)
-            else:
-                sparse_weights = ones(out.size(0), 1, 0, device=out.device)
 
-        return out, sparse_weights
-
-############################################## Attention head ############################################
-
-class _ScaledDotProductAttention(Module):
+class ScaledDotProductAttention(Module):
     """
     Scaled dot-product attention mechanism.
 
     This module computes attention scores using the dot product between queries and keys,
-    optionally scales the scores, applies a softmax function to obtain attention weights,
-    and uses these weights to aggregate values. Optionally includes dropout after softmax.
+    optionally scales the scores, optionally applies causal masking,
+    and applies a softmax function to obtain attention weights.
+    These weights are used to aggregate values.
+    Optionally includes dropout after softmax.
 
     Parameters
     ----------
-    dropout : float, optional
+    attention_dropout : float, optional
         Dropout probability to apply after the attention softmax. If None, no dropout is used.
     scale : bool, optional
         If True, scales attention scores by the square root of the key dimension. Default is True.
+    masking : bool, optional
+        If True, attention values are masked to prevent temporal dimensions from attending to future values.
+        Default True.
 
     Attributes
     ----------
-    dropout : Dropout or None
+    attention_dropout : Dropout or None
         Dropout layer applied to the attention weights, if specified.
-    softmax : Softmax
-        Softmax function applied to the attention logits along the last dimension.
     scale : bool
         Whether to apply scaling to the attention logits.
+    masking : bool
+        If True, attention values are masked to prevent temporal dimensions from attending to future values.
 
     Methods
     -------
@@ -785,65 +910,70 @@ class _ScaledDotProductAttention(Module):
         Computes attention-weighted values and attention weights from input tensors.
     """
 
-    dropout = None
     scale = None
 
     def __init__(
         self,
-        dropout: float = None,
+        attention_dropout: float = None,
         scale: bool = True,
+        masking: bool = True,
     ) -> None:
         super().__init__()
 
-        if dropout is not None:
-            self.dropout = Dropout(p=dropout)
-        else:
-            self.dropout = dropout
+        self.attention_dropout = attention_dropout
+        if self.attention_dropout is not None:
+            self.attention_dropout = Dropout(p=attention_dropout)
 
         self.scale = scale
+        self.masking = masking
 
     def forward(self, q, k, v) -> Tensor:
         """
         Forward pass of the scaled dot-product attention mechanism.
 
         Computes attention scores as the dot product between queries and keys,
-        optionally scales them, then normalizes
+        optionally scales them, optionally masks for causality, then normalizes
         with softmax. The resulting attention weights are used to compute
         a weighted sum over the values.
 
         Parameters
         ----------
-        q : Tensor, shape [batch_size, sequence_length, model_depth // number_heads]
+        q : Tensor, shape [batch_size, sequence_length, embedding_dim]
             Query tensor.
-        k : Tensor, shape [batch_size, sequence_length, model_depth // number_heads]
+        k : Tensor, shape [batch_size, sequence_length, embedding_dim]
             Key tensor.
-        v : Tensor, shape [batch_size, sequence_length, model_depth // number_heads]
+        v : Tensor, shape [batch_size, sequence_length, embedding_dim]
             Value tensor.
 
         Returns
         -------
-        out : Tensor, shape [batch_size, sequence_length, model_depth // number_heads]
+        out : Tensor, shape [batch_size, sequence_length, embedding_dim]
             Resulting attention-weighted sum of values.
         attn : Tensor, shape [batch_size, sequence_length, sequence_length]
             Attention weights after softmax.
         """
+
         attn = bmm(q, k.permute(0, 2, 1))
-
         if self.scale:
-            dimension = as_tensor(k.size(-1), dtype=attn.dtype, device=attn.device).sqrt()
-            attn = attn / dimension
+            attn = attn / (k.size(-1) ** 0.5)
 
-        attn = Softmax(dim=2)(attn)
+        if self.masking:
+            # TODO: This mask is generated every forward pass. This is inefficient, but currently required for
+            #  variable length input processing. To think if we can get around it.
+            mask = tril(ones(attn.size(-2), attn.size(-1), device=attn.device, dtype=bool)).unsqueeze(0)
+            attn = attn.masked_fill(~mask, finfo(attn.dtype).min)
 
-        if self.dropout is not None:
-            attn = self.dropout(attn)
+        attn = softmax(attn, dim=-1)
+
+        if self.attention_dropout is not None:
+            attn = self.attention_dropout(attn)
 
         out = bmm(attn, v)
 
         return out, attn
 
 
-class _InterpretableMultiHeadAttention(Module):
+class InterpretableMultiHeadAttention(Module):
     """
     Implements an interpretable multi-head attention mechanism where each attention
     head shares the same value vector but uses separate query and key projections.
@@ -854,12 +984,15 @@ class _InterpretableMultiHeadAttention(Module):
 
     Parameters
     ----------
-    n_head : int
+    n_heads : int
         Number of attention heads.
-    d_model : int
+    hidden_dim : int
         Total feature dimension of the input and output.
     dropout : float, optional
-        Dropout probability applied after attention and output projection. Default is 0.1.
+        Dropout probability applied after attention and after output projection. Default is None.
+    masking : bool, optional
+        If True, attention values are masked to prevent temporal dimensions from attending to future values.
+        Default True.
 
     Attributes
     ----------
@@ -869,232 +1002,107 @@ class _InterpretableMultiHeadAttention(Module):
         Per-head linear projections for queries.
     k_layer : nn.ModuleList
         Per-head linear projections for keys.
-    attention : _ScaledDotProductAttention
+    attention : ScaledDotProductAttention
         Core attention mechanism computing attention weights and outputs.
     w_h : nn.Linear
         Final projection layer mapping averaged head output back to model dimension.
     dropout : nn.Dropout
-        Dropout applied after attention and final projection.
+        Dropout probability applied after attention and after output projection.
     """
     def __init__(
         self,
-        n_head: int,
-        d_model: int,
-        dropout: float = 0.1,
+        n_heads: int,
+        hidden_dim: int,
+        dropout: float = None,
+        masking: bool = True,
     ) -> None:
         super().__init__()
 
-        self.n_head = n_head
-        self.d_model = d_model
-        self.d_k = self.d_q = self.d_v = d_model // n_head
-        self.dropout = Dropout(p=dropout)
+        assert hidden_dim % n_heads == 0, \
+            "hidden_dim must be divisible by n_heads in TFT."
 
-        self.v_layer = Linear(self.d_model, self.d_v)
-        self.q_layer = ModuleList([Linear(self.d_model, self.d_q) for _ in range(n_head)])
-        self.k_layer = ModuleList([Linear(self.d_model, self.d_k) for _ in range(n_head)])
-        self.attention = _ScaledDotProductAttention()
-        self.w_h = Linear(self.d_v, self.d_model, bias=False)
+        self.n_heads = n_heads
+        self.hidden_dim = hidden_dim
+        self.d_k = self.d_q = self.d_v = hidden_dim // n_heads
+
+        self.dropout = dropout
+        if self.dropout is not None:
+            self.dropout = Dropout(p=dropout)
+
+        self.v_layer = Linear(self.hidden_dim, self.d_v)
+        self.q_layer = ModuleList([Linear(self.hidden_dim, self.d_q) for _ in range(n_heads)])
+        self.k_layer = ModuleList([Linear(self.hidden_dim, self.d_k) for _ in range(n_heads)])
+        self.attention = ScaledDotProductAttention(attention_dropout=dropout, scale=True, masking=masking)
+        self.w_h = Linear(self.d_v, self.hidden_dim, bias=False)
 
         init_mod(self)
 
-    def forward(self, q, v, k) -> Tuple[Tensor, Tensor]:
+    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor]:
         """
-        Forward pass for interpretable multi-head attention.
+        Forward pass of the Interpretable Multi-Head Attention module.
 
-        Projects inputs into per-head queries and keys and shared values,
-        computes attention per head, averages head outputs, and projects the result.
+        Each attention head uses a separate query and key projection but shares the same
+        value projection across heads. Attention is computed per head, optionally masked
+        for causality, and optionally uses dropout. The outputs of all heads are averaged
+        (not concatenated) to produce the final attention output, which is then projected
+        back to the model dimension and passed through a final dropout.
 
         Parameters
         ----------
-        q : Tensor, shape [batch_size, seq_len, d_model]
-            Query tensor.
-        v : Tensor, shape [batch_size, seq_len, d_model]
-            Value tensor.
-        k : Tensor, shape [batch_size, seq_len, d_model]
-            Key tensor.
+        x : Tensor, shape [batch_size, sequence_length, hidden_dim]
+            Input tensor containing the sequence to attend over. Each element in the sequence
+            is a hidden vector of dimension `hidden_dim`.
 
         Returns
         -------
-        out : Tensor, shape [batch_size, seq_len, d_model]
-            Output of attention after head averaging and projection.
-        attn : Tensor, shape [batch_size, seq_len, seq_len, n_head]
-            Raw attention weights for each head.
+        out : Tensor, shape [batch_size, sequence_length, hidden_dim]
+            The attention-weighted output sequence after averaging across heads and applying
+            the final linear projection.
+
+        attn : Tensor, shape [batch_size, sequence_length, sequence_length, n_heads]
+            Attention weights for each head. Each slice `attn[:, :, :, i]` corresponds
+            to the attention map of head `i`, after softmax and optional dropout.
+            If `n_heads == 1`, the head dimension is omitted.
+
+        Notes
+        -----
+        - Causal masking ensures that each position can only attend to previous and current
+          time steps when `masking=True`.
+        - The value projection is shared across all heads to enforce interpretability,
+          following the Temporal Fusion Transformer design.
         """
 
         heads = []
         attns = []
 
-        vs = self.v_layer(v)
-        for i in range(self.n_head):
-            qs = self.q_layer[i](q)
-            ks = self.k_layer[i](k)
-            head, attn = self.attention(qs, ks, vs)
-            head_dropout = self.dropout(head)
-            heads.append(head_dropout)
+        # global value
+        v = self.v_layer(x)
+        for i in range(self.n_heads):
+            # head-specific query
+            q = self.q_layer[i](x)
+            # head-specific key
+            k = self.k_layer[i](x)
+            # calculate head attention
+            head, attn = self.attention(q, k, v)
+            # store head output
+            heads.append(head)
+            # store head attention values
             attns.append(attn)
 
-        head = stack(heads, dim=2) if self.n_head > 1 else heads[0]
+        # concatenate per-head variables
+        head = stack(heads, dim=2) if self.n_heads > 1 else heads[0]
         attn = stack(attns, dim=2)
 
-        out = mean(head, dim=2) if self.n_head > 1 else head
+        # average across heads
+        out = mean(head, dim=2) if self.n_heads > 1 else head
+        # apply final projection
         out = self.w_h(out)
-        out = self.dropout(out)
+        # apply dropout after final projection
+        if self.dropout is not None:
+            out = self.dropout(out)
 
         return out, attn
 
-class FinalBlock(Module):
-    """
-    Final processing block for TFT-based models for classification, regression, or forecasting tasks.
-
-    This class applies final transformations to the TFT model output to prepare it for a specific task,
-    such as classification, regression, or forecasting. For classification and regression, the output
-    undergoes linear transformation, while for forecasting, it directly returns the selected output steps.
-
-    Parameters
-    ----------
-    num_model_in_time_steps : int
-        The number of input time steps.
-    num_model_out_channels : int
-        The number of output components (e.g., feature channels).
-    num_model_out_time_steps : int
-        The number of output time steps for forecasting or regression tasks.
-    output_activation : str | None
-        The output activation function to be applied (e.g., 'Softmax', 'Sigmoid').
-    task : str
-        Specifies the task type ('classification', 'regression', or 'forecasting').
-
-    Attributes
-    ----------
-    expected_in_t : int
-        Number of input time steps expected by the model.
-    expected_in_c : int
-        Number of input channels expected by the model.
-    desired_out_c : int
-        Number of output components for the model's final output.
-    desired_out_t : int
-        Number of output time steps required in the model output.
-    task : str
-        Task being performed by the model.
-    act : nn.Module | None
-        Activation function applied to the output if specified.
-    trans : nn.Module
-        Linear transformation layer applied to the input.
-
-    Methods
-    -------
-    classify(x)
-        Processes input for classification tasks.
-    regress(x)
-        Processes input for regression tasks.
-    forward(x)
-        Processes input and returns output depending on task type.
-    """
-
-    expected_in_t = None
-    expected_in_c = None
-    desired_out_t = None
-    desired_out_c = None
-    depth = None
-    task = None
-
-    def __init__(self, num_model_in_time_steps, num_model_out_channels,
-                 num_model_out_time_steps, output_activation, depth, task):
-
-        super(FinalBlock, self).__init__()
-
-        self.expected_in_t = num_model_in_time_steps
-        self.expected_in_c = num_model_out_channels
-        self.desired_out_t = num_model_out_time_steps
-        self.desired_out_c = num_model_out_channels
-        self.depth = depth
-        self.task = task
-
-        self.act = None
-        if output_activation is not None:
-            if output_activation == 'Softmax':
-                self.act = getattr(nn, output_activation)(dim=1)
-            else:
-                self.act = getattr(nn, output_activation)
-
-        if task == 'classification':
-            self.trans = Linear(self.depth * self.expected_in_t, self.desired_out_c, bias=False)
-            init_mod(self.trans)
-        elif task == 'regression':
-            self.trans = Linear(self.depth * self.expected_in_t, self.desired_out_c * self.desired_out_t, bias=False)
-            init_mod(self.trans)
-
-    def classify(self, x):
-        """
-        Process input for classification tasks.
-
-        Parameters
-        ----------
-        x : Tensor
-            Input tensor of shape (batch_size, expected_in_t, depth).
-
-        Returns
-        -------
-        Tensor
-            Classification output tensor, possibly with applied activation function.
-        """
-        x = x.reshape(x.shape[0], self.depth * self.expected_in_t)
-        out = self.trans(x)
-        if self.act is not None:
-            out = self.act(out)
-        return out
-
-    def regress(self, x):
-        """
-        Process input for regression tasks.
-
-        Parameters
-        ----------
-        x : Tensor
-            Input tensor of shape (batch_size, expected_in_t, depth).
-
-        Returns
-        -------
-        Tensor
-            Regression output tensor, reshaped as (batch_size, desired_out_t, desired_out_c).
-        """
-        x = x.reshape(x.shape[0], self.depth * self.expected_in_t)
-        out = self.trans(x)
-        if self.act is not None:
-            out = self.act(out)
-        out = out.reshape(out.shape[0], self.desired_out_t, self.desired_out_c)
-        return out
-
-    def forward(self, x):
-        """
-        Return output for an input batch, based on the specified task type.
-
-        Parameters
-        ----------
-        x : Tensor
-            Input tensor of shape (batch_size, in_chunk, out_components).
-
-        Returns
-        -------
-        Tensor
-            Model output with shape depending on task type:
-            - Classification: (batch_size, desired_out_c)
-            - Regression: (batch_size, desired_out_t, desired_out_c)
-            - Forecasting: (batch_size, desired_out_t, expected_in_c)
-
-        Raises
-        ------
-        ValueError
-            If the task type specified is not valid.
-        """
-        if self.task == 'classification':
-            return self.classify(x)
-        elif self.task == 'regression':
-            return self.regress(x)
-        elif self.task == 'forecasting':
-            return x[:, -self.desired_out_t:, :]
-        else:
-            logger.error(self.task + " not a valid task type!")
-            raise ValueError(f"Invalid task type: {self.task}")
 
 def init_mod(mod):
     """
@@ -1124,3 +1132,12 @@ def init_mod(mod):
                 normal_(parameters)
         elif 'bias' in name:
             zeros_(parameters)
+
+
+def get_output_activation(output_activation: None | str) -> Module:
+    """Fetch output activation function from Pytorch."""
+    if output_activation == "Softmax":
+        return getattr(nn, output_activation)(dim=1)
+    if output_activation == "Sigmoid":
+        return getattr(nn, output_activation)()
+    return Identity()
