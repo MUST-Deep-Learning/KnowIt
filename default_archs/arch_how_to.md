@@ -12,24 +12,28 @@ It can then be used to train a model by passing ``kwargs={'arch': {'name': <arch
 calling the ``KI.train_model`` function.
 
 The criteria are as follows:
-1. The script must contain a global ``available_tasks (tuple)`` variable that contains strings defining what type of tasks are currently supported by the architecture. KnowIt currently supports ``(regression, classification)``.
+1. The script must contain a global ``available_tasks (tuple)`` variable that contains strings defining what type of tasks are currently supported by the architecture. KnowIt currently supports ``(regression, classification, vl_regression)``.
 2. The script must contain a global ``HP_ranges_dict (dict)`` variable of iterables that provide reasonable ranges for each hyperparameter related to the architecture. This variable currently only serves as information to potential users, but we might use this later for tuning purposes.
 3. The script must contain a class called ``Model`` that inherits from [``torch.nn.Module``](https://pytorch.org/docs/stable/generated/torch.nn.Module.html).
     -   ``Model``'s constructor must take the following arguments:
         - **task_name** (str) = The task to be performed by the resulting model. 
-        - **input_dim** (list) = The expected input dimensions of the model `[t, c]`. Where t is the number of time steps (delays) and c is the number of input components. 
-        - **output_dim** (list) = The expected output dimensions of the model `[t, c]` (or `[1, num_of_classes]` for classification models). Where t is the number of time steps (delays) and c is the number of output components.
+        - **input_dim** (list) = The expected input dimensions of the model `[t_in, c_in]`. 
+        - **output_dim** (list) = The expected output dimensions of the model `[t_out, c_out]`.
+        - Where
+          - if *task_name* = 'regression', then `t_in` and `t_out` is the number of input and output time steps (delays) and `c_in` and `c_out` is the number of input and output components, respectively.
+          - if *task_name* = 'classification', then `t_in` is the number of input time steps (delays), `t_out=1` and `c_out` is the number of classes.
+          - if *task_name* = 'vl_regression' then `t_in=t_out=1` and `c_in` and `c_out` is the number of input and output components, respectively.
     - All other arguments are optional, meant to correspond to specific hyperparameters, and default values must be defined.
-    -   ``Model`` must also have a ``forward`` method, representing the forward function of the model, that receives a Tensor of shape `[batch_size, in_chunk[b] - in_chunk[a], num_in_components]` as argument, and produce a Tensor of shape `[batch_size, out_chunk[b] - out_chunk[a], num_out_components]` (or `[batch_size, num_classes]` for classification models) as output.
-    - Additionally, if statefulness is desired, the following two methods must also be defined:
-      - ``force_reset()``, accessable from outer scope. This method should reset all hidden and internal states. It is called at the start of train, validation, and testing loops.
-      - ``update_states()`` it receives a Tensor of current IST indices of shape `[batch_size, 3]` as argument. This method can be used to handle statefulness. It is called at the start of each batch.
+    -   ``Model`` must also have a ``forward`` method, representing the forward function of the model, that receives, 
+        - if *task_name* = 'regression', a Tensor of shape `[batch_size, t_in, c_in]` as argument, and produce a Tensor of shape `[batch_size, t_out, c_out]` as output.
+        - if *task_name* = 'classification', a Tensor of shape `[batch_size, t_in, c_in]` as argument, and produce a Tensor of shape `[batch_size, num_classes]` as output.
+        - if *task_name* = 'vl_regression', a Tensor of shape `[batch_size, t, c_in]` as argument, and produce a Tensor of shape `[batch_size, t, c_out]` as output, where `t` is variable length.
 
 See default architectures for examples.
 
 ## 2. Facilitating statefulness
 
-Some architectures are meant to be stateful. This means that they carry an internal state across samples and batches.
+Some architectures are meant to be stateful. This means that they carry an internal state across forward passes.
 If this is desired a number of additional methods need to be defined.
 
 An ``update_states(ist_idx, device)`` method signals to the architecture that the internal states should be updated based 
@@ -63,9 +67,8 @@ has the same structure at that which is returned by ``get_internal_states()``. I
 provided, the current internal states of the architecture should be overwritten with it.
 
 The modifications are only required if statefulness is required. In all cases KnowIt will check 
-if the argument has the required methods before calling them. See the default architecture ``KnowIt/default_archs/LSTMv2`` 
+if the architecture has the required methods before calling them. See the default architecture ``KnowIt/default_archs/LSTMv2`` 
 for an example of an architecture that can be stateful or stateless, and manages the internal states appropriately.
-
 
 
 ## 3. Useful functions
@@ -75,11 +78,12 @@ Use ``KI.available_archs()`` to see what architectures are available after impor
 ## 4. Default architectures
 
 While newly imported architectures are stored under ``/custom_archs`` in the relevant custom experiment output directory, 
-default datasets are stored under ``KnowIt/default_archs``. There are currently four default architectures. 
+default datasets are stored under ``KnowIt/default_archs``. There are currently six default architectures. 
 
- - MLP - A Multilayer perceptron architecture.
- - LSTM - A Long short-term memory architecture.
- - TCN - A Temporal convolutional architecture.
- - CNN - A 1D convolutional architecture.
- - LSTMv2 - A Long short-term memory architecture that can also be stateful.
+ - MLP - A Multilayer perceptron architecture. Supports regression and classification.
+ - LSTM - A Long short-term memory architecture. Supports regression and classification.
+ - TCN - A Temporal convolutional architecture. Supports regression, classification, and vl_regression.
+ - CNN - A 1D convolutional architecture. Supports regression, classification, and vl_regression.
+ - LSTMv2 - A Long short-term memory architecture that can also be stateful. Supports regression, classification, vl_regression, and stateful training.
+ - TFT - A Temporal Fusion Transformer-style architecture that wraps the LSTMv2 architecture. Supports regression, classification, vl_regression, and stateful training.
 
