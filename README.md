@@ -66,7 +66,7 @@ KI.interpret_model(model_name='my_new_model_name',
  - **Flexible problem class definition** allows facilitating various time series modeling 
 tasks, including: uni- and multivariate, single- and multistep, time series regression, classification, forecasting, and detection. 
  - A growing list of default **deep time series architectures**. Currently includes: MLP, 
-CNN, TCN, and LSTM.
+CNN, TCN, LSTM, and TFT.
  - Convenient **entry points to import** custom architectures (PyTorch based) and custom dataset (Pandas based).
  - **Automated data management** (storing, splitting, scaling, sampling, loading, padding etc.) of complex 
 time series data.
@@ -81,15 +81,22 @@ Gaps are removed during preprocessing to construct contiguous blocks of data for
 
 ## Coming soon
 
- - Adding Transformer-based models to default architectures
  - Package installation options
+ - GRU architecture
  - Testbench for synthetic data experimentation
  - Additional feature attribution visualizations
 
 We are open to any suggestions.
 
 ## Citation
-If you make use of KnowIt, we kindly request that you cite it with the provided citation file.
+If you make use of KnowIt, we kindly request that you cite [the paper](https://arxiv.org/abs/2507.06009) with the provided citation file or:
+
+    @article{theunissen2025knowit,
+      title={KnowIt: Deep Time Series Modeling and Interpretation},
+      author={Theunissen, MW and Rabe, R and Davel, MH},
+      journal={arXiv preprint arXiv:2507.06009},
+      year={2025}
+    }
 
 ## Acknowledgements
 
