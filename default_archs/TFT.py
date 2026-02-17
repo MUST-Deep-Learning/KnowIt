@@ -11,27 +11,27 @@ The following diagram depicts the overall architecture:
     X → [EmbeddingLayer] → [VariableSelectionNetwork] → [LSTM]* → [GateAddNorm] →
     [InterpretableMultiHeadAttention]* → [GateAddNorm] → [GatedResidualNetwork] → [Dense] → Y
 
-"*" indicates a skip connection going bypassing this module from the past to the next.
+"*" indicates a skip connection bypassing this module from the past to the next.
 
 See:
 [1] "Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting"  
     Lim et al., 2019 — https://arxiv.org/abs/1912.09363
 
-Inspiration for this implementation has been taken from `pytorch-forecasting's TemporalFusionTransformer
-        <https://pytorch-forecasting.readthedocs.io/en/latest/models.html>`_.
+Some inspiration for this implementation has been taken from pytorch-forecasting's TemporalFusionTransformer
+<https://pytorch-forecasting.readthedocs.io/en/latest/models.html>.
 
-Note: The LSTM stage of the TFT makes use of the default LSTMv2 architecture within KnowIt. All stateful processing is handled by
+*Note*: The LSTM stage of this TFT makes use of the default LSTMv2 architecture within KnowIt. All stateful processing is handled by
 this underlying LSTM module.
 
 --------------
 EmbeddingLayer
 --------------
 
-Performs the initial embedding of input components into a representation space for further processing.
+Performs the initial embedding of input features into a representation space for further processing.
 Linear embeddings are done in one of two modes:
 
-* independent (default): input components are independently embedded,
-* mixed: the embedding of each input component depends on all other input component.
+* *independent* (default): input components are independently embedded,
+* *mixed*: the embedding of each input component depends on all input components.
 
 ----
 Gate
@@ -40,22 +40,24 @@ Gate
     → [Dropout] → [Linear] → [GLU] →
 
 The main gating mechanism in the TFT.
-It consists of a linear layer and a Gated Linear Unit (GLU) function,
+It consists of a linear layer and a Gated Linear Unit (GLU)(https://docs.pytorch.org/docs/stable/generated/torch.nn.GLU.html) function,
 with optional dropout before the linear layer.
 
 This module is used as a basic building block by other modules in the architecture.
+It allows the model to "select" what submodules are useful for the current task.
 
 -----------
 GateAddNorm
 -----------
 
     → → [Gate] → [LayerNorm] →
-        → → → → → → → ↑
+         → → → ↑
 
-Applies the gating mechanism, an optional residual connection from outside the module, and layer normalization.
+Applies the gating mechanism and layer normalization. It also allows a residual connection
+from before this module, which is added to the output of the Gate.
 
 This module is used as both a building block and as part of the main architectural flow.
-Specifically, it is used after the LSTM encoder and Attention blocks to skip over these components
+Specifically, it is used after the LSTM encoder and InterpretableMultiHeadAttention blocks to skip over these modules
 and dynamically calibrate the complexity of the overall architecture.
 
 --------------------
@@ -63,12 +65,11 @@ GatedResidualNetwork
 --------------------
 
     → → [Linear] → [ELU] → [Linear] → [GateAddNorm] →
-      ↓ → → → → → → → → → → → → → → → → → → ↑
+      ↓ → → → → → → → → → → → → → → → ↑
 
 A gated feedforward block:
     - Enables non-linear transformations with gating control.
     - Residual connection allows gradient flow and feature reuse.
-    - LayerNorm stabilizes outputs.
 
 This module is used as both a building block and as part of the main architectural flow.
 Specifically, it is used towards the end of the architecture as a final feedforward stage.
@@ -103,28 +104,21 @@ While the LSTM is meant to model local information (and encode positional inform
 InterpretableMultiHeadAttention module is intended to capture long-term dependencies in the data.
 
 
-Notes
------
-    - TFT handles **only temporal inputs**, and is suitable for forecasting, regression, and classification.
-    - The architecture **does not use static encodings**.
-    - All weights (excluding biases) are initialized with `nn.init.kaiming_uniform_` if dimensions allow,
-      otherwise with `nn.init.normal_`.
-    - All bias parameters are initialized to zero.
 """
 
 from __future__ import annotations
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
 __licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "potgieterharmen@gmail.com, tiantheunissen@gmail.com"
-__description__ = "Example of an TFT model architecture."
+__description__ = "Example of an TFT-style model architecture."
 
 import torch.nn.functional
-from torch import (Tensor, zeros, bool, arange, cat, float, stack, ones, as_tensor, bmm, mean, nn, tril, finfo)
-from torch.nn import (Module, LSTM, Parameter, Sigmoid, Linear, ModuleList, LayerNorm, ELU, Dropout, Softmax, Identity, Sequential)
+from torch import (Tensor, bool, float, stack, ones, bmm, mean, nn, tril, finfo)
+from torch.nn import (Module, Linear, ModuleList, LayerNorm, ELU, Dropout, Softmax, Identity, Sequential)
 from torch.nn.functional import glu, softmax
 from numpy import prod
 from torch.nn.init import (zeros_, kaiming_uniform_, normal_)
-from typing import Dict, Tuple, List, Optional
+from typing import Tuple
 from helpers.logger import get_logger
 import numpy as np
 from default_archs.LSTMv2 import Model as KnowItLSTM
@@ -133,13 +127,17 @@ logger = get_logger()
 
 available_tasks = ("regression", "classification", "vl_regression")
 
-HP_ranges_dict = {"depth": range(1, 512, 1),
+HP_ranges_dict = {"hidden_dim": range(1, 512, 1),
                   "lstm_depth": range(1, 64, 1),
+                  "lstm_width": range(1, 64, 1),
+                  "lstm_hc_init_method": ("zeros", "random"),
+                  "lstm_layernorm": (True, False),
+                  "lstm_bidirectional": (True, False),
                   "num_attention_heads": range(1, 4, 1),
                   "dropout": np.arange(0, 1.1, 0.1),
                   "output_activation": (None, "Sigmoid", "Softmax"),
-                  "decoder_time_steps": range(1, 1025, 1),
-                  "stateful": (False, True),
+                  "lstm_stateful": (False, True),
+                  "embedding_mode": ("independent", "mixed")
 }
 
 class Model(Module):
@@ -157,8 +155,8 @@ class Model(Module):
     - Decoder refinement via ``GatedResidualNetwork``
     - Task-dependent output projection layer
 
-    The model supports standard regression, variable-length regression
-    (``'vl_regression'``), and classification tasks.
+    The model supports standard `regression`, variable-length regression
+    (``'vl_regression'``), and `classification` tasks.
 
     Parameters
     ----------
@@ -399,6 +397,7 @@ class Model(Module):
         """ Wrapper for the underlying LSTM's corresponding function."""
         self.lstm_encoder.update_states(ist_idx, device)
 
+
 class Gate(Module):
     """
     A gating mechanism using Gated Linear Unit (GLU) activations with optional dropout.
@@ -563,6 +562,9 @@ class GateAddNorm(Module):
 
 class GatedResidualNetwork(Module):
     """
+
+    A Gated Residual Network (GRN) block for gated non-linear processing.
+
     This module implements a Gated Residual Network (GRN) block that consists of
     two linear layers with ELU activations inbetween, followed by a *GateAddNorm* module.
     There is a residual connection to the *GateAddNorm* module.
@@ -762,7 +764,7 @@ class EmbeddingLayer(Module):
 
 class VariableSelectionNetwork(nn.Module):
     """
-    Variable Selection Network (VSN).
+    A Variable Selection Network (VSN) for selecting features after embedding.
 
     Implements a component-wise variable selection mechanism.
     Each input component is processed by a component-specific nonlinear transformation.
@@ -877,7 +879,7 @@ class VariableSelectionNetwork(nn.Module):
 
 class ScaledDotProductAttention(Module):
     """
-    Scaled dot-product attention mechanism.
+    A simple scaled dot-product attention mechanism.
 
     This module computes attention scores using the dot product between queries and keys,
     optionally scales the scores, optionally applies causal masking,
@@ -975,6 +977,8 @@ class ScaledDotProductAttention(Module):
 
 class InterpretableMultiHeadAttention(Module):
     """
+    An interpretable multi-head attention block to capture long-term dependencies.
+
     Implements an interpretable multi-head attention mechanism where each attention
     head shares the same value vector but uses separate query and key projections.
 
