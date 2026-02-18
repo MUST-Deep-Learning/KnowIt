@@ -333,18 +333,17 @@ def compile_predictions_for_plot(predictions: dict, targets: dict, timestamps: d
                 to_insert_nan = here[h].item()
                 gap = np.arange(start=t[to_insert_nan] + delta,
                                 stop=t[to_insert_nan + 1],
-                                step=delta)
+                                step=delta, dtype=t.dtype)
                 gaps.append(gap)
             # fill gaps
-            for g in range(len(gaps) - 1, 0, -1):
+            for g in range(len(gaps) - 1, -1, -1):
                 to_insert_nan = here[g].item() + 1
                 t = np.insert(t, to_insert_nan, gaps[g])
                 nan_stack = np.stack([a_nice_nan for x in range(len(gaps[g]))], axis=0)
                 y = np.insert(y, to_insert_nan, nan_stack, axis=0)
                 y_hat = np.insert(y_hat, to_insert_nan, nan_stack, axis=0)
             if delta != np.diff(t).min():
-                logger.error('Something went horribly wrong with growing gaps in prediction visuals.')
-                exit(101)
+                logger.warning('Gaps in prediction point visualization is approximate to within sub-time-delta distances.')
 
         ret_predictions[i] = [t, y_hat]
         ret_targets[i] = [t, y]
