@@ -221,10 +221,10 @@ def plot_set_predictions(exp_output_dir: str, model_name: str, data_tag: str) ->
     # find prediction and target values
     _, predictions, targets, timestamps  = get_predictions(predictions_dir, data_tag,
                                                            model_args['data_dynamics'][data_tag + '_size'])
-    instances = list(set([timestamps[i][0] for i in timestamps]))
+    instance_slices = list(set([(timestamps[i][0], timestamps[i][1]) for i in timestamps]))
 
     # fill gaps where necessary
-    predictions, targets = compile_predictions_for_plot(predictions, targets, timestamps, instances)
+    predictions, targets = compile_predictions_for_plot(predictions, targets, timestamps, instance_slices)
 
     # shift the prediction and target timestamps if out chunk does not start at the current point in time
     out_chunk = model_args['data']['out_chunk']
@@ -239,7 +239,7 @@ def plot_set_predictions(exp_output_dir: str, model_name: str, data_tag: str) ->
 
     # call the relevant plot function for each instance separately
     save_dir = model_viz_dir(exp_output_dir, model_name)
-    for i in instances:
+    for i in instance_slices:
         if model_args['data']['task'] in ('regression', 'vl_regression'):
             plot_regression_set_prediction(i, predictions, targets, data_tag,
                                       model_args['data']['out_components'], save_dir)
@@ -251,11 +251,11 @@ def plot_set_predictions(exp_output_dir: str, model_name: str, data_tag: str) ->
             exit(101)
 
 
-def compile_predictions_for_plot(predictions: dict, targets: dict, timestamps: dict, instances: list) -> tuple:
+def compile_predictions_for_plot(predictions: dict, targets: dict, timestamps: dict, instance_slices: list) -> tuple:
     """
     Organize predictions, targets, and timestamps for plotting, ensuring a consistent time axis with no gaps.
 
-    This function takes in predictions, targets, and timestamps for multiple instances and returns
+    This function takes in predictions, targets, and timestamps for multiple slices and returns
     structured dictionaries for plotting. It verifies that all time steps are consistent; if gaps
     are found, they are filled with NaN values to maintain continuity in the plot.
 
@@ -267,8 +267,8 @@ def compile_predictions_for_plot(predictions: dict, targets: dict, timestamps: d
         Dictionary mapping indices to actual target values for each instance.
     timestamps : dict
         Dictionary mapping indices to corresponding timestamps for each instance.
-    instances : list
-        List of unique identifiers for instances to process.
+    instance_slices : list
+        List of unique identifiers for slices to process. Format: (instance_id, slice_id).
 
     Returns
     -------
@@ -293,10 +293,10 @@ def compile_predictions_for_plot(predictions: dict, targets: dict, timestamps: d
     """
     ret_predictions = {}
     ret_targets = {}
-    for i in instances:
+    for i in instance_slices:
 
         # find relevant prediction points and sort
-        i_inx = [p for p in timestamps if timestamps[p][0] == i]
+        i_inx = [p for p in timestamps if (timestamps[p][0], timestamps[p][1]) == i]
         t = [timestamps[p][2] for p in i_inx]
         y = [targets[p] for p in i_inx]
         y_hat = [predictions[p] for p in i_inx]
@@ -333,18 +333,17 @@ def compile_predictions_for_plot(predictions: dict, targets: dict, timestamps: d
                 to_insert_nan = here[h].item()
                 gap = np.arange(start=t[to_insert_nan] + delta,
                                 stop=t[to_insert_nan + 1],
-                                step=delta)
+                                step=delta, dtype=t.dtype)
                 gaps.append(gap)
             # fill gaps
-            for g in range(len(gaps) - 1, 0, -1):
+            for g in range(len(gaps) - 1, -1, -1):
                 to_insert_nan = here[g].item() + 1
                 t = np.insert(t, to_insert_nan, gaps[g])
                 nan_stack = np.stack([a_nice_nan for x in range(len(gaps[g]))], axis=0)
                 y = np.insert(y, to_insert_nan, nan_stack, axis=0)
                 y_hat = np.insert(y_hat, to_insert_nan, nan_stack, axis=0)
             if delta != np.diff(t).min():
-                logger.error('Something went horribly wrong with growing gaps in prediction visuals.')
-                exit(101)
+                logger.warning('Gaps in prediction point visualization is approximate to within sub-time-delta distances.')
 
         ret_predictions[i] = [t, y_hat]
         ret_targets[i] = [t, y]
@@ -364,7 +363,7 @@ def plot_regression_set_prediction(i: any, predictions: dict, targets: dict, dat
     Parameters
     ----------
     i : any
-        Unique identifier for the instance being plotted.
+        Unique identifier for the instance-slice being plotted.
     predictions : dict
         Dictionary containing predictions for each instance, with keys representing indices.
     targets : dict
@@ -402,9 +401,9 @@ def plot_regression_set_prediction(i: any, predictions: dict, targets: dict, dat
     for c in range(y_components):
         fig, ax = plt.subplots(1, 1, figsize=large_figsize)
         for t in range(y_time):
-
             # Assumes compiled predictions are contiguous time blocks
-            time_delta = predictions[0][0][1] - predictions[0][0][0]
+            first_item = list(predictions.keys())[0]
+            time_delta = predictions[first_item][0][1] - predictions[first_item][0][0]
             shifted_x = x + (t * time_delta)
             ax.plot(shifted_x, y[:, t, c],
                     label='Target ' + out_components[c] + ' step ' + str(t), color=target_color)
@@ -412,7 +411,7 @@ def plot_regression_set_prediction(i: any, predictions: dict, targets: dict, dat
             ax.plot(shifted_x, y_hat[:, t, c],
                     label='Predicted ' + out_components[c] + ' step ' + str(t) + ' (mae=' + str(mae) + ')', color=colors[t])
 
-        ax.set_title(data_tag + ' instance: ' + str(i), fontsize=20)
+        ax.set_title(data_tag + ' instance-slice: ' + str(i), fontsize=20)
         ax.set_xlabel('t', fontsize=20)
         ax.set_ylabel(str(out_components[c]) + '(t)', fontsize=20)
         ax.grid(color=grid_color, alpha=0.5)
@@ -434,7 +433,7 @@ def plot_classification_set_prediction(i: any, predictions: dict, targets: dict,
     Parameters
     ----------
     i : any
-        Identifier for the instance being plotted.
+        Identifier for the instance-slice being plotted.
     predictions : dict
         Dictionary containing prediction arrays for each instance. Each array is expected to have shape [timesteps, classes].
     targets : dict
@@ -479,7 +478,7 @@ def plot_classification_set_prediction(i: any, predictions: dict, targets: dict,
     nan_mask = np.isnan(y)
     correct[nan_mask] = np.nan
     accuracy = np.count_nonzero(correct[~nan_mask]) / float(len(correct[~nan_mask]))
-    title = data_tag + ' instance: ' + str(i) + '; accuracy = ' + str(accuracy)
+    title = data_tag + ' instance-slice: ' + str(i) + '; accuracy = ' + str(accuracy)
 
     conf_mat = np.zeros(shape=(num_classes, num_classes))
     for c_predicted in range(num_classes):
