@@ -1,0 +1,40 @@
+KnowIt.setup.setup_weighted_cross_entropy
+=========================================
+
+.. py:module:: KnowIt.setup.setup_weighted_cross_entropy
+
+.. autoapi-nested-parse::
+
+   Functions used to facilitate weighted cross entropy.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   KnowIt.setup.setup_weighted_cross_entropy.proc_weighted_cross_entropy
+
+
+Module Contents
+---------------
+
+.. py:function:: proc_weighted_cross_entropy(class_counts, device)
+
+   Configure a weighted cross-entropy loss function for classification tasks based on class counts.
+
+   This function calculates weights for each class inversely proportional to its count, helping to
+   balance classes in tasks where class distributions are uneven. The weights are normalized so
+   that the maximum weight equals 1. This weighted loss function is only available for
+   classification tasks.
+
+   :Parameters: * **class_counts** (:py:class:`dict`) -- A dictionary mapping class IDs to counts.
+                * **device** (:py:class:`str`) -- Device on which the weights will be used ('gpu' for CUDA compatibility, otherwise CPU).
+
+   :returns: Dictionary containing the loss function configuration with normalized class weights.
+   :rtype: :py:class:`dict`
+
+   :raises SystemExit: If the task is not 'classification' or if `class_counts` is empty.
+
+

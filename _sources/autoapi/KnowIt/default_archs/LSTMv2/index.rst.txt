@@ -1,0 +1,262 @@
+KnowIt.default_archs.LSTMv2
+===========================
+
+.. py:module:: KnowIt.default_archs.LSTMv2
+
+.. autoapi-nested-parse::
+
+   This is a set of stacked LSTM blocks,
+   with optional normalization, dropout, bidirectionality, and residual connections,
+   followed by a final linear layer, with optional output activation.
+   Additionally, the architecture can be stateful or stateless.
+
+   ---------
+   LSTMBlock
+   ---------
+
+   This block consists of an lstm layer followed by optional layer normalization,
+   dropout, and residual connection.
+   * is optional
+
+   [lstm] -> [layernorm*] -> [dropout*] -> [residual*]
+
+       -   [lstm] = torch.nn.LSTM
+       -   [layernorm*] = torch.nn.LayerNorm
+       -   [dropout*] = torch.nn.Dropout
+       -   [residual*] = a residual connection
+
+   .. rubric:: Notes
+
+   - The LSTM is capable of handling regression or classification tasks.
+   - All LSTMBlocks have bias parameters.
+   - All LSTMBlocks have the same number of hidden units, defined by the ``width`` parameter.
+   - Can also run in `variable length` mode (i.e. task='vl_regression'), where the number of timesteps in the input and output are equal.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.default_archs.LSTMv2.Model
+   KnowIt.default_archs.LSTMv2.LSTMBlock
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   KnowIt.default_archs.LSTMv2.get_output_activation
+
+
+Module Contents
+---------------
+
+.. py:class:: Model(input_dim, output_dim, task_name, *, width = 256, depth = 2, dropout = 0.0, output_activation = None, stateful = False, hc_init_method = 'zeros', layernorm = True, bidirectional = False, residual = True)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   A stacked LSTM model for sequence processing with configurable depth,
+   bidirectional processing, and output layers.
+
+   This model consists of multiple LSTMBlock layers followed by a linear output layer and an optional activation function.
+   It supports stateful processing for sequential data, handling tasks like regression or classification.
+
+   :Parameters: * **input_dim** (:py:class:`list[int]`, :py:class:`shape=[in_chunk`, :py:class:`in_components]`) -- The shape of the input data. The "time axis" is along the first dimension.
+                * **output_dim** (:py:class:`list[int]`, :py:class:`shape=[out_chunk`, :py:class:`out_components]`) -- The shape of the output data. The "time axis" is along the first dimension.
+                * **task_name** (:py:class:`str`) -- The type of task (classification, regression, or vl_regression).
+                * **width** (:py:class:`int`, *default* ``256``) -- The number of features in the hidden state of each LSTMBlock.
+                * **depth** (:py:class:`int`, *default* ``2``) -- The number of LSTMBlocks.
+                * **dropout** (:py:class:`float`, *default* ``0.0``) -- Dropout probability applied in each LSTMBlock.
+                * **output_activation** (:py:class:`str` or :py:obj:`None`, *default* :py:obj:`None`) -- The activation function for the output layer ('Sigmoid', 'Softmax', or None).
+                * **stateful** (:py:class:`bool`, *default* :py:obj:`False`) -- If True, maintains hidden states across batches for contiguous sequences.
+                * **hc_init_method** (:py:class:`str`, *default* ``'zeros'``) -- Method for initializing hidden and cell states in LSTMBlocks ('zeros' or 'random').
+                * **layernorm** (:py:class:`bool`, *default* :py:obj:`True`) -- If True, applies layer normalization in each LSTMBlock.
+                * **bidirectional** (:py:class:`bool`, *default* :py:obj:`False`) -- If True, uses bidirectional LSTMBlocks.
+                * **residual** (:py:class:`bool`, *default* :py:obj:`False`) -- If True, applies residual connections in LSTMBlocks if sizes match.
+
+   :ivar task_name: The task type ('regression' or 'classification').
+   :vartype task_name: :py:class:`str`
+   :ivar model_in_dim: The input feature size (last dimension of input_dim).
+   :vartype model_in_dim: :py:class:`int`
+   :ivar model_out_dim: The flattened output size (product of output_dim).
+   :vartype model_out_dim: :py:class:`int`
+   :ivar final_out_shape: The desired output shape.
+   :vartype final_out_shape: :py:class:`list[int]`
+   :ivar stateful: Whether the model maintains hidden states across batches.
+   :vartype stateful: :py:class:`bool`
+   :ivar last_ist_idx: The last batch indices used for stateful processing, or None if not set.
+   :vartype last_ist_idx: :py:class:`torch.Tensor` or :py:obj:`None`
+   :ivar lstm_layers: List of LSTMBlock instances.
+   :vartype lstm_layers: :py:class:`torch.nn.ModuleList`
+   :ivar output_layers: Sequential container of the output linear layer and optional activation function.
+
+   :vartype output_layers: :py:class:`torch.nn.Sequential`
+
+   .. rubric:: Notes
+
+   - The output shape is reshaped to match `output_dim` (e.g., [batch_size, out_chunk, out_components]).
+   - Stateful processing requires `ist_idx` in the input batch to track sequence continuity.
+   - The `output_activation` is applied only if specified, typically for classification tasks.
+
+
+   .. py:method:: force_reset()
+
+      A function for external modules to manually signal that all internal states need to be reset.
+
+
+
+   .. py:method:: get_internal_states()
+
+      Retrieve the internal states of all LSTMBlock layers.
+
+      This method extracts the internal states from each LSTMBlock layer, used for interpretations
+      requiring internal state management. The internal states are reshaped to align with Captum's
+      expectation, where the first axis corresponds to the batch size.
+
+      :returns: A list of tuples, where each tuple contains the hidden state (h_0) and cell state (c_0)
+                for an LSTMBlock layer. Each state is a tensor with shape
+                [batch_size, num_layers, hidden_size].
+      :rtype: :py:class:`list` of :py:class:`tuple`
+
+      .. rubric:: Notes
+
+      The original internal states have shape [num_layers, batch_size, hidden_size]. This method
+      swaps the first two axes to produce states with shape [batch_size, num_layers, hidden_size]
+      to comply with Captum's sample-first axis convention.
+
+
+
+   .. py:method:: hard_set_states(ist_idx)
+
+      A function for external modules to manually set the IST indices for stateful training.
+      This is called at the start of batches right after the internal states are updated with `update_states`.
+      If variable length data is processed this will be the IST indices corresponding to the end of the current batch,
+      otherwise it will correspond to the beginning (and be redundant).
+
+      :Parameters: **ist_idx** (:py:class:`Tensor`) -- Tensor of shape (batch_size, 3) containing batch indices for tracking sequence continuity.
+
+
+
+   .. py:method:: update_states(ist_idx, device)
+
+      Manage internal state continuity for stateful processing based on batch indices.
+
+      :Parameters: * **ist_idx** (:py:class:`Tensor`) -- Tensor of shape (batch_size, 3) containing batch indices for tracking sequence continuity.
+                   * **device** (:py:class:`str`) -- The device to place the hidden and cell states on (e.g., 'cuda' or 'cpu').
+
+      .. rubric:: Notes
+
+      - If `stateful=True`, hidden states are preserved for contiguous sequences and reset for non-contiguous ones.
+      - `ist_idx` is expected to have columns [instance_id, slice_id, time_step_id].
+      - Non-contiguous sequences are detected by comparing `ist_idx` with `last_ist_idx`.
+
+
+
+   .. py:method:: forward(x, *internal_states)
+
+      Forward pass through the model, processing inputs through LSTM layers and output layers.
+
+      :Parameters: * **x** (:py:class:`Tensor`, :py:class:`shape=[batch_size`, :py:class:`in_chunk`, :py:class:`in_components]`) -- An input tensor. See below for shape exception.
+                   * **internal_states** (:py:class:`list` of :py:class:`Tensor`, *optional*) -- Variable length argument for internal LSTM states (e.g., hidden and cell states).
+                     If provided, it will overwrite current internal states.
+
+      :returns: Output tensor of shape (batch_size, sequence_length, output_size) matching `final_out_shape`.
+      :rtype: :py:class:`torch.Tensor`
+
+      :raises SystemExit: If `task_name` is neither 'regression', 'classification', nor 'vl_regression', exits with code 101.
+
+      .. rubric:: Notes
+
+      - The input is processed sequentially through each LSTMBlock, followed by reshaping and output layers.
+      - For 'regression', the output is reshaped to match `final_out_shape`.
+      - For 'classification', the output is returned as is (assumes activation like softmax is in output_layers).
+      - For 'vl_regression', the input tensor x will have the shape [batch_size, *, in_components], where * is variable length.
+
+
+
+.. py:class:: LSTMBlock(input_size, hidden_size, num_layers, dropout, batch_first, hc_init_method, layernorm, bidirectional, residual)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   A customizable LSTM block with optional bidirectional processing, layer normalization,
+   dropout, and residual connections.
+
+   This module wraps a PyTorch LSTM layer with additional features such as layer normalization, dropout, and residual
+   connections. It also supports customizable initialization of hidden and cell states.
+
+   :Parameters: * **input_size** (:py:class:`int`) -- The number of expected features in the input `x`.
+                * **hidden_size** (:py:class:`int`) -- The number of features in the hidden state `h`.
+                * **num_layers** (:py:class:`int`) -- Number of recurrent layers.
+                * **dropout** (:py:class:`float`) -- Dropout probability to apply to the LSTM output. If 0, no dropout is applied.
+                * **batch_first** (:py:class:`bool`) -- If True, input and output tensors are provided as (batch, seq, feature). Otherwise, (seq, batch, feature).
+                * **hc_init_method** (:py:class:`str`) -- Method for initializing hidden and cell states: 'zeros' or 'random'.
+                * **layernorm** (:py:class:`bool`) -- If True, applies layer normalization to the LSTM output.
+                * **bidirectional** (:py:class:`bool`) -- If True, uses a bidirectional LSTM.
+                * **residual** (:py:class:`bool`) -- If True, applies a residual connection between input and output if their sizes match.
+
+   :ivar hidden_size: The number of features in the hidden state of the LSTM.
+   :vartype hidden_size: :py:class:`int`
+   :ivar num_layers: The number of LSTM layers.
+   :vartype num_layers: :py:class:`int`
+   :ivar hc_init_method: The method for initializing hidden and cell states ('zeros' or 'random').
+   :vartype hc_init_method: :py:class:`str`
+   :ivar bidirectional: If True, the LSTM is bidirectional.
+   :vartype bidirectional: :py:class:`bool`
+   :ivar residual: If True, applies a residual connection if input and output sizes match.
+   :vartype residual: :py:class:`bool`
+   :ivar hidden_state: The hidden and cell states of the LSTM, with shapes (num_layers * num_directions, batch_size, hidden_size).
+   :vartype hidden_state: :py:class:`tuple` of :py:class:`Tensor`
+   :ivar lstm_layer: The underlying LSTM layer.
+   :vartype lstm_layer: :py:class:`torch.nn.LSTM`
+   :ivar layer_norm: The layer normalization module (LayerNorm if layernorm=True, else Identity).
+   :vartype layer_norm: :py:class:`torch.nn.Module`
+   :ivar dropout: The dropout module (Dropout if dropout > 0, else Identity).
+
+   :vartype dropout: :py:class:`torch.nn.Module | Identity`
+
+   .. rubric:: Notes
+
+   - The LSTM output size is `hidden_size * 2` if bidirectional, otherwise `hidden_size`.
+   - Residual connections are only applied if `residual=True` and the input size matches the output size.
+   - Hidden and cell states are initialized on the specified device (default: 'cuda') during `reset_states`.
+
+
+   .. py:method:: reset_states(batch_size, device, changed_idx=None)
+
+      Initialize or reset the hidden and cell states of the LSTM.
+
+      :Parameters: * **batch_size** (:py:class:`int`) -- The batch size for the hidden and cell states.
+                   * **device** (:py:class:`str`) -- The device to place the hidden and cell states on (e.g., 'cuda' or 'cpu').
+                   * **changed_idx** (:py:class:`int`, *optional*) -- If provided, reset only the specified indices of the hidden and cell states. Default is None.
+
+      :raises SystemExit: If `hc_init_method` is neither 'zeros' nor 'random', exits with code 101.
+
+
+
+   .. py:method:: forward(x)
+
+      Forward pass through the LSTM block.
+
+      :Parameters: **x** (:py:class:`Tensor`) -- Input tensor with shape (batch, seq, input_size) if batch_first=True, else (seq, batch, input_size).
+
+      :returns: Output tensor with shape (batch, seq, hidden_size * num_directions) if batch_first=True,
+                else (seq, batch, hidden_size * num_directions).
+      :rtype: :py:class:`Tensor`
+
+      .. rubric:: Notes
+
+      - Applies the LSTM layer, followed by optional layer normalization, residual connection, and dropout.
+      - The residual connection is only applied if `residual=True` and the input size matches the output size.
+
+
+
+.. py:function:: get_output_activation(output_activation)
+
+   Fetch output activation function from Pytorch.
+
+

@@ -1,0 +1,144 @@
+KnowIt.interpret.DLS_Captum
+===========================
+
+.. py:module:: KnowIt.interpret.DLS_Captum
+
+.. autoapi-nested-parse::
+
+   ------------
+   DeepLiftShap
+   ------------
+
+   DeepLiftShap is a feature attribution method.
+
+   For each of the model's output features, feature attribution assigns a value
+   to each input feature that is based on its contribution to the model's output.
+
+   The method is implemented through the Captum library.
+
+   For more information on the method, see:
+   https://proceedings.neurips.cc/paper_files/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf
+
+   and
+
+   https://captum.ai/api/deep_lift_shap.html
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.interpret.DLS_Captum.DLS
+
+
+Module Contents
+---------------
+
+.. py:class:: DLS(model, model_params, datamodule, path_to_ckpt, i_data, device, seed, *, multiply_by_inputs = True)
+
+   Bases: :py:obj:`interpret.featureattr.FeatureAttribution`
+
+
+   Implement the DeepLiftShap feature attribution method.
+
+   :Parameters: * **model** (:py:class:`Module`) -- The Pytorch model architecture class.
+                * **model_params** (:py:class:`dict[str`, :py:class:`Any]`) -- The dictionary needed to initialize the model.
+                * **datamodule** (:py:class:`type`) -- The Knowit datamodule for the experiment.
+                * **path_to_ckpt** (:py:class:`str`) -- The path to a trained model's checkpoint file.
+                * **i_data** (:py:class:`str`) -- The user's choice of dataset to perform feature attribution.
+                  Choices: 'train', 'valid', 'eval'.
+                * **device** (:py:class:`str`) -- On which hardware device to generate attributions.
+                * **seed** (:py:class:`int`) -- The seed to be used by Numpy for random sampling of baselines
+                  and reproducibility.
+                * **multiply_by_inputs** (:py:class:`bool`, *default* :py:obj:`True`) -- If True, perform local attributions. If False, perform global
+                  attributions. For more information, see Captum's documentation.
+
+   :ivar model: The initialized PyTorch model loaded with weights from the checkpoint.
+
+   :vartype model: :py:class:`Module`
+   :ivar datamodule: The Knowit datamodule for the experiment.
+
+   :vartype datamodule: :py:class:`type`
+   :ivar device: The device on which the model is run.
+
+   :vartype device: :py:class:`torch.device`
+   :ivar i_data: The user's choice of dataset to perform feature attribution.
+
+   :vartype i_data: :py:class:`str`
+   :ivar seed: The seed used by Numpy for random sampling of baselines.
+
+   :vartype seed: :py:class:`int`
+   :ivar dls: The DeepLiftShap instance from Captum for feature attribution.
+
+   :vartype dls: :py:class:`DeepLiftShap`
+   :ivar rescale_outputs: Whether to rescale the outputs of the model when storing the outputs corresponding to the attributions.
+
+   :vartype rescale_outputs: :py:class:`bool`, *default* :py:obj:`True`
+
+
+   .. py:method:: generate_baseline_from_data(num_baselines, num_prediction_points = None)
+
+      Return a number of baselines and (optionally) their corresponding internal state.
+
+      Randomly samples a distribution of baselines from the training data.
+      If possible, also generates internal baselines by passing the
+      baselines through the model and obtaining the internal states.
+      :Parameters: * **num_baselines** (:py:class:`int`) -- The total number of baselines to sample.
+                   * **num_prediction_points** (:py:class:`int`, *optional*) -- The number of prediction points to be interpreted.
+                     Used to repeat average baseline in case of variable length inputs.
+
+      :returns: A tuple containing:
+                - A torch tensor of shape (num_baselines, in_chunk, in_components) representing the baselines.
+                - The internal states baselines (if available), otherwise None.
+      :rtype: :py:class:`Tuple[Tensor`, :py:class:`Optional[Tensor | None]]`
+
+      .. rubric:: Notes
+
+      - If the number of available samples in the training data is less than `num_baselines`,
+        the method will use all available samples and log a warning.
+      - The internal state baseline is generated only if the model has the `update_states`, `force_reset`,
+        and `get_internal_states` methods.
+
+
+
+   .. py:method:: interpret(pred_point_id, num_baselines = 1000)
+
+      Return attribution matrices and deltas.
+
+      Generates attribution matrices for a single prediction point or a range
+      of prediction points (also referred to as explicands).
+
+      :Parameters: * **pred_point_id** (:py:class:`int | tuple`) -- The prediction point or range of prediction points that will be
+                     used to generate attribution matrices.
+                   * **num_baselines** (:py:class:`int`, *default* ``1000``) -- Specifies the size of the baseline distribution.
+
+      :returns: **results** -- For a regression model with output shape
+                (out_chunk, out_components),
+                returns a dictionary as follows:
+                    * Dict Key: a tuple (m, n) with m in range(out_chunk) and
+                    n in range(out_components).
+                    * Dict Element: a torch tensor with shape:
+                        > (prediction_points, in_chunk, in_components) if
+                        pred_point_id is a tuple.
+                        > (in_chunk, in_components) if pred_point_id is int.
+
+                For a classification model with output shape (classes,), returns a
+                dictionary as follows:
+                    * Dict Key: a class value from classes.
+                    * Dict Element: a torch tensor with shape:
+                        > (prediction_points, in_chunk, in_components) if
+                        pred_point_id is a tuple.
+                        > (in_chunk, in_components) if pred_point_id is int.
+      :rtype: :py:class:`dict[int | tuple[int`, :py:class:`int]`, :py:class:`dict[str`, :py:class:`Tensor]]`
+
+      .. rubric:: Notes
+
+      The output stores the information from a tensor of size
+      (out_chunk, out_components, prediction_points, in_chunk, in_components)
+      inside a dictionary data structure. For time series data, this can grow
+      rapidly, which may therefore obscure model interpretability.
+
+
+

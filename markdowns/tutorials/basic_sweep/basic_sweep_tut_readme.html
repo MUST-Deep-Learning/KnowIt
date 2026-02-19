@@ -1,0 +1,901 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Basic sweep &#8212; KnowIt 1.0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=292eb321"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'markdowns/tutorials/basic_sweep/basic_sweep_tut_readme';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Statefulness" href="../stateful/stateful_tut_readme.html" />
+    <link rel="prev" title="Basics" href="../basics/basics_tut_readme.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="1.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/KI_logo_short_stencil.png" class="logo__image only-light" alt="KnowIt 1.0.1 documentation - Home"/>
+    <img src="../../../_static/KI_logo_short_stencil.png" class="logo__image only-dark pst-js-only" alt="KnowIt 1.0.1 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="#">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../autoapi/index.html">
+    API Reference
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../autoapi/index.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Basic sweep</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="basic-sweep">
+<h1>Basic sweep<a class="headerlink" href="#basic-sweep" title="Link to this heading">#</a></h1>
+<p>In this tutorial we show how to perform a basic hyperparameter (HP) sweep in the KnowIt framework,
+using the <a class="reference external" href="https://docs.wandb.ai/">Weights and Biases (W&amp;B) API</a>.</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#1"><span class="xref myst">Preliminaries</span></a></p></li>
+<li><p><a class="reference internal" href="#2"><span class="xref myst">Define the sweep</span></a></p></li>
+<li><p><a class="reference internal" href="#3"><span class="xref myst">Define the runner</span></a></p></li>
+<li><p><a class="reference internal" href="#4"><span class="xref myst">Start the sweep</span></a></p></li>
+<li><p><a class="reference internal" href="#5"><span class="xref myst">Consolidate the sweep</span></a></p></li>
+<li><p><a class="reference internal" href="#6"><span class="xref myst">Conclusion</span></a></p></li>
+</ol>
+<hr class="docutils" />
+<section id="preliminaries">
+<h2>1. Preliminaries <div id="1"><a class="headerlink" href="#preliminaries" title="Link to this heading">#</a></h2>
+<p>First make sure you have W&amp;B <a class="reference external" href="https://docs.wandb.ai/guides/integrations/lightning/#install-the-wandb-library-and-log-in">installed and you are logged in</a>.</p>
+<p>Let’s set up some preliminary variables and imports as defined below.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># import the KnowIt class</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">knowit</span><span class="w"> </span><span class="kn">import</span> <span class="n">KnowIt</span>
+<span class="c1"># import W&amp;B class</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">wandb</span>
+
+<span class="c1"># create a KnowIt object linked to an experiment directory</span>
+<span class="n">KI</span> <span class="o">=</span> <span class="n">KnowIt</span><span class="p">(</span><span class="s1">&#39;sweep_exp_dir&#39;</span><span class="p">)</span>
+<span class="c1"># connect the sweep with a model-to-be by naming it</span>
+<span class="n">model_name</span> <span class="o">=</span> <span class="s2">&quot;some_sweeped_model&quot;</span>
+<span class="c1"># give the current sweep a name</span>
+<span class="n">sweep_name</span> <span class="o">=</span> <span class="s2">&quot;my_sweep_name&quot;</span>
+
+<span class="c1"># W&amp;B variables</span>
+<span class="n">project_name</span> <span class="o">=</span> <span class="s2">&quot;my_project_name&quot;</span>
+<span class="n">entity</span> <span class="o">=</span> <span class="s2">&quot;my_wb_username_or_team&quot;</span>
+</pre></div>
+</div>
+<p>Note that the output structure of a KnowIt experiment using HP sweeps is
+still the same as defined in <code class="docutils literal notranslate"><span class="pre">result_structure.md</span></code>, with the familiar hierarchy of
+experiment directory, models, and then model. The model directory now
+contains an additional sub-directory called “sweeps” within which the results of
+HP sweeps are stored. The defined <code class="docutils literal notranslate"><span class="pre">model_name</span></code> and <code class="docutils literal notranslate"><span class="pre">sweep_name</span></code> dictates this.</p>
+<hr class="docutils" />
+</section>
+<section id="define-the-sweep">
+<h2>2. Define the sweep <div id="2"><a class="headerlink" href="#define-the-sweep" title="Link to this heading">#</a></h2>
+<p>Next we define the HPs that we will be sweeping over.
+We do this by constructing a sweep configuration dictionary as defined below.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sweep_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">sweep_name</span><span class="p">,</span> 
+                <span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;grid&quot;</span><span class="p">,</span> 
+                <span class="s2">&quot;metric&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;goal&quot;</span><span class="p">:</span> <span class="s2">&quot;minimize&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;valid_loss&quot;</span><span class="p">},</span> 
+                <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;dropout&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;values&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]},</span> 
+                               <span class="s2">&quot;batch_size&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;values&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">256</span><span class="p">]},</span> 
+                               <span class="s2">&quot;learning_rate&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;values&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]}}</span>
+    <span class="p">}</span>
+</pre></div>
+</div>
+<p>The value for <code class="docutils literal notranslate"><span class="pre">name</span></code> should correspond to the already defined <code class="docutils literal notranslate"><span class="pre">sweep_name</span></code>.
+This is to keep the naming of runs during local logging and remote logging (W&amp;B)
+consistent.</p>
+<p>The value for <code class="docutils literal notranslate"><span class="pre">method</span></code> defines the search method used to find good HPs. There are
+currently three options in W&amp;B (<a class="reference external" href="https://docs.wandb.ai/guides/sweeps/sweep-config-keys/#method">grid, random, and bayes</a>).
+We select the grid search in this example.</p>
+<p>The value for <code class="docutils literal notranslate"><span class="pre">metric</span></code> defines the <a class="reference external" href="https://docs.wandb.ai/guides/sweeps/sweep-config-keys/#metric">variable</a> that you want to optimize with the sweep.
+Typically, the goal is the minimize the validation loss, as is the case in this example.
+If your trainer also logs an additional performance metric (e.g. MAE) which you would like
+to optimize, this is where we would connect it to W&amp;B.</p>
+<p>The value for <code class="docutils literal notranslate"><span class="pre">parameters</span></code> is a <a class="reference external" href="https://docs.wandb.ai/guides/sweeps/sweep-config-keys/#parameters">dictionary</a> defining the HPs that will be searched over.
+Note that the options here are very flexible since we will be connecting them to the appropriate
+arguments in KnowIt during the construction of the runner in the next section. These can relate to the training process,
+the model architecture, or even the dataset. In this example we do a basic search over a few options for the dropout coefficient, batch size, and learning rate.</p>
+<p>For suggestions on HPs relating to a specific deep learning architecture refer to the <code class="docutils literal notranslate"><span class="pre">HP_ranges_dict</span></code> dictionary
+included in the relevant architecture script under <code class="docutils literal notranslate"><span class="pre">KnowIt.default_archs</span></code>.</p>
+<p><strong>Warning</strong>: While you are free to sweep over virtually any argument in KnowIt, some of
+them would make comparisons between runs of a sweep questionable. For the data arguments,
+we advise that you only search over <code class="docutils literal notranslate"><span class="pre">batch_size</span></code>, <code class="docutils literal notranslate"><span class="pre">shuffle_train</span></code>, and/or <code class="docutils literal notranslate"><span class="pre">padding_method</span></code>. This will
+ensure that all runs are trained on the same training set and tuned with the same validation set.</p>
+<hr class="docutils" />
+</section>
+<section id="define-the-runner">
+<h2>3. Define the runner <div id="3"><a class="headerlink" href="#define-the-runner" title="Link to this heading">#</a></h2>
+<p>So far we have set up some preliminaries and defined how the sweep should be performed.
+Here we define the function that will execute for each run in the sweep. Here we call this
+function <code class="docutils literal notranslate"><span class="pre">runner</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">runner</span><span class="p">():</span>
+
+    <span class="c1"># initialize the new run with W&amp;B</span>
+    <span class="n">run</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
+    <span class="c1"># ensure that all the logged metrics are visualized as a function of epoch</span>
+    <span class="n">run</span><span class="o">.</span><span class="n">define_metric</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="n">step_metric</span><span class="o">=</span><span class="s2">&quot;epoch&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># get the HPs that are being sweeped over</span>
+    <span class="n">hp_dict</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span>
+    <span class="c1"># construct a name for the run based on the choice of HPs for this run</span>
+    <span class="n">run_name</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">hp_dict</span><span class="p">:</span>
+        <span class="n">run_name</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">hp_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s2">-&quot;</span>
+    <span class="n">run_name</span> <span class="o">=</span> <span class="n">run_name</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># rename the default run name</span>
+    <span class="n">run</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">run_name</span>
+
+    <span class="c1"># define the data, arch, and trainer kwargs as usual for training a </span>
+    <span class="c1"># model in KnowIt. Be sure to replace the HPs being sweeped over.</span>
+    <span class="n">data_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;synth_2&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;regression&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;in_components&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;x1&#39;</span><span class="p">,</span> <span class="s1">&#39;x2&#39;</span><span class="p">,</span> <span class="s1">&#39;x3&#39;</span><span class="p">,</span> <span class="s1">&#39;x4&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;out_components&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;x5&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;in_chunk&#39;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mi">32</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="s1">&#39;out_chunk&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="s1">&#39;split_portions&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span>
+                <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="n">hp_dict</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;split_method&#39;</span><span class="p">:</span> <span class="s1">&#39;instance-random&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;scaling_tag&#39;</span><span class="p">:</span> <span class="s1">&#39;full&#39;</span><span class="p">,</span> 
+                <span class="s1">&#39;rescale_logged_output_metrics&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+    <span class="n">arch_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;regression&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;MLP&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;arch_hps&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;dropout&#39;</span><span class="p">:</span> <span class="n">hp_dict</span><span class="p">[</span><span class="s1">&#39;dropout&#39;</span><span class="p">]}}</span>
+    <span class="n">trainer_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;loss_fn&#39;</span><span class="p">:</span> <span class="s1">&#39;mse_loss&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;optim&#39;</span><span class="p">:</span> <span class="s1">&#39;Adam&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;max_epochs&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+                    <span class="s1">&#39;learning_rate&#39;</span><span class="p">:</span> <span class="n">hp_dict</span><span class="p">[</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">],</span>
+                    <span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;regression&#39;</span><span class="p">}</span>
+
+    <span class="c1"># construct the sweep kwargs</span>
+    <span class="n">sweep_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;sweep_name&#39;</span><span class="p">:</span> <span class="n">sweep_name</span><span class="p">,</span> 
+                    <span class="s1">&#39;run_name&#39;</span><span class="p">:</span> <span class="n">run_name</span><span class="p">,</span> 
+                    <span class="s1">&#39;log_to_local&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+
+    <span class="c1"># call the train_model function in KnowIt with the special sweep_kwargs</span>
+    <span class="n">KI</span><span class="o">.</span><span class="n">train_model</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span> 
+                   <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">data_args</span><span class="p">,</span> 
+                           <span class="s1">&#39;arch&#39;</span><span class="p">:</span> <span class="n">arch_args</span><span class="p">,</span> 
+                           <span class="s1">&#39;trainer&#39;</span><span class="p">:</span> <span class="n">trainer_args</span><span class="p">},</span> 
+                   <span class="n">sweep_kwargs</span><span class="o">=</span><span class="n">sweep_kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">sweep_kwargs</span></code> dictionary is a special set of optional kwargs that are only
+passed to KnowIt if an HP sweep is being performed. It must contain the following:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sweep_name</span></code> - As defined above</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">run_name</span></code> -  As defined above</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">log_to_local</span></code> - If False, the sweep results will only be logged to W&amp;B and no files or metrics will be stored locally.</p></li>
+</ul>
+<hr class="docutils" />
+</section>
+<section id="start-the-sweep">
+<h2>4. Start the sweep <div id="4"><a class="headerlink" href="#start-the-sweep" title="Link to this heading">#</a></h2>
+<p>The next step is to start the sweep operation. This can be done with the following code.
+Note that we limited the number of runs to 10 (with <code class="docutils literal notranslate"><span class="pre">count=10</span></code>) for brevity.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize the sweep and generate a sweep id number from W&amp;B</span>
+<span class="n">sweep_id</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">sweep</span><span class="p">(</span><span class="n">sweep_config</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="n">project_name</span><span class="p">,</span> <span class="n">entity</span><span class="o">=</span><span class="n">entity</span><span class="p">)</span>
+<span class="c1"># Start the sweep with the given configurations</span>
+<span class="n">wandb</span><span class="o">.</span><span class="n">agent</span><span class="p">(</span><span class="n">sweep_id</span><span class="o">=</span><span class="n">sweep_id</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">runner</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The sweep will generate two sets of results, those stored locally and those stored remotely
+using your W&amp;B API.</p>
+<section id="local-results">
+<h3>4.1. Local results<a class="headerlink" href="#local-results" title="Link to this heading">#</a></h3>
+<p>The experiment output directory will contain the following subdirectories and files.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&lt;<span class="s2">&quot;sweep_exp_dir&quot;</span>&gt;
+├──<span class="w"> </span>&lt;custom_archs&gt;
+├──<span class="w"> </span>&lt;custom_datasets&gt;
+└──<span class="w"> </span>&lt;models&gt;
+<span class="w">    </span>└──<span class="w"> </span>&lt;<span class="s2">&quot;some_sweeped_model&quot;</span>&gt;
+<span class="w">        </span>└──<span class="w"> </span>&lt;sweeps&gt;
+<span class="w">               </span>└──<span class="w"> </span>&lt;<span class="s2">&quot;my_sweep_name&quot;</span>&gt;
+<span class="w">                    </span>├──<span class="w"> </span>&lt;<span class="s2">&quot;batch_size_64-dropout_0.2-learning_rate_0.1&quot;</span>&gt;
+<span class="w">                    </span>├──<span class="w"> </span>&lt;<span class="s2">&quot;batch_size_64-dropout_0.2-learning_rate_0.01&quot;</span>&gt;
+<span class="w">                    </span>├──<span class="w"> </span>&lt;<span class="s2">&quot;batch_size_64-dropout_0.2-learning_rate_0.001&quot;</span>&gt;
+<span class="w">                    </span>│<span class="w">    </span>├──<span class="w"> </span><span class="o">[</span><span class="s2">&quot;bestmodel-epoch=4-valid_loss=0.04.ckpt&quot;</span><span class="o">]</span>
+<span class="w">                    </span>│<span class="w">    </span>├──<span class="w"> </span><span class="o">[</span>model_args.yaml<span class="o">]</span>
+<span class="w">                    </span>│<span class="w">    </span>└──<span class="w"> </span>&lt;lightning_logs&gt;
+<span class="w">                    </span>└──<span class="w"> </span>...
+</pre></div>
+</div>
+<p>Note that our model (<code class="docutils literal notranslate"><span class="pre">some_sweeped_model</span></code>) contains a single sweep (<code class="docutils literal notranslate"><span class="pre">my_sweep_name</span></code>) and this
+sweep contains a number of (10) runs. Each run contains the same outputs that KnowIt generates during
+normal model training.</p>
+</section>
+<section id="remote-results">
+<h3>4.2. Remote results<a class="headerlink" href="#remote-results" title="Link to this heading">#</a></h3>
+<p>With the W&amp;B API (in your browser) we can have a look at the learning curves for the 10 runs that were
+performed in our sweep.</p>
+<p>We observe that none of our models convincingly converged within the very limited 5 epochs of training
+and at least one (yellow) looks like it failed to learn at all.</p>
+<p><img alt="train_loss.png" src="../../../_images/train_loss.png" /></p>
+<p><img alt="valid_loss.png" src="../../../_images/valid_loss.png" /></p>
+<p>From the illustration below we can spot a slight preference for a lower learning rate and
+low dropout coefficient, however a more rigorous sweep would be required to be sure.</p>
+<p><img alt="sweep.png" src="../../../_images/sweep.png" /></p>
+<hr class="docutils" />
+</section>
+</section>
+<section id="consolidate-the-sweep">
+<h2>5. Consolidate the sweep <div id="5"><a class="headerlink" href="#consolidate-the-sweep" title="Link to this heading">#</a></h2>
+<p>At this point we can either run another sweep based on the results from this sweep or select
+our “best” model from the runs that we have already trained. For brevity let’s select it from what we have.</p>
+<section id="manually">
+<h3>5.1. Manually<a class="headerlink" href="#manually" title="Link to this heading">#</a></h3>
+<p>We can do this manually by eye-balling the remote results and picking a good looking run,
+say <code class="docutils literal notranslate"><span class="pre">batch_size_128-dropout_0-learning_rate_0.001</span></code>, and copying the relevant checkpoint,
+model_args.yaml, and lightning_logs to the model directory, as illustrated below. The
+copied files/folders are tagged with “*”.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&lt;<span class="s2">&quot;sweep_exp_dir&quot;</span>&gt;
+├──<span class="w"> </span>&lt;custom_archs&gt;
+├──<span class="w"> </span>&lt;custom_datasets&gt;
+└──<span class="w"> </span>&lt;models&gt;
+<span class="w">    </span>└──<span class="w"> </span>&lt;<span class="s2">&quot;some_sweeped_model&quot;</span>&gt;
+<span class="w">        </span>├──<span class="w"> </span><span class="o">[</span><span class="s2">&quot;bestmodel-epoch=3-valid_loss=0.03.ckpt&quot;</span><span class="o">]</span>*
+<span class="w">        </span>├──<span class="w"> </span><span class="o">[</span>model_args.yaml<span class="o">]</span>*
+<span class="w">        </span>├──<span class="w"> </span>&lt;lightning_logs&gt;*
+<span class="w">        </span>└──<span class="w"> </span>&lt;sweeps&gt;
+<span class="w">               </span>└──<span class="w"> </span>&lt;<span class="s2">&quot;my_sweep_name&quot;</span>&gt;
+<span class="w">                    </span>├──<span class="w"> </span>&lt;<span class="s2">&quot;batch_size_64-dropout_0.2-learning_rate_0.1&quot;</span>&gt;
+<span class="w">                    </span>├──<span class="w"> </span>&lt;<span class="s2">&quot;batch_size_64-dropout_0.2-learning_rate_0.01&quot;</span>&gt;
+<span class="w">                    </span>├──<span class="w"> </span>&lt;<span class="s2">&quot;batch_size_64-dropout_0.2-learning_rate_0.001&quot;</span>&gt;
+<span class="w">                    </span>│<span class="w">    </span>├──<span class="w"> </span><span class="o">[</span><span class="s2">&quot;bestmodel-epoch=4-valid_loss=0.04.ckpt&quot;</span><span class="o">]</span>
+<span class="w">                    </span>│<span class="w">    </span>├──<span class="w"> </span><span class="o">[</span>model_args.yaml<span class="o">]</span>
+<span class="w">                    </span>│<span class="w">    </span>└──<span class="w"> </span>&lt;lightning_logs&gt;
+<span class="w">                    </span>└──<span class="w"> </span>...
+</pre></div>
+</div>
+</section>
+<section id="automatically">
+<h3>5.1. Automatically<a class="headerlink" href="#automatically" title="Link to this heading">#</a></h3>
+<p>Alternatively, we can run the following code to automatically select the best model
+from our sweep and copy it for us. This will select the run with the best resulting model,
+based on the best <code class="docutils literal notranslate"><span class="pre">best_model_score</span></code> stored in the model checkpoint.
+In this case, the results for the manual and automatic methods are the same.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">KI</span><span class="o">.</span><span class="n">consolidate_sweep</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">sweep_name</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now, we can regard the model checkpoint in the model directory as our best
+model of the data and we can evaluate it on its evaluation set (if we are happy with it) or
+analyse it further with interpretations.</p>
+</section>
+</section>
+<section id="conclusion">
+<h2>6. Conclusion  <div id="6"><a class="headerlink" href="#conclusion" title="Link to this heading">#</a></h2>
+<p>This tutorial has demonstrated how to perform a basic HP sweep in the KnowIt framework.
+Notice that it is more of a way of using KnowIt within a W&amp;B protocol, with some features added
+to KnowIt to manage the expected output structure of KnowIt.</p>
+<p>This way of performing HP sweeps is very flexible, but be sure to understand what you are
+sweeping over. As mentioned previously, varying some design choices make comparisons between model/runs
+problematic.</p>
+<p>For more information on how to run HP sweeps using the W&amp;B and Pytorch Lighting interface we suggest
+the following links:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://docs.wandb.ai/guides/integrations/lightning/">Logging with W&amp;B and PyTorch Lightning</a></p></li>
+<li><p><a class="reference external" href="https://docs.wandb.ai/tutorials/sweeps/">Tuning HPs with sweeps in W&amp;B</a></p></li>
+<li><p><a class="reference external" href="https://docs.wandb.ai/guides/sweeps/sweep-config-keys/">Sweep configurations in W&amp;B</a></p></li>
+<li><p><a class="reference external" href="https://docs.wandb.ai/guides/sweeps/walkthrough/">HP sweep walkthrough in W&amp;B</a></p></li>
+</ul>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../basics/basics_tut_readme.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Basics</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../stateful/stateful_tut_readme.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Statefulness</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#preliminaries">1. Preliminaries <div id="1"></div></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#define-the-sweep">2. Define the sweep <div id="2"></div></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#define-the-runner">3. Define the runner <div id="3"></div></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#start-the-sweep">4. Start the sweep <div id="4"></div></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#local-results">4.1. Local results</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#remote-results">4.2. Remote results</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#consolidate-the-sweep">5. Consolidate the sweep <div id="5"></div></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manually">5.1. Manually</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#automatically">5.1. Automatically</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#conclusion">6. Conclusion  <div id="6"></div></a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, North-West University (NWU), South Africa.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

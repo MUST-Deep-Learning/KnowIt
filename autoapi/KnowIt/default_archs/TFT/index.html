@@ -1,0 +1,1492 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>KnowIt.default_archs.TFT &#8212; KnowIt 1.0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../../_static/documentation_options.js?v=292eb321"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/KnowIt/default_archs/TFT/index';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="KnowIt.interpret" href="../../interpret/index.html" />
+    <link rel="prev" title="KnowIt.default_archs.TCN" href="../TCN/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="1.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../_static/KI_logo_short_stencil.png" class="logo__image only-light" alt="KnowIt 1.0.1 documentation - Home"/>
+    <img src="../../../../_static/KI_logo_short_stencil.png" class="logo__image only-dark pst-js-only" alt="KnowIt 1.0.1 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/tutorials/basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/tutorials/basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/tutorials/stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="../../../index.html">
+    API Reference
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/tutorials/basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/tutorials/basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/tutorials/stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../index.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../index.html">KnowIt</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../data/index.html">KnowIt.data</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../data/base_dataset/index.html">KnowIt.data.base_dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data/data_scaling/index.html">KnowIt.data.data_scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data/data_splitting/index.html">KnowIt.data.data_splitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data/prepared_dataset/index.html">KnowIt.data.prepared_dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data/raw_data_coversion/index.html">KnowIt.data.raw_data_coversion</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../index.html">KnowIt.default_archs</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../CNN/index.html">KnowIt.default_archs.CNN</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../LSTM/index.html">KnowIt.default_archs.LSTM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../LSTMv2/index.html">KnowIt.default_archs.LSTMv2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MLP/index.html">KnowIt.default_archs.MLP</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TCN/index.html">KnowIt.default_archs.TCN</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">KnowIt.default_archs.TFT</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../interpret/index.html">KnowIt.interpret</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/DLS_Captum/index.html">KnowIt.interpret.DLS_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/DL_Captum/index.html">KnowIt.interpret.DL_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/IntegratedGrad_Captum/index.html">KnowIt.interpret.IntegratedGrad_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/featureattr/index.html">KnowIt.interpret.featureattr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/interpreter/index.html">KnowIt.interpret.interpreter</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../../knowit/index.html">KnowIt.knowit</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../setup/index.html">KnowIt.setup</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/import_custom_arch/index.html">KnowIt.setup.import_custom_arch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/select_interpretation_points/index.html">KnowIt.setup.select_interpretation_points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/setup_action_args/index.html">KnowIt.setup.setup_action_args</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/setup_weighted_cross_entropy/index.html">KnowIt.setup.setup_weighted_cross_entropy</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../trainer/index.html">KnowIt.trainer</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/base_trainer/index.html">KnowIt.trainer.base_trainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/model_config/index.html">KnowIt.trainer.model_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/trainer/index.html">KnowIt.trainer.trainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/trainer_states/index.html">KnowIt.trainer.trainer_states</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">API Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">KnowIt</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">KnowIt.default_archs</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">KnowIt.default_archs.TFT</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-KnowIt.default_archs.TFT">
+<span id="knowit-default-archs-tft"></span><h1>KnowIt.default_archs.TFT<a class="headerlink" href="#module-KnowIt.default_archs.TFT" title="Link to this heading">#</a></h1>
+<p>This module implements a simplified Temporal Fusion Transformer (TFT) architecture.</p>
+<p>Unlike the original TFT,
+this version omits the encoding of exogenous inputs (e.g. static covariates or future known inputs).
+It is tailored for regression, classification, or variable length regression tasks,
+using temporal variable selection, gating mechanisms, LSTM-based encoding, and Interpretable Multi-Head Attention.</p>
+<p>The following diagram depicts the overall architecture:</p>
+<blockquote>
+<div><p>X → [EmbeddingLayer] → [VariableSelectionNetwork] → [LSTM]* → [GateAddNorm] →
+[InterpretableMultiHeadAttention]* → [GateAddNorm] → [GatedResidualNetwork] → [Dense] → Y</p>
+</div></blockquote>
+<p>“*” indicates a skip connection bypassing this module from the past to the next.</p>
+<p>See:
+[1] “Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting”</p>
+<blockquote>
+<div><p>Lim et al., 2019 — <a class="reference external" href="https://arxiv.org/abs/1912.09363">https://arxiv.org/abs/1912.09363</a></p>
+</div></blockquote>
+<p>Some inspiration for this implementation has been taken from pytorch-forecasting’s TemporalFusionTransformer
+&lt;<a class="reference external" href="https://pytorch-forecasting.readthedocs.io/en/latest/models.html">https://pytorch-forecasting.readthedocs.io/en/latest/models.html</a>&gt;.</p>
+<p><em>Note</em>: The LSTM stage of this TFT makes use of the default LSTMv2 architecture within KnowIt. All stateful processing is handled by
+this underlying LSTM module.</p>
+<section id="embeddinglayer">
+<h2>EmbeddingLayer<a class="headerlink" href="#embeddinglayer" title="Link to this heading">#</a></h2>
+<p>Performs the initial embedding of input features into a representation space for further processing.
+Linear embeddings are done in one of two modes:</p>
+<ul class="simple">
+<li><p><em>independent</em> (default): input components are independently embedded,</p></li>
+<li><p><em>mixed</em>: the embedding of each input component depends on all input components.</p></li>
+</ul>
+</section>
+<section id="gate">
+<h2>Gate<a class="headerlink" href="#gate" title="Link to this heading">#</a></h2>
+<blockquote>
+<div><p>→ [Dropout] → [Linear] → [GLU] →</p>
+</div></blockquote>
+<p>The main gating mechanism in the TFT.
+It consists of a linear layer and a Gated Linear Unit (GLU)(<a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.GLU.html">https://docs.pytorch.org/docs/stable/generated/torch.nn.GLU.html</a>) function,
+with optional dropout before the linear layer.</p>
+<p>This module is used as a basic building block by other modules in the architecture.
+It allows the model to “select” what submodules are useful for the current task.</p>
+</section>
+<section id="gateaddnorm">
+<h2>GateAddNorm<a class="headerlink" href="#gateaddnorm" title="Link to this heading">#</a></h2>
+<blockquote>
+<div><dl class="simple">
+<dt>→ → [Gate] → [LayerNorm] →</dt><dd><p>→ → → ↑</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>Applies the gating mechanism and layer normalization. It also allows a residual connection
+from before this module, which is added to the output of the Gate.</p>
+<p>This module is used as both a building block and as part of the main architectural flow.
+Specifically, it is used after the LSTM encoder and InterpretableMultiHeadAttention blocks to skip over these modules
+and dynamically calibrate the complexity of the overall architecture.</p>
+</section>
+<section id="gatedresidualnetwork">
+<h2>GatedResidualNetwork<a class="headerlink" href="#gatedresidualnetwork" title="Link to this heading">#</a></h2>
+<blockquote>
+<div><dl class="simple">
+<dt>→ → [Linear] → [ELU] → [Linear] → [GateAddNorm] →</dt><dd><p>↓ → → → → → → → → → → → → → → → ↑</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>A gated feedforward block:</dt><dd><ul class="simple">
+<li><p>Enables non-linear transformations with gating control.</p></li>
+<li><p>Residual connection allows gradient flow and feature reuse.</p></li>
+</ul>
+</dd>
+</dl>
+<p>This module is used as both a building block and as part of the main architectural flow.
+Specifically, it is used towards the end of the architecture as a final feedforward stage.</p>
+</section>
+<section id="variableselectionnetwork">
+<h2>VariableSelectionNetwork<a class="headerlink" href="#variableselectionnetwork" title="Link to this heading">#</a></h2>
+<blockquote>
+<div><dl class="simple">
+<dt>→ → → [GatedResidualNetwork] → → → → → → → → [Weighted sum] →</dt><dd><p>↓ → [GatedResidualNetwork] → [Softmax] → → → → → ↑</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>This module performs a feature selection step before passing on the input to the LSTM encoder.
+Specifically, a weighted sum of (processed by GatedResidualNetwork) input values are returned,
+where the weights are determined by a variable selection mechanism done by a different dedicated
+GatedResidualNetwork and a softmax function.</p>
+</section>
+<section id="scaleddotproductattention">
+<h2>ScaledDotProductAttention<a class="headerlink" href="#scaleddotproductattention" title="Link to this heading">#</a></h2>
+<p>Performs basic dot product self attention.
+Optionally incorporates attention dropout and causality masking.</p>
+</section>
+<section id="interpretablemultiheadattention">
+<h2>InterpretableMultiHeadAttention<a class="headerlink" href="#interpretablemultiheadattention" title="Link to this heading">#</a></h2>
+<p>Performs interpretable multi-head attention, where the query and key operations are done for each head separately,
+but heads share a value component. This is said to improve the interpretability of the resulting attention weights.</p>
+<p>While the LSTM is meant to model local information (and encode positional information) the
+InterpretableMultiHeadAttention module is intended to capture long-term dependencies in the data.</p>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.default_archs.TFT.Model" title="KnowIt.default_archs.TFT.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model</span></code></a></p></td>
+<td><p>Temporal Fusion Transformer (TFT)-style model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#KnowIt.default_archs.TFT.Gate" title="KnowIt.default_archs.TFT.Gate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Gate</span></code></a></p></td>
+<td><p>A gating mechanism using Gated Linear Unit (GLU) activations with optional dropout.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.default_archs.TFT.GateAddNorm" title="KnowIt.default_archs.TFT.GateAddNorm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GateAddNorm</span></code></a></p></td>
+<td><p>Gates the input (using <em>Gate</em>), implements a residual connection, and applies layer normalization.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#KnowIt.default_archs.TFT.GatedResidualNetwork" title="KnowIt.default_archs.TFT.GatedResidualNetwork"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GatedResidualNetwork</span></code></a></p></td>
+<td><p>A Gated Residual Network (GRN) block for gated non-linear processing.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.default_archs.TFT.EmbeddingLayer" title="KnowIt.default_archs.TFT.EmbeddingLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EmbeddingLayer</span></code></a></p></td>
+<td><p>Embedding layer supporting independent or fully mixed feature embedding.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#KnowIt.default_archs.TFT.VariableSelectionNetwork" title="KnowIt.default_archs.TFT.VariableSelectionNetwork"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VariableSelectionNetwork</span></code></a></p></td>
+<td><p>A Variable Selection Network (VSN) for selecting features after embedding.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.default_archs.TFT.ScaledDotProductAttention" title="KnowIt.default_archs.TFT.ScaledDotProductAttention"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ScaledDotProductAttention</span></code></a></p></td>
+<td><p>A simple scaled dot-product attention mechanism.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#KnowIt.default_archs.TFT.InterpretableMultiHeadAttention" title="KnowIt.default_archs.TFT.InterpretableMultiHeadAttention"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InterpretableMultiHeadAttention</span></code></a></p></td>
+<td><p>An interpretable multi-head attention block to capture long-term dependencies.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.default_archs.TFT.init_mod" title="KnowIt.default_archs.TFT.init_mod"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_mod</span></code></a>(mod)</p></td>
+<td><p>Initializes the parameters of the given module using suitable initialization schemes.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#KnowIt.default_archs.TFT.get_output_activation" title="KnowIt.default_archs.TFT.get_output_activation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_activation</span></code></a>(output_activation)</p></td>
+<td><p>Fetch output activation function from Pytorch.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.Model">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TFT.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_name</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">embedding_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'independent'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lstm_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lstm_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lstm_hc_init_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zeros'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lstm_layernorm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lstm_bidirectional</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_attention_heads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lstm_stateful</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.Model" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>Temporal Fusion Transformer (TFT)-style model.</p>
+<p>This module implements a streamlined Temporal Fusion Transformer architecture
+consisting of:</p>
+<ul class="simple">
+<li><p>Per-feature embedding via <code class="docutils literal notranslate"><span class="pre">EmbeddingLayer</span></code></p></li>
+<li><p>Feature-wise selection through a <code class="docutils literal notranslate"><span class="pre">VariableSelectionNetwork</span></code></p></li>
+<li><p>Recurrent sequence modeling using a custom <code class="docutils literal notranslate"><span class="pre">LSTM</span></code> encoder</p></li>
+<li><p>Static skip connections using <code class="docutils literal notranslate"><span class="pre">GateAddNorm</span></code></p></li>
+<li><p>Interpretable multi-head self-attention</p></li>
+<li><p>Decoder refinement via <code class="docutils literal notranslate"><span class="pre">GatedResidualNetwork</span></code></p></li>
+<li><p>Task-dependent output projection layer</p></li>
+</ul>
+<p>The model supports standard <cite>regression</cite>, variable-length regression
+(<code class="docutils literal notranslate"><span class="pre">'vl_regression'</span></code>), and <cite>classification</cite> tasks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list[int]</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[in_chunk_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">in_components]</span></code>) – The shape of the input data. The “time axis” is along the first dimension.
+If variable length data is processed, then in_chunk_size must be 1.</p></li>
+<li><p><strong>output_dim</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list[int]</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[out_chunk_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">out_components]</span></code>) – The shape of the output data. The “time axis” is along the first dimension.
+If variable length data is processed, then out_chunk_size must be 1.</p></li>
+<li><p><strong>task_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The type of task (‘classification’, ‘regression’, or ‘vl_regression’).</p></li>
+<li><p><strong>embedding_mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">'independent'</span></code>) – Embedding strategy. Must be either “independent” or “mixed”.
+The former will embed input components independently and the latter will mix information during embedding.</p></li>
+<li><p><strong>hidden_dim</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">32</span></code>) – Hidden dimensionality used throughout embeddings, attention,
+and gated residual blocks.</p></li>
+<li><p><strong>lstm_depth</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">4</span></code>) – Number of stacked LSTM layers in the encoder. See LSTMv2 for details.</p></li>
+<li><p><strong>lstm_width</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">64</span></code>) – Internal width of the LSTM layers. See LSTMv2 for details.</p></li>
+<li><p><strong>lstm_hc_init_method</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">'zeros'</span></code>) – Initialization strategy for LSTM hidden and cell states. See LSTMv2 for details.</p></li>
+<li><p><strong>lstm_layernorm</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code>) – If True, applies layer normalization inside the LSTM. See LSTMv2 for details.</p></li>
+<li><p><strong>lstm_bidirectional</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code>) – If True, uses a bidirectional LSTM encoder. See LSTMv2 for details.</p></li>
+<li><p><strong>num_attention_heads</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">4</span></code>) – Number of heads in the interpretable multi-head attention module.</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">0.2</span></code>) – Dropout probability applied throughout the network. If None,
+dropout is disabled.</p></li>
+<li><p><strong>output_activation</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Optional activation applied after the final linear output layer
+(only used for non-<code class="docutils literal notranslate"><span class="pre">'vl_regression'</span></code> tasks).</p></li>
+<li><p><strong>lstm_stateful</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code>) – If True, the LSTM maintains internal states across forward passes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>embedder</strong> (<a class="reference internal" href="#KnowIt.default_archs.TFT.EmbeddingLayer" title="KnowIt.default_archs.TFT.EmbeddingLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">EmbeddingLayer</span></code></a>) – Per-variable embedding module.</p></li>
+<li><p><strong>vsn</strong> (<a class="reference internal" href="#KnowIt.default_archs.TFT.VariableSelectionNetwork" title="KnowIt.default_archs.TFT.VariableSelectionNetwork"><code class="xref py py-class docutils literal notranslate"><span class="pre">VariableSelectionNetwork</span></code></a>) – Learns dynamic feature importance weights.</p></li>
+<li><p><strong>lstm_encoder</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMV2</span></code>) – Recurrent sequence encoder.</p></li>
+<li><p><strong>attention</strong> (<a class="reference internal" href="#KnowIt.default_archs.TFT.InterpretableMultiHeadAttention" title="KnowIt.default_archs.TFT.InterpretableMultiHeadAttention"><code class="xref py py-class docutils literal notranslate"><span class="pre">InterpretableMultiHeadAttention</span></code></a>) – Self-attention mechanism operating over temporal dimension.</p></li>
+<li><p><strong>decoder_grn</strong> (<a class="reference internal" href="#KnowIt.default_archs.TFT.GatedResidualNetwork" title="KnowIt.default_archs.TFT.GatedResidualNetwork"><code class="xref py py-class docutils literal notranslate"><span class="pre">GatedResidualNetwork</span></code></a>) – Decoder refinement block.</p></li>
+<li><p><strong>output_layers</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.Module</span></code>) – Final task-dependent projection layers.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.Model.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">internal_states</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.Model.forward" title="Link to this definition">#</a></dt>
+<dd><p>Forward pass of the TFT model.</p>
+<p>The computation pipeline consists of:</p>
+<ol class="arabic simple">
+<li><p>Feature-wise embedding</p></li>
+<li><p>Variable selection</p></li>
+<li><p>LSTM encoding</p></li>
+<li><p>Residual gating</p></li>
+<li><p>Interpretable multi-head attention</p></li>
+<li><p>Decoder gated residual refinement</p></li>
+<li><p>Task-specific output projection</p></li>
+</ol>
+<p>If multiple <code class="docutils literal notranslate"><span class="pre">internal_states</span></code> are provided, they overwrite the
+internal states of the stateful LSTM before processing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code>) – Input tensor of shape (batch_size, time_steps, n_features).</p></li>
+<li><p><strong>*internal_states</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code>, <em>optional</em>) – Optional hidden and cell states used to overwrite the internal
+LSTM states before forward propagation. Only used when the
+encoder is stateful.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>Model output tensor.</p>
+<ul class="simple">
+<li><p>For <code class="docutils literal notranslate"><span class="pre">'regression'</span></code>:
+Shape (batch_size, output_dim[0], output_dim[1])</p></li>
+<li><p>For <code class="docutils literal notranslate"><span class="pre">'vl_regression'</span></code>:
+Shape (batch_size, time_steps, model_out_dim)</p></li>
+<li><p>For <code class="docutils literal notranslate"><span class="pre">'classification'</span></code>:
+Shape (batch_size, model_out_dim)</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>SystemExit</strong> – If an unsupported <code class="docutils literal notranslate"><span class="pre">task_name</span></code> is provided.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.Model.force_reset">
+<span class="sig-name descname"><span class="pre">force_reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.Model.force_reset" title="Link to this definition">#</a></dt>
+<dd><p>Wrapper for the underlying LSTM’s corresponding function.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.Model.get_internal_states">
+<span class="sig-name descname"><span class="pre">get_internal_states</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.Model.get_internal_states" title="Link to this definition">#</a></dt>
+<dd><p>Wrapper for the underlying LSTM’s corresponding function.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.Model.hard_set_states">
+<span class="sig-name descname"><span class="pre">hard_set_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ist_idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.Model.hard_set_states" title="Link to this definition">#</a></dt>
+<dd><p>Wrapper for the underlying LSTM’s corresponding function.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.Model.update_states">
+<span class="sig-name descname"><span class="pre">update_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ist_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.Model.update_states" title="Link to this definition">#</a></dt>
+<dd><p>Wrapper for the underlying LSTM’s corresponding function.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.Gate">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TFT.</span></span><span class="sig-name descname"><span class="pre">Gate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_outputs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.Gate" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>A gating mechanism using Gated Linear Unit (GLU) activations with optional dropout.</p>
+<p>This module applies a linear transformation to the input, doubling the output
+features to produce gates and values, then uses the GLU activation function to
+gate the output. Dropout is applied before the linear layer if specified.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_inputs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of input features.</p></li>
+<li><p><strong>n_outputs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">optional</span> <span class="pre">(default=None)</span></code>) – Number of output features. If None, them the number of outputs will be the number of inputs.</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">optional</span> <span class="pre">(default=None)</span></code>) – Dropout probability applied before the linear transformation. If None, no dropout is applied.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>fc</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Linear</span></code>) – Linear layer producing gates and values with output dimension <cite>n_outputs * 2</cite>.</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Dropout</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Dropout layer applied before linear transformation.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.Gate.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.Gate.forward" title="Link to this definition">#</a></dt>
+<dd><p>Applies dropout (if any), linear transformation, and GLU gating to the input tensor.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Link to this definition">#</a></dt>
+<dd><p>Forward pass of the Gating mechanism.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_input)</span></code>) – Input tensor.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output tensor after gating, where <cite>depth</cite> is half the output size of the linear layer.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">depth)</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.GateAddNorm">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TFT.</span></span><span class="sig-name descname"><span class="pre">GateAddNorm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_outputs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_residuals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.GateAddNorm" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>Gates the input (using <em>Gate</em>), implements a residual connection, and applies layer normalization.</p>
+<p>This module applies a <em>Gate</em> transformation to the input tensor,
+adds a residual connection (projected if necessary to match dimensions), and
+normalizes the result using LayerNorm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_inputs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of input features (last dimension of <cite>x</cite>).</p></li>
+<li><p><strong>n_outputs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>optional</em>) – Number of output features. Defaults to <cite>n_input</cite>.</p></li>
+<li><p><strong>n_residuals</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>optional</em>) – Dimensionality of the residual input. If different from <cite>n_outputs</cite>, a linear projection
+is applied to align dimensions. Defaults to <cite>n_outputs</cite>.</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <em>optional</em>) – Dropout rate applied inside the GLU. If None, no dropout is applied.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>gate</strong> (<a class="reference internal" href="#KnowIt.default_archs.TFT.Gate" title="KnowIt.default_archs.TFT.Gate"><code class="xref py py-class docutils literal notranslate"><span class="pre">Gate</span></code></a>) – The Gate transformation module.</p></li>
+<li><p><strong>norm</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">LayerNorm</span></code>) – Layer normalization applied after residual addition.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.GateAddNorm.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_connect</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.GateAddNorm.forward" title="Link to this definition">#</a></dt>
+<dd><p>Applies <em>Gate</em>, adds residual connection (with projection if needed), and normalizes output.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_connect</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id1" title="Link to this definition">#</a></dt>
+<dd><p>Forward pass applying <em>Gate</em> transformation, residual addition, and normalization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_input)</span></code>) – Input tensor to transform.</p></li>
+<li><p><strong>residual_connect</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_residuals)</span></code>) – Residual tensor to add after transformation. Projected if necessary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The output tensor after gated transformation, residual addition, and layer normalization.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_outputs)</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.GatedResidualNetwork">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TFT.</span></span><span class="sig-name descname"><span class="pre">GatedResidualNetwork</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.GatedResidualNetwork" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>A Gated Residual Network (GRN) block for gated non-linear processing.</p>
+<p>This module implements a Gated Residual Network (GRN) block that consists of
+two linear layers with ELU activations inbetween, followed by a <em>GateAddNorm</em> module.
+There is a residual connection to the <em>GateAddNorm</em> module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_inputs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of input features (last dimension of <cite>x</cite>).</p></li>
+<li><p><strong>hidden_dim</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Hidden layer dimensionality within the GRN block.</p></li>
+<li><p><strong>n_outputs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>optional</em>) – Number of output features. Defaults to <cite>n_input</cite>.</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">optional</span> <span class="pre">(default=None)</span></code>) – Dropout rate applied in the gated residual normalization block.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.GatedResidualNetwork.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_connect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.GatedResidualNetwork.forward" title="Link to this definition">#</a></dt>
+<dd><p>Forward pass through the GRN, applying linear transformations, activation,
+gating, residual connection, and normalization.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id2" title="Link to this definition">#</a></dt>
+<dd><p>Forward pass through the Gated Residual Network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_input)</span></code>) – Input tensor.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output tensor after processing through GRN block with gated residual connection and normalization.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">(batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_output)</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.EmbeddingLayer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TFT.</span></span><span class="sig-name descname"><span class="pre">EmbeddingLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'independent'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.EmbeddingLayer" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>Embedding layer supporting independent or fully mixed feature embedding.</p>
+<p>This module embeds a multivariate time series input of shape
+(batch_size, time_steps, input_components) into a structured
+representation of shape</p>
+<blockquote>
+<div><p>(batch_size, time_steps, input_components, hidden_dim)</p>
+</div></blockquote>
+<p>Two embedding strategies are supported:</p>
+<ol class="arabic">
+<li><dl class="simple">
+<dt>“independent”</dt><dd><p>Each input component is embedded separately using its own
+Linear(1 → hidden_dim) layer. No cross-feature interaction occurs
+during embedding.</p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>“mixed”</dt><dd><p>All input components at each time step are jointly projected using
+a single Linear(n_inputs → n_inputs * hidden_dim) layer. The output
+is then reshaped to recover a per-feature embedding structure.</p>
+<p>In this mode, each feature embedding depends on the full input
+feature vector at that time step.</p>
+</dd>
+</dl>
+</li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_inputs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of input components (features) in the last dimension of
+the input tensor.</p></li>
+<li><p><strong>hidden_dim</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Dimensionality of the embedding space for each input component.</p></li>
+<li><p><strong>mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">&quot;independent&quot;</span></code>) – Embedding strategy. Must be either “independent” or “mixed”.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>embedders</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.ModuleList</span></code>) – Present when mode=”independent”. Contains n_inputs separate
+Linear(1, hidden_dim) layers.</p></li>
+<li><p><strong>embedder</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.Linear</span></code>) – Present when mode=”mixed”. A single Linear layer mapping
+n_inputs → n_inputs * hidden_dim.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>Input tensor shape:</dt><dd><p>(batch_size, time_steps, input_components)</p>
+</dd>
+<dt>Output tensor shape (both modes):</dt><dd><p>(batch_size, time_steps, input_components, hidden_dim)</p>
+</dd>
+</dl>
+<p>In “mixed” mode, the parameter count scales approximately as:</p>
+<blockquote>
+<div><p>n_inputs × (n_inputs × hidden_dim)</p>
+</div></blockquote>
+<p>which grows quadratically with the number of input components.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.EmbeddingLayer.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.EmbeddingLayer.forward" title="Link to this definition">#</a></dt>
+<dd><p>Apply the embedding transformation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>) – Input tensor of shape
+(batch_size, time_steps, input_components).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>Embedded tensor of shape
+(batch_size, time_steps, input_components, hidden_dim).</p>
+<ul class="simple">
+<li><p>In “independent” mode, each feature is embedded separately.</p></li>
+<li><p>In “mixed” mode, each feature embedding depends on the
+entire feature vector at the corresponding time step.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.VariableSelectionNetwork">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TFT.</span></span><span class="sig-name descname"><span class="pre">VariableSelectionNetwork</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.VariableSelectionNetwork" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>A Variable Selection Network (VSN) for selecting features after embedding.</p>
+<p>Implements a component-wise variable selection mechanism.
+Each input component is processed by a component-specific nonlinear transformation.
+A joint gating network computes importance weights across features, which
+are used to produce a weighted aggregation of feature representations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_inputs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of input components.</p></li>
+<li><p><strong>hidden_dim</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Dimensionality of the shared hidden representation space.</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <em>optional</em>) – Dropout rate applied within internal GatedResidualNetwork modules.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Cross-feature interaction occurs within the variable selection
+network.</p></li>
+<li><p>Selection weights are normalized using a softmax over the feature
+dimension.</p></li>
+<li><p>The output is a convex combination of processed feature representations.</p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.VariableSelectionNetwork.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.VariableSelectionNetwork.forward" title="Link to this definition">#</a></dt>
+<dd><p>Forward pass of the Variable Selection Network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code>) – Input tensor of shape (B, T, F, H), where
+B is the batch size,
+T is the sequence length,
+F is the number of input features.
+H is the number of hidden dimensions.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code> – Aggregated feature representation of shape
+(B, T, hidden_dim).</p></li>
+<li><p><strong>output</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>) – Aggregated feature representation of shape
+(B, T, hidden_dim).</p></li>
+<li><p><strong>variable_selection</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>) – Tensor of shape (B, T, n_inputs) containing the
+soft attention weights assigned to each input component.
+Meant for interpretability.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The forward computation consists of:</p>
+<ol class="arabic simple">
+<li><p>Independent per-feature projection into the shared
+representation space.</p></li>
+<li><p>Computation of context-dependent variable selection weights.</p></li>
+<li><p>Feature-wise nonlinear processing.</p></li>
+<li><p>Softmax-weighted aggregation across the feature dimension.</p></li>
+</ol>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.ScaledDotProductAttention">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TFT.</span></span><span class="sig-name descname"><span class="pre">ScaledDotProductAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attention_dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.ScaledDotProductAttention" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>A simple scaled dot-product attention mechanism.</p>
+<p>This module computes attention scores using the dot product between queries and keys,
+optionally scales the scores, optionally applies causal masking,
+and applies a softmax function to obtain attention weights.
+These weights are used to aggregate values.
+Optionally includes dropout after softmax.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>attention_dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <em>optional</em>) – Dropout probability to apply after the attention softmax. If None, no dropout is used.</p></li>
+<li><p><strong>scale</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>optional</em>) – If True, scales attention scores by the square root of the key dimension. Default is True.</p></li>
+<li><p><strong>masking</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>optional</em>) – If True, attention values are masked to prevent temporal dimensions from attending to future values.
+Default True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>attention_dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Dropout</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Dropout layer applied to the attention weights, if specified.</p></li>
+<li><p><strong>scale</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – Whether to apply scaling to the attention logits.</p></li>
+<li><p><strong>masking</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – If True, attention values are masked to prevent temporal dimensions from attending to future values.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.ScaledDotProductAttention.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.ScaledDotProductAttention.forward" title="Link to this definition">#</a></dt>
+<dd><p>Computes attention-weighted values and attention weights from input tensors.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id3">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id3" title="Link to this definition">#</a></dt>
+<dd><p>Forward pass of the scaled dot-product attention mechanism.</p>
+<p>Computes attention scores as the dot product between queries and keys,
+optionally scales them, optionally masks for causality, then normalizes
+with softmax. The resulting attention weights are used to compute
+a weighted sum over the values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>q</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">[batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">embedding_dim]</span></code>) – Query tensor.</p></li>
+<li><p><strong>k</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">[batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">embedding_dim]</span></code>) – Key tensor.</p></li>
+<li><p><strong>v</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">[batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">embedding_dim]</span></code>) – Value tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>out</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">[batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">embedding_dim]</span></code>) – Resulting attention-weighted sum of values.</p></li>
+<li><p><strong>attn</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">[batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length]</span></code>) – Attention weights after softmax.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.InterpretableMultiHeadAttention">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TFT.</span></span><span class="sig-name descname"><span class="pre">InterpretableMultiHeadAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_heads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.InterpretableMultiHeadAttention" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>An interpretable multi-head attention block to capture long-term dependencies.</p>
+<p>Implements an interpretable multi-head attention mechanism where each attention
+head shares the same value vector but uses separate query and key projections.</p>
+<p>This variant simplifies interpretability by decoupling the query/key learning across
+heads while enforcing a shared value representation. Useful in architectures where
+clarity of attention allocation is important (e.g., temporal attention).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_heads</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of attention heads.</p></li>
+<li><p><strong>hidden_dim</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Total feature dimension of the input and output.</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <em>optional</em>) – Dropout probability applied after attention and after output projection. Default is None.</p></li>
+<li><p><strong>masking</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>optional</em>) – If True, attention values are masked to prevent temporal dimensions from attending to future values.
+Default True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>v_layer</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.Linear</span></code>) – Shared linear projection for values across all heads.</p></li>
+<li><p><strong>q_layer</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.ModuleList</span></code>) – Per-head linear projections for queries.</p></li>
+<li><p><strong>k_layer</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.ModuleList</span></code>) – Per-head linear projections for keys.</p></li>
+<li><p><strong>attention</strong> (<a class="reference internal" href="#KnowIt.default_archs.TFT.ScaledDotProductAttention" title="KnowIt.default_archs.TFT.ScaledDotProductAttention"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScaledDotProductAttention</span></code></a>) – Core attention mechanism computing attention weights and outputs.</p></li>
+<li><p><strong>w_h</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.Linear</span></code>) – Final projection layer mapping averaged head output back to model dimension.</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.Dropout</span></code>) – Dropout probability applied after attention and after output projection.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.InterpretableMultiHeadAttention.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.InterpretableMultiHeadAttention.forward" title="Link to this definition">#</a></dt>
+<dd><p>Forward pass of the Interpretable Multi-Head Attention module.</p>
+<p>Each attention head uses a separate query and key projection but shares the same
+value projection across heads. Attention is computed per head, optionally masked
+for causality, and optionally uses dropout. The outputs of all heads are averaged
+(not concatenated) to produce the final attention output, which is then projected
+back to the model dimension and passed through a final dropout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">[batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">hidden_dim]</span></code>) – Input tensor containing the sequence to attend over. Each element in the sequence
+is a hidden vector of dimension <cite>hidden_dim</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>out</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">[batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">hidden_dim]</span></code>) – The attention-weighted output sequence after averaging across heads and applying
+the final linear projection.</p></li>
+<li><p><strong>attn</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape</span> <span class="pre">[batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">sequence_length</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_heads]</span></code>) – Attention weights for each head. Each slice <cite>attn[:, :, :, i]</cite> corresponds
+to the attention map of head <cite>i</cite>, after softmax and optional dropout.
+If <cite>n_heads == 1</cite>, the head dimension is omitted.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[torch.Tensor, torch.Tensor]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Causal masking ensures that each position can only attend to previous and current
+time steps when <cite>masking=True</cite>.</p></li>
+<li><p>The value projection is shared across all heads to enforce interpretability,
+following the Temporal Fusion Transformer design.</p></li>
+</ul>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.init_mod">
+<span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TFT.</span></span><span class="sig-name descname"><span class="pre">init_mod</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mod</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.init_mod" title="Link to this definition">#</a></dt>
+<dd><p>Initializes the parameters of the given module using suitable initialization schemes.</p>
+<p>This function iterates over the named parameters of the provided module and applies:
+- Kaiming uniform initialization for parameters containing ‘weight’ in their name, if applicable.
+- Standard normal initialization for ‘weight’ parameters where Kaiming initialization is unsuitable.
+- Zero initialization for parameters containing ‘bias’ in their name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mod</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.Module</span></code>) – The PyTorch module whose parameters will be initialized.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This function is used to prepare layers for training by setting their initial weights and biases
+to suitable values, which can improve convergence rates.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TFT.get_output_activation">
+<span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TFT.</span></span><span class="sig-name descname"><span class="pre">get_output_activation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_activation</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TFT.get_output_activation" title="Link to this definition">#</a></dt>
+<dd><p>Fetch output activation function from Pytorch.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../TCN/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">KnowIt.default_archs.TCN</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../../interpret/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">KnowIt.interpret</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#embeddinglayer">EmbeddingLayer</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gate">Gate</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gateaddnorm">GateAddNorm</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gatedresidualnetwork">GatedResidualNetwork</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#variableselectionnetwork">VariableSelectionNetwork</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scaleddotproductattention">ScaledDotProductAttention</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interpretablemultiheadattention">InterpretableMultiHeadAttention</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.Model"><code class="docutils literal notranslate"><span class="pre">Model</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.Model.forward"><code class="docutils literal notranslate"><span class="pre">Model.forward()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.Model.force_reset"><code class="docutils literal notranslate"><span class="pre">Model.force_reset()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.Model.get_internal_states"><code class="docutils literal notranslate"><span class="pre">Model.get_internal_states()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.Model.hard_set_states"><code class="docutils literal notranslate"><span class="pre">Model.hard_set_states()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.Model.update_states"><code class="docutils literal notranslate"><span class="pre">Model.update_states()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.Gate"><code class="docutils literal notranslate"><span class="pre">Gate</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.Gate.forward"><code class="docutils literal notranslate"><span class="pre">Gate.forward()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id0"><code class="docutils literal notranslate"><span class="pre">Gate.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.GateAddNorm"><code class="docutils literal notranslate"><span class="pre">GateAddNorm</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.GateAddNorm.forward"><code class="docutils literal notranslate"><span class="pre">GateAddNorm.forward()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1"><code class="docutils literal notranslate"><span class="pre">GateAddNorm.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.GatedResidualNetwork"><code class="docutils literal notranslate"><span class="pre">GatedResidualNetwork</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.GatedResidualNetwork.forward"><code class="docutils literal notranslate"><span class="pre">GatedResidualNetwork.forward()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id2"><code class="docutils literal notranslate"><span class="pre">GatedResidualNetwork.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.EmbeddingLayer"><code class="docutils literal notranslate"><span class="pre">EmbeddingLayer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.EmbeddingLayer.forward"><code class="docutils literal notranslate"><span class="pre">EmbeddingLayer.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.VariableSelectionNetwork"><code class="docutils literal notranslate"><span class="pre">VariableSelectionNetwork</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.VariableSelectionNetwork.forward"><code class="docutils literal notranslate"><span class="pre">VariableSelectionNetwork.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.ScaledDotProductAttention"><code class="docutils literal notranslate"><span class="pre">ScaledDotProductAttention</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.ScaledDotProductAttention.forward"><code class="docutils literal notranslate"><span class="pre">ScaledDotProductAttention.forward()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3"><code class="docutils literal notranslate"><span class="pre">ScaledDotProductAttention.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.InterpretableMultiHeadAttention"><code class="docutils literal notranslate"><span class="pre">InterpretableMultiHeadAttention</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.InterpretableMultiHeadAttention.forward"><code class="docutils literal notranslate"><span class="pre">InterpretableMultiHeadAttention.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.init_mod"><code class="docutils literal notranslate"><span class="pre">init_mod()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TFT.get_output_activation"><code class="docutils literal notranslate"><span class="pre">get_output_activation()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, North-West University (NWU), South Africa.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

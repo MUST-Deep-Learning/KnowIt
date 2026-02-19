@@ -1,0 +1,79 @@
+KnowIt.setup.select_interpretation_points
+=========================================
+
+.. py:module:: KnowIt.setup.select_interpretation_points
+
+.. autoapi-nested-parse::
+
+   Functions used to select prediction points for interpretation.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   KnowIt.setup.select_interpretation_points.get_interpretation_inx
+   KnowIt.setup.select_interpretation_points.get_predictions
+
+
+Module Contents
+---------------
+
+.. py:function:: get_interpretation_inx(data_tag, data_selection_matrix, i_size, i_selection_tag, predictions_dir, seed)
+
+   Determines the indices of prediction points to be interpreted based on selection criteria.
+
+   :Parameters: * **data_tag** (:py:class:`str`) -- The dataset split, which can be 'train', 'valid', or 'eval'.
+                * **data_selection_matrix** (:py:class:`np.array`, :py:class:`shape=[(num_prediction_points`, :py:class:`3]`) -- The selection matrix for the given data split.
+                * **i_size** (:py:class:`int`) -- The number of prediction points to be interpreted.
+                * **i_selection_tag** (:py:class:`str`) -- The selection strategy, which can be 'all', 'random', 'success', or 'failure'.
+                * **predictions_dir** (:py:class:`str`) -- The path to the directory containing model prediction files.
+                * **seed** (:py:class:`int`) -- The random seed for reproducibility when selecting random points.
+
+   :returns: A tuple containing:
+             - inx : tuple
+                 The start and end indices of the selected prediction points.
+             - points : np.array
+                 The selected prediction point indices. This is their positions in the selection matrix.
+             - predictions : dict
+                 The model predictions corresponding to each point.
+             - targets : dict
+                 The ground-truths corresponding to each point.
+             - timestamps : dict
+                 The associated IST values.
+   :rtype: :py:class:`tuple`
+
+   :raises SystemExit: If `i_size` is greater than the available data size or if no valid contiguous blocks
+       are found for selection.
+
+
+.. py:function:: get_predictions(predictions_dir, data_tag, data_size, point_ids = None, w_mae = False)
+
+   Loads and retrieves model predictions, targets, and timestamps for a given dataset split.
+
+   :Parameters: * **predictions_dir** (:py:class:`str`) -- Path to the directory containing the model prediction files.
+                * **data_tag** (:py:class:`str`) -- The dataset split, which can be 'train', 'valid', or 'eval'.
+                * **data_size** (:py:class:`int`) -- The expected number of prediction points in the dataset split.
+                * **point_ids** (:py:class:`list`, *optional*) -- A list of specific data points to retrieve. If None, all available points are loaded.
+                * **w_mae** (:py:class:`bool`, *default* :py:obj:`False`) -- Whether to compute and return the mean absolute error (MAE) for each point.
+
+   :returns:
+
+             - points : np.array
+                 Sorted array of selected prediction points.
+             - predictions : dict
+                 Dictionary mapping each point ID to its predicted value.
+             - targets : dict
+                 Dictionary mapping each point ID to its ground-truth target value.
+             - timestamps : dict
+                 Dictionary mapping each point ID to its associated timestamp.
+             - mae : dict, optional
+                 Dictionary mapping each point ID to its computed MAE (only if `w_mae=True`).
+   :rtype: :py:class:`tuple`
+
+   :raises SystemExit: If no prediction files exist for the given dataset split.
+       If not all relevant prediction points are found when `point_ids` is None.
+
+

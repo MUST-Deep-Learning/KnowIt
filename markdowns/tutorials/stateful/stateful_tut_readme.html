@@ -1,0 +1,1218 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Statefulness &#8212; KnowIt 1.0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=292eb321"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'markdowns/tutorials/stateful/stateful_tut_readme';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Data Framework" href="../../docs/data_readme.html" />
+    <link rel="prev" title="Basic sweep" href="../basic_sweep/basic_sweep_tut_readme.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="1.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/KI_logo_short_stencil.png" class="logo__image only-light" alt="KnowIt 1.0.1 documentation - Home"/>
+    <img src="../../../_static/KI_logo_short_stencil.png" class="logo__image only-dark pst-js-only" alt="KnowIt 1.0.1 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="#">
+    Statefulness
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../autoapi/index.html">
+    API Reference
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Statefulness
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../autoapi/index.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Statefulness</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="statefulness">
+<h1>Statefulness<a class="headerlink" href="#statefulness" title="Link to this heading">#</a></h1>
+<p>In this tutorial we demonstrate how to train a stateful model in the <code class="docutils literal notranslate"><span class="pre">KnowIt</span></code> environment.</p>
+<p>A stateful model is one that maintains an internal (or hidden) state across batches.
+This is useful (and necessary) for building models that need to take into account long term dependencies in the data.
+Specifically, dependencies that reach beyond the <code class="docutils literal notranslate"><span class="pre">in_chunk</span></code> of the time series model cannot be learned without
+maintaining information from one batch to the next since batch features are always fixed length and of the shape:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>- x[batch size, size of in_chunk, number of input components]
+- y[batch size, size of out_chunk, number of output components]
+</pre></div>
+</div>
+<p>By default <code class="docutils literal notranslate"><span class="pre">KnowIt</span></code> performs time series modeling in a stateless format,
+where time is guaranteed to be contiguous within prediction points (across the second dimension in <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">y</span></code>), but not across batches.</p>
+<p>To train a stateful model the user should provide the kwarg <code class="docutils literal notranslate"><span class="pre">data_args['batch_sampling_mode']</span> <span class="pre">=</span> <span class="pre">'sliding-window'</span></code>.
+This tells <code class="docutils literal notranslate"><span class="pre">KnowIt</span></code> that batches should be constructed in a way so that time is also contiguous across batches.
+How the model manages this statefulness is defined in the model architecture. See the default architecture <code class="docutils literal notranslate"><span class="pre">LSTMv2</span></code> for
+an example of an LSTM architecture with stateful capabilities.</p>
+<p>The following sections provide further details in the form of a tutorial on simple stateful training.</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#1"><span class="xref myst">Compile dataset</span></a></p></li>
+<li><p><a class="reference internal" href="#2"><span class="xref myst">Set up baseline model building protocol</span></a></p></li>
+<li><p><a class="reference internal" href="#3"><span class="xref myst">Train a baseline MLP</span></a></p></li>
+<li><p><a class="reference internal" href="#4"><span class="xref myst">Train an MLP with extra history</span></a></p></li>
+<li><p><a class="reference internal" href="#5"><span class="xref myst">Stateful training</span></a></p></li>
+<li><p><a class="reference internal" href="#6"><span class="xref myst">Train a stateful LSTM</span></a></p></li>
+<li><p><a class="reference internal" href="#7"><span class="xref myst">Train a stateless LSTM</span></a></p></li>
+<li><p><a class="reference internal" href="#8"><span class="xref myst">“Long” term memory</span></a></p></li>
+<li><p><a class="reference internal" href="#9"><span class="xref myst">Conclusion</span></a></p></li>
+</ol>
+<hr class="docutils" />
+<section id="compile-dataset">
+<h2>1. Compile dataset <div id="1"><a class="headerlink" href="#compile-dataset" title="Link to this heading">#</a></h2>
+<p>First we need a simple dataset for which we know the underlying function.
+We define a simple univariate running average <code class="docutils literal notranslate"><span class="pre">y(t)</span> <span class="pre">=</span> <span class="pre">0.5(x(t)</span> <span class="pre">+</span> <span class="pre">x(t-1))</span></code> where <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">∈</span> <span class="pre">U(0,</span> <span class="pre">1)</span></code>.
+This can be defined with the following method, given <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">=</span> <span class="pre">1</span></code>. In other words,
+<code class="docutils literal notranslate"><span class="pre">y</span></code> at any given point in time is the average between <code class="docutils literal notranslate"><span class="pre">x</span></code> at the same point in time
+and <code class="docutils literal notranslate"><span class="pre">x</span></code> at the preceding point in time.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># import numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="c1"># set a random seed for reproducibility</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">123</span><span class="p">)</span>
+
+<span class="c1"># define data generating method</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_running_average_data</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">t</span><span class="o">-</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="n">t</span><span class="p">]))</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+</pre></div>
+</div>
+<p>Next, we define a method to compile the data into a dataframe for
+importing into <code class="docutils literal notranslate"><span class="pre">KnowIt</span></code>. Note that we simulate a time delta of
+one millisecond between timesteps.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># import pandas</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="c1"># import the datetime library</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+
+<span class="c1"># define data compiler method</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compile_dataframe</span><span class="p">(</span><span class="n">data_name</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">component_names</span><span class="p">):</span>
+    <span class="c1"># convert the input and output components to two column vectors</span>
+    <span class="n">seq_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">])</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+    <span class="c1"># define the time delta between time steps</span>
+    <span class="n">freq</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># define a range of datetime indices</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+    <span class="n">t_range</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="n">freq</span><span class="p">)[:</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)]</span>
+    <span class="c1"># compile the dataframe</span>
+    <span class="n">new_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">seq_data</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">t_range</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">component_names</span><span class="p">)</span>
+    <span class="c1"># add the required meta data</span>
+    <span class="n">meta_data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">data_name</span><span class="p">,</span>
+                 <span class="s1">&#39;components&#39;</span><span class="p">:</span> <span class="n">component_names</span><span class="p">,</span>
+                 <span class="s1">&#39;time_delta&#39;</span><span class="p">:</span> <span class="n">freq</span><span class="p">}</span>
+    <span class="n">new_frame</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">meta_data</span>
+    <span class="k">return</span> <span class="n">new_frame</span>
+</pre></div>
+</div>
+<p>Using the two methods above, we can generate, compile, store, and visualize the dataset with the following code.
+Note that our generated dataset consists of <code class="docutils literal notranslate"><span class="pre">10</span> <span class="pre">000</span></code> timesteps and we called it <code class="docutils literal notranslate"><span class="pre">k1_running_average</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># import matplotlib for visualization</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">generate_running_average_data</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">new_frame</span> <span class="o">=</span> <span class="n">compile_dataframe</span><span class="p">(</span><span class="n">data_name</span><span class="o">=</span><span class="s1">&#39;k1_running_average&#39;</span><span class="p">,</span> 
+                              <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> 
+                              <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> 
+                              <span class="n">component_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">])</span>
+<span class="n">new_frame</span><span class="o">.</span><span class="n">to_pickle</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s1">&#39;k1_running_average.pickle&#39;</span><span class="p">)</span>
+
+<span class="n">new_frame</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The resulting dataset shows no discernible pattern when
+visualized as a whole.</p>
+<p><img alt="k1.png" src="../../../_images/k1.png" /></p>
+<p>However, when we zoom in, we can see that each value for <code class="docutils literal notranslate"><span class="pre">y</span></code>
+is the halfway point between the current <code class="docutils literal notranslate"><span class="pre">x</span></code> and the preceding one.</p>
+<p><img alt="k1_zoomed.png" src="../../../_images/k1_zoomed.png" /></p>
+<hr class="docutils" />
+</section>
+<section id="set-up-baseline-model-building-protocol">
+<h2>2. Set up baseline model building protocol <div id="2"><a class="headerlink" href="#set-up-baseline-model-building-protocol" title="Link to this heading">#</a></h2>
+<p>Now that we have an imported dataset <code class="docutils literal notranslate"><span class="pre">k1_running_average</span></code>, we would like to train a time series model of
+<code class="docutils literal notranslate"><span class="pre">y(x)</span></code>. To do this we first need to define a couple of kwargs.
+The basic kwargs for model training are <code class="docutils literal notranslate"><span class="pre">data</span></code>, <code class="docutils literal notranslate"><span class="pre">arch</span></code>, and <code class="docutils literal notranslate"><span class="pre">trainer</span></code>.
+We define a nifty method <code class="docutils literal notranslate"><span class="pre">get_basic_kwargs</span></code> to produce these kwargs below.</p>
+<p>In order to keep things simple we first construct our task as predicting <code class="docutils literal notranslate"><span class="pre">y(t)</span></code> given
+<code class="docutils literal notranslate"><span class="pre">x(t)</span></code>. We know that a model that can only consider <code class="docutils literal notranslate"><span class="pre">x(t)</span></code> to produce <code class="docutils literal notranslate"><span class="pre">y(t)</span></code> will be unable
+to fit the true underlying function <code class="docutils literal notranslate"><span class="pre">y(t)</span> <span class="pre">=</span> <span class="pre">0.5(x(t)</span> <span class="pre">+</span> <span class="pre">x(t-1))</span></code>. We also select the default
+architecture <code class="docutils literal notranslate"><span class="pre">MLP</span></code>, which produces a stateless model by design.
+See the <code class="docutils literal notranslate"><span class="pre">Basics</span></code> tutorial for an explanation of the other kwargs.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_basic_kwargs</span><span class="p">(</span><span class="n">data_name</span><span class="p">):</span>
+    <span class="c1"># define the data related arguments</span>
+    <span class="n">data_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">data_name</span><span class="p">,</span>
+                 <span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;regression&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;in_components&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">],</span>
+                 <span class="s1">&#39;out_components&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">],</span>
+                 <span class="s1">&#39;in_chunk&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                 <span class="s1">&#39;out_chunk&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                 <span class="s1">&#39;split_portions&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span>
+                 <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span> 
+                 <span class="s1">&#39;scaling_tag&#39;</span><span class="p">:</span> <span class="s1">&#39;full&#39;</span><span class="p">}</span>
+
+    <span class="c1"># define your architecture</span>
+    <span class="n">arch_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;regression&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;MLP&#39;</span><span class="p">}</span>
+
+    <span class="c1"># define your trainer</span>
+    <span class="n">trainer_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;loss_fn&#39;</span><span class="p">:</span> <span class="s1">&#39;mse_loss&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;optim&#39;</span><span class="p">:</span> <span class="s1">&#39;Adam&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;max_epochs&#39;</span><span class="p">:</span> <span class="mi">50</span><span class="p">,</span>
+                    <span class="s1">&#39;learning_rate&#39;</span><span class="p">:</span> <span class="mf">0.0001</span><span class="p">,</span>
+                    <span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;regression&#39;</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">data_args</span><span class="p">,</span> <span class="n">arch_args</span><span class="p">,</span> <span class="n">trainer_args</span>
+</pre></div>
+</div>
+<p>We also construct an instance of <code class="docutils literal notranslate"><span class="pre">KnowIt</span></code> connected to a new experiment output
+directory <code class="docutils literal notranslate"><span class="pre">stateful_tut_exp</span></code> and import the newly constructed dataset.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># import the KnowIt class</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">knowit</span><span class="w"> </span><span class="kn">import</span> <span class="n">KnowIt</span>
+
+<span class="c1"># create an instance of KnowIt connected to an experiment output directory</span>
+<span class="n">KI</span> <span class="o">=</span> <span class="n">KnowIt</span><span class="p">(</span><span class="n">custom_exp_dir</span><span class="o">=</span><span class="s1">&#39;stateful_tut_exp&#39;</span><span class="p">)</span>
+<span class="c1"># switch on visualisation by default</span>
+<span class="n">KI</span><span class="o">.</span><span class="n">global_args</span><span class="p">(</span><span class="n">and_viz</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="c1"># import the raw dataset</span>
+<span class="n">KI</span><span class="o">.</span><span class="n">import_dataset</span><span class="p">({</span><span class="s1">&#39;data_import&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;raw_data&#39;</span><span class="p">:</span> <span class="s1">&#39;k1_running_average.pickle&#39;</span><span class="p">}})</span>
+</pre></div>
+</div>
+<p>Finally, we define a method to train the model and produce predictions on the
+validation set, for analysis.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">train_and_predict</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">data_args</span><span class="p">,</span> <span class="n">arch_args</span><span class="p">,</span> <span class="n">trainer_args</span><span class="p">):</span>
+    <span class="n">KI</span><span class="o">.</span><span class="n">train_model</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span>
+                   <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">data_args</span><span class="p">,</span>
+                           <span class="s1">&#39;arch&#39;</span><span class="p">:</span> <span class="n">arch_args</span><span class="p">,</span>
+                           <span class="s1">&#39;trainer&#39;</span><span class="p">:</span> <span class="n">trainer_args</span><span class="p">})</span>
+    <span class="n">KI</span><span class="o">.</span><span class="n">generate_predictions</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span>
+                            <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;predictor&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;prediction_set&#39;</span><span class="p">:</span> <span class="s1">&#39;valid&#39;</span><span class="p">}})</span>
+</pre></div>
+</div>
+<p>Note that we have chosen to use an MLP-based model as our baseline.
+We choose this architecture to first indicate the expected level of performance
+when a completely stateless model is trained on the data.
+This model has no hope of fitting the true underlying function since it is only
+presented with the input component at the current point in time and has no mechanism of
+remembering previous values. We can later compare the performance of a stateful model with
+the performance of our baseline.</p>
+<hr class="docutils" />
+</section>
+<section id="train-a-baseline-mlp">
+<h2>3. Train a baseline MLP <div id="3"><a class="headerlink" href="#train-a-baseline-mlp" title="Link to this heading">#</a></h2>
+<p>All we need to do now is to call the <code class="docutils literal notranslate"><span class="pre">get_basic_kwargs</span></code> method, and send the resulting
+kwargs to the <code class="docutils literal notranslate"><span class="pre">train_and_predict</span></code> method along with a model name.</p>
+<p>Here we call our basline model <code class="docutils literal notranslate"><span class="pre">simple_mlp</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">data_args</span><span class="p">,</span> <span class="n">arch_args</span><span class="p">,</span> <span class="n">trainer_args</span> <span class="o">=</span> <span class="n">get_basic_kwargs</span><span class="p">(</span><span class="s1">&#39;k1_running_average&#39;</span><span class="p">)</span>
+<span class="n">train_and_predict</span><span class="p">(</span><span class="s1">&#39;simple_mlp&#39;</span><span class="p">,</span> <span class="n">data_args</span><span class="p">,</span> <span class="n">arch_args</span><span class="p">,</span> <span class="n">trainer_args</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The resulting model obtained a best validation loss of <code class="docutils literal notranslate"><span class="pre">0.0204</span></code> at epoch <code class="docutils literal notranslate"><span class="pre">23</span></code> out of <code class="docutils literal notranslate"><span class="pre">50</span></code>.
+If we take a more qualitative look at its performance, through a zoomed in visualization of predictions on the
+validation set, we see that the model was unable to fully capture the underlying function.
+This is expected since we did not present the model with all the required inputs,
+namely <code class="docutils literal notranslate"><span class="pre">x(t)</span> <span class="pre">and</span> <span class="pre">x(t-1)</span></code>.</p>
+<p><img alt="mlp_on_k1.png" src="../../../_images/mlp_on_k1.png" /></p>
+<hr class="docutils" />
+</section>
+<section id="train-an-mlp-with-extra-history">
+<h2>4. Train an MLP with extra history <div id="4"><a class="headerlink" href="#train-an-mlp-with-extra-history" title="Link to this heading">#</a></h2>
+<p>As a sanity check, we also train a model where we provide all the required inputs by adding
+the time step preceding the current one to the model’s input chunk.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">data_args</span><span class="p">,</span> <span class="n">arch_args</span><span class="p">,</span> <span class="n">trainer_args</span> <span class="o">=</span> <span class="n">get_basic_kwargs</span><span class="p">(</span><span class="s1">&#39;k1_running_average&#39;</span><span class="p">)</span>
+<span class="n">data_args</span><span class="p">[</span><span class="s1">&#39;in_chunk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+<span class="n">train_and_predict</span><span class="p">(</span><span class="s1">&#39;simple_oracle_mlp&#39;</span><span class="p">,</span> <span class="n">data_args</span><span class="p">,</span> <span class="n">arch_args</span><span class="p">,</span> <span class="n">trainer_args</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The resulting model obtained a best validation loss of <code class="docutils literal notranslate"><span class="pre">0.0013</span></code> at epoch <code class="docutils literal notranslate"><span class="pre">14</span></code> out of <code class="docutils literal notranslate"><span class="pre">50</span></code>.
+Note that this model obtained a validation loss a magnitude lower than the baseline; it also
+achieved this performance much earlier in training.
+This is expected since the problem boils down to calculating the average between the two input features.</p>
+<p>Through qualitative inspection, we also see that this model produces outputs much closer to the ground
+truths on the validation set.</p>
+<p><img alt="mlp_oracle_in_k1.png" src="../../../_images/mlp_oracle_in_k1.png" /></p>
+<hr class="docutils" />
+</section>
+<section id="stateful-training">
+<h2>5. Stateful training <div id="5"><a class="headerlink" href="#stateful-training" title="Link to this heading">#</a></h2>
+<p>Before training a stateful model, it would be prudent to explain some mechanisms used in <code class="docutils literal notranslate"><span class="pre">Knowit</span></code>.</p>
+<section id="batch-ordering">
+<h3>5.1. Batch ordering <div id="5.1"><a class="headerlink" href="#batch-ordering" title="Link to this heading">#</a></h3>
+<p>When constructing batches in the default batch sampling mode, with <code class="docutils literal notranslate"><span class="pre">data_args['batch_sampling_mode']</span> <span class="pre">=</span> <span class="pre">'independent'</span></code>,
+each prediction point is packaged into batches
+in an arbitrary order (prediction points are shuffled if <code class="docutils literal notranslate"><span class="pre">data_args['shuffle_train']</span> <span class="pre">=</span> <span class="pre">True</span></code>).
+If our dataset consists of 100 contiguous prediction points [1, 2, …, 99, 100],
+and our batch size is 4, our first set of batches might look something like:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>batch 1</p></th>
+<th class="head"><p>batch 2</p></th>
+<th class="head"><p>batch 3</p></th>
+<th class="head"><p>…</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>35</p></td>
+<td><p>28</p></td>
+<td><p>29</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>67</p></td>
+<td><p>96</p></td>
+<td><p>86</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>7</p></td>
+<td><p>88</p></td>
+<td><p>1</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>43</p></td>
+<td><p>55</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Take note that, while the order of prediction points within and across batches are arbitrary, the
+order of features corresponding to each prediction point will never be. The order of time steps
+within a sequence corresponding to the input- and output-chunk of each prediction point will be
+in the order that they appear in the base dataset (i.e. chronologically).</p>
+<p>When constructing batches in the <code class="docutils literal notranslate"><span class="pre">sliding-window</span></code> mode, with <code class="docutils literal notranslate"><span class="pre">data_args['batch_sampling_mode']</span> <span class="pre">=</span> <span class="pre">'sliding-window'</span></code>,
+the <code class="docutils literal notranslate"><span class="pre">CustomSampler</span></code> ensures that a prediction point,
+occupying a certain index in a batch follows contiguously after the prediction point that occupies
+the same index in the preceding batch as far as possible.
+To do this, a sliding window approach is taken. Each batch corresponds to a window of as many
+prediction points as the batch size. The sliding window is then shifted by a <code class="docutils literal notranslate"><span class="pre">slide_stride</span></code> (default is 1)
+prediction points to sample the next batch.
+Continuing with the example above, our first set of batches might look something like:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>batch 1</p></th>
+<th class="head"><p>batch 2</p></th>
+<th class="head"><p>batch 3</p></th>
+<th class="head"><p>…</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>2</p></td>
+<td><p>3</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p>3</p></td>
+<td><p>4</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>4</p></td>
+<td><p>5</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>5</p></td>
+<td><p>6</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Note some key differences when comparing <code class="docutils literal notranslate"><span class="pre">sliding-window</span></code> and the default <code class="docutils literal notranslate"><span class="pre">independent</span></code> batch sampling mode.
+For the latter, each prediction point will only appear once per epoch.
+For the former, the number of times a prediction point
+appears depends on the batch size, total number of prediction points, and the stride used.</p>
+<p>Also note that the example above is only the general case. There are several edge cases
+that are handled by the <code class="docutils literal notranslate"><span class="pre">CustomSampler</span></code>. These include:</p>
+<ul class="simple">
+<li><p>If there are more than one slice in the dataset.</p></li>
+<li><p>If there are more slices than batch size.</p></li>
+<li><p>Whether <code class="docutils literal notranslate"><span class="pre">data_args['shuffle_train']</span></code> is True or False.</p></li>
+</ul>
+<p>The general algorithm for the sliding window approach is as follows. See <code class="docutils literal notranslate"><span class="pre">CustomSampler</span></code> for
+exact details.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>1. Get a list of all contiguous slices in the dataset split. These are lists of contiguous prediction points.
+2. Shuffle the order of these slices if &#39;shuffle_train&#39;=True.
+3. If there are fewer slices than batch_size, add slices by duplicating and shifting existing ones until there are enough.
+4. Shuffle the order of these expanded slices if &#39;shuffle_train&#39;=True.
+5. If &#39;shuffle_train&#39;=True, drop a random number (between 0 and 10) of prediction points at the start of each slice.
+6. If slide_stride &gt; 1 subsample these expanded slices accordingly.
+7. Iteratively sample batches from the slices in order to maintain as much contigousness across batch indices as possible.
+8. Resulting batches that are smaller than batch size are dropped.
+</pre></div>
+</div>
+<p>As a final note, for inference (i.e. validation, evaluation, prediction, and interpretation)
+we use a third batch sampling mode called <code class="docutils literal notranslate"><span class="pre">inference</span></code>. This is always used for inference regardless of the
+batch sampling mode selected for training. This sampling mode performs only steps 1, 6, and 7 above.
+That means no shuffling or expansion is done, ensuring that all prediction points are sampled only once and are presented to
+the model in order. It also means that if there are fewer slices in the dataset than batch size, the actual batch
+size during inference will be smaller.</p>
+</section>
+<section id="handling-states">
+<h3>5.2. Handling states <div id="5.2"><a class="headerlink" href="#handling-states" title="Link to this heading">#</a></h3>
+<p>By selecting the <code class="docutils literal notranslate"><span class="pre">sliding-window</span></code> batch sampler as described in the previous section we ensure that the model
+receives prediction points in the correct order for maintaining information across batches. However, as mentioned,
+this is only done as far as possible. Some discontinuity is expected, especially with multiple slices and random
+dropping if shuffling is used. This means that it would be unwise (and sometimes impossible) to maintain a single unbroken
+hidden state throughout training. The hidden state should only be maintained when it makes sense (i.e. when the batches
+follow each-other contiguously). Managing the hidden states falls on the architecture being trained.</p>
+<p>Models in the <code class="docutils literal notranslate"><span class="pre">KnowIt</span></code> framework that have the ability to be stateful must have a <code class="docutils literal notranslate"><span class="pre">force_reset()</span></code> and <code class="docutils literal notranslate"><span class="pre">update_states(...)</span></code> method.
+<code class="docutils literal notranslate"><span class="pre">force_reset</span></code> is called by the trainer module before each train, validation, or evaluation loop. It tells the architecture
+to reset all its internal states so that no test set leakage occurs when moving into the new loop.
+The <code class="docutils literal notranslate"><span class="pre">update_states</span></code> method receives a tensor of shape <code class="docutils literal notranslate"><span class="pre">[batch</span> <span class="pre">size,</span> <span class="pre">3]</span></code>. It represents the IST indices of the prediction points
+in the current batch. It can be used to monitor for breaks in contigiousness across batches.
+See the internal method <code class="docutils literal notranslate"><span class="pre">update_states</span></code> in the default architecture <code class="docutils literal notranslate"><span class="pre">LSTMv2</span></code> for an example of this.</p>
+<p>Alternatively, if the architecture does not have the two methods above it is assumed to be stateless like
+the default architecture <code class="docutils literal notranslate"><span class="pre">MLP</span></code>.</p>
+<hr class="docutils" />
+</section>
+</section>
+<section id="train-a-stateful-lstm">
+<h2>6. Train a stateful LSTM <div id="6"><a class="headerlink" href="#train-a-stateful-lstm" title="Link to this heading">#</a></h2>
+<p>To demonstrate the capability of a stateful model we train a simple stateful LSTM on the same
+dataset defined in Section 1. Note that we make some modifications to the model building protocol.</p>
+<p>Namely, we select the <code class="docutils literal notranslate"><span class="pre">sliding-window</span></code> batch sampling mode, we select the <code class="docutils literal notranslate"><span class="pre">LSTMv2</span></code>
+default architecture, and we train the model for longer. Additionally, we change some of the
+default hyperparameters of <code class="docutils literal notranslate"><span class="pre">LSTMv2</span></code> since this is a very simple dataset and would likely not require
+most of the bells and whistles.</p>
+<p>Importantly, we do not provide the model with <code class="docutils literal notranslate"><span class="pre">x(t-1)</span></code> by changing <code class="docutils literal notranslate"><span class="pre">in_chunk</span></code>. This means that
+the model only observes <code class="docutils literal notranslate"><span class="pre">x</span></code> at the current point in time for each update.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">data_args</span><span class="p">,</span> <span class="n">arch_args</span><span class="p">,</span> <span class="n">trainer_args</span> <span class="o">=</span> <span class="n">get_basic_kwargs</span><span class="p">(</span><span class="s1">&#39;k1_running_average&#39;</span><span class="p">)</span>
+<span class="n">data_args</span><span class="p">[</span><span class="s1">&#39;batch_sampling_mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;sliding-window&#39;</span>
+<span class="n">arch_args</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;LSTMv2&#39;</span>
+<span class="n">trainer_args</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">arch_args</span><span class="p">[</span><span class="s1">&#39;arch_hps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;stateful&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                         <span class="s1">&#39;depth&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                         <span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
+                         <span class="s1">&#39;residual&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                         <span class="s1">&#39;layernorm&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+<span class="n">train_and_predict</span><span class="p">(</span><span class="s1">&#39;simple_stateful_lstm_sliding-window&#39;</span><span class="p">,</span> <span class="n">data_args</span><span class="p">,</span> <span class="n">arch_args</span><span class="p">,</span> <span class="n">trainer_args</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The resulting model obtained a best validation loss of <code class="docutils literal notranslate"><span class="pre">0.0010</span></code> at epoch <code class="docutils literal notranslate"><span class="pre">100</span></code> out of <code class="docutils literal notranslate"><span class="pre">100</span></code>, although
+it already reached a validation loss of <code class="docutils literal notranslate"><span class="pre">0.0052</span></code> before epoch <code class="docutils literal notranslate"><span class="pre">50</span></code>.
+This level of performance is similar to the MLP with extra history,
+successfully fitting the true
+underlying function, without having access to all the required
+input features at each parameter update. This is only possible by maintaining and updating a hidden state across batches in contiguous order.</p>
+<p>Also note the near perfect predictive performance on the validation set, as visualized
+below.</p>
+<p><img alt="stateful_lstm_k1.png" src="../../../_images/stateful_lstm_k1.png" /></p>
+<hr class="docutils" />
+</section>
+<section id="train-a-stateless-lstm">
+<h2>7. Train a stateless LSTM <div id="7"><a class="headerlink" href="#train-a-stateless-lstm" title="Link to this heading">#</a></h2>
+<p>As a second sanity check we repeat the previous experiment, but with a stateless LSTM.
+This means that the hidden state will be reset each time a batch is passed through the model.</p>
+<p>We do this by using an identical training setup, with the only difference being that we provide
+the architecture argument <code class="docutils literal notranslate"><span class="pre">stateful</span> <span class="pre">=</span> <span class="pre">False</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">data_args</span><span class="p">,</span> <span class="n">arch_args</span><span class="p">,</span> <span class="n">trainer_args</span> <span class="o">=</span> <span class="n">get_basic_kwargs</span><span class="p">(</span><span class="s1">&#39;k1_running_average&#39;</span><span class="p">)</span>
+<span class="n">data_args</span><span class="p">[</span><span class="s1">&#39;batch_sampling_mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;sliding-window&#39;</span>
+<span class="n">arch_args</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;LSTMv2&#39;</span>
+<span class="n">trainer_args</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">arch_args</span><span class="p">[</span><span class="s1">&#39;arch_hps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;stateful&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                         <span class="s1">&#39;depth&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                         <span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
+                         <span class="s1">&#39;residual&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                         <span class="s1">&#39;layernorm&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+<span class="n">train_and_predict</span><span class="p">(</span><span class="s1">&#39;simple_stateful_lstm_sliding-window&#39;</span><span class="p">,</span> <span class="n">data_args</span><span class="p">,</span> <span class="n">arch_args</span><span class="p">,</span> <span class="n">trainer_args</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The resulting model obtained a best validation loss of <code class="docutils literal notranslate"><span class="pre">0.0203</span></code> at epoch <code class="docutils literal notranslate"><span class="pre">4</span></code> out of <code class="docutils literal notranslate"><span class="pre">100</span></code>.
+This level of performance is similar to the baseline MLP.
+This is expected since both models do not maintain a hidden state across batches, which we
+have established is required to find the true underlying function.</p>
+<hr class="docutils" />
+</section>
+<section id="long-term-memory">
+<h2>8. “Long” term memory <div id="8"><a class="headerlink" href="#long-term-memory" title="Link to this heading">#</a></h2>
+<p>As a fun final experiment, we repeat the training of the stateful LSTM as defined in Section 6 for
+varying levels of <code class="docutils literal notranslate"><span class="pre">k</span></code> in the data generating process. We also vary the first term in <code class="docutils literal notranslate"><span class="pre">in_chunk</span></code>;
+let’s call it <code class="docutils literal notranslate"><span class="pre">lb</span></code> for “look back”.
+This means that our data in each case is defined as <code class="docutils literal notranslate"><span class="pre">y(t)</span> <span class="pre">=</span> <span class="pre">0.5(x(t)</span> <span class="pre">+</span> <span class="pre">x(t-k))</span></code> where <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">∈</span> <span class="pre">U(0,</span> <span class="pre">1)</span></code>,
+and our model is observing <code class="docutils literal notranslate"><span class="pre">[x(t-lb),...,</span> <span class="pre">x(t)]</span></code> trying to predict <code class="docutils literal notranslate"><span class="pre">y(t)</span></code> at each point in time,
+but maintaining a hidden state across contiguous batches.</p>
+<p>We will also only train these models for 40 epochs to save time.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">9</span><span class="p">):</span>
+    <span class="c1"># give new dataset a name</span>
+    <span class="n">data_name</span> <span class="o">=</span> <span class="s1">&#39;k&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_running_average&#39;</span>
+    <span class="c1"># generate new dataset</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">generate_running_average_data</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
+    <span class="c1"># compile and store new dataset into dataframe</span>
+    <span class="n">new_frame</span> <span class="o">=</span> <span class="n">compile_dataframe</span><span class="p">(</span><span class="n">data_name</span><span class="o">=</span><span class="n">data_name</span><span class="p">,</span> 
+                                  <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> 
+                                  <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> 
+                                  <span class="n">component_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">])</span>
+    <span class="n">new_frame</span><span class="o">.</span><span class="n">to_pickle</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">data_name</span> <span class="o">+</span> <span class="s1">&#39;.pickle&#39;</span><span class="p">)</span>
+    <span class="c1"># import new dataframe into KnowIt</span>
+    <span class="n">KI</span><span class="o">.</span><span class="n">import_dataset</span><span class="p">({</span><span class="s1">&#39;data_import&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;raw_data&#39;</span><span class="p">:</span> <span class="n">data_name</span> <span class="o">+</span> <span class="s1">&#39;.pickle&#39;</span><span class="p">}})</span>
+    <span class="k">for</span> <span class="n">lb</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+        <span class="c1"># give new model a name</span>
+        <span class="n">model_name</span> <span class="o">=</span> <span class="s1">&#39;simple_stateful_lstm_k_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_lb_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">lb</span><span class="p">)</span>
+        <span class="c1"># get the baseline kwargs</span>
+        <span class="n">data_args</span><span class="p">,</span> <span class="n">arch_args</span><span class="p">,</span> <span class="n">trainer_args</span> <span class="o">=</span> <span class="n">get_basic_kwargs</span><span class="p">(</span><span class="n">data_name</span><span class="p">)</span>
+        <span class="c1"># update training protocol for stateful LSTM training</span>
+        <span class="n">data_args</span><span class="p">[</span><span class="s1">&#39;batch_sampling_mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;sliding-window&#39;</span>
+        <span class="n">arch_args</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;LSTMv2&#39;</span>
+        <span class="n">trainer_args</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">40</span>
+        <span class="n">data_args</span><span class="p">[</span><span class="s1">&#39;in_chunk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="n">lb</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">arch_args</span><span class="p">[</span><span class="s1">&#39;arch_hps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;stateful&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                                 <span class="s1">&#39;depth&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                                 <span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
+                                 <span class="s1">&#39;residual&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                 <span class="s1">&#39;layernorm&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+        <span class="c1"># train the model</span>
+        <span class="n">train_and_predict</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">data_args</span><span class="p">,</span> <span class="n">arch_args</span><span class="p">,</span> <span class="n">trainer_args</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We list the resulting best validation losses of each of these models in the table below.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p></p></th>
+<th class="head"><p>lb = 0</p></th>
+<th class="head"><p>lb = 1</p></th>
+<th class="head"><p>lb = 2</p></th>
+<th class="head"><p>lb = 3</p></th>
+<th class="head"><p>lb = 4</p></th>
+<th class="head"><p>lb = 5</p></th>
+<th class="head"><p>lb = 6</p></th>
+<th class="head"><p>lb = 7</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>k=1</p></td>
+<td><p>0.0057</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+</tr>
+<tr class="row-odd"><td><p>k=2</p></td>
+<td><p>0.0071</p></td>
+<td><p>0.0001</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+</tr>
+<tr class="row-even"><td><p>k=3</p></td>
+<td><p>0.0176</p></td>
+<td><p>0.0002</p></td>
+<td><p>0.0002</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+</tr>
+<tr class="row-odd"><td><p>k=4</p></td>
+<td><p>0.0188</p></td>
+<td><p>0.0164</p></td>
+<td><p>0.0004</p></td>
+<td><p>0.0004</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+</tr>
+<tr class="row-even"><td><p>k=5</p></td>
+<td><p>0.0206</p></td>
+<td><p>0.0206</p></td>
+<td><p>0.0166</p></td>
+<td><p>0.0018</p></td>
+<td><p>0.0003</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+</tr>
+<tr class="row-odd"><td><p>k=6</p></td>
+<td><p>0.0204</p></td>
+<td><p>0.0206</p></td>
+<td><p>0.0207</p></td>
+<td><p>0.0208</p></td>
+<td><p>0.0204</p></td>
+<td><p>0.0002</p></td>
+<td><p>xxxxxx</p></td>
+<td><p>xxxxxx</p></td>
+</tr>
+<tr class="row-even"><td><p>k=7</p></td>
+<td><p>0.0206</p></td>
+<td><p>0.0208</p></td>
+<td><p>0.0210</p></td>
+<td><p>0.0209</p></td>
+<td><p>0.0207</p></td>
+<td><p>0.0211</p></td>
+<td><p>0.0154</p></td>
+<td><p>xxxxxx</p></td>
+</tr>
+<tr class="row-odd"><td><p>k=8</p></td>
+<td><p>0.0205</p></td>
+<td><p>0.0210</p></td>
+<td><p>0.0212</p></td>
+<td><p>0.0212</p></td>
+<td><p>0.0211</p></td>
+<td><p>0.0211</p></td>
+<td><p>0.0213</p></td>
+<td><p>0.0178</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>From the results we see that if our simple LSTM is only given
+the current point in time <code class="docutils literal notranslate"><span class="pre">x(t)</span></code> as input,
+it can find the true underlying function only if the required features are within
+the first two preceding batches (see <code class="docutils literal notranslate"><span class="pre">k=1</span></code> and <code class="docutils literal notranslate"><span class="pre">k=2</span></code>) in the <code class="docutils literal notranslate"><span class="pre">lb=0</span></code> column.
+Performance drops drastically as the required feature is moved further into the past.</p>
+<p>We can make this observation for most of the <code class="docutils literal notranslate"><span class="pre">lb</span></code> values. If the important
+feature <code class="docutils literal notranslate"><span class="pre">x(t-k)</span></code> is within the first two or three batches the model can find it and fit the function,
+otherwise it defaults to a level of performance comparable to our stateless MLP in
+Section 3.</p>
+<p>This is except for <code class="docutils literal notranslate"><span class="pre">lb=6</span></code> and <code class="docutils literal notranslate"><span class="pre">lb=7</span></code>. In these cases it seems our simple
+LSTM cannot find the true function even if the required features are only one batch
+into the past. This could either be due to a lack of capacity (there are more input features)
+or simply a result of improper hyperparameters.</p>
+<p>These results indicate that stateful training can learn patterns with longer dependencies
+than defined by <code class="docutils literal notranslate"><span class="pre">in_chunk</span></code>, but it might still be worthwhile to use a larger <code class="docutils literal notranslate"><span class="pre">in_chunk</span></code> as well.</p>
+<p><em>Disclaimer</em>: A more rigorous experimental setup (HP tuning, mutliple seeds, etc.)
+would be required if we want these conclusion to generalize. This is just a tutorial :)</p>
+<hr class="docutils" />
+</section>
+<section id="conclusion">
+<h2>9. Conclusion <div id="9"><a class="headerlink" href="#conclusion" title="Link to this heading">#</a></h2>
+<p>In this tutorial we used a very (very) simple dataset to demonstrate how stateful
+training is handled in the <code class="docutils literal notranslate"><span class="pre">KnowIt</span></code> framework. In a real-world scenario you
+usually do not know what input features are important and there is a lot more
+hyperparameter tuning required to help your model find them.</p>
+<p>The main takeaway is that if you suspect that the relevant information to make good
+generalizable predictions are far apart in the time domain (farther than your <code class="docutils literal notranslate"><span class="pre">in_chunk</span></code>
+can allow), it would be a good idea to consider stateful training.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../basic_sweep/basic_sweep_tut_readme.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Basic sweep</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../../docs/data_readme.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Data Framework</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-dataset">1. Compile dataset <div id="1"></div></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#set-up-baseline-model-building-protocol">2. Set up baseline model building protocol <div id="2"></div></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#train-a-baseline-mlp">3. Train a baseline MLP <div id="3"></div></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#train-an-mlp-with-extra-history">4. Train an MLP with extra history <div id="4"></div></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#stateful-training">5. Stateful training <div id="5"></div></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#batch-ordering">5.1. Batch ordering <div id="5.1"></div></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#handling-states">5.2. Handling states <div id="5.2"></div></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#train-a-stateful-lstm">6. Train a stateful LSTM <div id="6"></div></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#train-a-stateless-lstm">7. Train a stateless LSTM <div id="7"></div></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#long-term-memory">8. “Long” term memory <div id="8"></div></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#conclusion">9. Conclusion <div id="9"></div></a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, North-West University (NWU), South Africa.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

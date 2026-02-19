@@ -1,0 +1,1124 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>KnowIt.knowit &#8212; KnowIt 1.0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=292eb321"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/KnowIt/knowit/index';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="KnowIt.setup" href="../setup/index.html" />
+    <link rel="prev" title="KnowIt.interpret.interpreter" href="../interpret/interpreter/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="1.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/KI_logo_short_stencil.png" class="logo__image only-light" alt="KnowIt 1.0.1 documentation - Home"/>
+    <img src="../../../_static/KI_logo_short_stencil.png" class="logo__image only-dark pst-js-only" alt="KnowIt 1.0.1 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../markdowns/guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../markdowns/guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../markdowns/tutorials/basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../markdowns/tutorials/basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../markdowns/tutorials/stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../markdowns/docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../markdowns/docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../markdowns/docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="../../index.html">
+    API Reference
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/tutorials/basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/tutorials/basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/tutorials/stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../markdowns/docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../index.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html">KnowIt</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../data/index.html">KnowIt.data</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data/base_dataset/index.html">KnowIt.data.base_dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data/data_scaling/index.html">KnowIt.data.data_scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data/data_splitting/index.html">KnowIt.data.data_splitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data/prepared_dataset/index.html">KnowIt.data.prepared_dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data/raw_data_coversion/index.html">KnowIt.data.raw_data_coversion</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../default_archs/index.html">KnowIt.default_archs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../default_archs/CNN/index.html">KnowIt.default_archs.CNN</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../default_archs/LSTM/index.html">KnowIt.default_archs.LSTM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../default_archs/LSTMv2/index.html">KnowIt.default_archs.LSTMv2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../default_archs/MLP/index.html">KnowIt.default_archs.MLP</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../default_archs/TCN/index.html">KnowIt.default_archs.TCN</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../default_archs/TFT/index.html">KnowIt.default_archs.TFT</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../interpret/index.html">KnowIt.interpret</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../interpret/DLS_Captum/index.html">KnowIt.interpret.DLS_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../interpret/DL_Captum/index.html">KnowIt.interpret.DL_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../interpret/IntegratedGrad_Captum/index.html">KnowIt.interpret.IntegratedGrad_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../interpret/featureattr/index.html">KnowIt.interpret.featureattr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../interpret/interpreter/index.html">KnowIt.interpret.interpreter</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">KnowIt.knowit</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../setup/index.html">KnowIt.setup</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../setup/import_custom_arch/index.html">KnowIt.setup.import_custom_arch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../setup/select_interpretation_points/index.html">KnowIt.setup.select_interpretation_points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../setup/setup_action_args/index.html">KnowIt.setup.setup_action_args</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../setup/setup_weighted_cross_entropy/index.html">KnowIt.setup.setup_weighted_cross_entropy</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../trainer/index.html">KnowIt.trainer</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../trainer/base_trainer/index.html">KnowIt.trainer.base_trainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../trainer/model_config/index.html">KnowIt.trainer.model_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../trainer/trainer/index.html">KnowIt.trainer.trainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../trainer/trainer_states/index.html">KnowIt.trainer.trainer_states</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">API Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">KnowIt</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">KnowIt.knowit</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-KnowIt.knowit">
+<span id="knowit-knowit"></span><h1>KnowIt.knowit<a class="headerlink" href="#module-KnowIt.knowit" title="Link to this heading">#</a></h1>
+<p>This module contains the main class of the toolkit: KnowIt.</p>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.knowit.KnowIt" title="KnowIt.knowit.KnowIt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KnowIt</span></code></a></p></td>
+<td><p>This is the main class that manages the current experiment directory</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.knowit.</span></span><span class="sig-name descname"><span class="pre">KnowIt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">custom_exp_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt" title="Link to this definition">#</a></dt>
+<dd><p>This is the main class that manages the current experiment directory
+and operates all submodules according to user-specified arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>custom_exp_dir</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Custom directory for the experiment output. If not provided, a temporary directory will be created.</p></li>
+<li><p><strong>safe_mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code>) – Local safe mode setting for the current experiment directory, determining file protection behavior.</p></li>
+<li><p><strong>overwrite</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code>) – Flag indicating whether to overwrite the existing experiment directory if it exists.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>exp_output_dir</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Stores the directory where experiment outputs will be stored.</p></li>
+<li><p><strong>temp_exp_dir_obj</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">tempfile.TemporaryDirectory</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – A placeholder for a temporary experiment directory, if a custom directory is not provided.</p></li>
+<li><p><strong>global_safe_mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code>) – Global setting for safe mode, which determines whether existing files should be protected.</p></li>
+<li><p><strong>global_device</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">'gpu'</span></code>) – Global setting for the device to be used for operations (e.g. ‘cpu’ or ‘gpu’).</p></li>
+<li><p><strong>global_and_viz</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code>) – Global setting for visualization, determining whether results should also be visualized.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If <cite>custom_exp_dir</cite> is provided, it sets up the experiment directory at the specified location.
+Otherwise, it creates a temporary directory for the experiment.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt.global_args">
+<span class="sig-name descname"><span class="pre">global_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">and_viz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt.global_args" title="Link to this definition">#</a></dt>
+<dd><p>Modifies and/or return global arguments according to user arguments.</p>
+<p>This function allows the modification of global settings such as the device,
+safe mode, and visualization settings. It also returns the current values of these settings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – If provided, sets the global device to be used for operations (e.g. ‘cpu’ or ‘gpu’).</p></li>
+<li><p><strong>safe_mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – If provided, sets the global safe mode value, which determines whether existing files should be protected.</p></li>
+<li><p><strong>and_viz</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – If provided, sets the global visualization setting, determining whether results should also be visualized.</p></li>
+<li><p><strong>verbose</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code>) – If provided, sets the global verbose setting, determining whether messages below warnings should be logged.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p><strong>global_args_dict</strong> – A dictionary containing the current global arguments.
+The dictionary includes the following keys:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>’global_device’ (str): The current device setting for global operations.</p></li>
+<li><p>’global_and_viz’ (bool): The current setting for global visualization.</p></li>
+<li><p>’global_safe_mode’ (bool): The current setting for global safe mode.</p></li>
+<li><p>’global_verbose’ (bool): The current setting for global verbose.</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">dict[str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Any]</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt.summarize_dataset">
+<span class="sig-name descname"><span class="pre">summarize_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt.summarize_dataset" title="Link to this definition">#</a></dt>
+<dd><p>Summarizes the dataset corresponding to the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The name of the dataset to summarize. It can be either a custom dataset or a default dataset.
+Use KnowIt.available_datasets to see options.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p><strong>summary</strong> – A dictionary containing the summary of the dataset.
+The dictionary includes the following keys:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>’dataset_name’ (str): The current device setting for global operations.</p></li>
+<li><p>’components’ (list): The current setting for global visualization.</p></li>
+<li><p>’instances’ (list): The current setting for global safe mode.</p></li>
+<li><p>’time_delta’ (datetime.time): The current setting for global safe mode.</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">dict[str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Any]</span></code></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The function first checks if the dataset name exists in the custom datasets. If not found, it then
+checks in the default datasets. If the dataset name is not found in either, it logs an error and exits.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt.import_arch">
+<span class="sig-name descname"><span class="pre">import_arch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_arch_path</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt.import_arch" title="Link to this definition">#</a></dt>
+<dd><p>Imports a new architecture from the specified path.</p>
+<p>This function imports a custom architecture from the given path and stores it
+in the experiment output directory. The operation can be performed in safe mode
+to protect existing files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>new_arch_path</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The file path to the new architecture that needs to be imported.</p></li>
+<li><p><strong>safe_mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – If provided, sets the safe mode value for this operation. Safe mode determines
+whether existing files should be protected from being overwritten. If not provided,
+the global safe mode setting will be used.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt.available_datasets">
+<span class="sig-name descname"><span class="pre">available_datasets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt.available_datasets" title="Link to this definition">#</a></dt>
+<dd><p>Returns a dictionary showing the available datasets for the current instance of KnowIt.</p>
+<p>This function lists all available datasets from the default and custom dataset
+directories. It returns a dictionary with two keys: ‘defaults’ and ‘custom’, each
+containing a list of dataset names without file extensions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><p><strong>data_dict</strong> – A dictionary listing default and custom dataset options.
+The dictionary includes the following keys:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>’defaults’ (list): The names of available default datasets.</p></li>
+<li><p>’custom’ (list): The names of available custom datasets.</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">dict[str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">list]</span></code></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This is a wrapper for <cite>env.env_paths.list_available_datasets</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt.available_archs">
+<span class="sig-name descname"><span class="pre">available_archs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt.available_archs" title="Link to this definition">#</a></dt>
+<dd><p>Returns a dictionary showing the available architectures for the current instance of KnowIt.</p>
+<p>This function lists all available architectures from the default and custom architecture
+directories. It returns a dictionary with two keys: ‘defaults’ and ‘custom’, each containing
+a list of architecture names without file extensions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><p><strong>arch_dict</strong> – A dictionary listing default and custom architecture options.
+The dictionary includes the following keys:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>’defaults’ (list): The names of available default architectures.</p></li>
+<li><p>’custom’ (list): The names of available custom architectures.</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">dict[str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">list]</span></code></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The function looks for architecture files with the ‘.py’ extension in both the default
+architecture directory and the custom architecture directory specified by the experiment
+output directory.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt.import_dataset">
+<span class="sig-name descname"><span class="pre">import_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kwargs</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt.import_dataset" title="Link to this definition">#</a></dt>
+<dd><p>Imports the dataset and returns it as a BaseDataset object.</p>
+<p>This function imports a dataset using the provided arguments and returns it as a
+BaseDataset object. The function expects the dictionary to contain specific keys
+required for data import.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kwargs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>) – A dictionary containing the arguments for data import. It must include the key
+‘data_import’.</p></li>
+<li><p><strong>safe_mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – If provided, sets the safe mode value for this operation. Safe mode determines
+whether existing files should be protected from being overwritten. If not provided,
+the global safe mode setting will be used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The imported dataset as a BaseDataset object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseDataset</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>KeyError</strong> – If ‘data_import’ is not present in the provided dictionary.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See setup.setup_action_args.py for details on the arguments required in args[‘data_import’].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt.train_model">
+<span class="sig-name descname"><span class="pre">train_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kwargs</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">and_viz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt.train_model" title="Link to this definition">#</a></dt>
+<dd><p>Trains a model given user arguments.</p>
+<p>This function sets up and trains a model using the provided arguments and configurations.
+It checks and uses global settings for the device, safe mode, and visualization unless
+overridden by the provided arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The name of the model to be trained.</p></li>
+<li><p><strong>kwargs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>) – A dictionary containing the necessary arguments for setting up the data, architecture,
+and trainer. Expected keys are ‘data’, ‘arch’, and ‘trainer’.</p></li>
+<li><p><strong>device</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – The device to be used for training. Defaults to the global device setting if not provided.</p></li>
+<li><p><strong>safe_mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – If provided, sets the safe mode value for this operation.
+Defaults to the global safe mode setting if not provided.</p></li>
+<li><p><strong>and_viz</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – If provided, sets the visualization setting for this operation. Defaults to the global
+visualization setting if not provided.</p></li>
+<li><p><strong>sweep_kwargs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Optional kwargs if a hyperparameter sweep is being performed.
+If provided, must contain kwargs (sweep_name: str, run_name: str, and log_to_local: bool).</p></li>
+<li><p><strong>num_workers</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="xref py py-class docutils literal notranslate"><span class="pre">=</span> <span class="pre">4</span></code>) – Sets the number of workers to use for loading the dataset.</p></li>
+<li><p><strong>preload</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-class docutils literal notranslate"><span class="pre">=</span> <span class="pre">False</span></code>) – Whether to preload the raw relevant instances and slice into memory when sampling feature values.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See setup.setup_action_args.py for details on the arguments required in args.</p>
+<p>Optional visualization is not done if busy with sweep.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt.train_model_from_yaml">
+<span class="sig-name descname"><span class="pre">train_model_from_yaml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">and_viz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt.train_model_from_yaml" title="Link to this definition">#</a></dt>
+<dd><p>Trains a model given a config file.</p>
+<p>This function sets up and trains a model using the provided config file model_args.yaml.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The name of the model to be trained.</p></li>
+<li><p><strong>config_path</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The path to the config file (model_args.yaml) containing the necessary arguments for setting up the data,
+architecture, and trainer. The config file should be in YAML format.
+The config file should contain the following keys: ‘data’, ‘arch’, and ‘trainer’.</p></li>
+<li><p><strong>device</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – The device to be used for training. Defaults to the global device setting if not provided.</p></li>
+<li><p><strong>safe_mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – If provided, sets the safe mode value for this operation.
+Defaults to the global safe mode setting if not provided.</p></li>
+<li><p><strong>and_viz</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – If provided, sets the visualization setting for this operation. Defaults to the global
+visualization setting if not provided.</p></li>
+<li><p><strong>num_workers</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="xref py py-class docutils literal notranslate"><span class="pre">=</span> <span class="pre">4</span></code>) – Sets the number of workers to use for loading the dataset.</p></li>
+<li><p><strong>preload</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-class docutils literal notranslate"><span class="pre">=</span> <span class="pre">False</span></code>) – Whether to preload the raw relevant instances and slice into memory when sampling feature values.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This function is a wrapper for the train_model function.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt.consolidate_sweep">
+<span class="sig-name descname"><span class="pre">consolidate_sweep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selection_by_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wipe_after</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt.consolidate_sweep" title="Link to this definition">#</a></dt>
+<dd><p>Consolidates the results of a hyperparameter sweep by selecting the best run
+and copying its artifacts into the model’s main directory.</p>
+<p>This method evaluates all runs within the specified sweep directory, selects the best run based
+on the scoring metric, and safely transfers the relevant files to the model’s main directory.
+Optionally, it can wipe the sweep directory after consolidation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_name (str)</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Name</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">the</span> <span class="pre">model</span> <span class="pre">associated</span> <span class="pre">with</span> <span class="pre">the</span> <span class="pre">sweep.</span></code>)</p></li>
+<li><p><strong>sweep_name (str)</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Name</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">the</span> <span class="pre">hyperparameter</span> <span class="pre">sweep</span></code> to <code class="xref py py-class docutils literal notranslate"><span class="pre">consolidate.</span></code>)</p></li>
+<li><p><strong>selection_by_min (bool, optional)</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">If</span> <span class="pre">True</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">selects</span> <span class="pre">the</span> <span class="pre">run</span> <span class="pre">with</span> <span class="pre">the</span> <span class="pre">minimum</span> <span class="pre">score;</span></code>) – otherwise, selects the run with the maximum score. Defaults to True.</p></li>
+<li><p><strong>safe_mode (bool | None, optional)</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">If</span> <span class="pre">True</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">prevents</span> <span class="pre">deletion</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">files</span> <span class="pre">during</span> <span class="pre">consolidation.</span></code>) – If None, defaults to <cite>self.global_safe_mode</cite>. Defaults to None.</p></li>
+<li><p><strong>wipe_after (bool, optional)</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">If</span> <span class="pre">True</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">deletes</span> <span class="pre">the</span> <span class="pre">sweep</span> <span class="pre">directory</span> <span class="pre">after</span> <span class="pre">consolidation.</span></code>) – Ignored if <cite>safe_mode</cite> is True. Defaults to False.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The function assumes the model’s output directory structure follows specific conventions.</p></li>
+<li><p>Uses <cite>get_model_score</cite> to evaluate the performance of each run.</p></li>
+<li><p>Safe copy ensures overwriting is controlled by the <cite>safe_mode</cite> flag.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt.run_model_eval">
+<span class="sig-name descname"><span class="pre">run_model_eval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt.run_model_eval" title="Link to this definition">#</a></dt>
+<dd><p>Run model evaluation over dataloaders.</p>
+<p>Given a trained model name, evaluates the model on the train, valid-
+ation, and evaluation dataloaders. Prints the evaluation metrics to the
+terminal and saves the metrics in the metrics.csv file in the lightning
+_logs folder.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The names of the trained model.</p></li>
+<li><p><strong>device</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>) – The device to use for the evaluation (cpu or gpu).</p></li>
+<li><p><strong>num_workers</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="xref py py-class docutils literal notranslate"><span class="pre">=</span> <span class="pre">4</span></code>) – Sets the number of workers to use for loading the dataset.</p></li>
+<li><p><strong>preload</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-class docutils literal notranslate"><span class="pre">=</span> <span class="pre">False</span></code>) – Whether to preload the raw relevant instances and slice into memory when sampling feature values.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt.generate_predictions">
+<span class="sig-name descname"><span class="pre">generate_predictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kwargs</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">and_viz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt.generate_predictions" title="Link to this definition">#</a></dt>
+<dd><p>Generates predictions using a trained model and saves them to disk.</p>
+<p>This method loads a trained model, retrieves a dataloader for the specified prediction set,
+and generates predictions for each batch of data. The predictions, along with the sample IDs
+and ground truth labels, are saved to disk. Additionally, a dictionary mapping sample IDs
+to batch indices is created and saved. Optionally, visualizations can be generated based on
+the predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The name of the trained model to use for generating predictions.</p></li>
+<li><p><strong>kwargs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>) – A dictionary of arguments required for setting up the prediction process.
+Must include a ‘predictor’ key with relevant settings.</p></li>
+<li><p><strong>device</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – The device to be used for prediction. Defaults to the global device setting if not provided.</p></li>
+<li><p><strong>safe_mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Whether to operate in safe mode, which affects how data is saved. If not provided,
+the global safe mode setting is used.</p></li>
+<li><p><strong>and_viz</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Whether to generate visualizations based on the predictions. If not provided,
+the global visualization setting is used.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See setup.setup_action_args.py for details on the arguments required in args[‘predictor’].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt.interpret_model">
+<span class="sig-name descname"><span class="pre">interpret_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kwargs</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safe_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">and_viz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt.interpret_model" title="Link to this definition">#</a></dt>
+<dd><p>Interpret a trained model and save the interpretation results.</p>
+<p>This method loads a trained model, sets up the interpretation process, and generates interpretations
+for the specified prediction points. The interpretation results are saved to disk.
+Optionally, visualizations based on the interpretation can be generated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The name of the trained model to be interpreted.</p></li>
+<li><p><strong>kwargs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>) – A dictionary of arguments required for setting up the interpretation process.
+Must include an ‘interpreter’ key with relevant settings.</p></li>
+<li><p><strong>device</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – The device to use for computation (e.g., ‘cpu’, ‘cuda’). If not provided, the global device
+setting is used.</p></li>
+<li><p><strong>safe_mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Whether to operate in safe mode, which affects how data is saved. If not provided,
+the global safe mode setting is used.</p></li>
+<li><p><strong>and_viz</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Whether to generate visualizations based on the interpretation. If not provided,
+the global visualization setting is used.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>See setup.setup_action_args.py for details on the arguments required in args[‘interpreter’].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.knowit.KnowIt.export">
+<span class="sig-name descname"><span class="pre">export</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_tag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ret_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ret_hps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ret_data_specifics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.knowit.KnowIt.export" title="Link to this definition">#</a></dt>
+<dd><p>Exports various components related to a trained model for external analysis.</p>
+<p>The returned dictionary can contain the trained model, dataloader, hyperparameters,
+and/or specific details about the batches within the dataloader.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The name of the trained model for which exported components are desired.</p></li>
+<li><p><strong>data_tag</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Specifies the dataloader to return. Options: ‘train’, ‘valid’, ‘eval’, or None.
+If None, no dataloader is returned.</p></li>
+<li><p><strong>preload</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code>) – Specifies whether to preload the raw relevant instances into memory when sampling
+feature values. Only applicable if <cite>data_tag</cite> is not None.</p></li>
+<li><p><strong>num_workers</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">4</span></code>) – The number of workers to utilize for dataset loading operations.
+Only applicable if <cite>data_tag</cite> is not None.</p></li>
+<li><p><strong>device</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – The computation device to be used during model loading and execution
+(e.g., ‘cuda’, ‘cpu’). If <cite>None</cite>, the global device is used.</p></li>
+<li><p><strong>ret_model</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code>) – Indicates whether the trained model should be returned.</p></li>
+<li><p><strong>ret_hps</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code>) – Indicates if the model’s hyperparameters should be returned.</p></li>
+<li><p><strong>ret_data_specifics</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code>) – Indicates if additional details about the data should be returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>A dictionary containing the requested components:</p>
+<ul class="simple">
+<li><p>’model’ (if <cite>ret_model</cite> is True): The trained PyTorch model.</p></li>
+<li><dl class="simple">
+<dt>’dataloader’ (if <cite>data_tag</cite> is one of {‘train’, ‘valid’, ‘eval’}):</dt><dd><p>The specified dataloader for the specified split.</p>
+</dd>
+</dl>
+</li>
+<li><p>’model_args’ (if <cite>ret_hps</cite> is True): The hyperparameters and configuration arguments
+of the model.</p></li>
+<li><p>’scaling_args’ (if <cite>ret_data_specifics</cite> is True): The <cite>x_scaler</cite> and <cite>y_scaler</cite> modules for feature rescaling.</p></li>
+<li><p>’ist_vals’ (if <cite>ret_data_specifics</cite> is True): The IST values for the entire data split.</p></li>
+<li><p>’instance_names’ (if <cite>ret_data_specifics</cite> is True): The instance names.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../interpret/interpreter/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">KnowIt.interpret.interpreter</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../setup/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">KnowIt.setup</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt"><code class="docutils literal notranslate"><span class="pre">KnowIt</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt.global_args"><code class="docutils literal notranslate"><span class="pre">KnowIt.global_args()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt.summarize_dataset"><code class="docutils literal notranslate"><span class="pre">KnowIt.summarize_dataset()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt.import_arch"><code class="docutils literal notranslate"><span class="pre">KnowIt.import_arch()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt.available_datasets"><code class="docutils literal notranslate"><span class="pre">KnowIt.available_datasets()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt.available_archs"><code class="docutils literal notranslate"><span class="pre">KnowIt.available_archs()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt.import_dataset"><code class="docutils literal notranslate"><span class="pre">KnowIt.import_dataset()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt.train_model"><code class="docutils literal notranslate"><span class="pre">KnowIt.train_model()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt.train_model_from_yaml"><code class="docutils literal notranslate"><span class="pre">KnowIt.train_model_from_yaml()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt.consolidate_sweep"><code class="docutils literal notranslate"><span class="pre">KnowIt.consolidate_sweep()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt.run_model_eval"><code class="docutils literal notranslate"><span class="pre">KnowIt.run_model_eval()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt.generate_predictions"><code class="docutils literal notranslate"><span class="pre">KnowIt.generate_predictions()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt.interpret_model"><code class="docutils literal notranslate"><span class="pre">KnowIt.interpret_model()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.knowit.KnowIt.export"><code class="docutils literal notranslate"><span class="pre">KnowIt.export()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, North-West University (NWU), South Africa.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,1000 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>KnowIt.default_archs.LSTMv2 &#8212; KnowIt 1.0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../../_static/documentation_options.js?v=292eb321"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/KnowIt/default_archs/LSTMv2/index';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="KnowIt.default_archs.MLP" href="../MLP/index.html" />
+    <link rel="prev" title="KnowIt.default_archs.LSTM" href="../LSTM/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="1.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../_static/KI_logo_short_stencil.png" class="logo__image only-light" alt="KnowIt 1.0.1 documentation - Home"/>
+    <img src="../../../../_static/KI_logo_short_stencil.png" class="logo__image only-dark pst-js-only" alt="KnowIt 1.0.1 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/tutorials/basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/tutorials/basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/tutorials/stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="../../../index.html">
+    API Reference
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/tutorials/basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/tutorials/basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/tutorials/stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../index.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../index.html">KnowIt</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../data/index.html">KnowIt.data</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../data/base_dataset/index.html">KnowIt.data.base_dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data/data_scaling/index.html">KnowIt.data.data_scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data/data_splitting/index.html">KnowIt.data.data_splitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data/prepared_dataset/index.html">KnowIt.data.prepared_dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data/raw_data_coversion/index.html">KnowIt.data.raw_data_coversion</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../index.html">KnowIt.default_archs</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../CNN/index.html">KnowIt.default_archs.CNN</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../LSTM/index.html">KnowIt.default_archs.LSTM</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">KnowIt.default_archs.LSTMv2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MLP/index.html">KnowIt.default_archs.MLP</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TCN/index.html">KnowIt.default_archs.TCN</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TFT/index.html">KnowIt.default_archs.TFT</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../interpret/index.html">KnowIt.interpret</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/DLS_Captum/index.html">KnowIt.interpret.DLS_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/DL_Captum/index.html">KnowIt.interpret.DL_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/IntegratedGrad_Captum/index.html">KnowIt.interpret.IntegratedGrad_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/featureattr/index.html">KnowIt.interpret.featureattr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/interpreter/index.html">KnowIt.interpret.interpreter</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../../knowit/index.html">KnowIt.knowit</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../setup/index.html">KnowIt.setup</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/import_custom_arch/index.html">KnowIt.setup.import_custom_arch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/select_interpretation_points/index.html">KnowIt.setup.select_interpretation_points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/setup_action_args/index.html">KnowIt.setup.setup_action_args</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/setup_weighted_cross_entropy/index.html">KnowIt.setup.setup_weighted_cross_entropy</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../trainer/index.html">KnowIt.trainer</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/base_trainer/index.html">KnowIt.trainer.base_trainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/model_config/index.html">KnowIt.trainer.model_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/trainer/index.html">KnowIt.trainer.trainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/trainer_states/index.html">KnowIt.trainer.trainer_states</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">API Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">KnowIt</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">KnowIt.default_archs</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">KnowIt.default_archs.LSTMv2</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-KnowIt.default_archs.LSTMv2">
+<span id="knowit-default-archs-lstmv2"></span><h1>KnowIt.default_archs.LSTMv2<a class="headerlink" href="#module-KnowIt.default_archs.LSTMv2" title="Link to this heading">#</a></h1>
+<p>This is a set of stacked LSTM blocks,
+with optional normalization, dropout, bidirectionality, and residual connections,
+followed by a final linear layer, with optional output activation.
+Additionally, the architecture can be stateful or stateless.</p>
+<section id="lstmblock">
+<h2>LSTMBlock<a class="headerlink" href="#lstmblock" title="Link to this heading">#</a></h2>
+<p>This block consists of an lstm layer followed by optional layer normalization,
+dropout, and residual connection.
+* is optional</p>
+<p>[lstm] -&gt; [layernorm*] -&gt; [dropout*] -&gt; [residual*]</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>[lstm] = torch.nn.LSTM</p></li>
+<li><p>[layernorm*] = torch.nn.LayerNorm</p></li>
+<li><p>[dropout*] = torch.nn.Dropout</p></li>
+<li><p>[residual*] = a residual connection</p></li>
+</ul>
+</div></blockquote>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The LSTM is capable of handling regression or classification tasks.</p></li>
+<li><p>All LSTMBlocks have bias parameters.</p></li>
+<li><p>All LSTMBlocks have the same number of hidden units, defined by the <code class="docutils literal notranslate"><span class="pre">width</span></code> parameter.</p></li>
+<li><p>Can also run in <cite>variable length</cite> mode (i.e. task=’vl_regression’), where the number of timesteps in the input and output are equal.</p></li>
+</ul>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.default_archs.LSTMv2.Model" title="KnowIt.default_archs.LSTMv2.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model</span></code></a></p></td>
+<td><p>A stacked LSTM model for sequence processing with configurable depth,</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#KnowIt.default_archs.LSTMv2.LSTMBlock" title="KnowIt.default_archs.LSTMv2.LSTMBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LSTMBlock</span></code></a></p></td>
+<td><p>A customizable LSTM block with optional bidirectional processing, layer normalization,</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.default_archs.LSTMv2.get_output_activation" title="KnowIt.default_archs.LSTMv2.get_output_activation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_activation</span></code></a>(output_activation)</p></td>
+<td><p>Fetch output activation function from Pytorch.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.LSTMv2.Model">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.LSTMv2.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_name</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">256</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stateful</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hc_init_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zeros'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layernorm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bidirectional</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.LSTMv2.Model" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>A stacked LSTM model for sequence processing with configurable depth,
+bidirectional processing, and output layers.</p>
+<p>This model consists of multiple LSTMBlock layers followed by a linear output layer and an optional activation function.
+It supports stateful processing for sequential data, handling tasks like regression or classification.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list[int]</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[in_chunk</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">in_components]</span></code>) – The shape of the input data. The “time axis” is along the first dimension.</p></li>
+<li><p><strong>output_dim</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list[int]</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[out_chunk</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">out_components]</span></code>) – The shape of the output data. The “time axis” is along the first dimension.</p></li>
+<li><p><strong>task_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The type of task (classification, regression, or vl_regression).</p></li>
+<li><p><strong>width</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">256</span></code>) – The number of features in the hidden state of each LSTMBlock.</p></li>
+<li><p><strong>depth</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">2</span></code>) – The number of LSTMBlocks.</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">0.0</span></code>) – Dropout probability applied in each LSTMBlock.</p></li>
+<li><p><strong>output_activation</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – The activation function for the output layer (‘Sigmoid’, ‘Softmax’, or None).</p></li>
+<li><p><strong>stateful</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code>) – If True, maintains hidden states across batches for contiguous sequences.</p></li>
+<li><p><strong>hc_init_method</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">'zeros'</span></code>) – Method for initializing hidden and cell states in LSTMBlocks (‘zeros’ or ‘random’).</p></li>
+<li><p><strong>layernorm</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code>) – If True, applies layer normalization in each LSTMBlock.</p></li>
+<li><p><strong>bidirectional</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code>) – If True, uses bidirectional LSTMBlocks.</p></li>
+<li><p><strong>residual</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code>) – If True, applies residual connections in LSTMBlocks if sizes match.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>task_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The task type (‘regression’ or ‘classification’).</p></li>
+<li><p><strong>model_in_dim</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The input feature size (last dimension of input_dim).</p></li>
+<li><p><strong>model_out_dim</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The flattened output size (product of output_dim).</p></li>
+<li><p><strong>final_out_shape</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list[int]</span></code>) – The desired output shape.</p></li>
+<li><p><strong>stateful</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – Whether the model maintains hidden states across batches.</p></li>
+<li><p><strong>last_ist_idx</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – The last batch indices used for stateful processing, or None if not set.</p></li>
+<li><p><strong>lstm_layers</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.ModuleList</span></code>) – List of LSTMBlock instances.</p></li>
+<li><p><strong>output_layers</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.Sequential</span></code>) – Sequential container of the output linear layer and optional activation function.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The output shape is reshaped to match <cite>output_dim</cite> (e.g., [batch_size, out_chunk, out_components]).</p></li>
+<li><p>Stateful processing requires <cite>ist_idx</cite> in the input batch to track sequence continuity.</p></li>
+<li><p>The <cite>output_activation</cite> is applied only if specified, typically for classification tasks.</p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.LSTMv2.Model.force_reset">
+<span class="sig-name descname"><span class="pre">force_reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.LSTMv2.Model.force_reset" title="Link to this definition">#</a></dt>
+<dd><p>A function for external modules to manually signal that all internal states need to be reset.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.LSTMv2.Model.get_internal_states">
+<span class="sig-name descname"><span class="pre">get_internal_states</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.LSTMv2.Model.get_internal_states" title="Link to this definition">#</a></dt>
+<dd><p>Retrieve the internal states of all LSTMBlock layers.</p>
+<p>This method extracts the internal states from each LSTMBlock layer, used for interpretations
+requiring internal state management. The internal states are reshaped to align with Captum’s
+expectation, where the first axis corresponds to the batch size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of tuples, where each tuple contains the hidden state (h_0) and cell state (c_0)
+for an LSTMBlock layer. Each state is a tensor with shape
+[batch_size, num_layers, hidden_size].</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The original internal states have shape [num_layers, batch_size, hidden_size]. This method
+swaps the first two axes to produce states with shape [batch_size, num_layers, hidden_size]
+to comply with Captum’s sample-first axis convention.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.LSTMv2.Model.hard_set_states">
+<span class="sig-name descname"><span class="pre">hard_set_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ist_idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.LSTMv2.Model.hard_set_states" title="Link to this definition">#</a></dt>
+<dd><p>A function for external modules to manually set the IST indices for stateful training.
+This is called at the start of batches right after the internal states are updated with <cite>update_states</cite>.
+If variable length data is processed this will be the IST indices corresponding to the end of the current batch,
+otherwise it will correspond to the beginning (and be redundant).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ist_idx</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>) – Tensor of shape (batch_size, 3) containing batch indices for tracking sequence continuity.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.LSTMv2.Model.update_states">
+<span class="sig-name descname"><span class="pre">update_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ist_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.LSTMv2.Model.update_states" title="Link to this definition">#</a></dt>
+<dd><p>Manage internal state continuity for stateful processing based on batch indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ist_idx</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>) – Tensor of shape (batch_size, 3) containing batch indices for tracking sequence continuity.</p></li>
+<li><p><strong>device</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The device to place the hidden and cell states on (e.g., ‘cuda’ or ‘cpu’).</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>If <cite>stateful=True</cite>, hidden states are preserved for contiguous sequences and reset for non-contiguous ones.</p></li>
+<li><p><cite>ist_idx</cite> is expected to have columns [instance_id, slice_id, time_step_id].</p></li>
+<li><p>Non-contiguous sequences are detected by comparing <cite>ist_idx</cite> with <cite>last_ist_idx</cite>.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.LSTMv2.Model.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">internal_states</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.LSTMv2.Model.forward" title="Link to this definition">#</a></dt>
+<dd><p>Forward pass through the model, processing inputs through LSTM layers and output layers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">in_chunk</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">in_components]</span></code>) – An input tensor. See below for shape exception.</p></li>
+<li><p><strong>internal_states</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <em>optional</em>) – Variable length argument for internal LSTM states (e.g., hidden and cell states).
+If provided, it will overwrite current internal states.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output tensor of shape (batch_size, sequence_length, output_size) matching <cite>final_out_shape</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>SystemExit</strong> – If <cite>task_name</cite> is neither ‘regression’, ‘classification’, nor ‘vl_regression’, exits with code 101.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The input is processed sequentially through each LSTMBlock, followed by reshaping and output layers.</p></li>
+<li><p>For ‘regression’, the output is reshaped to match <cite>final_out_shape</cite>.</p></li>
+<li><p>For ‘classification’, the output is returned as is (assumes activation like softmax is in output_layers).</p></li>
+<li><p>For ‘vl_regression’, the input tensor x will have the shape [batch_size, <a href="#id1"><span class="problematic" id="id2">*</span></a>, in_components], where * is variable length.</p></li>
+</ul>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.LSTMv2.LSTMBlock">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.LSTMv2.</span></span><span class="sig-name descname"><span class="pre">LSTMBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_first</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hc_init_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layernorm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bidirectional</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.LSTMv2.LSTMBlock" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>A customizable LSTM block with optional bidirectional processing, layer normalization,
+dropout, and residual connections.</p>
+<p>This module wraps a PyTorch LSTM layer with additional features such as layer normalization, dropout, and residual
+connections. It also supports customizable initialization of hidden and cell states.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of expected features in the input <cite>x</cite>.</p></li>
+<li><p><strong>hidden_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of features in the hidden state <cite>h</cite>.</p></li>
+<li><p><strong>num_layers</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of recurrent layers.</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Dropout probability to apply to the LSTM output. If 0, no dropout is applied.</p></li>
+<li><p><strong>batch_first</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – If True, input and output tensors are provided as (batch, seq, feature). Otherwise, (seq, batch, feature).</p></li>
+<li><p><strong>hc_init_method</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Method for initializing hidden and cell states: ‘zeros’ or ‘random’.</p></li>
+<li><p><strong>layernorm</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – If True, applies layer normalization to the LSTM output.</p></li>
+<li><p><strong>bidirectional</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – If True, uses a bidirectional LSTM.</p></li>
+<li><p><strong>residual</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – If True, applies a residual connection between input and output if their sizes match.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>hidden_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of features in the hidden state of the LSTM.</p></li>
+<li><p><strong>num_layers</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of LSTM layers.</p></li>
+<li><p><strong>hc_init_method</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The method for initializing hidden and cell states (‘zeros’ or ‘random’).</p></li>
+<li><p><strong>bidirectional</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – If True, the LSTM is bidirectional.</p></li>
+<li><p><strong>residual</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – If True, applies a residual connection if input and output sizes match.</p></li>
+<li><p><strong>hidden_state</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>) – The hidden and cell states of the LSTM, with shapes (num_layers * num_directions, batch_size, hidden_size).</p></li>
+<li><p><strong>lstm_layer</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.LSTM</span></code>) – The underlying LSTM layer.</p></li>
+<li><p><strong>layer_norm</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.Module</span></code>) – The layer normalization module (LayerNorm if layernorm=True, else Identity).</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.Module</span> <span class="pre">|</span> <span class="pre">Identity</span></code>) – The dropout module (Dropout if dropout &gt; 0, else Identity).</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The LSTM output size is <cite>hidden_size * 2</cite> if bidirectional, otherwise <cite>hidden_size</cite>.</p></li>
+<li><p>Residual connections are only applied if <cite>residual=True</cite> and the input size matches the output size.</p></li>
+<li><p>Hidden and cell states are initialized on the specified device (default: ‘cuda’) during <cite>reset_states</cite>.</p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.LSTMv2.LSTMBlock.reset_states">
+<span class="sig-name descname"><span class="pre">reset_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">changed_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.LSTMv2.LSTMBlock.reset_states" title="Link to this definition">#</a></dt>
+<dd><p>Initialize or reset the hidden and cell states of the LSTM.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The batch size for the hidden and cell states.</p></li>
+<li><p><strong>device</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The device to place the hidden and cell states on (e.g., ‘cuda’ or ‘cpu’).</p></li>
+<li><p><strong>changed_idx</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>optional</em>) – If provided, reset only the specified indices of the hidden and cell states. Default is None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>SystemExit</strong> – If <cite>hc_init_method</cite> is neither ‘zeros’ nor ‘random’, exits with code 101.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.LSTMv2.LSTMBlock.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.LSTMv2.LSTMBlock.forward" title="Link to this definition">#</a></dt>
+<dd><p>Forward pass through the LSTM block.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>) – Input tensor with shape (batch, seq, input_size) if batch_first=True, else (seq, batch, input_size).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output tensor with shape (batch, seq, hidden_size * num_directions) if batch_first=True,
+else (seq, batch, hidden_size * num_directions).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Applies the LSTM layer, followed by optional layer normalization, residual connection, and dropout.</p></li>
+<li><p>The residual connection is only applied if <cite>residual=True</cite> and the input size matches the output size.</p></li>
+</ul>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="KnowIt.default_archs.LSTMv2.get_output_activation">
+<span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.LSTMv2.</span></span><span class="sig-name descname"><span class="pre">get_output_activation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_activation</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.LSTMv2.get_output_activation" title="Link to this definition">#</a></dt>
+<dd><p>Fetch output activation function from Pytorch.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../LSTM/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">KnowIt.default_archs.LSTM</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../MLP/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">KnowIt.default_archs.MLP</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lstmblock">LSTMBlock</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.LSTMv2.Model"><code class="docutils literal notranslate"><span class="pre">Model</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.LSTMv2.Model.force_reset"><code class="docutils literal notranslate"><span class="pre">Model.force_reset()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.LSTMv2.Model.get_internal_states"><code class="docutils literal notranslate"><span class="pre">Model.get_internal_states()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.LSTMv2.Model.hard_set_states"><code class="docutils literal notranslate"><span class="pre">Model.hard_set_states()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.LSTMv2.Model.update_states"><code class="docutils literal notranslate"><span class="pre">Model.update_states()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.LSTMv2.Model.forward"><code class="docutils literal notranslate"><span class="pre">Model.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.LSTMv2.LSTMBlock"><code class="docutils literal notranslate"><span class="pre">LSTMBlock</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.LSTMv2.LSTMBlock.reset_states"><code class="docutils literal notranslate"><span class="pre">LSTMBlock.reset_states()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.LSTMv2.LSTMBlock.forward"><code class="docutils literal notranslate"><span class="pre">LSTMBlock.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.LSTMv2.get_output_activation"><code class="docutils literal notranslate"><span class="pre">get_output_activation()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, North-West University (NWU), South Africa.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

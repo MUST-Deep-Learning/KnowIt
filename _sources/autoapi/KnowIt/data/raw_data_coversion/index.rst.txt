@@ -1,0 +1,121 @@
+KnowIt.data.raw_data_coversion
+==============================
+
+.. py:module:: KnowIt.data.raw_data_coversion
+
+.. autoapi-nested-parse::
+
+   ----------------
+   RawDataConverter
+   ----------------
+
+   This module takes a given dataframe and converts it to a known datastructure for KnowIt.
+   See ``KnowIt.default_datasets.dataset_how_to.md`` for format details.
+   The resulting datastructure can be returned with the ``RawDataConverter.get_new_data`` function.
+   The format of the resulting data structure is defined at the top of the ``KnowIt.data.base_dataset.py`` script.
+
+   -------------
+   Handling NaNs
+   -------------
+   ``RawDataConverter`` is instantiated with two special variables to handle possible NaNs:
+       - nan_filler (str, None): Defines what method to use for NaN filling.
+           - None: No NaNs will be filled.
+           - 'split': Slices will be split on NaNs.
+           - Any ``method`` value from ``pandas.DataFrame.interpolate``: used to interpolate NaNs in both directions.
+           (see https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.interpolate.html)
+       - nan_filled_components (str, None): Defines what components should be checked for NaNs.
+           - None: All columns with float datatype will be flagged for NaN-handling.
+           - A list of column headers to flag for NaN-handling.
+
+   ------------
+   Custom Split
+   ------------
+   If a custom data split is used it should be defined in a separate column in the dataframe labeled 'split'.
+   This column should contain the set indicators
+       - The train set is indicated by 0.
+       - The validation set is indicated by 1.
+       - The evaluation set is indicated by 2.
+   Appropriate selection matrices are generated and saved as metadata.
+   Once the dataset is imported with Knowit.import_dataset(), the user can use this custom split.
+
+   Note that the 'split' column should not be included as a component in the metadata of the raw dataframe being imported.
+
+   ---------
+   Take note
+   ---------
+       - Duplicate time steps within an instance are dropped after ordering chronologically.
+       - Time series are split into slices based on the time_delta presented in the metadata.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.data.raw_data_coversion.RawDataConverter
+
+
+Module Contents
+---------------
+
+.. py:class:: RawDataConverter(df, required_meta, nan_filler, nan_filled_components, meta = None)
+
+   This module takes a given dataframe and converts it to a known datastructure for KnowIt.
+
+   This module first retrieves and checks the metadata and dataframe for correctness,
+   then it splits the dataframe according to instances (if defined).
+   It then compiles the datastructure on an instance by instance basis by:
+       1. Sorting timesteps by time index.
+       2. Dropping duplicate time steps (keeping the first of each duplicate).
+       3. Splitting data into contiguous blocks (slices).
+       4. Handling missing values.
+       5. Packaging data into known format as defined in ``BaseDataset``.
+
+   :Parameters: * **df** (:py:class:`DataFrame`) -- The DataFrame containing the raw data to be processed.
+                * **required_meta** (:py:class:`dict`) -- A dictionary specifying the required metadata for processing, defined in ``BaseDataset``. Also, see heading.
+                * **nan_filler** (:py:class:`str | None`) -- A string representing how to handle missing values in the data. If None, no NaNs will be filled.
+                  Options include 'split', and any method value from ``pandas.DataFrame.interpolate``.
+                * **nan_filled_components** (:py:class:`list | None`) -- A list of strings specifying which components to treat for missing values. If None, all float-valued components checked for NaNs.
+                * **meta** (:py:class:`dict | None`) -- Alternative metadata to be associated with the raw data. Overrides possible metadata in the ``dataframe.attrs`` dictionary.
+
+   :ivar df: The DataFrame containing the raw data to be processed.
+   :vartype df: :py:class:`DataFrame`
+   :ivar required_meta: A dictionary specifying the required metadata for processing, defined in ``BaseDataset``. Also, see heading.
+   :vartype required_meta: :py:class:`dict`
+   :ivar nan_filler: A string representing how to handle missing values in the data. If None, no NaNs will be filled.
+                     Options include 'split', and any method value from ``pandas.DataFrame.interpolate``.
+   :vartype nan_filler: :py:class:`str | None`
+   :ivar nan_filled_components: A list of strings specifying which components to treat for missing values. If None, all float-valued components checked for NaNs.
+   :vartype nan_filled_components: :py:class:`list | None`
+   :ivar meta: Alternative metadata to be associated with the raw data. Overrides possible metadata in the ``dataframe.attrs`` dictionary.
+
+   :vartype meta: :py:class:`dict | None`, *default* :py:obj:`None`
+
+   .. rubric:: Notes
+
+   - If no instances are defined, all slices are placed in a single instance called 'super_instance'.
+   - Duplicate time steps are dropped based on their time index, disregarding feature values.
+
+
+   .. py:method:: get_new_data()
+
+      Return the converted data structure along with metadata.
+
+      This method returns a tuple containing a metadata dictionary and the main data structure.
+      The metadata dictionary includes information about instances, NaN filling methods, and other
+      relevant components.
+
+      :returns: * **meta_data** (:py:class:`dict`) --
+
+                  A dictionary containing the following keys:
+                      - 'instance_names': List of instance names in the dataset.
+                      - 'base_nan_filler': The method or value used to fill NaN values in the dataset.
+                      - 'nan_filled_components': The components where potential NaN values were filled.
+                      - 'data_structure': The structure of the dataset.
+                      - 'custom_splits': Defines the custom data splits if applicable.
+                      - Additional metadata (e.g., name, components, time_delta).
+                * **the_data** (:py:class:`DataFrame`) -- The main data structure containing the converted dataset.
+
+
+

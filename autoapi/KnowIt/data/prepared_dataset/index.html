@@ -1,0 +1,1231 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>KnowIt.data.prepared_dataset &#8212; KnowIt 1.0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../../_static/documentation_options.js?v=292eb321"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/KnowIt/data/prepared_dataset/index';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="KnowIt.data.raw_data_coversion" href="../raw_data_coversion/index.html" />
+    <link rel="prev" title="KnowIt.data.data_splitting" href="../data_splitting/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="1.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../_static/KI_logo_short_stencil.png" class="logo__image only-light" alt="KnowIt 1.0.1 documentation - Home"/>
+    <img src="../../../../_static/KI_logo_short_stencil.png" class="logo__image only-dark pst-js-only" alt="KnowIt 1.0.1 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/tutorials/basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/tutorials/basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/tutorials/stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="../../../index.html">
+    API Reference
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/tutorials/basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/tutorials/basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/tutorials/stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../index.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../index.html">KnowIt</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../index.html">KnowIt.data</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../base_dataset/index.html">KnowIt.data.base_dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_scaling/index.html">KnowIt.data.data_scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_splitting/index.html">KnowIt.data.data_splitting</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">KnowIt.data.prepared_dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../raw_data_coversion/index.html">KnowIt.data.raw_data_coversion</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../default_archs/index.html">KnowIt.default_archs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../default_archs/CNN/index.html">KnowIt.default_archs.CNN</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../default_archs/LSTM/index.html">KnowIt.default_archs.LSTM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../default_archs/LSTMv2/index.html">KnowIt.default_archs.LSTMv2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../default_archs/MLP/index.html">KnowIt.default_archs.MLP</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../default_archs/TCN/index.html">KnowIt.default_archs.TCN</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../default_archs/TFT/index.html">KnowIt.default_archs.TFT</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../interpret/index.html">KnowIt.interpret</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/DLS_Captum/index.html">KnowIt.interpret.DLS_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/DL_Captum/index.html">KnowIt.interpret.DL_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/IntegratedGrad_Captum/index.html">KnowIt.interpret.IntegratedGrad_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/featureattr/index.html">KnowIt.interpret.featureattr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/interpreter/index.html">KnowIt.interpret.interpreter</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../../knowit/index.html">KnowIt.knowit</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../setup/index.html">KnowIt.setup</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/import_custom_arch/index.html">KnowIt.setup.import_custom_arch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/select_interpretation_points/index.html">KnowIt.setup.select_interpretation_points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/setup_action_args/index.html">KnowIt.setup.setup_action_args</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/setup_weighted_cross_entropy/index.html">KnowIt.setup.setup_weighted_cross_entropy</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../trainer/index.html">KnowIt.trainer</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/base_trainer/index.html">KnowIt.trainer.base_trainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/model_config/index.html">KnowIt.trainer.model_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/trainer/index.html">KnowIt.trainer.trainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/trainer_states/index.html">KnowIt.trainer.trainer_states</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">API Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">KnowIt</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">KnowIt.data</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">KnowIt.data.prepared_dataset</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-KnowIt.data.prepared_dataset">
+<span id="knowit-data-prepared-dataset"></span><h1>KnowIt.data.prepared_dataset<a class="headerlink" href="#module-KnowIt.data.prepared_dataset" title="Link to this heading">#</a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">PreparedDataset</span></code> represents a <code class="docutils literal notranslate"><span class="pre">BaseDataset</span></code> that is preprocessed for model training.
+It inherits from <code class="docutils literal notranslate"><span class="pre">BaseDataset</span></code>. Based on the provided path(s) to a dataset, it will populate the
+parent’s variables.</p>
+<section id="prediction-points">
+<h2>Prediction points<a class="headerlink" href="#prediction-points" title="Link to this heading">#</a></h2>
+<p>In order to define a <code class="docutils literal notranslate"><span class="pre">PreparedDataset</span></code>, the input-output dynamics of the model to be trained
+must be defined rather precisely. The <code class="docutils literal notranslate"><span class="pre">PreparedDataset</span></code> is built on the idea of ‘prediction points’.
+Each time step in the <code class="docutils literal notranslate"><span class="pre">BaseDataset</span></code> can be regarded a prediction point (under some assumptions).
+At every prediction point, a model is to predict a specific set of features-over-time from
+a specific other set of features-over-time. The specifics are defined as follows.</p>
+<blockquote>
+<div><dl class="simple">
+<dt>in_components<span class="classifier">list</span></dt><dd><p>A subset of <code class="docutils literal notranslate"><span class="pre">BaseDataset.components</span></code> representing the components that will be used as input to the model.</p>
+</dd>
+<dt>out_components<span class="classifier">list</span></dt><dd><p>A subset of <code class="docutils literal notranslate"><span class="pre">BaseDataset.components</span></code> representing the components that will be used as output to the model.</p>
+</dd>
+<dt>in_chunk<span class="classifier">list</span></dt><dd><p>A list of two integers <cite>[a, b]</cite> for which <cite>a &lt;= b</cite> defining the time steps (of <cite>in_components</cite>)
+to be used for prediction at point <cite>t</cite> as <cite>[t + a, t + b]</cite>.</p>
+</dd>
+<dt>out_chunk<span class="classifier">list</span></dt><dd><p>A list of two integers <cite>[a, b]</cite> for which <cite>a &lt;= b</cite> defining the time steps (of <cite>out_components</cite>)
+to be predicted at prediction point <cite>t</cite> as <cite>[t + a, t + b]</cite>.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>Note that this might seem cumbersome, but it allows us to easily define several different types of tasks.
+For example:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt>regression (predict heartrate from an 11 time-step window given three instantaneous biometrics)</dt><dd><ul>
+<li><p>in_components = [biometric1, biometric2, biometric2]</p></li>
+<li><p>out_components = [heart rate]</p></li>
+<li><p>in_chunk = [-5, 5]</p></li>
+<li><p>out_chunk = [0, 0]</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>autoregressive univariate forecasting (predict a stock’s value in 5 time steps given last 21 time steps)</dt><dd><ul>
+<li><p>in_components = [stock,]</p></li>
+<li><p>out_components = [stock,]</p></li>
+<li><p>in_chunk = [-20, 0]</p></li>
+<li><p>out_chunk = [5, 5]</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>time series classification (detect a whale call given an audio recording of 5 time steps)</dt><dd><ul>
+<li><p>in_components = [sound,]</p></li>
+<li><p>out_components = [positive_call,]</p></li>
+<li><p>in_chunk = [-2, 2]</p></li>
+<li><p>out_chunk = [0, 0]</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="variable-length-processing">
+<h2>Variable length processing<a class="headerlink" href="#variable-length-processing" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">PreparedDataset</span></code> can also be defined in a “variable length” configuration.
+This means that instead of receiving and producing chunks of a specific number of time steps,
+the model will receive a variable number of time steps and produce an identical number of time steps as output.
+The input- and output components don’t need to be the same. Not all architectures can facilitate this configuration.
+Currently, only <code class="docutils literal notranslate"><span class="pre">LSTMv2</span></code>, <code class="docutils literal notranslate"><span class="pre">TCN</span></code>, and <code class="docutils literal notranslate"><span class="pre">CNN</span></code> supports it.</p>
+<p>This configuration is selected by defining <code class="docutils literal notranslate"><span class="pre">task=vl_regression</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_sampling_mode=variable_length</span></code>,
+selecting an appropriate architecture, and ensuring that the size of <code class="docutils literal notranslate"><span class="pre">in_chunk</span></code> and <code class="docutils literal notranslate"><span class="pre">out_chunk</span></code> are both 1.
+Classification tasks are not currently supported for this configuration.</p>
+<p>Examples of tasks that can be defined with this configuration include:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt>regression (predict heartrate from the change in three instantaneous biometrics over time)</dt><dd><ul>
+<li><p>in_components = [biometric1, biometric2, biometric2]</p></li>
+<li><p>out_components = [heart rate]</p></li>
+<li><p>in_chunk = [0, 0]</p></li>
+<li><p>out_chunk = [0, 0]</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>autoregressive univariate forecasting (predict a stock’s value in 5 time steps given its value in the past)</dt><dd><ul>
+<li><p>in_components = [stock,]</p></li>
+<li><p>out_components = [stock,]</p></li>
+<li><p>in_chunk = [0, 0]</p></li>
+<li><p>out_chunk = [5, 5]</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="splitting-limiting">
+<h2>Splitting &amp; Limiting<a class="headerlink" href="#splitting-limiting" title="Link to this heading">#</a></h2>
+<p>The first step in preparing the dataset is to split it into a train-, validation-,
+and evaluation set. This is done with the <code class="docutils literal notranslate"><span class="pre">DataSplitter</span></code> module.
+The <code class="docutils literal notranslate"><span class="pre">split_method</span></code> data keyword argument defines the way the dataset is split.
+More details can be found in <code class="docutils literal notranslate"><span class="pre">DataSplitter</span></code>, but we summarize the options here:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>‘random’: Ignore all distinction between instances and slices, and split on time steps randomly.</p></li>
+<li><p>‘chronological’ (default): Ignore all distinction between instances and slices, and split on time steps chronologically.</p></li>
+<li><p>‘slice-random’: Ignore all distinction between instances, and split on slices randomly.</p></li>
+<li><p>‘slice-chronological’: Ignore all distinction between instances, and split on slices chronologically.</p></li>
+<li><p>‘instance-random’: Split on instances randomly.</p></li>
+<li><p>‘instance-chronological’: Split on instances chronologically.</p></li>
+<li><p>‘custom’: User defined split.</p></li>
+</ul>
+</div></blockquote>
+<p>Note that the data is split ON the relevant level (instance, slice, or timesteps).
+I.e. If you split on instances and there are only 3 instances, then split_portions=(0.6, 0.2, 0.2)
+will be a wild approximation i.t.o actual time steps.</p>
+<p>Note that, if desired, the data is limited during splitting, and the data is limited by removing
+the excess data points from the end of the data block after shuffling or ordering according to time.
+Also note that if the data is limited too much for a given <code class="docutils literal notranslate"><span class="pre">split_portion</span></code> to have a single entry,
+an error will occur confirming it.</p>
+<p>Note that a ‘custom’ split can be constructed during the data importing.
+See the <code class="docutils literal notranslate"><span class="pre">RawDataConverter</span></code> module for more information.</p>
+</section>
+<section id="scaling">
+<h2>Scaling<a class="headerlink" href="#scaling" title="Link to this heading">#</a></h2>
+<p>After the data is split, a scaler is fit to the train set data
+which will be applied to all data being extracted for model training or inference.
+This is done with the <code class="docutils literal notranslate"><span class="pre">DataScaler</span></code> module and the corresponding <code class="docutils literal notranslate"><span class="pre">scaling_method</span></code> and <code class="docutils literal notranslate"><span class="pre">scaling_tag</span></code>,
+data keyword arguments. More details can be found there, but we summarize the options here:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>scaling_method=’z-norm’: Features are scaled by subtracting the mean and dividing by the standard deviation.</p></li>
+<li><p>scaling_method=’zero-one’: Features are scaled linearly to be in the range (0, 1).</p></li>
+<li><p>scaling_method=None: No scaling occurs.</p></li>
+<li><p>scaling_tag=’in_only’: Only the input features will be scaled.</p></li>
+<li><p>scaling_tag=’full’: The input and output features will be scaled.</p></li>
+<li><p>scaling_tag=None: No features will be scaled.</p></li>
+</ul>
+</div></blockquote>
+<p>Note that scaling of output components is not permitted if performing a classification task. <a href="#id1"><span class="problematic" id="id2">``</span></a>scaling_tag``=’full’ will be
+automatically changed to <a href="#id3"><span class="problematic" id="id4">``</span></a>scaling_tag``=’in_only’ for classification tasks.
+Also note that the scaling happens “online” as data is sampled from disk.</p>
+</section>
+<section id="padding">
+<h2>Padding<a class="headerlink" href="#padding" title="Link to this heading">#</a></h2>
+<p>At some prediction points the <code class="docutils literal notranslate"><span class="pre">in_chunk</span></code> might exceed the corresponding
+slice range. In these cases we pad the input values. The output values are never padded.
+Prediction points that do not have valid output values for an <code class="docutils literal notranslate"><span class="pre">out_chunk</span></code> are not selected
+as appropriate prediction point during data splitting. The argument <code class="docutils literal notranslate"><span class="pre">padding_method</span></code> is the same
+as <code class="docutils literal notranslate"><span class="pre">mode</span></code> in the numpy.pad function (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.pad.html">https://numpy.org/doc/stable/reference/generated/numpy.pad.html</a>).
+See the <code class="docutils literal notranslate"><span class="pre">DataSplitter</span></code> module for more information.</p>
+</section>
+<section id="customdataset">
+<h2>CustomDataset<a class="headerlink" href="#customdataset" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">PreparedDataset.get_dataloader()</span></code> can be called to return a Pytorch dataloader that can be used for model training.
+This function compiles a dataloader with a <code class="docutils literal notranslate"><span class="pre">CustomDataset</span></code> class.
+This class inherits from <code class="docutils literal notranslate"><span class="pre">torch.utils.data.Dataset</span></code>.
+It defines how the samples will look when enumerating over the dataloader.
+This includes sampling, padding, and normalizing.</p>
+</section>
+<section id="customclassificationdataset">
+<h2>CustomClassificationDataset<a class="headerlink" href="#customclassificationdataset" title="Link to this heading">#</a></h2>
+<p>If the task is a classification task a <code class="docutils literal notranslate"><span class="pre">CustomClassificationDataset</span></code> will be used instead of <code class="docutils literal notranslate"><span class="pre">CustomDataset</span></code>.
+<code class="docutils literal notranslate"><span class="pre">CustomClassificationDataset</span></code> inherits from <code class="docutils literal notranslate"><span class="pre">CustomDataset</span></code> and adds some classification specific methods.</p>
+</section>
+<section id="customvariablelengthregressiondataset">
+<h2>CustomVariableLengthRegressionDataset<a class="headerlink" href="#customvariablelengthregressiondataset" title="Link to this heading">#</a></h2>
+<p>If the task is a variable length regression task a <code class="docutils literal notranslate"><span class="pre">CustomVariableLengthRegressionDataset</span></code> will be used instead of <code class="docutils literal notranslate"><span class="pre">CustomDataset</span></code>.
+<code class="docutils literal notranslate"><span class="pre">CustomVariableLengthRegressionDataset</span></code> inherits from <code class="docutils literal notranslate"><span class="pre">CustomDataset</span></code> and adds some variable length regression specific methods.</p>
+</section>
+<section id="customsampler">
+<h2>CustomSampler<a class="headerlink" href="#customsampler" title="Link to this heading">#</a></h2>
+<p>In addition to <code class="docutils literal notranslate"><span class="pre">CustomDataset</span></code>, <code class="docutils literal notranslate"><span class="pre">PreparedDataset</span></code> also uses a custom batch sampler <code class="docutils literal notranslate"><span class="pre">CustomSampler</span></code>
+when <code class="docutils literal notranslate"><span class="pre">PreparedDataset.get_dataloader()</span></code> is called to generate a dataloader.
+This class supports three different modes of temporal contiguity.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>‘independent’: Time is contiguous within sequences (i.e. prediction points) but not enforced within or across batches.</p></li>
+<li><p>‘sliding-window’: Time is contiguous within sequences and across batches, as far as possible.</p></li>
+<li><p>‘variable_length’: Time is contiguous within sequences and across batches, as far as possible. Batches are also variable (but uniform) in length.</p></li>
+</ul>
+</div></blockquote>
+<p>See the <code class="docutils literal notranslate"><span class="pre">CustomSampler</span></code> module for details.</p>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.data.prepared_dataset.PreparedDataset" title="KnowIt.data.prepared_dataset.PreparedDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PreparedDataset</span></code></a></p></td>
+<td><p>This is the PreparedDataset which represents a dataset that is preprocessed for model training.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#KnowIt.data.prepared_dataset.CustomSampler" title="KnowIt.data.prepared_dataset.CustomSampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CustomSampler</span></code></a></p></td>
+<td><p>Custom batch sampler for deep time series models, supporting different modes of temporal contiguity.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.data.prepared_dataset.CustomDataset" title="KnowIt.data.prepared_dataset.CustomDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CustomDataset</span></code></a></p></td>
+<td><p>A custom dataset for deep time series models, using KnowIts data extraction protocols.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#KnowIt.data.prepared_dataset.CustomClassificationDataset" title="KnowIt.data.prepared_dataset.CustomClassificationDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CustomClassificationDataset</span></code></a></p></td>
+<td><p>A custom dataset for deep time series classification models, using KnowIt's data extraction protocols.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.data.prepared_dataset.CustomVariableLengthRegressionDataset" title="KnowIt.data.prepared_dataset.CustomVariableLengthRegressionDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CustomVariableLengthRegressionDataset</span></code></a></p></td>
+<td><p>A custom dataset for deep time series regression models that take variable length input, using KnowIt's data extraction protocols.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.data.prepared_dataset.PreparedDataset">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.data.prepared_dataset.</span></span><span class="sig-name descname"><span class="pre">PreparedDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.data.prepared_dataset.PreparedDataset" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">data.base_dataset.BaseDataset</span></code></p>
+<p>This is the PreparedDataset which represents a dataset that is preprocessed for model training.
+It contains all the variables in BaseDataset in addition to metadata regarding
+data splitting, scaling, and sampling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>meta_path</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The path to the desired dataset metadata. The path should point to a pickle file.</p></li>
+<li><p><strong>package_path</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The path to the desired dataset package. The path should point to a directory containing the
+partitioned parquet.</p></li>
+<li><p><strong>in_components</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[num_in_components,]</span></code>) – A subset of the ‘components’ variable of the BaseDataset to be used as input to the model.</p></li>
+<li><p><strong>out_components</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[num_in_components,]</span></code>) – A subset of the ‘components’ variable of the BaseDataset to be used as output to the model.</p></li>
+<li><p><strong>in_chunk</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[2,]</span></code>) – A list of two integers [a, b] for which a &lt;= b,
+defining the time steps of in_components for each prediction point.</p></li>
+<li><p><strong>out_chunk</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[2,]</span></code>) – A list of two integers [a, b] for which a &lt;= b,
+defining the time steps of out_components for each prediction point.</p></li>
+<li><p><strong>split_portions</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[3,]</span></code>) – The approximate portions of the (train, valid, eval) splits. Needs to add up to 1.</p></li>
+<li><p><strong>seed</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The seed for reproducibility.</p></li>
+<li><p><strong>batch_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The mini-batch size for training.</p></li>
+<li><p><strong>split_method</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The method of splitting data. Options are ‘random’, ‘chronological’,
+‘instance-random’, ‘instance-chronological’, ‘slice-random’, ‘slice-chronological’, or ‘custom’.
+See heading for description.</p></li>
+<li><p><strong>scaling_method</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>) – The method for scaling data features. Options are ‘z-norm’, ‘zero-one’, or None.
+See heading for description.</p></li>
+<li><p><strong>scaling_tag</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>) – The mode to scale the data. Options are ‘in_only’, ‘full’, or None.
+See heading for description.</p></li>
+<li><p><strong>shuffle_train</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – Whether the training set is shuffled after every epoch.</p></li>
+<li><p><strong>limit</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code>) – The number of elements (instances/slices/time) steps to limit the data to.
+See heading for description.</p></li>
+<li><p><strong>padding_method</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The method to pad model inputs with.
+Options can be found at (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.pad.html">https://numpy.org/doc/stable/reference/generated/numpy.pad.html</a>).
+See heading for description.</p></li>
+<li><p><strong>min_slice</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code>) – The minimum slice size to consider during data splitting/selection.
+If None, no slice selection is performed.</p></li>
+<li><p><strong>batch_sampling_mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>) – The sampling mode for generating batches in the CustomSampler class.
+Either ‘independent’, ‘sliding-window’, or ‘variable_length’, as described in the CustomSampler module.</p></li>
+<li><p><strong>slide_stride</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The stride used for the sliding-window approach, if selected.</p></li>
+<li><p><strong>variable_sequence_length_limit</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code>) – If non-None value given and ‘batch_sampling_mode’ is ‘variable_length’,
+the sequence lengths within a batch will be limited to the given value.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>x_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[n_in_components,]</span></code>) – An array that contains the indices of BaseDataset.components that correspond to input components.</p></li>
+<li><p><strong>y_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[n_out_components,]</span></code>) – An array that contains the indices of BaseDataset.components that correspond to output components.</p></li>
+<li><p><strong>train_set_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of prediction points in the training set.</p></li>
+<li><p><strong>valid_set_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of prediction points in the validation set.</p></li>
+<li><p><strong>eval_set_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of prediction points in the evaluation set.</p></li>
+<li><p><strong>selection</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">dict[str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">array]</span></code>) – A dictionary containing the selection matrices corresponding to each data split.</p></li>
+<li><p><strong>x_scaler</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code>) – The scaler fitted to the training set input features.</p></li>
+<li><p><strong>y_scaler</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code>) – The scaler fitted to the training set output features.</p></li>
+<li><p><strong>in_shape</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[n_input_time_delays</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_in_components]</span></code>) – A list that represents the shape of the inputs to the model.</p></li>
+<li><p><strong>out_shape</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[n_output_time_delays</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">n_output_components]</span></code>) – A list that represents the shape of the outputs to the model. Is modified for classification tasks.</p></li>
+<li><p><strong>class_set</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>) – A dictionary that maps each class name to an integer class ID.
+Only created if task=’classification’.</p></li>
+<li><p><strong>class_counts</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>) – A dictionary that maps each class ID to its size.
+Only created if task=’classification’.</p></li>
+<li><p><strong>custom_splits</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>) – A dictionary defining the custom selection matrices.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>All the listed parameters are also stored as attributes.</p></li>
+<li><p>The <cite>_prepare</cite> method is automatically called at initialization to initiate data preparation.</p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.data.prepared_dataset.PreparedDataset.get_dataset">
+<span class="sig-name descname"><span class="pre">get_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">set_tag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.data.prepared_dataset.PreparedDataset.get_dataset" title="Link to this definition">#</a></dt>
+<dd><p>Creates and returns a PyTorch Dataset for a specified dataset split.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>set_tag</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – A string indicating the dataset split to load (‘train’, ‘valid’, ‘eval’).</p></li>
+<li><p><strong>preload</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-class docutils literal notranslate"><span class="pre">=</span> <span class="pre">False</span></code>) – Whether to preload the raw relevant instances and slice into memory when sampling feature values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A PyTorch derived Dataset for the specified dataset split.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Object</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.data.prepared_dataset.PreparedDataset.get_dataloader">
+<span class="sig-name descname"><span class="pre">get_dataloader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">set_tag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analysis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.data.prepared_dataset.PreparedDataset.get_dataloader" title="Link to this definition">#</a></dt>
+<dd><p>Creates and returns a PyTorch DataLoader for a specified dataset split.</p>
+<p>This method generates a DataLoader for a given dataset split (e.g., train, valid, or eval).
+It uses the <cite>CustomDataset</cite> class to create the dataset and then initializes
+a DataLoader with a <cite>CustomSampler</cite> for batch generation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>set_tag</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – A string indicating the dataset split to load (‘train’, ‘valid’, ‘eval’).</p></li>
+<li><p><strong>analysis</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-class docutils literal notranslate"><span class="pre">=</span> <span class="pre">False</span></code>) – A flag indicating whether the dataloader is being used for analysis purposes. If set to True,
+the <cite>drop_last</cite> and <cite>shuffle</cite> parameters of the DataLoader will be set to False.</p></li>
+<li><p><strong>num_workers</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="xref py py-class docutils literal notranslate"><span class="pre">=</span> <span class="pre">4</span></code>) – Sets the number of workers to use for loading the dataset.</p></li>
+<li><p><strong>preload</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-class docutils literal notranslate"><span class="pre">=</span> <span class="pre">False</span></code>) – Whether to preload the raw relevant instances and slice into memory when sampling feature values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A PyTorch DataLoader for the specified dataset split.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If set_tag=`valid` or <cite>eval</cite> or analysis=True,
+then the dataloader will not be shuffled, no smaller than batch_size batches will be dropped,
+and batch_sampling_mode will be set to <cite>inference</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.data.prepared_dataset.PreparedDataset.get_ist_values">
+<span class="sig-name descname"><span class="pre">get_ist_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">set_tag</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.data.prepared_dataset.PreparedDataset.get_ist_values" title="Link to this definition">#</a></dt>
+<dd><p>Get the IST values for a given set tag.</p>
+<p>This function retrieves the Instance-Slice-Time (IST) for each prediction point in a specific dataset split.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>set_tag</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The data split to retrieve the IST values for.
+Options are ‘train’, ‘valid’, ‘eval’ or ‘all’.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p><strong>ist_values</strong> – The IST values for a given set tag.
+Each row represents one prediction point by the following three values.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>The first value (Any) indicates the instance that the prediction point belongs to.</p></li>
+<li><p>The second value (int) indicates the index, within the instance, of the slice that the prediction point belongs to.</p></li>
+<li><p>The third value (numpy.datetime64) indicates the timestep at which the prediction point is found.</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>If set_tag=’all’ then all prediction points are returned in order [‘train’, ‘valid’, ‘eval’].</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.data.prepared_dataset.PreparedDataset.fetch_input_points_manually">
+<span class="sig-name descname"><span class="pre">fetch_input_points_manually</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">set_tag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_ids</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.data.prepared_dataset.PreparedDataset.fetch_input_points_manually" title="Link to this definition">#</a></dt>
+<dd><p>Manually fetch data points from the datamodule based on provided point IDs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>set_tag</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – A string indicating the dataset split to load (‘train’, ‘valid’, ‘eval’).</p></li>
+<li><p><strong>point_ids</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">list[int]</span></code>) – The IDs of the data points to fetch. These indices are defined as the relative position in the selection
+matrix corresponding to the set tag. Can be a single integer, a list of integers,
+or a tuple specifying a range (start, end).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary containing the data points corresponding to the provided
+IDs at key ‘x’.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the provided point IDs are invalid or out of range.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.data.prepared_dataset.CustomSampler">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.data.prepared_dataset.</span></span><span class="sig-name descname"><span class="pre">CustomSampler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">selection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'independent'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_small</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shuffle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slide_stride</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variable_sequence_length_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.data.prepared_dataset.CustomSampler" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.utils.data.Sampler</span></code></p>
+<p>Custom batch sampler for deep time series models, supporting different modes of temporal contiguity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>selection</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[n_samples</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">3]</span></code>) – Selection matrix containing instance IDs, slice IDs, time steps.</p></li>
+<li><p><strong>batch_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of sequences per batch.</p></li>
+<li><p><strong>seed</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Random seed for reproducibility.</p></li>
+<li><p><strong>mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">'independent'</span></code>) – Either ‘independent’, ‘sliding-window’, ‘inference’, ‘variable_length’ or ‘variable_length_inference’ as described below.</p></li>
+<li><p><strong>drop_small</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code>) – Whether to drop batches smaller than batch_size.</p></li>
+<li><p><strong>shuffle</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code>) – Whether to apply shuffling.</p></li>
+<li><p><strong>slide_stride</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">1</span></code>) – The stride used for the sliding-window approach, if selected.</p></li>
+<li><p><strong>variable_sequence_length_limit</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – If non-None value given and ‘mode’ is either ‘variable_length’ or ‘variable_length_inference’,
+the sequence lengths within a batch will be limited to the given value.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>selection</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[n_samples</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">3]</span></code>) – Selection matrix containing instance IDs, slice IDs, time steps.</p></li>
+<li><p><strong>batch_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of sequences per batch.</p></li>
+<li><p><strong>input_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of time delays in the input of the model.</p></li>
+<li><p><strong>seed</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Random seed for reproducibility.</p></li>
+<li><p><strong>mode</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">'independent'</span></code>) – Either ‘independent’, ‘sliding-window’, ‘inference’, ‘variable_length’ or ‘variable_length_inference’ as described below.</p></li>
+<li><p><strong>drop_small</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code>) – Whether to drop batches smaller than batch_size.</p></li>
+<li><p><strong>shuffle</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code>) – Whether to apply shuffling.</p></li>
+<li><p><strong>slide_stride</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">1</span></code>) – The stride used for the sliding-window approach, if selected.</p></li>
+<li><p><strong>variable_sequence_length_limit</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – If non-None value given and ‘mode’ is either ‘variable_length’ or ‘variable_length_inference’,
+the sequence lengths within a batch will be limited to the given value.</p></li>
+<li><p><strong>batches</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>) – The current set of batches that will be iterated over.</p></li>
+<li><p><strong>epoch</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Current epoch. Used for random seeding.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>mode=’independent’: Time is contiguous within sequences but not across batches.</p></li>
+<li><p>mode=’sliding-window’: A sliding window approach is used to ensure that time is contiguous within sequences and across batches.</p></li>
+<li><p>mode=’inference’: Same as ‘sliding-window’, but no shuffling, expansion for batch sizing, and striding.</p></li>
+<li><p>mode=’variable_length’: Similar to ‘sliding-window’ but the sequence lengths will be variable within batches.</p></li>
+<li><p>mode=’variable_length_inference’: Same as ‘variable_length’, but no shuffling or expansion for batch sizing.</p></li>
+<li><p>shuffle=False: Batches are constructed in dataset order as per the “selection” array. For variable length modes, slices will also be samples in descending order of length.</p></li>
+<li><dl class="simple">
+<dt>shuffle=True:</dt><dd><ul>
+<li><p>mode=’independent’: Sequences within and across batches are randomly shuffled.</p></li>
+<li><p>mode=’sliding-window’ or ‘variable_length’: Slices are shuffled before and after expansion, and a random number of prediction points (between 0 and 10) at the start of each slice are dropped before batches are constructed.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.data.prepared_dataset.CustomSampler.set_epoch">
+<span class="sig-name descname"><span class="pre">set_epoch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epoch</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.data.prepared_dataset.CustomSampler.set_epoch" title="Link to this definition">#</a></dt>
+<dd><p>If the next epoch not already set, sets the next epoch and regenerate batches according to the sampling mode.</p>
+<p>This method updates the internal epoch counter and triggers batch generation
+based on the configured mode. It is intended to be called by the training loop
+(e.g., a PyTorch Lightning model wrapper) at the end of each epoch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>epoch</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The next epoch number.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>SystemExit</strong> – If an unknown sampling mode is encountered.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Supported modes:
+- ‘independent’: Generates batches without enforcing temporal continuity.
+- ‘sliding-window’: Generates batches using a sliding window approach for temporal consistency.
+- ‘inference’: Prepares batches for model inference.
+- ‘variable_length’: Prepares variable length batches for model training.
+- ‘variable_length_inference’: Prepares variable length batches for model inference.</p>
+<p>Additional checks are performed to ensure that batches meet size requirements.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.data.prepared_dataset.CustomDataset">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.data.prepared_dataset.</span></span><span class="sig-name descname"><span class="pre">CustomDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_extractor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selection_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_scaler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_scaler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_chunk</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_chunk</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.data.prepared_dataset.CustomDataset" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.utils.data.Dataset</span></code></p>
+<p>A custom dataset for deep time series models, using KnowIts data extraction protocols.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_extractor</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">DataExtractor</span></code>) – Object responsible for extracting data from disk.</p></li>
+<li><p><strong>selection_matrix</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array</span></code>) – Matrix defining the selection of instances, slices, and time steps.</p></li>
+<li><p><strong>x_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[n_in_components,]</span></code>) – An array that contains the indices of BaseDataset.components that correspond to input components.</p></li>
+<li><p><strong>y_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[n_out_components,]</span></code>) – An array that contains the indices of BaseDataset.components that correspond to output components.</p></li>
+<li><p><strong>x_scaler</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code>) – The scaler fitted to the training set input features.</p></li>
+<li><p><strong>y_scaler</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code>) – The scaler fitted to the training set output features.</p></li>
+<li><p><strong>in_chunk</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[2,]</span></code>) – A list of two integers [a, b] for which a &lt;= b,
+defining the time steps of in_components for each prediction point.</p></li>
+<li><p><strong>out_chunk</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[2,]</span></code>) – A list of two integers [a, b] for which a &lt;= b,
+defining the time steps of out_components for each prediction point.</p></li>
+<li><p><strong>padding_method</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The method to pad model inputs with.
+Options can be found at (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.pad.html">https://numpy.org/doc/stable/reference/generated/numpy.pad.html</a>).
+See heading for description.</p></li>
+<li><p><strong>preload</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code>) – Whether to preload the dataset into memory.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.data.prepared_dataset.CustomClassificationDataset">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.data.prepared_dataset.</span></span><span class="sig-name descname"><span class="pre">CustomClassificationDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_extractor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selection_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_scaler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_scaler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_chunk</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_chunk</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_set</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.data.prepared_dataset.CustomClassificationDataset" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#KnowIt.data.prepared_dataset.CustomDataset" title="KnowIt.data.prepared_dataset.CustomDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CustomDataset</span></code></a></p>
+<p>A custom dataset for deep time series classification models, using KnowIt’s data extraction protocols.
+Inherits from CustomDataset.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.data.prepared_dataset.CustomVariableLengthRegressionDataset">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.data.prepared_dataset.</span></span><span class="sig-name descname"><span class="pre">CustomVariableLengthRegressionDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_extractor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selection_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_scaler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_scaler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_chunk</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_chunk</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.data.prepared_dataset.CustomVariableLengthRegressionDataset" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#KnowIt.data.prepared_dataset.CustomDataset" title="KnowIt.data.prepared_dataset.CustomDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CustomDataset</span></code></a></p>
+<p>A custom dataset for deep time series regression models that take variable length input, using KnowIt’s data extraction protocols.
+Inherits from CustomDataset.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../data_splitting/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">KnowIt.data.data_splitting</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../raw_data_coversion/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">KnowIt.data.raw_data_coversion</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#prediction-points">Prediction points</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#variable-length-processing">Variable length processing</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#splitting-limiting">Splitting &amp; Limiting</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scaling">Scaling</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#padding">Padding</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#customdataset">CustomDataset</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#customclassificationdataset">CustomClassificationDataset</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#customvariablelengthregressiondataset">CustomVariableLengthRegressionDataset</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#customsampler">CustomSampler</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.data.prepared_dataset.PreparedDataset"><code class="docutils literal notranslate"><span class="pre">PreparedDataset</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.data.prepared_dataset.PreparedDataset.get_dataset"><code class="docutils literal notranslate"><span class="pre">PreparedDataset.get_dataset()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.data.prepared_dataset.PreparedDataset.get_dataloader"><code class="docutils literal notranslate"><span class="pre">PreparedDataset.get_dataloader()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.data.prepared_dataset.PreparedDataset.get_ist_values"><code class="docutils literal notranslate"><span class="pre">PreparedDataset.get_ist_values()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.data.prepared_dataset.PreparedDataset.fetch_input_points_manually"><code class="docutils literal notranslate"><span class="pre">PreparedDataset.fetch_input_points_manually()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.data.prepared_dataset.CustomSampler"><code class="docutils literal notranslate"><span class="pre">CustomSampler</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.data.prepared_dataset.CustomSampler.set_epoch"><code class="docutils literal notranslate"><span class="pre">CustomSampler.set_epoch()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.data.prepared_dataset.CustomDataset"><code class="docutils literal notranslate"><span class="pre">CustomDataset</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.data.prepared_dataset.CustomClassificationDataset"><code class="docutils literal notranslate"><span class="pre">CustomClassificationDataset</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.data.prepared_dataset.CustomVariableLengthRegressionDataset"><code class="docutils literal notranslate"><span class="pre">CustomVariableLengthRegressionDataset</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, North-West University (NWU), South Africa.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,23 @@
+KnowIt.setup
+============
+
+.. py:module:: KnowIt.setup
+
+.. autoapi-nested-parse::
+
+   KnowIt setup functions.
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/KnowIt/setup/import_custom_arch/index
+   /autoapi/KnowIt/setup/select_interpretation_points/index
+   /autoapi/KnowIt/setup/setup_action_args/index
+   /autoapi/KnowIt/setup/setup_weighted_cross_entropy/index
+
+

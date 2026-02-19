@@ -1,0 +1,25 @@
+KnowIt.default_archs
+====================
+
+.. py:module:: KnowIt.default_archs
+
+.. autoapi-nested-parse::
+
+   KnowIt default architectures.
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/KnowIt/default_archs/CNN/index
+   /autoapi/KnowIt/default_archs/LSTM/index
+   /autoapi/KnowIt/default_archs/LSTMv2/index
+   /autoapi/KnowIt/default_archs/MLP/index
+   /autoapi/KnowIt/default_archs/TCN/index
+   /autoapi/KnowIt/default_archs/TFT/index
+
+

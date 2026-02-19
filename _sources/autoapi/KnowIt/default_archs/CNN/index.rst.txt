@@ -1,0 +1,330 @@
+KnowIt.default_archs.CNN
+========================
+
+.. py:module:: KnowIt.default_archs.CNN
+
+.. autoapi-nested-parse::
+
+   This is a 1D CNN architecture; it is similar to the TCN but non-causal by removing the padding and clipping.
+
+   The main stage is fully convolutional and performs 1D convolutions over the time domain.
+
+   The overall architecture consists of multiple ``ConvBlock`` modules followed by a ``FinalBlock`` module.
+
+   ---------
+   ConvBlock
+   ---------
+
+   This block consists of 4 to 5 layers.
+   * is optional
+
+   [convolution] -> [normalization*] -> [activation] -> [dropout] -> [residual connection*]
+
+       -   [convolution]
+               -   nn.Conv1d(num_input_components, num_filters)    ... if at input
+               -   nn.Conv1d(num_filters, num_filters)             ... if in between
+               -   nn.Conv1d(num_filters, num_output_components)   ... if at the end
+               -   This layer performs 1D convolution over the time steps, with the input
+                   components as channels.
+               -   It outputs a tensor of (batch_size, num_time_steps, num_filters)
+       -   [normalization]
+               -   depends on the normalization hyperparameter
+                       -   nn.utils.weight_norm if normalization='weight'
+                       -   nn.BatchNorm1d if normalization='batch'
+                       -   skipped if normalization=None
+       -   [activation]
+               -   Depends on the activation function.
+               -   Set by getattr(nn, activation)().
+               -   See https://pytorch.org/docs/stable/nn.html for details.
+       -   [dropout] = nn.Dropout
+       -   [residual connection]
+               -   The input to the block is added to the output.
+               -   A 1x1 conv is used to resize the input if the input size != output size.
+
+   ----------
+   FinalBlock
+   ----------
+
+   After the CNN stage we have a tensor T(batch_size, num_input_time_steps, num_output_components).
+
+   If task_name = 'regression'
+       -   T is flattened to T(batch_size, num_input_time_steps * num_output_components)
+               a linear layer and output activation is applied, and it is reshaped to the desired output
+               T(batch_size, num_output_time_steps, num_output_components).
+
+   If task_name = 'classification'
+       -   T is flattened to T(batch_size, num_input_time_steps * num_output_components)
+               a linear layer is applied, which outputs T(batch_size, num_output_components).
+
+   If task_name = 'forecast' (WIP)
+       -   T(batch_size, num_output_time_steps, num_output_components) is return where the
+              num_output_time_steps is the last chunk from num_input_time_steps.
+
+   .. rubric:: Notes
+
+   - The CNN is capable of handling regression, classification, and forecasting(WIP) tasks.
+   - All conv layers have bias parameters.
+   - All non-bias weights are initialized with nn.init.kaiming_uniform_(parameters) if dimension allow, otherwise nn.init.normal_(parameters) is used.
+   - All bias weights are initialized with nn.init.zeros_(parameters).
+   - Can also run in `variable length` mode (i.e. task='vl_regression'), where the number of timesteps in the input and output are equal.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.default_archs.CNN.Model
+   KnowIt.default_archs.CNN.FinalBlock
+   KnowIt.default_archs.CNN.ConvBlock
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   KnowIt.default_archs.CNN.init_mod
+
+
+Module Contents
+---------------
+
+.. py:class:: Model(input_dim, output_dim, task_name, *, depth = -1, num_filters = 64, kernel_size = 3, normalization = 'batch', dropout = 0.3, activations = 'ReLU', output_activation = None, residual_connect = True, dilation_base = 2)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   Defines a 1D Convolutional Neural Network (CNN) architecture with a task-specific final block.
+
+   This model supports various tasks,
+   including classification, regression, and forecasting.
+
+   :Parameters: * **input_dim** (:py:class:`list[int]`, :py:class:`shape=[in_chunk`, :py:class:`in_components]`) -- The shape of the input data. The "time axis" is along the first dimension.
+                  Here, `in_chunk` represents the number of time steps, and `in_components` indicates
+                  the number of input features or channels.
+                * **output_dim** (:py:class:`list[int]`, :py:class:`shape=[out_chunk`, :py:class:`out_components]`) -- The shape of the output data. The "time axis" is along the first dimension.
+                  `out_chunk` corresponds to the number of output time steps, and `out_components` refers to
+                  the number of output features or channels.
+                * **task_name** (:py:class:`str`) -- The type of task (classification, regression, or vl_regression).
+                * **depth** (:py:class:`int`, *default* ``-1``) -- The desired number of convolutional blocks to include in the CNN stage.
+                  If depth=-1, the minimum depth to ensure that the receptive field is larger than
+                  the input sequence 'in_chunk' is automatically calculated.
+                * **num_filters** (:py:class:`int`, *default* ``64``) -- The desired number of filters (also referred to as channels) per hidden convolutional block.
+                * **kernel_size** (:py:class:`int`, *default* ``3``) -- The desired kernel size for all filters. This parameter affects the size of the local
+                  receptive field of the convolutions.
+                * **normalization** (:py:class:`str | None`, *default* ``'batch'``) -- The type of normalization to apply. Options are ('batch', 'weight', None).
+                * **dropout** (:py:class:`float | None`, *default* ``0.5``) -- Sets the dropout probability. If None, no dropout is applied, which may lead to overfitting.
+                * **activations** (:py:class:`str`, *default* ``'ReLU'``) -- Sets the activation type for the convolutional layers. Refer to
+                  https://pytorch.org/docs/stable/nn.html for details on available activations.
+                * **output_activation** (:py:class:`None | str`, *default* :py:obj:`None`) -- Sets an output activation. If None, no output activation is applied. See
+                  https://pytorch.org/docs/stable/nn.html for details.
+                * **residual_connect** (:py:class:`bool`, *default* :py:obj:`True`) -- Whether to add a residual connection to each convolutional block to help in learning.
+                * **dilation_base** (:py:class:`int`, *default* ``2``) -- The base dilation factor for convolutional blocks, impacting the receptive field.
+
+   :ivar task_name: The type of task being performed by the model.
+   :vartype task_name: :py:class:`str`
+   :ivar depth: The number of convolutional blocks in the CNN stage.
+   :vartype depth: :py:class:`int`
+   :ivar num_filters: The number of filters (also channels) per hidden convolutional block.
+   :vartype num_filters: :py:class:`int`
+   :ivar kernel_size: The kernel size for all filters.
+   :vartype kernel_size: :py:class:`int`
+   :ivar normalization: The type of normalization applied.
+   :vartype normalization: :py:class:`str | None`
+   :ivar dropout: The dropout probability. If None, no dropout is applied.
+   :vartype dropout: :py:class:`float | None`
+   :ivar activations: The activation type for the convolutional layers.
+   :vartype activations: :py:class:`str`
+   :ivar output_activation: The output activation applied, if any.
+   :vartype output_activation: :py:class:`None | str`
+   :ivar residual_connect: Indicates whether a residual connection is added to each convolutional block.
+   :vartype residual_connect: :py:class:`bool`
+   :ivar dilation_base: The base dilation factor for convolutional blocks.
+   :vartype dilation_base: :py:class:`int`
+   :ivar num_model_in_time_steps: The number of input time steps. Equal to the length of in_chunk.
+   :vartype num_model_in_time_steps: :py:class:`int`
+   :ivar num_model_in_channels: The number of input components. Equal to num_in_components.
+   :vartype num_model_in_channels: :py:class:`int`
+   :ivar num_model_out_time_steps: The number of output time steps. Equal to the length of out_chunk.
+   :vartype num_model_out_time_steps: :py:class:`int`
+   :ivar num_model_out_channels: The number of output components. Equal to num_out_components.
+   :vartype num_model_out_channels: :py:class:`int`
+   :ivar network: The network architecture built from convolutional blocks and the final task-specific block.
+
+   :vartype network: :py:class:`nn.Module`
+
+
+   .. py:method:: forward(x)
+
+      Return model output for an input batch.
+
+      :Parameters: **x** (:py:class:`Tensor`, :py:class:`shape=[batch_size`, :py:class:`in_chunk`, :py:class:`in_components]`) -- An input tensor. See below for shape exception.
+
+      :returns: Model output.
+      :rtype: :py:class:`Tensor`, :py:class:`shape=[batch_size`, :py:class:`out_chunk`, :py:class:`out_components]` or :py:class:`[batch_size`, :py:class:`num_classes]`
+
+      .. rubric:: Notes
+
+      - For 'vl_regression', the input tensor x will have the shape [batch_size, *, in_components], where * is variable length.
+
+
+
+.. py:class:: FinalBlock(num_model_in_time_steps, num_model_out_channels, num_model_out_time_steps, output_activation, task)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   Final processing block for CNN-based models for classification, regression, or forecasting tasks.
+
+   This class applies final transformations to the CNN model output to prepare it for a specific task,
+   such as classification, regression, or forecasting. For classification and regression, the output
+   undergoes linear transformation, while for forecasting, it directly returns the selected output steps.
+
+   :Parameters: * **num_model_in_time_steps** (:py:class:`int`) -- The number of input time steps.
+                * **num_model_out_channels** (:py:class:`int`) -- The number of output components (e.g., feature channels).
+                * **num_model_out_time_steps** (:py:class:`int`) -- The number of output time steps for forecasting or regression tasks.
+                * **output_activation** (:py:class:`str | None`) -- The output activation function to be applied (e.g., 'Softmax', 'Sigmoid').
+                * **task** (:py:class:`str`) -- Specifies the task type ('classification', 'regression', or 'forecasting').
+
+   :ivar expected_in_t: Number of input time steps expected by the model.
+   :vartype expected_in_t: :py:class:`int`
+   :ivar expected_in_c: Number of input channels expected by the model.
+   :vartype expected_in_c: :py:class:`int`
+   :ivar desired_out_c: Number of output components for the model's final output.
+   :vartype desired_out_c: :py:class:`int`
+   :ivar desired_out_t: Number of output time steps required in the model output.
+   :vartype desired_out_t: :py:class:`int`
+   :ivar task: Task being performed by the model.
+   :vartype task: :py:class:`str`
+   :ivar act: Activation function applied to the output if specified.
+   :vartype act: :py:class:`nn.Module | None`
+   :ivar trans: Linear transformation layer applied to the input.
+
+   :vartype trans: :py:class:`nn.Module`
+
+   .. method:: classify(x)
+
+      Processes input for classification tasks.
+
+   .. method:: regress(x)
+
+      Processes input for regression tasks.
+
+   .. method:: forward(x)
+
+      Processes input and returns output depending on task type.
+
+
+
+   .. py:method:: classify(x)
+
+      Process input for classification tasks.
+
+      :Parameters: **x** (:py:class:`Tensor`) -- Input tensor of shape (batch_size, expected_in_t, expected_in_c).
+
+      :returns: Classification output tensor, possibly with applied activation function.
+      :rtype: :py:class:`Tensor`
+
+
+
+   .. py:method:: regress(x)
+
+      Process input for regression tasks.
+
+      :Parameters: **x** (:py:class:`Tensor`) -- Input tensor of shape (batch_size, expected_in_t, expected_in_c).
+
+      :returns: Regression output tensor, reshaped as (batch_size, desired_out_t, desired_out_c).
+      :rtype: :py:class:`Tensor`
+
+
+
+   .. py:method:: forward(x)
+
+      Return output for an input batch, based on the specified task type.
+
+      :Parameters: **x** (:py:class:`Tensor`) -- Input tensor of shape (batch_size, in_chunk, out_components).
+
+      :returns: Model output with shape depending on task type:
+                - Classification: (batch_size, desired_out_c)
+                - Regression: (batch_size, desired_out_t, desired_out_c)
+                - Forecasting: (batch_size, desired_out_t, expected_in_c)
+      :rtype: :py:class:`Tensor`
+
+      :raises ValueError: If the task type specified is not valid.
+
+
+
+.. py:class:: ConvBlock(n_inputs, n_outputs, kernel_size, stride, dilation, padding, dropout, normalization, activations, residual_connect)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   A fully convolutional block for Temporal Convolutional Networks (CNNs).
+
+   This block performs a 1D convolution, followed by optional normalization, activation,
+   and dropout. It supports residual connections, where the input is added to the output
+   if the number of input and output channels match or if an additional 1x1 convolution layer
+   is applied for channel alignment.
+
+   :Parameters: * **n_inputs** (:py:class:`int`) -- The number of input channels for the convolutional layer.
+                * **n_outputs** (:py:class:`int`) -- The number of output channels for the convolutional layer.
+                * **kernel_size** (:py:class:`int`) -- The size of the convolution kernel.
+                * **stride** (:py:class:`int`) -- The stride of the convolution.
+                * **dilation** (:py:class:`int`) -- The dilation factor for the convolution.
+                * **padding** (:py:class:`int`) -- The padding size for the convolution.
+                * **dropout** (:py:class:`float`) -- Dropout probability, applied after the activation.
+                * **normalization** (:py:class:`str | None`) -- Type of normalization to apply; 'weight' for weight normalization, 'batch' for batch
+                  normalization, or None for no normalization.
+                * **activations** (:py:class:`str`) -- Activation function to use (e.g., 'ReLU', 'LeakyReLU').
+                * **residual_connect** (:py:class:`bool`) -- If True, adds a residual connection from input to output to improve stability
+                  in deeper networks.
+
+   :ivar block: Sequential container for the convolutional layer, padding, normalization, activation,
+                and dropout layers.
+   :vartype block: :py:class:`nn.Sequential`
+   :ivar res_connect: Identity layer or 1x1 convolution for residual connection alignment, if residual
+                      connections are enabled.
+
+   :vartype res_connect: :py:class:`nn.Module` or :py:obj:`None`
+
+   .. method:: forward(x)
+
+      Forward pass of the ConvBlock. Applies the convolutional block to input `x`
+      and adds a residual connection if specified.
+
+
+   .. py:method:: forward(x)
+
+      Forward pass of the ConvBlock.
+
+      This method applies the convolutional block to the input tensor `x`. If residual connections are enabled,
+      it adds the residual (shortcut) connection to the output, then transposes it back to the original format.
+
+      :Parameters: **x** (:py:class:`torch.Tensor`) -- Input tensor of shape (batch_size, sequence_length, n_inputs) where `n_inputs`
+                   is the number of input channels.
+
+      :returns: Output tensor of shape (batch_size, sequence_length, n_outputs), where `n_outputs`
+                is the number of output channels.
+      :rtype: :py:class:`torch.Tensor`
+
+
+
+.. py:function:: init_mod(mod)
+
+   Initializes the parameters of the given module using suitable initialization schemes.
+
+   This function iterates over the named parameters of the provided module and applies:
+   - Kaiming uniform initialization for parameters containing 'weight' in their name, if applicable.
+   - Standard normal initialization for 'weight' parameters where Kaiming initialization is unsuitable.
+   - Zero initialization for parameters containing 'bias' in their name.
+
+   :Parameters: **mod** (:py:class:`nn.Module`) -- The PyTorch module whose parameters will be initialized.
+
+   .. rubric:: Notes
+
+   This function is used to prepare layers for training by setting their initial weights and biases
+   to suitable values, which can improve convergence rates.
+
+

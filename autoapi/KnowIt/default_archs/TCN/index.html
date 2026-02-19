@@ -1,0 +1,1165 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>KnowIt.default_archs.TCN &#8212; KnowIt 1.0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../../_static/documentation_options.js?v=292eb321"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'autoapi/KnowIt/default_archs/TCN/index';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="KnowIt.default_archs.TFT" href="../TFT/index.html" />
+    <link rel="prev" title="KnowIt.default_archs.MLP" href="../MLP/index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="1.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../_static/KI_logo_short_stencil.png" class="logo__image only-light" alt="KnowIt 1.0.1 documentation - Home"/>
+    <img src="../../../../_static/KI_logo_short_stencil.png" class="logo__image only-dark pst-js-only" alt="KnowIt 1.0.1 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/tutorials/basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/tutorials/basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/tutorials/stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../markdowns/docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="../../../index.html">
+    API Reference
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/tutorials/basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/tutorials/basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/tutorials/stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../markdowns/docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../index.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../../index.html">KnowIt</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../data/index.html">KnowIt.data</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../data/base_dataset/index.html">KnowIt.data.base_dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data/data_scaling/index.html">KnowIt.data.data_scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data/data_splitting/index.html">KnowIt.data.data_splitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data/prepared_dataset/index.html">KnowIt.data.prepared_dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data/raw_data_coversion/index.html">KnowIt.data.raw_data_coversion</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../index.html">KnowIt.default_archs</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../CNN/index.html">KnowIt.default_archs.CNN</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../LSTM/index.html">KnowIt.default_archs.LSTM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../LSTMv2/index.html">KnowIt.default_archs.LSTMv2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MLP/index.html">KnowIt.default_archs.MLP</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">KnowIt.default_archs.TCN</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TFT/index.html">KnowIt.default_archs.TFT</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../interpret/index.html">KnowIt.interpret</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/DLS_Captum/index.html">KnowIt.interpret.DLS_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/DL_Captum/index.html">KnowIt.interpret.DL_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/IntegratedGrad_Captum/index.html">KnowIt.interpret.IntegratedGrad_Captum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/featureattr/index.html">KnowIt.interpret.featureattr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../interpret/interpreter/index.html">KnowIt.interpret.interpreter</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../../knowit/index.html">KnowIt.knowit</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../setup/index.html">KnowIt.setup</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/import_custom_arch/index.html">KnowIt.setup.import_custom_arch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/select_interpretation_points/index.html">KnowIt.setup.select_interpretation_points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/setup_action_args/index.html">KnowIt.setup.setup_action_args</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../setup/setup_weighted_cross_entropy/index.html">KnowIt.setup.setup_weighted_cross_entropy</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../trainer/index.html">KnowIt.trainer</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/base_trainer/index.html">KnowIt.trainer.base_trainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/model_config/index.html">KnowIt.trainer.model_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/trainer/index.html">KnowIt.trainer.trainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../trainer/trainer_states/index.html">KnowIt.trainer.trainer_states</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">API Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">KnowIt</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">KnowIt.default_archs</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">KnowIt.default_archs.TCN</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-KnowIt.default_archs.TCN">
+<span id="knowit-default-archs-tcn"></span><h1>KnowIt.default_archs.TCN<a class="headerlink" href="#module-KnowIt.default_archs.TCN" title="Link to this heading">#</a></h1>
+<p>This is a TCN stage followed by a secondary block that depends on the task.</p>
+<p>A Temporal Convolutional Network (TCN) architecture is a fully convolutional architecture
+that performs 1D convolutions over the time domain.
+It uses dilated causal convolutions and padding to ensure that
+there is no information leakage from future values, and it outputs a sequence equal in
+length to the input.</p>
+<p>See the following links for details.</p>
+<p>[1] “An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling” by Bai et al., 2018</p>
+<p>Link:   <a class="reference external" href="https://arxiv.org/abs/1803.01271">https://arxiv.org/abs/1803.01271</a></p>
+<p>[2] “Temporal Convolutional Networks and Forecasting” by Francesco Lässig, 2021</p>
+<p>Link:   <a class="reference external" href="https://unit8.com/resources/temporal-convolutional-networks-and-forecasting/">https://unit8.com/resources/temporal-convolutional-networks-and-forecasting/</a></p>
+<p>The overall architecture contains a number of <code class="docutils literal notranslate"><span class="pre">ConvBlock</span></code> modules (which constitutes the TCN stage)
+followed by a <code class="docutils literal notranslate"><span class="pre">FinalBlock</span></code> module.</p>
+<section id="convblock">
+<h2>ConvBlock<a class="headerlink" href="#convblock" title="Link to this heading">#</a></h2>
+<p>This block consists of 4 to 5 layers.
+* is optional</p>
+<p>[convolution] -&gt; [normalization*] -&gt; [activation] -&gt; [dropout] -&gt; [residual connection*]</p>
+<blockquote>
+<div><ul class="simple">
+<li><dl class="simple">
+<dt>[convolution]</dt><dd><ul>
+<li><p>nn.Conv1d(num_input_components, num_filters)    … if at input</p></li>
+<li><p>nn.Conv1d(num_filters, num_filters)             … if in between</p></li>
+<li><p>nn.Conv1d(num_filters, num_output_components)   … if at the end</p></li>
+<li><p>This layer performs 1D convolution over the time steps, with the input
+components as channels.</p></li>
+<li><p>It outputs a tensor of (batch_size, num_time_steps, num_filters)</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>[normalization]</dt><dd><ul>
+<li><dl class="simple">
+<dt>depends on the normalization hyperparameter</dt><dd><ul>
+<li><p>nn.utils.weight_norm if normalization=’weight’</p></li>
+<li><p>nn.BatchNorm1d if normalization=’batch’</p></li>
+<li><p>skipped if normalization=None</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>[activation]</dt><dd><ul>
+<li><p>Depends on the activation function.</p></li>
+<li><p>Set by getattr(nn, activation)().</p></li>
+<li><p>See <a class="reference external" href="https://pytorch.org/docs/stable/nn.html">https://pytorch.org/docs/stable/nn.html</a> for details.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>[dropout] = nn.Dropout</p></li>
+<li><dl class="simple">
+<dt>[residual connection]</dt><dd><ul>
+<li><p>The input to the block is added to the output.</p></li>
+<li><p>A 1x1 conv is used to resize the input if the input size != output size.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</section>
+<section id="finalblock">
+<h2>FinalBlock<a class="headerlink" href="#finalblock" title="Link to this heading">#</a></h2>
+<p>After the TCN stage we have a tensor T(batch_size, num_input_time_steps, num_output_components).</p>
+<dl class="simple">
+<dt>If task_name = ‘regression’</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>T is flattened to T(batch_size, num_input_time_steps * num_output_components)</dt><dd><p>a linear layer and output activation is applied, and it is reshaped to the desired output
+T(batch_size, num_output_time_steps, num_output_components).</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>If task_name = ‘classification’</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>T is flattened to T(batch_size, num_input_time_steps * num_output_components)</dt><dd><p>a linear layer is applied, which outputs T(batch_size, num_output_components).</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>If task_name = ‘forecast’ (WIP)</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>T(batch_size, num_output_time_steps, num_output_components) is return where the</dt><dd><p>num_output_time_steps is the last chunk from num_input_time_steps.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The TCN is capable of handling regression, classification, and forecasting(WIP) tasks.</p></li>
+<li><p>All conv layers have bias parameters.</p></li>
+<li><p>All non-bias weights are initialized with nn.init.kaiming_uniform_(parameters) if dimension allow, otherwise nn.init.normal_(parameters) is used.</p></li>
+<li><p>All bias weights are initialized with nn.init.zeros_(parameters).</p></li>
+<li><p>Can also run in <cite>variable length</cite> mode (i.e. task=’vl_regression’), where the number of timesteps in the input and output are equal.</p></li>
+</ul>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.default_archs.TCN.Model" title="KnowIt.default_archs.TCN.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model</span></code></a></p></td>
+<td><p>Defines a Temporal Convolutional Network (TCN) architecture with a task-specific final block.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#KnowIt.default_archs.TCN.FinalBlock" title="KnowIt.default_archs.TCN.FinalBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FinalBlock</span></code></a></p></td>
+<td><p>Final processing block for TCN-based models for classification, regression, or forecasting tasks.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.default_archs.TCN.ConvBlock" title="KnowIt.default_archs.TCN.ConvBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ConvBlock</span></code></a></p></td>
+<td><p>A fully convolutional block for Temporal Convolutional Networks (TCNs).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#KnowIt.default_archs.TCN.ClipRightPad" title="KnowIt.default_archs.TCN.ClipRightPad"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ClipRightPad</span></code></a></p></td>
+<td><p>This module removes right-side padding from the input tensor to maintain causality in sequential models.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#KnowIt.default_archs.TCN.init_mod" title="KnowIt.default_archs.TCN.init_mod"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_mod</span></code></a>(mod)</p></td>
+<td><p>Initializes the parameters of the given module using suitable initialization schemes.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TCN.Model">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TCN.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_name</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_filters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'batch'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ReLU'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_connect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dilation_base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TCN.Model" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>Defines a Temporal Convolutional Network (TCN) architecture with a task-specific final block.</p>
+<p>The TCN is a fully convolutional neural network that enforces temporal causality,
+as information is propagated through 1D convolutions. This model supports various tasks,
+including classification, regression, and forecasting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list[int]</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[in_chunk</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">in_components]</span></code>) – The shape of the input data. The “time axis” is along the first dimension.
+Here, <cite>in_chunk</cite> represents the number of time steps, and <cite>in_components</cite> indicates
+the number of input features or channels.</p></li>
+<li><p><strong>output_dim</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">list[int]</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[out_chunk</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">out_components]</span></code>) – The shape of the output data. The “time axis” is along the first dimension.
+<cite>out_chunk</cite> corresponds to the number of output time steps, and <cite>out_components</cite> refers to
+the number of output features or channels.</p></li>
+<li><p><strong>task_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The type of task (classification, regression, or vl_regression).</p></li>
+<li><p><strong>depth</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">-1</span></code>) – The desired number of convolutional blocks to include in the TCN stage.
+If depth=-1, the minimum depth to ensure that the receptive field is larger than
+the input sequence ‘in_chunk’ is automatically calculated.</p></li>
+<li><p><strong>num_filters</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">64</span></code>) – The desired number of filters (also referred to as channels) per hidden convolutional block.</p></li>
+<li><p><strong>kernel_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">3</span></code>) – The desired kernel size for all filters. This parameter affects the size of the local
+receptive field of the convolutions.</p></li>
+<li><p><strong>normalization</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">'batch'</span></code>) – The type of normalization to apply. Options are (‘batch’, ‘weight’, None).</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">0.5</span></code>) – Sets the dropout probability. If None, no dropout is applied, which may lead to overfitting.</p></li>
+<li><p><strong>activations</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">'ReLU'</span></code>) – Sets the activation type for the convolutional layers. Refer to
+<a class="reference external" href="https://pytorch.org/docs/stable/nn.html">https://pytorch.org/docs/stable/nn.html</a> for details on available activations.</p></li>
+<li><p><strong>output_activation</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">None</span> <span class="pre">|</span> <span class="pre">str</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Sets an output activation. If None, no output activation is applied. See
+<a class="reference external" href="https://pytorch.org/docs/stable/nn.html">https://pytorch.org/docs/stable/nn.html</a> for details.</p></li>
+<li><p><strong>residual_connect</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <em>default</em> <code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code>) – Whether to add a residual connection to each convolutional block to help in learning.</p></li>
+<li><p><strong>dilation_base</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <em>default</em> <code class="docutils literal notranslate"><span class="pre">2</span></code>) – The base dilation factor for convolutional blocks, impacting the receptive field.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>task_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The type of task being performed by the model.</p></li>
+<li><p><strong>depth</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of convolutional blocks in the TCN stage.</p></li>
+<li><p><strong>num_filters</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of filters (also channels) per hidden convolutional block.</p></li>
+<li><p><strong>kernel_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The kernel size for all filters.</p></li>
+<li><p><strong>normalization</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>) – The type of normalization applied.</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code>) – The dropout probability. If None, no dropout is applied.</p></li>
+<li><p><strong>activations</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The activation type for the convolutional layers.</p></li>
+<li><p><strong>output_activation</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">None</span> <span class="pre">|</span> <span class="pre">str</span></code>) – The output activation applied, if any.</p></li>
+<li><p><strong>residual_connect</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – Indicates whether a residual connection is added to each convolutional block.</p></li>
+<li><p><strong>dilation_base</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The base dilation factor for convolutional blocks.</p></li>
+<li><p><strong>num_model_in_time_steps</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of input time steps. Equal to the length of in_chunk.</p></li>
+<li><p><strong>num_model_in_channels</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of input components. Equal to num_in_components.</p></li>
+<li><p><strong>num_model_out_time_steps</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of output time steps. Equal to the length of out_chunk.</p></li>
+<li><p><strong>num_model_out_channels</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of output components. Equal to num_out_components.</p></li>
+<li><p><strong>network</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.Module</span></code>) – The network architecture built from convolutional blocks and the final task-specific block.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TCN.Model.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TCN.Model.forward" title="Link to this definition">#</a></dt>
+<dd><p>Return model output for an input batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">in_chunk</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">in_components]</span></code>) – An input tensor. See below for shape exception.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Model output.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">shape=[batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">out_chunk</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">out_components]</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">[batch_size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">num_classes]</span></code></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>For ‘vl_regression’, the input tensor x will have the shape [batch_size, <a href="#id1"><span class="problematic" id="id2">*</span></a>, in_components], where * is variable length.</p></li>
+</ul>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TCN.FinalBlock">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TCN.</span></span><span class="sig-name descname"><span class="pre">FinalBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_model_in_time_steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_model_out_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_model_out_time_steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TCN.FinalBlock" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>Final processing block for TCN-based models for classification, regression, or forecasting tasks.</p>
+<p>This class applies final transformations to the TCN model output to prepare it for a specific task,
+such as classification, regression, or forecasting. For classification and regression, the output
+undergoes linear transformation, while for forecasting, it directly returns the selected output steps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_model_in_time_steps</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of input time steps.</p></li>
+<li><p><strong>num_model_out_channels</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of output components (e.g., feature channels).</p></li>
+<li><p><strong>num_model_out_time_steps</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of output time steps for forecasting or regression tasks.</p></li>
+<li><p><strong>output_activation</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>) – The output activation function to be applied (e.g., ‘Softmax’, ‘Sigmoid’).</p></li>
+<li><p><strong>task</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Specifies the task type (‘classification’, ‘regression’, or ‘forecasting’).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>expected_in_t</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of input time steps expected by the model.</p></li>
+<li><p><strong>expected_in_c</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of input channels expected by the model.</p></li>
+<li><p><strong>desired_out_c</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of output components for the model’s final output.</p></li>
+<li><p><strong>desired_out_t</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of output time steps required in the model output.</p></li>
+<li><p><strong>task</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Task being performed by the model.</p></li>
+<li><p><strong>act</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.Module</span> <span class="pre">|</span> <span class="pre">None</span></code>) – Activation function applied to the output if specified.</p></li>
+<li><p><strong>trans</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.Module</span></code>) – Linear transformation layer applied to the input.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TCN.FinalBlock.classify">
+<span class="sig-name descname"><span class="pre">classify</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TCN.FinalBlock.classify" title="Link to this definition">#</a></dt>
+<dd><p>Processes input for classification tasks.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TCN.FinalBlock.regress">
+<span class="sig-name descname"><span class="pre">regress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TCN.FinalBlock.regress" title="Link to this definition">#</a></dt>
+<dd><p>Processes input for regression tasks.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TCN.FinalBlock.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TCN.FinalBlock.forward" title="Link to this definition">#</a></dt>
+<dd><p>Processes input and returns output depending on task type.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">classify</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Link to this definition">#</a></dt>
+<dd><p>Process input for classification tasks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>) – Input tensor of shape (batch_size, expected_in_t, expected_in_c).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Classification output tensor, possibly with applied activation function.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id3">
+<span class="sig-name descname"><span class="pre">regress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id3" title="Link to this definition">#</a></dt>
+<dd><p>Process input for regression tasks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>) – Input tensor of shape (batch_size, expected_in_t, expected_in_c).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Regression output tensor, reshaped as (batch_size, desired_out_t, desired_out_c).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id4">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id4" title="Link to this definition">#</a></dt>
+<dd><p>Return output for an input batch, based on the specified task type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>) – Input tensor of shape (batch_size, in_chunk, out_components).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Model output with shape depending on task type:
+- Classification: (batch_size, desired_out_c)
+- Regression: (batch_size, desired_out_t, desired_out_c)
+- Forecasting: (batch_size, desired_out_t, expected_in_c)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the task type specified is not valid.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TCN.ConvBlock">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TCN.</span></span><span class="sig-name descname"><span class="pre">ConvBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stride</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dilation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalization</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_connect</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TCN.ConvBlock" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>A fully convolutional block for Temporal Convolutional Networks (TCNs).</p>
+<p>This block performs a 1D convolution, followed by optional normalization, activation,
+and dropout. It supports residual connections, where the input is added to the output
+if the number of input and output channels match or if an additional 1x1 convolution layer
+is applied for channel alignment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_inputs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of input channels for the convolutional layer.</p></li>
+<li><p><strong>n_outputs</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of output channels for the convolutional layer.</p></li>
+<li><p><strong>kernel_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The size of the convolution kernel.</p></li>
+<li><p><strong>stride</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The stride of the convolution.</p></li>
+<li><p><strong>dilation</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The dilation factor for the convolution.</p></li>
+<li><p><strong>padding</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The padding size for the convolution.</p></li>
+<li><p><strong>dropout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>) – Dropout probability, applied after the activation.</p></li>
+<li><p><strong>normalization</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>) – Type of normalization to apply; ‘weight’ for weight normalization, ‘batch’ for batch
+normalization, or None for no normalization.</p></li>
+<li><p><strong>activations</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Activation function to use (e.g., ‘ReLU’, ‘LeakyReLU’).</p></li>
+<li><p><strong>residual_connect</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>) – If True, adds a residual connection from input to output to improve stability
+in deeper networks.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>block</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.Sequential</span></code>) – Sequential container for the convolutional layer, padding, normalization, activation,
+and dropout layers.</p></li>
+<li><p><strong>res_connect</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.Module</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>) – Identity layer or 1x1 convolution for residual connection alignment, if residual
+connections are enabled.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TCN.ConvBlock.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TCN.ConvBlock.forward" title="Link to this definition">#</a></dt>
+<dd><p>Forward pass of the ConvBlock. Applies the convolutional block to input <cite>x</cite>
+and adds a residual connection if specified.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id5">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id5" title="Link to this definition">#</a></dt>
+<dd><p>Forward pass of the ConvBlock.</p>
+<p>This method applies the convolutional block to the input tensor <cite>x</cite>. If residual connections are enabled,
+it adds the residual (shortcut) connection to the output, then transposes it back to the original format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code>) – Input tensor of shape (batch_size, sequence_length, n_inputs) where <cite>n_inputs</cite>
+is the number of input channels.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output tensor of shape (batch_size, sequence_length, n_outputs), where <cite>n_outputs</cite>
+is the number of output channels.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TCN.ClipRightPad">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TCN.</span></span><span class="sig-name descname"><span class="pre">ClipRightPad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clip_size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TCN.ClipRightPad" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></p>
+<p>This module removes right-side padding from the input tensor to maintain causality in sequential models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>clip_size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The number of time steps or elements to clip from the right end of the input tensor.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TCN.ClipRightPad.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TCN.ClipRightPad.forward" title="Link to this definition">#</a></dt>
+<dd><p>Clips the specified number of elements from the right end of the input tensor.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id6">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id6" title="Link to this definition">#</a></dt>
+<dd><p>Clips the right padding from the input tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code>) – Input tensor of shape (batch_size, channels, sequence_length).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output tensor with right-side padding removed, of shape (batch_size, channels, sequence_length - clip_size).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="KnowIt.default_archs.TCN.init_mod">
+<span class="sig-prename descclassname"><span class="pre">KnowIt.default_archs.TCN.</span></span><span class="sig-name descname"><span class="pre">init_mod</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mod</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#KnowIt.default_archs.TCN.init_mod" title="Link to this definition">#</a></dt>
+<dd><p>Initializes the parameters of the given module using suitable initialization schemes.</p>
+<p>This function iterates over the named parameters of the provided module and applies:
+- Kaiming uniform initialization for parameters containing ‘weight’ in their name, if applicable.
+- Standard normal initialization for ‘weight’ parameters where Kaiming initialization is unsuitable.
+- Zero initialization for parameters containing ‘bias’ in their name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mod</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">nn.Module</span></code>) – The PyTorch module whose parameters will be initialized.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This function is used to prepare layers for training by setting their initial weights and biases
+to suitable values, which can improve convergence rates.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../MLP/index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">KnowIt.default_archs.MLP</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../TFT/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">KnowIt.default_archs.TFT</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#convblock">ConvBlock</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#finalblock">FinalBlock</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#functions">Functions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-contents">Module Contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TCN.Model"><code class="docutils literal notranslate"><span class="pre">Model</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TCN.Model.forward"><code class="docutils literal notranslate"><span class="pre">Model.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TCN.FinalBlock"><code class="docutils literal notranslate"><span class="pre">FinalBlock</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TCN.FinalBlock.classify"><code class="docutils literal notranslate"><span class="pre">FinalBlock.classify()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TCN.FinalBlock.regress"><code class="docutils literal notranslate"><span class="pre">FinalBlock.regress()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TCN.FinalBlock.forward"><code class="docutils literal notranslate"><span class="pre">FinalBlock.forward()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id0"><code class="docutils literal notranslate"><span class="pre">FinalBlock.classify()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id3"><code class="docutils literal notranslate"><span class="pre">FinalBlock.regress()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id4"><code class="docutils literal notranslate"><span class="pre">FinalBlock.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TCN.ConvBlock"><code class="docutils literal notranslate"><span class="pre">ConvBlock</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TCN.ConvBlock.forward"><code class="docutils literal notranslate"><span class="pre">ConvBlock.forward()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id5"><code class="docutils literal notranslate"><span class="pre">ConvBlock.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TCN.ClipRightPad"><code class="docutils literal notranslate"><span class="pre">ClipRightPad</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TCN.ClipRightPad.forward"><code class="docutils literal notranslate"><span class="pre">ClipRightPad.forward()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id6"><code class="docutils literal notranslate"><span class="pre">ClipRightPad.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KnowIt.default_archs.TCN.init_mod"><code class="docutils literal notranslate"><span class="pre">init_mod()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, North-West University (NWU), South Africa.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

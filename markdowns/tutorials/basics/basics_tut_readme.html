@@ -1,0 +1,1122 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Basics &#8212; KnowIt 1.0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=292eb321"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'markdowns/tutorials/basics/basics_tut_readme';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Basic sweep" href="../basic_sweep/basic_sweep_tut_readme.html" />
+    <link rel="prev" title="Code Conventions" href="../../guides/coding_convention_readme.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="1.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/KI_logo_short_stencil.png" class="logo__image only-light" alt="KnowIt 1.0.1 documentation - Home"/>
+    <img src="../../../_static/KI_logo_short_stencil.png" class="logo__image only-dark pst-js-only" alt="KnowIt 1.0.1 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="#">
+    Basics
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../autoapi/index.html">
+    API Reference
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart_readme.html">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Basics
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../autoapi/index.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Basics</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="basics">
+<h1>Basics<a class="headerlink" href="#basics" title="Link to this heading">#</a></h1>
+<p>In this tutorial we show how to load, prepare, and import a new dataset into KnowIt,
+as well as train, evaluate, and interpret a new model of this dataset.</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#1"><span class="xref myst">Load raw data</span></a></p></li>
+<li><p><a class="reference internal" href="#2"><span class="xref myst">Prepare raw data for importing</span></a></p></li>
+<li><p><a class="reference internal" href="#3"><span class="xref myst">Import data into KnowIt</span></a></p></li>
+<li><p><a class="reference internal" href="#4"><span class="xref myst">Review options</span></a></p></li>
+<li><p><a class="reference internal" href="#5"><span class="xref myst">Train a new model</span></a></p></li>
+<li><p><a class="reference internal" href="#6"><span class="xref myst">Check model predictions</span></a></p></li>
+<li><p><a class="reference internal" href="#7"><span class="xref myst">Interpret model predictions</span></a></p></li>
+</ol>
+<hr class="docutils" />
+<section id="load-raw-data">
+<h2>1. Load raw data <div id="1"><a class="headerlink" href="#load-raw-data" title="Link to this heading">#</a></h2>
+<p>We will use the popular <a class="reference external" href="https://github.com/zhouhaoyi/ETDataset">Electricity Transformer Dataset (ETDataset)</a>.</p>
+<p>Specifically, we will be looking at the “ETTm1.csv” variant, found under their ETT-small subdirectory.</p>
+<p>This dataset contains various power load features of a transformer, measured at 15min intervals.</p>
+<p>Let’s start by loading the raw data into pandas dataframes and having a look.</p>
+<section id="code">
+<h3>1.1. Code<a class="headerlink" href="#code" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># import the pandas library</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="c1"># import the matplotlib library</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="c1"># set matplotlib to dark mode :)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;dark_background&#39;</span><span class="p">)</span>
+
+<span class="c1"># load the native csv file as a dataframe</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;ETTm1.csv&#39;</span><span class="p">)</span>
+
+<span class="c1"># print a summary of the dataframe</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+<span class="c1"># visualize the dataframe directly</span>
+<span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;ETTm1&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="output">
+<h3>1.2. Output<a class="headerlink" href="#output" title="Link to this heading">#</a></h3>
+<p><img alt="df_summary.png" src="../../../_images/df_summary.png" /></p>
+<p><img alt="df_viz.png" src="../../../_images/df_viz.png" /></p>
+</section>
+<section id="observations">
+<h3>1.3. Observations<a class="headerlink" href="#observations" title="Link to this heading">#</a></h3>
+<p>Given the outputs, we can see that:</p>
+<ul class="simple">
+<li><p>the data consists of 69680 rows and 8 columns, of which one is a “date” column.</p></li>
+<li><p>the dataframe is not time indexed.</p></li>
+<li><p>the components (assuming columns as components) have different value ranges.</p></li>
+</ul>
+<hr class="docutils" />
+</section>
+</section>
+<section id="prepare-raw-data-for-importing">
+<h2>2. Prepare raw data for importing <div id="2"><a class="headerlink" href="#prepare-raw-data-for-importing" title="Link to this heading">#</a></h2>
+<p>In order for data to be imported into KnowIt, it needs to meet the
+conditions defined in <code class="docutils literal notranslate"><span class="pre">KnowIt.default_datasets.dataset_how_to.md</span></code>.
+In this section we adjust the data to meet those conditions.</p>
+<p>We do this with the following steps:</p>
+<ul class="simple">
+<li><p>We check that the dataframe does not contain any NaN values (note, NaNs are allowed, just no all-NaN columns).</p></li>
+<li><p>We ensure that the date column is time indexed.</p></li>
+<li><p>We index the dataframe by the date column.</p></li>
+<li><p>We add meta data to the “attrs” dictionary.</p></li>
+<li><p>We pickle the resulting dataframe; naming it ‘ETT_ready.pkl’</p></li>
+</ul>
+<section id="id1">
+<h3>3.1. Code<a class="headerlink" href="#id1" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># check if the dataframe contains any NaN values</span>
+<span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Dataframe contains NaN values.&#39;</span><span class="p">)</span>
+
+<span class="c1"># convert the dataframe date column to datetime format</span>
+<span class="n">df</span><span class="o">.</span><span class="n">date</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">date</span><span class="p">)</span>
+<span class="c1"># set the dataframe index to date column</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">)</span>
+
+<span class="c1"># construct and attach the required meta data to the dataframe</span>
+<span class="c1">#   -   &#39;name&#39; is what the base dataset will be called in KnowIt</span>
+<span class="c1">#   -   &#39;components&#39; is what columns KnowIt should store as valid components</span>
+<span class="c1">#   -   &#39;time_delta&#39; is the time period between adjacent time steps in the dataset</span>
+<span class="n">df</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;ETTm&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;components&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span>
+            <span class="s1">&#39;time_delta&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">15</span><span class="p">)}</span>
+
+<span class="c1"># print a new summary of dataframe</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+<span class="c1"># print the attributes dictionary</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+
+<span class="c1"># visualize the dataframe directly</span>
+<span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;ETTm1&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="c1"># store the dataframe in new pickle</span>
+<span class="n">df</span><span class="o">.</span><span class="n">to_pickle</span><span class="p">(</span><span class="s1">&#39;ETT_ready.pkl&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id2">
+<h3>2.2. Output<a class="headerlink" href="#id2" title="Link to this heading">#</a></h3>
+<p><img alt="df_prep_summary.png" src="../../../_images/df_prep_summary.png" /></p>
+<p><img alt="df_prep_viz.png" src="../../../_images/df_prep_viz.png" /></p>
+</section>
+<section id="id3">
+<h3>2.3. Observations<a class="headerlink" href="#id3" title="Link to this heading">#</a></h3>
+<p>Given the output, we can see that our prepared dataframe:</p>
+<ul class="simple">
+<li><p>consists of 69680 rows and 7 columns. The removed column is the previous date column.</p></li>
+<li><p>is time indexed by the date column.</p></li>
+<li><p>contains the correct meta data.</p></li>
+</ul>
+<hr class="docutils" />
+</section>
+</section>
+<section id="import-data-into-knowit">
+<h2>3. Import data into KnowIt <div id="3"><a class="headerlink" href="#import-data-into-knowit" title="Link to this heading">#</a></h2>
+<p>With our data prepared we can import it into KnowIt.</p>
+<p>To do this we first create a KnowIt object and give it an experiment output
+directory (<code class="docutils literal notranslate"><span class="pre">ETT_exp_dir</span></code> in this case).
+Note that if no directory path is given, a temporary output directory will be maintained
+until the KnowIt object is destroyed.</p>
+<p>We then call the <code class="docutils literal notranslate"><span class="pre">KnowIt.import_dataset</span></code> function providing the required
+kwarg dictionary (for importing a dataset a ‘data_import’ kwarg dictionary is required).</p>
+<p>See <code class="docutils literal notranslate"><span class="pre">KnowIt.user_options.md</span></code> for information on additional kwargs.</p>
+<section id="id4">
+<h3>3.1. Code<a class="headerlink" href="#id4" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># import the KnowIt class</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">knowit</span><span class="w"> </span><span class="kn">import</span> <span class="n">KnowIt</span>
+<span class="c1"># create a KnowIt object linked to a new experiment directory</span>
+<span class="n">KI</span> <span class="o">=</span> <span class="n">KnowIt</span><span class="p">(</span><span class="s1">&#39;ETT_exp_dir&#39;</span><span class="p">)</span>
+<span class="c1"># we switch KnowIt to verbose mode to provide more information</span>
+<span class="n">KI</span><span class="o">.</span><span class="n">global_args</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="c1"># import the prepared data into KnowIt</span>
+<span class="n">KI</span><span class="o">.</span><span class="n">import_dataset</span><span class="p">({</span><span class="s1">&#39;data_import&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;raw_data&#39;</span><span class="p">:</span> <span class="s1">&#39;ETT_ready.pkl&#39;</span><span class="p">}})</span>
+</pre></div>
+</div>
+</section>
+<section id="id5">
+<h3>3.2. Output<a class="headerlink" href="#id5" title="Link to this heading">#</a></h3>
+<p><img alt="import_results.png" src="../../../_images/import_results.png" /></p>
+</section>
+<section id="id6">
+<h3>3.3. Observations<a class="headerlink" href="#id6" title="Link to this heading">#</a></h3>
+<p>Given the output, we can see that:</p>
+<ul class="simple">
+<li><p>the dataset has been imported successfully.</p></li>
+<li><p>the stored components match our expectations.</p></li>
+<li><p>KnowIt captured, 1 instance, 1 slice, and 69680 potential prediction points.
+This is because we did not define any instances and there were no NaNs or gaps in the dataframe which would have required separate slices or interpolating.</p></li>
+<li><p>the dataset contains only a single ‘super instance’. This is because we did not define any instances in this case.</p></li>
+<li><p>the imported dataset is correctly saved with the correct name in the newly created experiment output directory.</p></li>
+</ul>
+<hr class="docutils" />
+</section>
+</section>
+<section id="review-options">
+<h2>4. Review options <div id="4"><a class="headerlink" href="#review-options" title="Link to this heading">#</a></h2>
+<p>Before training a new model, we might want to review our options.
+The following code creates a new KnowIt object (we could also have kept using the previous one)
+and calls the  <code class="docutils literal notranslate"><span class="pre">KnowIt.available_datasets()</span></code> function to see what datasets are available to the current
+KnowIt object. It also calls the <code class="docutils literal notranslate"><span class="pre">KnowIt.available_archs()</span></code> function to see what architectures are available.
+Finally, we call <code class="docutils literal notranslate"><span class="pre">KnowIt.summarize_dataset('ETTm')</span></code> to summarize our newly imported dataset.</p>
+<section id="id7">
+<h3>4.1. Code<a class="headerlink" href="#id7" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">knowit</span><span class="w"> </span><span class="kn">import</span> <span class="n">KnowIt</span>
+<span class="n">KI</span> <span class="o">=</span> <span class="n">KnowIt</span><span class="p">(</span><span class="s1">&#39;ETT_exp_dir&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">KI</span><span class="o">.</span><span class="n">available_datasets</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">KI</span><span class="o">.</span><span class="n">available_archs</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">KI</span><span class="o">.</span><span class="n">summarize_dataset</span><span class="p">(</span><span class="s1">&#39;ETTm&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+<section id="id8">
+<h3>4.2. Output<a class="headerlink" href="#id8" title="Link to this heading">#</a></h3>
+<p><img alt="review_options.png" src="../../../_images/review_options.png" /></p>
+</section>
+<section id="id9">
+<h3>4.3. Observations<a class="headerlink" href="#id9" title="Link to this heading">#</a></h3>
+<p>Given the output, we can see that:</p>
+<ul class="simple">
+<li><p>there are two datasets available to our KnowIt object; the default ‘synth_2’ dataset and our new custom ‘ETTm’ dataset.</p></li>
+<li><p>there are four architectures available for training; all defaults.</p></li>
+<li><p>the specifics of our new dataset are as expected.</p></li>
+</ul>
+</section>
+</section>
+<section id="train-a-new-model">
+<h2>5. Train a new model <div id="5"><a class="headerlink" href="#train-a-new-model" title="Link to this heading">#</a></h2>
+<p>In order to train a model of our new dataset we need to call the <code class="docutils literal notranslate"><span class="pre">KnowIt.train_model</span></code>
+function, give the model a name and provide three kwarg dictionaries.
+We briefly summarize the kwargs used here, see <code class="docutils literal notranslate"><span class="pre">KnowIt.user_options.md</span></code> for information on additional kwargs.</p>
+<p><strong>data</strong> →</p>
+<p>The first kwarg dictionary (data) defines how the base dataset should be preprocessed and what task we want to build a model of.
+For simplicity, we will train a model to perform autoregressive univariate time series forecasting on the
+‘OT’ (Oil temperature) component. Specifically, we want a model that looks at the oil temperature for the previous 24 time steps (6 hours)
+to predict the oil temperature at the 24th time step from the current point in time (6 hours from now). This can be represented as:</p>
+<p>[OT(t-24), …, OT(t)] → OT(t+24)</p>
+<p>or equivalently</p>
+<p>[OT(t-48), …, OT(t-24)] → OT(t)</p>
+<p>These two mappings perform the same task, they are just shifted w.r.t where they are applied.</p>
+<p>The data kwargs we choose are as follows:</p>
+<ul class="simple">
+<li><p>task = ‘regression’ → We want target values to be real-valued.</p></li>
+<li><p>‘in_components’ = [‘OT’] → We want our model to use the ‘OT’ component as input.</p></li>
+<li><p>‘out_components’ = [‘OT’] → We want our model to produce an output corresponding to the ‘OT’ component.</p></li>
+<li><p>‘in_chunk’ = [-48, -24] → The model should consider the component values between time delay -48 and -24 as described above.</p></li>
+<li><p>‘out_chunk’ = [0, 0] → The model should output the component values between time delay 0 and 0 as described above.</p></li>
+<li><p>‘split_portions’ = [0.6, 0.2, 0.2] → We want the full dataset to be split into train, validation, and evaluation splits with
+proportions 60%, 20%, and 20%, respectively.</p></li>
+<li><p>‘batch_size’ = 64 → The dataloader used for training should use a batch size of 64.</p></li>
+<li><p>‘scaling_tag’ = ‘full’ → Both the input and output components should be normalized.</p></li>
+<li><p>‘scaling_method’ = ‘z-norm’ → Use standardization for normalizing features.</p></li>
+</ul>
+<p>This might seem like a cumbersome approach to defining a simple univariate autoregressive forecasting task, however
+it allows us a lot of freedom in defining alternative tasks on-the-fly.</p>
+<p><strong>arch</strong> →</p>
+<p>The second kwarg dictionary (arch) defines the deep learning architecture that will be trained to form the model.
+As a bare minimum, we need to define the architecture name and type of task the model will perform:</p>
+<ul class="simple">
+<li><p>task = ‘regression’ → We want the model output to be real-valued.</p></li>
+<li><p>‘name’ = ‘TCN’ → We want to use the default TCN based architecture to build our model.</p></li>
+</ul>
+<p>Note that hyperparameters relating to the architecture can also be set by passing an ‘arch_hps’ kwarg dictionary.
+Here we just use the default hyperparameters as defined in the relevant architecture script <code class="docutils literal notranslate"><span class="pre">KnowIt.default_archs.TCN</span></code>.</p>
+<p><strong>trainer</strong> →</p>
+<p>The third, and final, kwarg dictionary (trainer) defines the training process used to build the model.
+It contains details on the optimizer, stopping criterion, and performance metric.</p>
+<p>In this example we will use a very basic setup:</p>
+<ul class="simple">
+<li><p>loss_fn = ‘mse’ → Use the mean square error loss function.</p></li>
+<li><p>‘optim’ = ‘Adam’ → Use the Adam optimizer.</p></li>
+<li><p>‘max_epochs’ = 10 → Train the model for a maximum of 10 epochs.</p></li>
+<li><p>‘learning_rate’ = 0.01 → Use a global learning rate of 0.01.</p></li>
+<li><p>task = ‘regression’ → The target and model values should be real-valued.</p></li>
+</ul>
+<section id="id10">
+<h3>5.1. Code<a class="headerlink" href="#id10" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">knowit</span><span class="w"> </span><span class="kn">import</span> <span class="n">KnowIt</span>
+<span class="n">KI</span> <span class="o">=</span> <span class="n">KnowIt</span><span class="p">(</span><span class="s1">&#39;ETT_exp_dir&#39;</span><span class="p">)</span>
+<span class="c1"># name the new model</span>
+<span class="n">model_name</span> <span class="o">=</span> <span class="s2">&quot;ETTm_uni_model_tcn&quot;</span>
+<span class="c1"># define dataset kwargs</span>
+<span class="n">data_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;ETTm&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;regression&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;in_components&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;OT&#39;</span><span class="p">],</span>
+             <span class="s1">&#39;out_components&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;OT&#39;</span><span class="p">],</span>
+             <span class="s1">&#39;in_chunk&#39;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mi">48</span><span class="p">,</span> <span class="o">-</span><span class="mi">24</span><span class="p">],</span>
+             <span class="s1">&#39;out_chunk&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+             <span class="s1">&#39;split_portions&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span>
+             <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="mi">64</span><span class="p">,</span>
+             <span class="s1">&#39;scaling_tag&#39;</span><span class="p">:</span> <span class="s1">&#39;full&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;scaling_method&#39;</span><span class="p">:</span> <span class="s1">&#39;z-norm&#39;</span><span class="p">}</span>
+<span class="c1"># Define architecture kwargs</span>
+<span class="n">arch_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;regression&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;TCN&#39;</span><span class="p">}</span>
+<span class="c1"># Define trainer kwargs</span>
+<span class="n">trainer_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;loss_fn&#39;</span><span class="p">:</span> <span class="s1">&#39;mse_loss&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;optim&#39;</span><span class="p">:</span> <span class="s1">&#39;Adam&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;max_epochs&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+                <span class="s1">&#39;learning_rate&#39;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span>
+                <span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;regression&#39;</span>
+                <span class="p">}</span>
+<span class="c1"># Initiate trainer and use default visualization for learning curves</span>
+<span class="n">KI</span><span class="o">.</span><span class="n">train_model</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span> 
+               <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">data_args</span><span class="p">,</span> <span class="s1">&#39;arch&#39;</span><span class="p">:</span> <span class="n">arch_args</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">:</span> <span class="n">trainer_args</span><span class="p">},</span> 
+               <span class="n">and_viz</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id11">
+<h3>5.2. Output<a class="headerlink" href="#id11" title="Link to this heading">#</a></h3>
+<p>The following files are created under <code class="docutils literal notranslate"><span class="pre">ETT_exp_dir.models.ETTm_uni_model_tcn</span></code>:</p>
+<p><img alt="trained_model.png" src="../../../_images/trained_model.png" /></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">model_args.yaml</span></code> contains:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">arch</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">arch_hps</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TCN</span>
+<span class="w">  </span><span class="nt">task</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">regression</span>
+<span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">batch_sampling_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">  </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span>
+<span class="w">  </span><span class="nt">in_chunk</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-48</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-24</span>
+<span class="w">  </span><span class="nt">in_components</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OT</span>
+<span class="w">  </span><span class="nt">limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">  </span><span class="nt">meta_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ETT_exp_dir/custom_datasets/ETTm_meta.pickle</span>
+<span class="w">  </span><span class="nt">min_slice</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ETTm</span>
+<span class="w">  </span><span class="nt">out_chunk</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">  </span><span class="nt">out_components</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OT</span>
+<span class="w">  </span><span class="nt">package_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ETT_exp_dir/custom_datasets/ETTm</span>
+<span class="w">  </span><span class="nt">padding_method</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mean</span>
+<span class="w">  </span><span class="nt">scaling_method</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">z-norm</span>
+<span class="w">  </span><span class="nt">scaling_tag</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">full</span>
+<span class="w">  </span><span class="nt">seed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">123</span>
+<span class="w">  </span><span class="nt">shuffle_train</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">split_method</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">chronological</span>
+<span class="w">  </span><span class="nt">split_portions</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.6</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2</span>
+<span class="w">  </span><span class="nt">task</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">regression</span>
+<span class="nt">data_dynamics</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">eval_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">13931</span>
+<span class="w">  </span><span class="nt">in_shape</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">25</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">  </span><span class="nt">out_shape</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">  </span><span class="nt">train_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">41793</span>
+<span class="w">  </span><span class="nt">valid_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">13932</span>
+<span class="nt">trainer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">ckpt_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">min</span>
+<span class="w">  </span><span class="nt">early_stopping_args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">  </span><span class="nt">learning_rate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.01</span>
+<span class="w">  </span><span class="nt">logger_status</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">loss_fn</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mse_loss</span>
+<span class="w">  </span><span class="nt">lr_scheduler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">  </span><span class="nt">max_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">  </span><span class="nt">optim</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Adam</span>
+<span class="w">  </span><span class="nt">optional_pl_kwargs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="w">  </span><span class="nt">performance_metrics</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">  </span><span class="nt">rescale_logged_output_metrics</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">return_final</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">seed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">123</span>
+<span class="w">  </span><span class="nt">task</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">regression</span>
+</pre></div>
+</div>
+<p>The following visualization is stored under the <code class="docutils literal notranslate"><span class="pre">visualizations</span></code> subdirectory.</p>
+<p><img alt="trained_model_learning_curves.png" src="../../../_images/trained_model_learning_curves.png" /></p>
+</section>
+<section id="id12">
+<h3>5.3. Observations<a class="headerlink" href="#id12" title="Link to this heading">#</a></h3>
+<p>See <code class="docutils literal notranslate"><span class="pre">result_structure.md</span></code> for details on the output format for the trained model.</p>
+<p>Note that our code has produced a visualization of the learning curves captured in the <code class="docutils literal notranslate"><span class="pre">lightning_logs</span></code> subdirectory.
+See <code class="docutils literal notranslate"><span class="pre">helpers.viz.plot_learning_curves</span></code> for the code to generate this visualization.
+We note that our training operation has reduced the loss drastically within the first epoch, and then
+stagnated quite quickly. The best model was obtained at the eighth epoch. By default, the model is saved at
+the epoch with the lowest validation loss. If we open the <code class="docutils literal notranslate"><span class="pre">lightning_logs</span></code> we see that the exact final validation loss is 3.4645497801992424.</p>
+<hr class="docutils" />
+</section>
+</section>
+<section id="check-model-predictions">
+<h2>6. Check model predictions <div id="6"><a class="headerlink" href="#check-model-predictions" title="Link to this heading">#</a></h2>
+<p>Next, we might want to take a more qualitative approach to evaluating the model’s performance,
+by visualizing its prediction on data it was not trained on.</p>
+<p>We do this by calling <code class="docutils literal notranslate"><span class="pre">KnowIt.generate_predictions</span></code> function with the required model name and kwarg dictionary.
+The only kwarg dictionary that is required is ‘predictor’ and we set the desired data split to be predicted on to
+‘valid’, corresponding to the validation set.</p>
+<section id="id13">
+<h3>6.1. Code<a class="headerlink" href="#id13" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># generate model predictions on the validation set and use default visualization for predictions</span>
+<span class="n">KI</span><span class="o">.</span><span class="n">generate_predictions</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span>
+                        <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;predictor&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;prediction_set&#39;</span><span class="p">:</span> <span class="s1">&#39;valid&#39;</span><span class="p">}},</span>
+                        <span class="n">and_viz</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id14">
+<h3>6.2. Output<a class="headerlink" href="#id14" title="Link to this heading">#</a></h3>
+<p>The following files are now listed under <code class="docutils literal notranslate"><span class="pre">ETT_exp_dir.models.ETTm_uni_model_tcn</span></code>:</p>
+<p><img alt="trained_model_after_predictions.png" src="../../../_images/trained_model_after_predictions.png" /></p>
+<p>The following visualization is stored under the <code class="docutils literal notranslate"><span class="pre">visualizations</span></code> subdirectory.</p>
+<p><img alt="trained_model_predictions.png" src="../../../_images/trained_model_predictions.png" /></p>
+<p>The previous visualization, zoomed in:</p>
+<p><img alt="trained_model_predictions_zoomed.png" src="../../../_images/trained_model_predictions_zoomed.png" /></p>
+</section>
+<section id="id15">
+<h3>6.3. Observations<a class="headerlink" href="#id15" title="Link to this heading">#</a></h3>
+<p>Note that our code has produced a visualization of the validation set predictions of our trained model.
+See <code class="docutils literal notranslate"><span class="pre">helpers.viz.plot_set_predictions</span></code> for the code to generate this visualization.</p>
+<p>Each point on the horizontal axis represents a prediction point (ordered by time step).
+Each point on the vertical axis shows the OT value as represented by the
+ground truth (red), and predicted by the model (blue), at the current prediction point.</p>
+<p>Notice that if we look at the overall predictions (top visualization) it appears that the model,
+is making very accurate predictions in general. However, if we look at the zoomed in visualization (bottom),
+we see that the model tends to output a near copy of the OT, only delayed by some number of
+time steps. From this we suspect that the model is performing a naive forecast, where the forecasted value is
+just the most recently available value in the input chunk.</p>
+<hr class="docutils" />
+</section>
+</section>
+<section id="interpret-model-predictions">
+<h2>7. Interpret model predictions <div id="7"><a class="headerlink" href="#interpret-model-predictions" title="Link to this heading">#</a></h2>
+<p>In order to investigate our suspicion that the model is performing a naive forecast, we can interpret its predictions
+with a feature attribution method. If the feature corresponding to the most recent time step in the input chunk is
+regarded as overwhelmingly more important than the others, it would be a strong indication that we are correct.</p>
+<p>To do this we call <code class="docutils literal notranslate"><span class="pre">KnowIt.interpret_model</span></code> and provide the required kwarg dictionary (interpreter).
+The kwargs we provide are as follows:</p>
+<ul class="simple">
+<li><p>interpretation_method = ‘DeepLift’ → Use <a class="reference external" href="https://captum.ai/api/deep_lift.html">Captum’s DeeLift</a> feature attributions.</p></li>
+<li><p>‘interpretation_set’ = ‘valid’ → Interpret model prediction on the validation set predictions.</p></li>
+<li><p>‘selection’ = ‘random’ → Select a random set of contiguous prediction points to interpret.</p></li>
+<li><p>‘size’ = 100 → Select 100 prediction points to interpret.</p></li>
+</ul>
+<section id="id16">
+<h3>7.1. Code<a class="headerlink" href="#id16" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># set up interpreter kwarg dictionary</span>
+<span class="n">interpret_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;interpretation_method&#39;</span><span class="p">:</span> <span class="s1">&#39;DeepLift&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;interpretation_set&#39;</span><span class="p">:</span> <span class="s1">&#39;valid&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;selection&#39;</span><span class="p">:</span> <span class="s1">&#39;random&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}</span>
+<span class="c1"># Initiate interpretations and use default visualization methods</span>
+<span class="n">KI</span><span class="o">.</span><span class="n">interpret_model</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span>
+                   <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;interpreter&#39;</span><span class="p">:</span> <span class="n">interpret_args</span><span class="p">},</span>
+                   <span class="n">and_viz</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id17">
+<h3>7.2. Output<a class="headerlink" href="#id17" title="Link to this heading">#</a></h3>
+<p>The following files are now listed under <code class="docutils literal notranslate"><span class="pre">ETT_exp_dir.models.ETTm_uni_model_tcn</span></code>:</p>
+<p><img alt="trained_model_after_interpretations.png" src="../../../_images/trained_model_after_interpretations.png" /></p>
+<p>The following visualization is stored under the <code class="docutils literal notranslate"><span class="pre">visualizations</span></code> subdirectory.</p>
+<p><img alt="trained_model_interpretation.gif" src="../../../_images/trained_model_interpretation.gif" /></p>
+</section>
+<section id="id18">
+<h3>7.3. Observations<a class="headerlink" href="#id18" title="Link to this heading">#</a></h3>
+<p>Note that our code has produced a visualization of the interpretation’s 100 validation set predictions of our trained model.
+See <code class="docutils literal notranslate"><span class="pre">helpers.viz.plot_feature_attribution</span></code> for the code to generate this visualization.</p>
+<p>The top plot shows the full set of interpreted prediction point target (red) and predicted (blue) OT values.
+It also shows the input components (green; which in this case is OT itself) at each point where the model makes a prediction.
+The dashed lines frame the input chunk and the solid line indicates the prediction point.
+Note that the input chunk is delayed by a number (we know to be 24) of time steps behind the prediction point.</p>
+<p>The bottom plot shows a heatmap of the feature attributions assigned to each input feature in the input chunk.
+We note that the OT value at a time delay of -48 consistently has higher attribution value, while most
+of the others tend to fluctuate. This suggests that our hypothesis was not entirely correct. Our model seems to be
+basing its prediction a lot on the OT value 12 hours in the past (-48 x 15min) even though it is given OT values for the
+6 hours after that point.</p>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../../guides/coding_convention_readme.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Code Conventions</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../basic_sweep/basic_sweep_tut_readme.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Basic sweep</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#load-raw-data">1. Load raw data <div id="1"></div></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#code">1.1. Code</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#output">1.2. Output</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#observations">1.3. Observations</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#prepare-raw-data-for-importing">2. Prepare raw data for importing <div id="2"></div></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">3.1. Code</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">2.2. Output</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">2.3. Observations</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#import-data-into-knowit">3. Import data into KnowIt <div id="3"></div></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">3.1. Code</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">3.2. Output</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">3.3. Observations</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#review-options">4. Review options <div id="4"></div></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id7">4.1. Code</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id8">4.2. Output</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id9">4.3. Observations</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#train-a-new-model">5. Train a new model <div id="5"></div></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id10">5.1. Code</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id11">5.2. Output</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id12">5.3. Observations</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#check-model-predictions">6. Check model predictions <div id="6"></div></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id13">6.1. Code</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id14">6.2. Output</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id15">6.3. Observations</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#interpret-model-predictions">7. Interpret model predictions <div id="7"></div></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id16">7.1. Code</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id17">7.2. Output</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id18">7.3. Observations</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, North-West University (NWU), South Africa.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

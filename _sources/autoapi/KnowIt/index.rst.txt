@@ -1,0 +1,25 @@
+KnowIt
+======
+
+.. py:module:: KnowIt
+
+.. autoapi-nested-parse::
+
+   KnowIt main module.
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/KnowIt/data/index
+   /autoapi/KnowIt/default_archs/index
+   /autoapi/KnowIt/interpret/index
+   /autoapi/KnowIt/knowit/index
+   /autoapi/KnowIt/setup/index
+   /autoapi/KnowIt/trainer/index
+
+

@@ -1,0 +1,23 @@
+KnowIt.trainer
+==============
+
+.. py:module:: KnowIt.trainer
+
+.. autoapi-nested-parse::
+
+   KnowIt Trainer modules.
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/KnowIt/trainer/base_trainer/index
+   /autoapi/KnowIt/trainer/model_config/index
+   /autoapi/KnowIt/trainer/trainer/index
+   /autoapi/KnowIt/trainer/trainer_states/index
+
+

@@ -1,0 +1,201 @@
+KnowIt.trainer.trainer_states
+=============================
+
+.. py:module:: KnowIt.trainer.trainer_states
+
+.. autoapi-nested-parse::
+
+   -------------
+   TrainerStates
+   -------------
+
+   There are three states that a user can initialize KnowIt's Trainer in. They are
+   as follows:
+
+   STATE 1 (NEW): Train a new model from scratch.
+
+       Class: TrainNew
+           Fits a model to a training set and evaluates the model on a valid-
+           ation set and evaluation set. During training, metrics are logged
+           and a checkpoint file is saved (only if 'mute_logger' is False) in
+           the user's model output directory.
+
+   STATE 2 (CONTINUE): Continue training an existing model from checkpoint.
+
+       Class: ContinueTraining
+           Initializes a pretrained model from a checkpoint file. Fits the
+           initialized model to a training set and evaluates the model on a
+           validation set and evaluation set. During training, metrics are
+           logged and a checkpoint file is saved (only if 'mute_logger' is
+           False) in the user's model output directory.
+
+   STATE 3 (EVAL): Continue training an existing model from checkpoint.
+
+       Class: EvaluateOnly
+           Initializes a pretrained model from a checkpoint file. Evaluates
+           the model on a validation set and evaluation set.
+
+   In the case that the above states are inadequate for a user's task, the module
+   also contains an example template class "CustomTrainer" that a user can edit.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.trainer.trainer_states.TrainNew
+   KnowIt.trainer.trainer_states.ContinueTraining
+   KnowIt.trainer.trainer_states.EvaluateOnly
+   KnowIt.trainer.trainer_states.CustomTrainer
+
+
+Module Contents
+---------------
+
+.. py:class:: TrainNew(base_kwargs, optional_pl_kwargs)
+
+   Bases: :py:obj:`trainer.base_trainer.BaseTrainer`
+
+
+   Fit a model to a training dataset and evaluate on val/eval sets.
+
+   :Parameters: * **base_kwargs** (:py:class:`dict[str`, :py:class:`Any]`) -- The user's input parameters (to be stored in the parent class).
+                * **optional_pl_kwargs** (:py:class:`dict[str`, :py:class:`Any]`) -- Additional kwargs to be provided to Pytorch Lightning's Trainer (such
+                  as gradient clipping, etc). See Pytorch Lightning's documentation for
+                  more information.
+
+   :ivar pl_model: The Pytorch Lightning model initialized with a user's Pytorch model.
+
+   :vartype pl_model: :py:class:`type`
+   :ivar trainer: The Pytorch Lightning trainer initialized with pl_model and any
+                  additional user kwargs (see optional_pl_kwargs).
+
+   :vartype trainer: :py:class:`type`
+
+
+   .. py:method:: fit_model(dataloaders)
+
+      Fit model to the training data and monitor metrics on val set.
+
+      :Parameters: **dataloaders** (:py:class:`tuple[DataLoader[Any]`, :py:class:`DataLoader[Any]`, :py:class:`DataLoader[Any]]`) -- The triplet containing the train dataloader and validation
+                   dataloader. The ordering of the tuple must be given as
+                   (train, val, eval).
+
+
+
+   .. py:method:: evaluate_model(dataloaders)
+
+      Evaluate the trained model's performance on a tuple of data sets.
+
+      :Parameters: * **dataloaders** (:py:class:`tuple[DataLoader[Any]`, :py:class:`DataLoader[Any]`, :py:class:`DataLoader[Any]]`) -- The triplet containing the train dataloader and validation
+                     dataloader. The ordering of the tuple must be given as
+                     (train, val, eval).
+                   * **NOTE** (:py:class:`If the concatenated strings for metrics become long`, :py:class:`Pytorch`)
+                   * **Lightning will print the evaluation results on two seperate lines in**
+                   * **the terminal.**
+
+
+
+.. py:class:: ContinueTraining(to_ckpt, base_kwargs, optional_pl_kwargs)
+
+   Bases: :py:obj:`trainer.base_trainer.BaseTrainer`
+
+
+   Fit a pretrained model to a training set and evaluate on val/eval sets.
+
+   :Parameters: **to_ckpt** (:py:class:`None | str`) -- Path to the model checkpoint file.
+
+   base_kwargs : dict[str, Any]
+       The user's input parameters (to be stored in the parent class).
+
+   optional_pl_kwargs : dict[str, Any]
+       Additional kwargs to be provided to Pytorch Lightning's Trainer (such
+       as gradient clipping, etc). See Pytorch Lightning's documentation for
+       more information.
+
+   :ivar pl_model: The Pytorch Lightning model initialized with a user's Pytorch model.
+
+   :vartype pl_model: :py:class:`type`
+   :ivar trainer: The Pytorch Lightning trainer initialized with pl_model and any
+                  additional user kwargs (see optional_pl_kwargs).
+
+   :vartype trainer: :py:class:`type`
+
+
+   .. py:method:: fit_model(dataloaders)
+
+      Fit model to the training data and monitor metrics on val set.
+
+      :Parameters: **dataloaders** (:py:class:`tuple[DataLoader[Any]`, :py:class:`DataLoader[Any]`, :py:class:`DataLoader[Any]]`) -- The triplet containing the train dataloader and validation
+                   dataloader. The ordering of the tuple must be given as
+                   (train, val, eval).
+
+
+
+   .. py:method:: evaluate_model(dataloaders)
+
+      Evaluate the trained model's performance on a tuple of data sets.
+
+      :Parameters: * **dataloaders** (:py:class:`tuple[DataLoader[Any]`, :py:class:`DataLoader[Any]`, :py:class:`DataLoader[Any]]`) -- The triplet containing the train dataloader and validation
+                     dataloader. The ordering of the tuple must be given as
+                     (train, val, eval).
+                   * **NOTE** (:py:class:`If the concatenated strings for metrics become long`, :py:class:`Pytorch`)
+                   * **Lightning will print the evaluation results on two seperate lines in**
+                   * **the terminal.**
+
+
+
+.. py:class:: EvaluateOnly(to_ckpt, base_trainer_kwargs)
+
+   Bases: :py:obj:`trainer.base_trainer.BaseTrainer`
+
+
+   Evaluate a trained model on a dataset.
+
+   :Parameters: **to_ckpt** (:py:class:`None | str`) -- Path to the model checkpoint file.
+
+   base_trainer_kwargs: dict
+       A dictionary to initialize Pytorch Lightning's Trainer module.
+
+   :ivar ckpt_file: Path to model checkpoint file.
+
+   :vartype ckpt_file: :py:class:`str`
+   :ivar pl_model: The Pytorch Lightning model initialized with a user's Pytorch model.
+
+   :vartype pl_model: :py:class:`type`
+   :ivar trainer: The Pytorch Lightning trainer initialized with pl_model and any addit-
+                  ional kwargs.
+
+   :vartype trainer: :py:class:`type`
+
+
+   .. py:method:: evaluate_model(dataloaders)
+
+      Evaluate the trained model's performance on a tuple of data sets.
+
+      :Parameters: * **dataloaders** (:py:class:`tuple[DataLoader[Any]`, :py:class:`DataLoader[Any]`, :py:class:`DataLoader[Any]]`) -- The triplet containing the train dataloader and validation
+                     dataloader. The ordering of the tuple must be given as
+                     (train, val, eval).
+                   * **NOTE** (:py:class:`If the concatenated strings for metrics become long`, :py:class:`Pytorch`)
+                   * **Lightning will print the evaluation results on two seperate lines in**
+                   * **the terminal.**
+
+
+
+.. py:class:: CustomTrainer(base_kwargs, optional_pl_kwargs)
+
+   Bases: :py:obj:`trainer.base_trainer.BaseTrainer`
+
+
+   A template KnowIt trainer state.
+
+   The template can be edited by a user to create a custom trainer state.
+
+   :Parameters: * **base_kwargs** (:py:class:`dict[str`, :py:class:`Any]`) -- The user's input parameters (to be stored in the parent class).
+                * **optional_pl_kwargs** (:py:class:`dict[str`, :py:class:`Any]`) -- Additional kwargs to be provided to Pytorch Lightning's Trainer (such
+                  as gradient clipping, etc). See Pytorch Lightning's documentation for
+                  more information.
+
+

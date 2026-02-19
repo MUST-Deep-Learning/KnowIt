@@ -1,0 +1,239 @@
+KnowIt.default_archs.LSTM
+=========================
+
+.. py:module:: KnowIt.default_archs.LSTM
+
+.. autoapi-nested-parse::
+
+   -----
+   LSTM
+   -----
+
+   An example of a LSTM architecture using Pytorch.
+
+   The LSTM consists of recurrent cells that contain hidden states and cell
+   states. The hidden and cell states are initialized for each batch to a zero
+   tensor or a random tensor. Additionally, the LSTM can be set to bidirectional.
+
+   Example usage:
+   -------------
+
+   from knowit import KnowIt
+
+   KI = KnowIt()
+
+   model_name = "my_new_model"
+   data_args = {'name': 'my_data',
+                'task': 'regression',
+                'in_components': ['x1', 'x2', 'x3', 'x4'],
+                'out_components': ['y1'],
+                'in_chunk': [-5, 5],
+                'out_chunk': [0, 0],
+                'split_portions': [0.6, 0.2, 0.2],
+                'batch_size': 64,
+                'split_method': 'instance-random',
+                'scaling_tag': 'full'}
+   arch_args = {'task': 'regression',
+                'name': 'LSTM',
+                'arch_hps': {
+                   'arch_args': {
+                       'dropout': 0.6,
+                       'width': 512,
+                       'bidirectional': False,
+                   },
+                   'internal_state': {
+                       'init_cell_state': 'zeros',
+                       'init_hidden_state': 'zeros',
+                   },
+                },
+                }
+   trainer_args = {'loss_fn': 'mse_loss',
+                   'optim': 'Adam',
+                   'max_epochs': 30,
+                   'learning_rate': 0.01,
+                   'task': 'regression'
+                   }
+
+   KI.train_model(
+       model_name=model_name,
+       kwargs={'data': data_args, 'arch': arch_args, 'trainer': trainer_args},
+       safe_mode=False,
+       and_viz=True,
+   )
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.default_archs.LSTM.ArchArgs
+   KnowIt.default_archs.LSTM.Internal
+   KnowIt.default_archs.LSTM.Model
+   KnowIt.default_archs.LSTM.InternalState
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   KnowIt.default_archs.LSTM.get_output_activation
+
+
+Module Contents
+---------------
+
+.. py:class:: ArchArgs
+
+   Container for architecture parameters.
+
+   :Parameters: * **width** (:py:class:`int`, *optional*) -- The width of the architecture (default is 256).
+                * **depth** (:py:class:`int`, *optional*) -- The depth of the architecture (default is 1).
+                * **dropout** (:py:class:`float`, *optional*) -- The dropout rate (default is 0.5).
+                * **output_activation** (:py:obj:`None` or :py:class:`str`, *optional*) -- The activation function for the output layer (default is None).
+                * **bidirectional** (:py:class:`bool`, *optional*) -- Indicates whether the architecture is bidirectional (default is False).
+
+
+.. py:class:: Internal
+
+   Container for internal states and configuration.
+
+   :Parameters: * **init_hidden_state** (:py:obj:`None` or :py:class:`str` or :py:class:`Tensor`, *optional*) -- The initial hidden state for the model (default is None).
+                * **init_cell_state** (:py:obj:`None` or :py:class:`str` or :py:class:`Tensor`, *optional*) -- The initial cell state for the model (default is None).
+                * **tracking** (:py:class:`bool`, *optional*) -- Flag to indicate if tracking is enabled (default is False).
+
+
+.. py:class:: Model(input_dim, output_dim, task_name, arch_args = None, internal_state = None)
+
+   Bases: :py:obj:`torch.nn.Module`
+
+
+   Define an LSTM architecture.
+
+   The long short-term memory architecture is a type of recurrent gated neural
+   network with nonlinear activation functions.
+
+   For more information, see:
+
+   [1] https://direct.mit.edu/neco/article-abstract/9/8/1735/6109/Long-Short-Term-Memory?redirectedFrom=fulltext
+
+   :Parameters: * **input_dim** (:py:class:`list[int]`, :py:class:`shape = (in_chunk`, :py:class:`in_components)`) -- The shape of the input data. The "time axis" is along the first
+                  dimension.
+                * **output_dim** (:py:class:`list[int]`, :py:class:`shape = (in_chunk`, :py:class:`in_components)`) -- The shape of the output data. The "time axis" is along the first
+                  dimension.
+                * **task_name** (:py:class:`str`) -- The type of task (classification or regression).
+                * **arch_args** (:py:class:`None | dict[str`, :py:class:`Any]`, *default* :py:obj:`None`) -- The parameters that define the architecture (see ArchArgs).
+                * **internal_state** (:py:class:`None | dict[str`, :py:class:`Any]`, *default* :py:obj:`None`) -- The parameters that define the internal state of the LSTM
+                  (see Internal).
+
+   :ivar input_size: The size of the input features.
+   :vartype input_size: :py:class:`int`
+   :ivar model_out_dim: The total number of output features.
+   :vartype model_out_dim: :py:class:`int`
+   :ivar final_out_shape: The shape of the final output.
+   :vartype final_out_shape: :py:class:`list[int]`
+   :ivar lstm_layers: The LSTM layers of the model.
+   :vartype lstm_layers: :py:class:`LSTM`
+   :ivar model_output: The sequential output layers, including the final activation function
+                       if the task is classification.
+   :vartype model_output: :py:class:`nn.Sequential`
+   :ivar _internal: The internal state configuration of the LSTM.
+   :vartype _internal: :py:class:`InternalState`
+   :ivar task_name: The name of the task for which the model is configured.
+
+   :vartype task_name: :py:class:`str`
+
+   .. rubric:: Notes
+
+   This class builds a multi-layer LSTM network, which can be used for
+   various sequence prediction tasks, including classification and regression.
+   The architecture is configurable through the `arch_args` and
+   `internal_state` parameters, allowing for flexibility in model design.
+
+
+   .. py:method:: forward(x)
+
+      Return model output for an input batch.
+
+      Args:
+      ----
+          x (Tensor):     An input tensor of shape
+                          (batch_size, in_chunk, in_components).
+
+      :returns: **(Tensor)** -- (batch_size, out_chunk, out_components) if regress-
+                ion.
+
+                Model output of shape
+                (batch_size, num_classes) if classification.
+      :rtype: :py:class:`Model output` of :py:class:`shape`
+
+
+
+.. py:class:: InternalState(width, depth, init_hidden_state, init_cell_state, *, track_hidden, bidirect)
+
+   Initialize hidden node and cell states.
+
+   This class manages the initialization and updating of the hidden and
+   cell states for an LSTM architecture, allowing for both custom
+   initialization and tracking of states across batches.
+
+   :Parameters: * **width** (:py:class:`int`) -- The number of features in the hidden state.
+                * **depth** (:py:class:`int`) -- The number of LSTM layers.
+                * **init_hidden_state** (:py:class:`None | str | Tensor`) -- The initial hidden state. Can be "zeros", "random", or a Tensor.
+                * **init_cell_state** (:py:class:`None | str | Tensor`) -- The initial cell state. Can be "zeros", "random", or a Tensor.
+                * **track_hidden** (:py:class:`bool`) -- Flag to indicate if hidden states should be tracked across batches.
+                * **bidirect** (:py:class:`bool`) -- Flag to indicate if the LSTM is bidirectional.
+
+   :ivar width: The number of features in the hidden state.
+   :vartype width: :py:class:`int`
+   :ivar depth: The number of LSTM layers.
+   :vartype depth: :py:class:`int`
+   :ivar init_hidden_state: The initial hidden state configuration.
+   :vartype init_hidden_state: :py:class:`None | str | Tensor`
+   :ivar init_cell_state: The initial cell state configuration.
+   :vartype init_cell_state: :py:class:`None | str | Tensor`
+   :ivar tracking: Indicates if hidden states are being tracked.
+   :vartype tracking: :py:class:`bool`
+   :ivar d: The number of directions in the LSTM (1 for unidirectional, 2 for
+            bidirectional).
+   :vartype d: :py:class:`int`
+   :ivar c0: The current cell state.
+   :vartype c0: :py:class:`Tensor`
+   :ivar h0: The current hidden state.
+
+   :vartype h0: :py:class:`Tensor`
+
+
+   .. py:method:: initialize(batch_size)
+
+      Initialize hidden and cell states.
+
+      This method sets the initial values for the hidden and cell states
+      based on the specified initialization strategy.
+
+      :Parameters: **batch_size** (:py:class:`int`) -- The size of the batch for which the hidden and cell states are
+                   initialized.
+
+      :raises SystemExit: If the initialization choice for hidden or cell states is invalid.
+
+
+
+   .. py:method:: update(cn, hn)
+
+      Update values for the cell and the hidden state.
+
+      This method updates the current cell state and hidden state with
+      the provided values.
+
+      :Parameters: * **cn** (:py:class:`Tensor`) -- The new cell state to set.
+                   * **hn** (:py:class:`Tensor`) -- The new hidden state to set.
+
+
+
+.. py:function:: get_output_activation(output_activation)
+
+   Fetch output activation function from Pytorch.
+
+

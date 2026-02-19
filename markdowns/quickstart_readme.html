@@ -1,0 +1,774 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Quick Start &#8212; KnowIt 1.0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=292eb321"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'markdowns/quickstart_readme';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="User Options" href="guides/user_options_readme.html" />
+    <link rel="prev" title="KnowIt" href="../index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="1.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/KI_logo_short_stencil.png" class="logo__image only-light" alt="KnowIt 1.0.1 documentation - Home"/>
+    <img src="../_static/KI_logo_short_stencil.png" class="logo__image only-dark pst-js-only" alt="KnowIt 1.0.1 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="tutorials/basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="tutorials/basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="tutorials/stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../autoapi/index.html">
+    API Reference
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Quick Start
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="guides/user_options_readme.html">
+    User Options
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="guides/terminology_readme.html">
+    Terminology
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="guides/datasets_readme.html">
+    Dataset How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="guides/archs_readme.html">
+    Architecture How-to
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="guides/result_structure_readme.html">
+    Experiment Structure
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="guides/coding_convention_readme.html">
+    Code Conventions
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorials/basics/basics_tut_readme.html">
+    Basics
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorials/basic_sweep/basic_sweep_tut_readme.html">
+    Basic sweep
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tutorials/stateful/stateful_tut_readme.html">
+    Statefulness
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="docs/data_readme.html">
+    Data Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="docs/trainer_readme.html">
+    Trainer Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="docs/interpreter_readme.html">
+    Interpreter Framework
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../autoapi/index.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/MUST-Deep-Learning/KnowIt" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Quick Start</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="quick-start">
+<h1>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h1>
+<section id="knowledge-discovery-in-time-series-data">
+<h2>Knowledge discovery in time series data<a class="headerlink" href="#knowledge-discovery-in-time-series-data" title="Link to this heading">#</a></h2>
+<p><img alt="KI_logo.png" src="../_images/KI_logo.png" /></p>
+<hr class="docutils" />
+<p>KnowIt (<strong>Know</strong>ledge discovery <strong>I</strong>n <strong>T</strong>ime series data) is an extendable toolkit to build and interpret deep time series models.
+It is developed in Python and uses <a class="reference external" href="https://github.com/Lightning-AI/pytorch-lightning">PyTorch Lightning</a> for model building and <a class="reference external" href="https://github.com/pytorch/captum">Captum</a> for model interpreting.
+Live documentation can be found <a class="reference external" href="https://must-deep-learning.github.io/KnowIt/index.html">here</a>.</p>
+<section id="installation">
+<h3>Installation<a class="headerlink" href="#installation" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Clone the KnowIt directory locally</p></li>
+<li><p>Create a <a class="reference external" href="https://docs.conda.io/projects/conda/en/stable/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file">conda environment</a> with the provided <code class="docutils literal notranslate"><span class="pre">KnowIt/environment.yml</span></code> file</p></li>
+<li><p>Installation package TBD</p></li>
+</ul>
+</section>
+<section id="usage-overview">
+<h3>Usage overview<a class="headerlink" href="#usage-overview" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the KnowIt module</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">knowit</span><span class="w"> </span><span class="kn">import</span> <span class="n">KnowIt</span>
+
+<span class="c1"># Instantiate a KnowIt object linked to an output directory</span>
+<span class="n">KI</span> <span class="o">=</span> <span class="n">KnowIt</span><span class="p">(</span><span class="n">custom_exp_dir</span><span class="o">=</span><span class="s1">&#39;my_output_path&#39;</span><span class="p">)</span>
+
+<span class="c1"># Define your dataset</span>
+<span class="n">data_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;synth_2&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;regression&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;in_components&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;x1&#39;</span><span class="p">,</span> <span class="s1">&#39;x2&#39;</span><span class="p">,</span> <span class="s1">&#39;x3&#39;</span><span class="p">,</span> <span class="s1">&#39;x4&#39;</span><span class="p">],</span>
+             <span class="s1">&#39;out_components&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;x5&#39;</span><span class="p">],</span>
+             <span class="s1">&#39;in_chunk&#39;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mi">32</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+             <span class="s1">&#39;out_chunk&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+             <span class="s1">&#39;split_portions&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span>
+             <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="mi">64</span><span class="p">}</span>
+
+<span class="c1"># Define your architecture</span>
+<span class="n">arch_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;regression&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;MLP&#39;</span><span class="p">}</span>
+
+<span class="c1"># Define your trainer</span>
+<span class="n">trainer_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;loss_fn&#39;</span><span class="p">:</span> <span class="s1">&#39;mse_loss&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;optim&#39;</span><span class="p">:</span> <span class="s1">&#39;Adam&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;max_epochs&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+                <span class="s1">&#39;learning_rate&#39;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span>
+                <span class="s1">&#39;task&#39;</span><span class="p">:</span> <span class="s1">&#39;regression&#39;</span><span class="p">}</span>
+
+<span class="c1"># Train your model</span>
+<span class="n">KI</span><span class="o">.</span><span class="n">train_model</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="s1">&#39;my_new_model_name&#39;</span><span class="p">,</span>
+               <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">data_args</span><span class="p">,</span>
+                       <span class="s1">&#39;arch&#39;</span><span class="p">:</span> <span class="n">arch_args</span><span class="p">,</span>
+                       <span class="s1">&#39;trainer&#39;</span><span class="p">:</span> <span class="n">trainer_args</span><span class="p">})</span>
+
+<span class="c1"># Generate model predictions</span>
+<span class="n">KI</span><span class="o">.</span><span class="n">generate_predictions</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="s1">&#39;my_new_model_name&#39;</span><span class="p">,</span>
+                        <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;predictor&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;prediction_set&#39;</span><span class="p">:</span> <span class="s1">&#39;valid&#39;</span><span class="p">}})</span>
+
+<span class="c1"># Interpret model predictions</span>
+<span class="n">KI</span><span class="o">.</span><span class="n">interpret_model</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="s1">&#39;my_new_model_name&#39;</span><span class="p">,</span>
+                   <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;interpreter&#39;</span><span class="p">:</span> 
+                               <span class="p">{</span><span class="s1">&#39;interpretation_method&#39;</span><span class="p">:</span> <span class="s1">&#39;DeepLift&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;interpretation_set&#39;</span><span class="p">:</span> <span class="s1">&#39;valid&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;selection&#39;</span><span class="p">:</span> <span class="s1">&#39;random&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}})</span>
+</pre></div>
+</div>
+</section>
+<section id="current-features">
+<h3>Current Features<a class="headerlink" href="#current-features" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p><strong>Flexible problem class definition</strong> allows facilitating various time series modeling
+tasks, including: uni- and multivariate, single- and multistep, time series regression, classification, forecasting, and detection.</p></li>
+<li><p>A growing list of default <strong>deep time series architectures</strong>. Currently includes: MLP,
+CNN, TCN, LSTM, and TFT.</p></li>
+<li><p>Convenient <strong>entry points to import</strong> custom architectures (PyTorch based) and custom dataset (Pandas based).</p></li>
+<li><p><strong>Automated data management</strong> (storing, splitting, scaling, sampling, loading, padding etc.) of complex
+time series data.</p></li>
+<li><p>Convenient <strong>feature attribution</strong> extraction and storage.</p></li>
+<li><p><strong>Hyperparameter tuning</strong> through Pytorch Lightning and Weights and Biases API.</p></li>
+<li><p><strong>Extendable design</strong> for additional future training and interpretability paradigms.</p></li>
+</ul>
+</section>
+<section id="current-limitations">
+<h3>Current Limitations<a class="headerlink" href="#current-limitations" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Data is assumed to be equidistantly sampled and time-indexed time series data.
+Gaps are removed during preprocessing to construct contiguous blocks of data for model training.</p></li>
+<li><p>Data is stored on and loaded from disk in contiguous slices. These slices have to fit into memory.</p></li>
+</ul>
+</section>
+<section id="coming-soon">
+<h3>Coming soon<a class="headerlink" href="#coming-soon" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Package installation options</p></li>
+<li><p>GRU architecture</p></li>
+<li><p>Testbench for synthetic data experimentation</p></li>
+<li><p>Additional feature attribution visualizations</p></li>
+</ul>
+<p>We are open to any suggestions.</p>
+</section>
+<section id="citation">
+<h3>Citation<a class="headerlink" href="#citation" title="Link to this heading">#</a></h3>
+<p>If you make use of KnowIt, we kindly request that you cite <a class="reference external" href="https://arxiv.org/abs/2507.06009">the paper</a> with the provided citation file or:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>@article{theunissen2025knowit,
+  title={KnowIt: Deep Time Series Modeling and Interpretation},
+  author={Theunissen, MW and Rabe, R and Davel, MH},
+  journal={arXiv preprint arXiv:2507.06009},
+  year={2025}
+}
+</pre></div>
+</div>
+</section>
+<section id="acknowledgements">
+<h3>Acknowledgements<a class="headerlink" href="#acknowledgements" title="Link to this heading">#</a></h3>
+<p>This project is made possible due to funding and support from:</p>
+<ul class="simple">
+<li><p>MUST Deep Learning</p></li>
+<li><p>North-West University (NWU), South Africa</p></li>
+<li><p>National Institute for Theoretical &amp; Computational Sciences (NITheCS), South Africa</p></li>
+<li><p>Centre for Artificial Intelligence Research (CAIR), South Africa</p></li>
+<li><p>National Research Foundation (NRF), South Africa</p></li>
+</ul>
+<p>Contributors:</p>
+<ul class="simple">
+<li><p><strong>Marthinus Wilhelmus Theunissen</strong> (tiantheunissen&#64;gmail.com)</p></li>
+<li><p><strong>Randle Rabe</strong> (randlerabe&#64;gmail.com)</p></li>
+<li><p><strong>Harmen Potgieter</strong> (potgieterharmen&#64;gmail.com)</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title"><strong>KnowIt</strong></p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="guides/user_options_readme.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">User Options</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#knowledge-discovery-in-time-series-data">Knowledge discovery in time series data</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#installation">Installation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#usage-overview">Usage overview</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#current-features">Current Features</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#current-limitations">Current Limitations</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#coming-soon">Coming soon</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#citation">Citation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#acknowledgements">Acknowledgements</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, North-West University (NWU), South Africa.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

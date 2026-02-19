@@ -1,0 +1,467 @@
+KnowIt.data.prepared_dataset
+============================
+
+.. py:module:: KnowIt.data.prepared_dataset
+
+.. autoapi-nested-parse::
+
+   ---------------
+   PreparedDataset
+   ---------------
+
+   The ``PreparedDataset`` represents a ``BaseDataset`` that is preprocessed for model training.
+   It inherits from ``BaseDataset``. Based on the provided path(s) to a dataset, it will populate the
+   parent's variables.
+
+   -----------------
+   Prediction points
+   -----------------
+
+   In order to define a ``PreparedDataset``, the input-output dynamics of the model to be trained
+   must be defined rather precisely. The ``PreparedDataset`` is built on the idea of 'prediction points'.
+   Each time step in the ``BaseDataset`` can be regarded a prediction point (under some assumptions).
+   At every prediction point, a model is to predict a specific set of features-over-time from
+   a specific other set of features-over-time. The specifics are defined as follows.
+
+       in_components : list
+           A subset of ``BaseDataset.components`` representing the components that will be used as input to the model.
+       out_components : list
+           A subset of ``BaseDataset.components`` representing the components that will be used as output to the model.
+       in_chunk : list
+           A list of two integers `[a, b]` for which `a <= b` defining the time steps (of `in_components`)
+           to be used for prediction at point `t` as `[t + a, t + b]`.
+       out_chunk : list
+           A list of two integers `[a, b]` for which `a <= b` defining the time steps (of `out_components`)
+           to be predicted at prediction point `t` as `[t + a, t + b]`.
+
+   Note that this might seem cumbersome, but it allows us to easily define several different types of tasks.
+   For example:
+
+   - regression (predict heartrate from an 11 time-step window given three instantaneous biometrics)
+       - in_components = [biometric1, biometric2, biometric2]
+       - out_components = [heart rate]
+       - in_chunk = [-5, 5]
+       - out_chunk = [0, 0]
+   - autoregressive univariate forecasting (predict a stock's value in 5 time steps given last 21 time steps)
+       - in_components = [stock,]
+       - out_components = [stock,]
+       - in_chunk = [-20, 0]
+       - out_chunk = [5, 5]
+   - time series classification (detect a whale call given an audio recording of 5 time steps)
+       - in_components = [sound,]
+       - out_components = [positive_call,]
+       - in_chunk = [-2, 2]
+       - out_chunk = [0, 0]
+
+   --------------------------
+   Variable length processing
+   --------------------------
+
+   The ``PreparedDataset`` can also be defined in a "variable length" configuration.
+   This means that instead of receiving and producing chunks of a specific number of time steps,
+   the model will receive a variable number of time steps and produce an identical number of time steps as output.
+   The input- and output components don't need to be the same. Not all architectures can facilitate this configuration.
+   Currently, only ``LSTMv2``, ``TCN``, and ``CNN`` supports it.
+
+   This configuration is selected by defining ``task=vl_regression``, ``batch_sampling_mode=variable_length``,
+   selecting an appropriate architecture, and ensuring that the size of ``in_chunk`` and ``out_chunk`` are both 1.
+   Classification tasks are not currently supported for this configuration.
+
+   Examples of tasks that can be defined with this configuration include:
+
+   - regression (predict heartrate from the change in three instantaneous biometrics over time)
+       - in_components = [biometric1, biometric2, biometric2]
+       - out_components = [heart rate]
+       - in_chunk = [0, 0]
+       - out_chunk = [0, 0]
+   - autoregressive univariate forecasting (predict a stock's value in 5 time steps given its value in the past)
+       - in_components = [stock,]
+       - out_components = [stock,]
+       - in_chunk = [0, 0]
+       - out_chunk = [5, 5]
+
+
+   --------------------
+   Splitting & Limiting
+   --------------------
+
+   The first step in preparing the dataset is to split it into a train-, validation-,
+   and evaluation set. This is done with the ``DataSplitter`` module.
+   The ``split_method`` data keyword argument defines the way the dataset is split.
+   More details can be found in ``DataSplitter``, but we summarize the options here:
+       - 'random': Ignore all distinction between instances and slices, and split on time steps randomly.
+       - 'chronological' (default): Ignore all distinction between instances and slices, and split on time steps chronologically.
+       - 'slice-random': Ignore all distinction between instances, and split on slices randomly.
+       - 'slice-chronological': Ignore all distinction between instances, and split on slices chronologically.
+       - 'instance-random': Split on instances randomly.
+       - 'instance-chronological': Split on instances chronologically.
+       - 'custom': User defined split.
+   Note that the data is split ON the relevant level (instance, slice, or timesteps).
+   I.e. If you split on instances and there are only 3 instances, then split_portions=(0.6, 0.2, 0.2)
+   will be a wild approximation i.t.o actual time steps.
+
+   Note that, if desired, the data is limited during splitting, and the data is limited by removing
+   the excess data points from the end of the data block after shuffling or ordering according to time.
+   Also note that if the data is limited too much for a given ``split_portion`` to have a single entry,
+   an error will occur confirming it.
+
+   Note that a 'custom' split can be constructed during the data importing.
+   See the ``RawDataConverter`` module for more information.
+
+   -------
+   Scaling
+   -------
+
+   After the data is split, a scaler is fit to the train set data
+   which will be applied to all data being extracted for model training or inference.
+   This is done with the ``DataScaler`` module and the corresponding ``scaling_method`` and ``scaling_tag``,
+   data keyword arguments. More details can be found there, but we summarize the options here:
+       - scaling_method='z-norm': Features are scaled by subtracting the mean and dividing by the standard deviation.
+       - scaling_method='zero-one': Features are scaled linearly to be in the range (0, 1).
+       - scaling_method=None: No scaling occurs.
+       - scaling_tag='in_only': Only the input features will be scaled.
+       - scaling_tag='full': The input and output features will be scaled.
+       - scaling_tag=None: No features will be scaled.
+   Note that scaling of output components is not permitted if performing a classification task. ``scaling_tag``='full' will be
+   automatically changed to ``scaling_tag``='in_only' for classification tasks.
+   Also note that the scaling happens "online" as data is sampled from disk.
+
+   -------
+   Padding
+   -------
+
+   At some prediction points the ``in_chunk`` might exceed the corresponding
+   slice range. In these cases we pad the input values. The output values are never padded.
+   Prediction points that do not have valid output values for an ``out_chunk`` are not selected
+   as appropriate prediction point during data splitting. The argument ``padding_method`` is the same
+   as ``mode`` in the numpy.pad function (https://numpy.org/doc/stable/reference/generated/numpy.pad.html).
+   See the ``DataSplitter`` module for more information.
+
+   -------------
+   CustomDataset
+   -------------
+
+   ``PreparedDataset.get_dataloader()`` can be called to return a Pytorch dataloader that can be used for model training.
+   This function compiles a dataloader with a ``CustomDataset`` class.
+   This class inherits from ``torch.utils.data.Dataset``.
+   It defines how the samples will look when enumerating over the dataloader.
+   This includes sampling, padding, and normalizing.
+
+   ---------------------------
+   CustomClassificationDataset
+   ---------------------------
+
+   If the task is a classification task a ``CustomClassificationDataset`` will be used instead of ``CustomDataset``.
+   ``CustomClassificationDataset`` inherits from ``CustomDataset`` and adds some classification specific methods.
+
+   -------------------------------------
+   CustomVariableLengthRegressionDataset
+   -------------------------------------
+
+   If the task is a variable length regression task a ``CustomVariableLengthRegressionDataset`` will be used instead of ``CustomDataset``.
+   ``CustomVariableLengthRegressionDataset`` inherits from ``CustomDataset`` and adds some variable length regression specific methods.
+
+   -------------
+   CustomSampler
+   -------------
+
+   In addition to ``CustomDataset``, ``PreparedDataset`` also uses a custom batch sampler ``CustomSampler``
+   when ``PreparedDataset.get_dataloader()`` is called to generate a dataloader.
+   This class supports three different modes of temporal contiguity.
+       - 'independent': Time is contiguous within sequences (i.e. prediction points) but not enforced within or across batches.
+       - 'sliding-window': Time is contiguous within sequences and across batches, as far as possible.
+       - 'variable_length': Time is contiguous within sequences and across batches, as far as possible. Batches are also variable (but uniform) in length.
+   See the ``CustomSampler`` module for details.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.data.prepared_dataset.PreparedDataset
+   KnowIt.data.prepared_dataset.CustomSampler
+   KnowIt.data.prepared_dataset.CustomDataset
+   KnowIt.data.prepared_dataset.CustomClassificationDataset
+   KnowIt.data.prepared_dataset.CustomVariableLengthRegressionDataset
+
+
+Module Contents
+---------------
+
+.. py:class:: PreparedDataset(**kwargs)
+
+   Bases: :py:obj:`data.base_dataset.BaseDataset`
+
+
+   This is the PreparedDataset which represents a dataset that is preprocessed for model training.
+   It contains all the variables in BaseDataset in addition to metadata regarding
+   data splitting, scaling, and sampling.
+
+   :Parameters: * **meta_path** (:py:class:`str`) -- The path to the desired dataset metadata. The path should point to a pickle file.
+                * **package_path** (:py:class:`str`) -- The path to the desired dataset package. The path should point to a directory containing the
+                  partitioned parquet.
+                * **in_components** (:py:class:`list`, :py:class:`shape=[num_in_components,]`) -- A subset of the 'components' variable of the BaseDataset to be used as input to the model.
+                * **out_components** (:py:class:`list`, :py:class:`shape=[num_in_components,]`) -- A subset of the 'components' variable of the BaseDataset to be used as output to the model.
+                * **in_chunk** (:py:class:`list`, :py:class:`shape=[2,]`) -- A list of two integers [a, b] for which a <= b,
+                  defining the time steps of in_components for each prediction point.
+                * **out_chunk** (:py:class:`list`, :py:class:`shape=[2,]`) -- A list of two integers [a, b] for which a <= b,
+                  defining the time steps of out_components for each prediction point.
+                * **split_portions** (:py:class:`tuple`, :py:class:`shape=[3,]`) -- The approximate portions of the (train, valid, eval) splits. Needs to add up to 1.
+                * **seed** (:py:class:`int`) -- The seed for reproducibility.
+                * **batch_size** (:py:class:`int`) -- The mini-batch size for training.
+                * **split_method** (:py:class:`str`) -- The method of splitting data. Options are 'random', 'chronological',
+                  'instance-random', 'instance-chronological', 'slice-random', 'slice-chronological', or 'custom'.
+                  See heading for description.
+                * **scaling_method** (:py:class:`str | None`) -- The method for scaling data features. Options are 'z-norm', 'zero-one', or None.
+                  See heading for description.
+                * **scaling_tag** (:py:class:`str | None`) -- The mode to scale the data. Options are 'in_only', 'full', or None.
+                  See heading for description.
+                * **shuffle_train** (:py:class:`bool`) -- Whether the training set is shuffled after every epoch.
+                * **limit** (:py:class:`int | None`) -- The number of elements (instances/slices/time) steps to limit the data to.
+                  See heading for description.
+                * **padding_method** (:py:class:`str`) -- The method to pad model inputs with.
+                  Options can be found at (https://numpy.org/doc/stable/reference/generated/numpy.pad.html).
+                  See heading for description.
+                * **min_slice** (:py:class:`int | None`) -- The minimum slice size to consider during data splitting/selection.
+                  If None, no slice selection is performed.
+                * **batch_sampling_mode** (:py:class:`str | None`) -- The sampling mode for generating batches in the CustomSampler class.
+                  Either 'independent', 'sliding-window', or 'variable_length', as described in the CustomSampler module.
+                * **slide_stride** (:py:class:`int`) -- The stride used for the sliding-window approach, if selected.
+                * **variable_sequence_length_limit** (:py:class:`int | None`) -- If non-None value given and 'batch_sampling_mode' is 'variable_length',
+                  the sequence lengths within a batch will be limited to the given value.
+
+   :ivar x_map: An array that contains the indices of BaseDataset.components that correspond to input components.
+   :vartype x_map: :py:class:`array`, :py:class:`shape=[n_in_components,]`
+   :ivar y_map: An array that contains the indices of BaseDataset.components that correspond to output components.
+   :vartype y_map: :py:class:`array`, :py:class:`shape=[n_out_components,]`
+   :ivar train_set_size: The number of prediction points in the training set.
+   :vartype train_set_size: :py:class:`int`
+   :ivar valid_set_size: The number of prediction points in the validation set.
+   :vartype valid_set_size: :py:class:`int`
+   :ivar eval_set_size: The number of prediction points in the evaluation set.
+   :vartype eval_set_size: :py:class:`int`
+   :ivar selection: A dictionary containing the selection matrices corresponding to each data split.
+   :vartype selection: :py:class:`dict[str`, :py:class:`array]`
+   :ivar x_scaler: The scaler fitted to the training set input features.
+   :vartype x_scaler: :py:class:`object`
+   :ivar y_scaler: The scaler fitted to the training set output features.
+   :vartype y_scaler: :py:class:`object`
+   :ivar in_shape: A list that represents the shape of the inputs to the model.
+   :vartype in_shape: :py:class:`list`, :py:class:`shape=[n_input_time_delays`, :py:class:`n_in_components]`
+   :ivar out_shape: A list that represents the shape of the outputs to the model. Is modified for classification tasks.
+   :vartype out_shape: :py:class:`list`, :py:class:`shape=[n_output_time_delays`, :py:class:`n_output_components]`
+   :ivar class_set: A dictionary that maps each class name to an integer class ID.
+                    Only created if task='classification'.
+   :vartype class_set: :py:class:`dict`
+   :ivar class_counts: A dictionary that maps each class ID to its size.
+                       Only created if task='classification'.
+   :vartype class_counts: :py:class:`dict`
+   :ivar custom_splits: A dictionary defining the custom selection matrices.
+
+   :vartype custom_splits: :py:class:`dict`
+
+   .. rubric:: Notes
+
+   - All the listed parameters are also stored as attributes.
+   - The `_prepare` method is automatically called at initialization to initiate data preparation.
+
+
+   .. py:method:: get_dataset(set_tag, preload = False)
+
+      Creates and returns a PyTorch Dataset for a specified dataset split.
+
+      :Parameters: * **set_tag** (:py:class:`str`) -- A string indicating the dataset split to load ('train', 'valid', 'eval').
+                   * **preload** (:py:class:`bool`, *default* :py:class:`= False`) -- Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+
+      :returns: A PyTorch derived Dataset for the specified dataset split.
+      :rtype: :py:class:`Object`
+
+
+
+   .. py:method:: get_dataloader(set_tag, analysis = False, num_workers = 4, preload = False)
+
+      Creates and returns a PyTorch DataLoader for a specified dataset split.
+
+      This method generates a DataLoader for a given dataset split (e.g., train, valid, or eval).
+      It uses the `CustomDataset` class to create the dataset and then initializes
+      a DataLoader with a `CustomSampler` for batch generation.
+
+      :Parameters: * **set_tag** (:py:class:`str`) -- A string indicating the dataset split to load ('train', 'valid', 'eval').
+                   * **analysis** (:py:class:`bool`, *default* :py:class:`= False`) -- A flag indicating whether the dataloader is being used for analysis purposes. If set to True,
+                     the `drop_last` and `shuffle` parameters of the DataLoader will be set to False.
+                   * **num_workers** (:py:class:`int`, *default* :py:class:`= 4`) -- Sets the number of workers to use for loading the dataset.
+                   * **preload** (:py:class:`bool`, *default* :py:class:`= False`) -- Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+
+      :returns: A PyTorch DataLoader for the specified dataset split.
+      :rtype: :py:class:`DataLoader`
+
+      .. rubric:: Notes
+
+      If set_tag=`valid` or `eval` or analysis=True,
+      then the dataloader will not be shuffled, no smaller than batch_size batches will be dropped,
+      and batch_sampling_mode will be set to `inference`.
+
+
+
+   .. py:method:: get_ist_values(set_tag)
+
+      Get the IST values for a given set tag.
+
+      This function retrieves the Instance-Slice-Time (IST) for each prediction point in a specific dataset split.
+
+      :Parameters: **set_tag** (:py:class:`str`) -- The data split to retrieve the IST values for.
+                   Options are 'train', 'valid', 'eval' or 'all'.
+
+      :returns: **ist_values** -- The IST values for a given set tag.
+                Each row represents one prediction point by the following three values.
+                    - The first value (Any) indicates the instance that the prediction point belongs to.
+                    - The second value (int) indicates the index, within the instance, of the slice that the prediction point belongs to.
+                    - The third value (numpy.datetime64) indicates the timestep at which the prediction point is found.
+      :rtype: :py:class:`list`
+
+      .. rubric:: Notes
+
+      - If set_tag='all' then all prediction points are returned in order ['train', 'valid', 'eval'].
+
+
+
+   .. py:method:: fetch_input_points_manually(set_tag, point_ids)
+
+      Manually fetch data points from the datamodule based on provided point IDs.
+
+      :Parameters: * **set_tag** (:py:class:`str`) -- A string indicating the dataset split to load ('train', 'valid', 'eval').
+                   * **point_ids** (:py:class:`int | list[int]`) -- The IDs of the data points to fetch. These indices are defined as the relative position in the selection
+                     matrix corresponding to the set tag. Can be a single integer, a list of integers,
+                     or a tuple specifying a range (start, end).
+
+      :returns: A dictionary containing the data points corresponding to the provided
+                IDs at key 'x'.
+      :rtype: :py:class:`dict`
+
+      :raises ValueError: If the provided point IDs are invalid or out of range.
+
+
+
+.. py:class:: CustomSampler(selection, batch_size, input_size, seed = None, mode = 'independent', drop_small = True, shuffle = True, slide_stride = 1, variable_sequence_length_limit = None)
+
+   Bases: :py:obj:`torch.utils.data.Sampler`
+
+
+   Custom batch sampler for deep time series models, supporting different modes of temporal contiguity.
+
+   :Parameters: * **selection** (:py:class:`array`, :py:class:`shape=[n_samples`, :py:class:`3]`) -- Selection matrix containing instance IDs, slice IDs, time steps.
+                * **batch_size** (:py:class:`int`) -- Number of sequences per batch.
+                * **seed** (:py:class:`int`, *default* :py:obj:`None`) -- Random seed for reproducibility.
+                * **mode** (:py:class:`str`, *default* ``'independent'``) -- Either 'independent', 'sliding-window', 'inference', 'variable_length' or 'variable_length_inference' as described below.
+                * **drop_small** (:py:class:`bool`, *default* :py:obj:`True`) -- Whether to drop batches smaller than batch_size.
+                * **shuffle** (:py:class:`bool`, *default* :py:obj:`True`) -- Whether to apply shuffling.
+                * **slide_stride** (:py:class:`int`, *default* ``1``) -- The stride used for the sliding-window approach, if selected.
+                * **variable_sequence_length_limit** (:py:class:`int`, *default* :py:obj:`None`) -- If non-None value given and 'mode' is either 'variable_length' or 'variable_length_inference',
+                  the sequence lengths within a batch will be limited to the given value.
+
+   :ivar selection: Selection matrix containing instance IDs, slice IDs, time steps.
+   :vartype selection: :py:class:`array`, :py:class:`shape=[n_samples`, :py:class:`3]`
+   :ivar batch_size: Number of sequences per batch.
+   :vartype batch_size: :py:class:`int`
+   :ivar input_size: Number of time delays in the input of the model.
+   :vartype input_size: :py:class:`int`
+   :ivar seed: Random seed for reproducibility.
+   :vartype seed: :py:class:`int`, *default* :py:obj:`None`
+   :ivar mode: Either 'independent', 'sliding-window', 'inference', 'variable_length' or 'variable_length_inference' as described below.
+   :vartype mode: :py:class:`str`, *default* ``'independent'``
+   :ivar drop_small: Whether to drop batches smaller than batch_size.
+   :vartype drop_small: :py:class:`bool`, *default* :py:obj:`True`
+   :ivar shuffle: Whether to apply shuffling.
+   :vartype shuffle: :py:class:`bool`, *default* :py:obj:`True`
+   :ivar slide_stride: The stride used for the sliding-window approach, if selected.
+   :vartype slide_stride: :py:class:`int`, *default* ``1``
+   :ivar variable_sequence_length_limit: If non-None value given and 'mode' is either 'variable_length' or 'variable_length_inference',
+                                         the sequence lengths within a batch will be limited to the given value.
+   :vartype variable_sequence_length_limit: :py:class:`int`, *default* :py:obj:`None`
+   :ivar batches: The current set of batches that will be iterated over.
+   :vartype batches: :py:class:`list`
+   :ivar epoch: Current epoch. Used for random seeding.
+
+   :vartype epoch: :py:class:`int`
+
+   .. rubric:: Notes
+
+   - mode='independent': Time is contiguous within sequences but not across batches.
+   - mode='sliding-window': A sliding window approach is used to ensure that time is contiguous within sequences and across batches.
+   - mode='inference': Same as 'sliding-window', but no shuffling, expansion for batch sizing, and striding.
+   - mode='variable_length': Similar to 'sliding-window' but the sequence lengths will be variable within batches.
+   - mode='variable_length_inference': Same as 'variable_length', but no shuffling or expansion for batch sizing.
+   - shuffle=False: Batches are constructed in dataset order as per the "selection" array. For variable length modes, slices will also be samples in descending order of length.
+   - shuffle=True:
+       - mode='independent': Sequences within and across batches are randomly shuffled.
+       - mode='sliding-window' or 'variable_length': Slices are shuffled before and after expansion, and a random number of prediction points (between 0 and 10) at the start of each slice are dropped before batches are constructed.
+
+
+   .. py:method:: set_epoch(epoch)
+
+      If the next epoch not already set, sets the next epoch and regenerate batches according to the sampling mode.
+
+      This method updates the internal epoch counter and triggers batch generation
+      based on the configured mode. It is intended to be called by the training loop
+      (e.g., a PyTorch Lightning model wrapper) at the end of each epoch.
+
+      :Parameters: **epoch** (:py:class:`int`) -- The next epoch number.
+
+      :raises SystemExit: If an unknown sampling mode is encountered.
+
+      .. rubric:: Notes
+
+      Supported modes:
+      - 'independent': Generates batches without enforcing temporal continuity.
+      - 'sliding-window': Generates batches using a sliding window approach for temporal consistency.
+      - 'inference': Prepares batches for model inference.
+      - 'variable_length': Prepares variable length batches for model training.
+      - 'variable_length_inference': Prepares variable length batches for model inference.
+
+      Additional checks are performed to ensure that batches meet size requirements.
+
+
+
+.. py:class:: CustomDataset(data_extractor, selection_matrix, x_map, y_map, x_scaler, y_scaler, in_chunk, out_chunk, padding_method, preload = False)
+
+   Bases: :py:obj:`torch.utils.data.Dataset`
+
+
+   A custom dataset for deep time series models, using KnowIts data extraction protocols.
+
+   :Parameters: * **data_extractor** (:py:class:`DataExtractor`) -- Object responsible for extracting data from disk.
+                * **selection_matrix** (:py:class:`array`) -- Matrix defining the selection of instances, slices, and time steps.
+                * **x_map** (:py:class:`array`, :py:class:`shape=[n_in_components,]`) -- An array that contains the indices of BaseDataset.components that correspond to input components.
+                * **y_map** (:py:class:`array`, :py:class:`shape=[n_out_components,]`) -- An array that contains the indices of BaseDataset.components that correspond to output components.
+                * **x_scaler** (:py:class:`object`) -- The scaler fitted to the training set input features.
+                * **y_scaler** (:py:class:`object`) -- The scaler fitted to the training set output features.
+                * **in_chunk** (:py:class:`list`, :py:class:`shape=[2,]`) -- A list of two integers [a, b] for which a <= b,
+                  defining the time steps of in_components for each prediction point.
+                * **out_chunk** (:py:class:`list`, :py:class:`shape=[2,]`) -- A list of two integers [a, b] for which a <= b,
+                  defining the time steps of out_components for each prediction point.
+                * **padding_method** (:py:class:`str`) -- The method to pad model inputs with.
+                  Options can be found at (https://numpy.org/doc/stable/reference/generated/numpy.pad.html).
+                  See heading for description.
+                * **preload** (:py:class:`bool`, *default* :py:obj:`False`) -- Whether to preload the dataset into memory.
+
+
+.. py:class:: CustomClassificationDataset(data_extractor, selection_matrix, x_map, y_map, x_scaler, y_scaler, in_chunk, out_chunk, class_set, padding_method, preload = False)
+
+   Bases: :py:obj:`CustomDataset`
+
+
+   A custom dataset for deep time series classification models, using KnowIt's data extraction protocols.
+   Inherits from CustomDataset.
+
+
+.. py:class:: CustomVariableLengthRegressionDataset(data_extractor, selection_matrix, x_map, y_map, x_scaler, y_scaler, in_chunk, out_chunk, padding_method, preload = False)
+
+   Bases: :py:obj:`CustomDataset`
+
+
+   A custom dataset for deep time series regression models that take variable length input, using KnowIt's data extraction protocols.
+   Inherits from CustomDataset.
+
+
