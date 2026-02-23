@@ -52,7 +52,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from helpers.logger import get_logger
 from trainer.base_trainer import BaseTrainer
-from trainer.model_config import PLModel
+from trainer.model_config import PLModel, PLModel_custom
 
 from pytorch_lightning.loggers import WandbLogger
 
@@ -145,7 +145,11 @@ class TrainNew(BaseTrainer):
         self.trainer.test(ckpt_path=set_ckpt_path, dataloaders=dataloaders)
 
     def _prepare_pl_model(self) -> None:
-        self.pl_model = PLModel(**self.pl_model_kwargs)
+        if not self.custom_training_modality:
+            self.pl_model = PLModel(**self.pl_model_kwargs)
+        else:
+            self.pl_model = PLModel_custom(**self.pl_model_kwargs)
+
 
     def _prepare_pl_trainer(
         self,
@@ -324,9 +328,13 @@ class ContinueTraining(BaseTrainer):
         self.trainer.test(ckpt_path=set_ckpt_path, dataloaders=dataloaders)
 
     def _prepare_pl_model(self) -> None:
-        self.pl_model = PLModel.load_from_checkpoint(  # type: ignore  # noqa: PGH003
-            checkpoint_path=self.ckpt_file,
-        )
+        if not self.custom_training_modality:
+            self.pl_model = PLModel.load_from_checkpoint(  # type: ignore  # noqa: PGH003
+                checkpoint_path=self.ckpt_file,
+            )
+        else:
+            self.pl_model = PLModel_custom(**self.pl_model_kwargs,
+                                           checkpoint_path=self.ckpt_file)
 
     def _prepare_pl_trainer(
         self,
@@ -466,10 +474,16 @@ class EvaluateOnly(BaseTrainer):
         self.trainer.test(model=self.pl_model, dataloaders=dataloaders)
 
     def _prepare_pl_model(self) -> None:
-        self.pl_model = PLModel.load_from_checkpoint(  # type: ignore  # noqa: PGH003
-            checkpoint_path=self.ckpt_file,
-            **self.pl_model_kwargs,
-        )
+        if not self.custom_training_modality:
+            self.pl_model = PLModel.load_from_checkpoint(  # type: ignore  # noqa: PGH003
+                checkpoint_path=self.ckpt_file,
+                **self.pl_model_kwargs,
+            )
+        else:
+            self.pl_model = PLModel_custom.load_from_checkpoint(  # type: ignore  # noqa: PGH003
+                checkpoint_path=self.ckpt_file,
+                **self.pl_model_kwargs,
+            )
 
     def _prepare_pl_trainer(
         self,
@@ -542,7 +556,10 @@ class CustomTrainer(BaseTrainer):
 
     def _prepare_pl_model(self) -> None:
         # configure
-        self.pl_model = PLModel(**self.pl_model_kwargs)
+        if not self.custom_training_modality:
+            self.pl_model = PLModel(**self.pl_model_kwargs)
+        else:
+            self.pl_model = PLModel_custom(**self.pl_model_kwargs)
 
     def _prepare_pl_trainer(
         self,

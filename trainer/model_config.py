@@ -523,3 +523,23 @@ class PLModel(pl.LightningModule):
 
 
         return log_metrics
+
+
+class PLModel_custom(PLModel):
+
+    def __init__(
+            self,
+            loss,
+            learning_rate,
+            optimizer,
+            learning_rate_scheduler,
+            performance_metrics,
+            model,
+            model_params,
+            output_scaler=None
+    ) -> None:
+        super().__init__(loss, learning_rate, optimizer, learning_rate_scheduler,
+                         performance_metrics, model, model_params, output_scaler)
+
+    # YOU CAN ADD YOUR OWN CUSTOM CALLBACKS OR OVERWRITE THOSE ALREADY DEFINED IN `PLModel`
+    # e.g. add on_train_batch_end to add some extra terms to the loss during training
