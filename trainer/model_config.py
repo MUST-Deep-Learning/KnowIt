@@ -544,5 +544,5 @@ class PLModel_custom(PLModel):
     # YOU CAN ADD YOUR OWN CUSTOM CALLBACKS OR OVERWRITE THOSE ALREADY DEFINED IN `PLModel`
     # e.g. add on_train_batch_end to add some extra terms to the loss during training
 
-    # def on_train_batch_end(self, outputs, batch, batch_idx):
-    #     outputs['loss'] = outputs['loss'] + self.model.kl_loss()
+    def on_train_batch_end(self, outputs, batch, batch_idx):
+        outputs['loss'] = outputs['loss'] + self.model.kl_loss()
