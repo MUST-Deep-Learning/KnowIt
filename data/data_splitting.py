@@ -77,6 +77,7 @@ __description__ = 'Contains the DataSplitter class for KnowIt.'
 from numpy import (array, random, argwhere, isnan,
                    count_nonzero, vstack, concatenate,
                    argsort, arange, unique, append, floor, full)
+from pandas import isna, DataFrame
 
 # internal imports
 from data.base_dataset import DataExtractor
@@ -100,8 +101,6 @@ class DataSplitter:
         datasets respectively. The sum of these portions should be 1.0.
     limit : int
         Maximum number of elements (depends on method) to consider.
-    x_map : array
-        Mapping for input data components. This defines the indices of desired input components.
     y_map : array
         Mapping for target data components. This defines the indices of desired output components.
     in_chunk : list, shape=[2,]
@@ -140,7 +139,7 @@ class DataSplitter:
 
     def __init__(self, data_extractor: DataExtractor,
                  method: str, portions: tuple, limit: int,
-                 x_map: array, y_map: array,
+                 y_map: array,
                  in_chunk: list, out_chunk: list,
                  min_slice: int, in_portion: float = 0.5,
                  load_level: str = 'instance',
@@ -160,7 +159,7 @@ class DataSplitter:
 
         # 1. Find all appropriate prediction points
         prediction_points, times = self._select_prediction_points(data_extractor,
-                                                                  x_map, y_map,
+                                                                  y_map,
                                                                   in_chunk, out_chunk,
                                                                   min_slice, in_portion,
                                                                   load_level)
@@ -451,7 +450,7 @@ class DataSplitter:
 
     @staticmethod
     def _select_prediction_points(data_extractor: DataExtractor,
-                                  x_map: array, y_map: array,
+                                  y_map: array,
                                   in_chunk: list, out_chunk: list,
                                   min_slice: int, in_portion: float = 0.5,
                                   load_level: str = 'instance') -> tuple:
@@ -462,8 +461,6 @@ class DataSplitter:
         ----------
         data_extractor : DataExtractor
             The data extractor object to read data from disk.
-        x_map : array
-            An array of column indices specifying which columns to check for input edge cases.
         y_map : array
             An array of column indices specifying which columns to check for NaN values and output edge cases.
         in_chunk : list
@@ -498,19 +495,17 @@ class DataSplitter:
             - The resulting prediction points and times are concatenated and returned.
         """
 
-        def _appropriate_mask(arr: array,
+        def _appropriate_mask(arr: DataFrame,
                         in_chunk: list, out_chunk: list,
-                        x_map: array, y_map: array,
+                        y_map: array,
                         in_portion: float = 0.5) -> array:
             """Create a mask to exclude rows with NaN values and specified edge chunks for output components,
             and softened edge chunks for input components.
 
             Parameters
             ----------
-            arr : array
+            arr : DataFrame
                 The array containing component values over a slice.
-            x_map : array
-                An array of column indices specifying which columns to check for input edge cases.
             y_map : array
                 An array of column indices specifying which columns to check for NaN values and edge cases.
             in_chunk : list
@@ -542,13 +537,12 @@ class DataSplitter:
                 logger.error('in_portion must be between 0 and 1 for prediction point selection.')
                 exit(101)
 
-            y_arr = arr[:, y_map]
-            y_mask = ~isnan(y_arr).any(axis=1)
+            y_arr = arr.iloc[:, y_map]
+            y_mask = ~isna(y_arr).any(axis=1).to_numpy()
             out_chunk = array(out_chunk)
             y_mask = _trim(y_mask, out_chunk)
 
-            x_arr = arr[:, x_map]
-            x_mask = full(x_arr.shape[0], True)
+            x_mask = full(arr.shape[0], True)
             in_chunk = array(in_chunk)
             in_chunk = floor(in_chunk * in_portion).astype(int)
             x_mask = _trim(x_mask, in_chunk)
@@ -616,9 +610,9 @@ class DataSplitter:
                 else:
                     slice = data_extractor.slice(i, s)
                 if min_slice is None or min_slice < slice.shape[0]:
-                    slice_d = slice.to_numpy()
+                    slice_d = slice
                     slice_t = slice.index.to_numpy()
-                    slice_mask = _appropriate_mask(slice_d, in_chunk, out_chunk, x_map, y_map, in_portion)
+                    slice_mask = _appropriate_mask(slice_d, in_chunk, out_chunk, y_map, in_portion)
                     times.append(slice_t[slice_mask])
                     nn_count = count_nonzero(slice_mask)
                     if nn_count > 0:

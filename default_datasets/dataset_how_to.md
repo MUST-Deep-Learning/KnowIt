@@ -25,6 +25,8 @@ If no instances are define all time steps will be assumed to belong to one singl
 Similarly, if a custom data split is to be defined (for future training) it should be defined in a separate column in
 the dataframe labeled 'split'. This column should only contain set indicators: 0 (train), 1 (valid), or 2 (eval).
 
+Note that these special columns (e.g. 'instance' and 'split') should not be listed in the "components" variable of the metadata. 
+
 The resulting datastructure will be stored under ``/custom_datasets`` in the relevant custom experiment output directory.
 It can then be used to train a model by passing ``kwargs={'data': {'name': <data name>, ...}, ...}`` when 
 calling the ``KI.train_model`` function.

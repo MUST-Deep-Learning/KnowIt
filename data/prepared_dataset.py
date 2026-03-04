@@ -178,8 +178,9 @@ __description__ = ('Contains the PreparedDataset, CustomSampler, CustomDataset, 
 
 # external imports
 from numpy import (array, random, unique, pad, isnan, arange, expand_dims, concatenate,
-                   diff, where, split, ndarray)
+                   diff, where, split, ndarray, isscalar, asarray)
 from numpy.random import Generator
+from pandas import isna, DataFrame
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch import from_numpy, is_tensor, Tensor, unsqueeze
 from torch import zeros as zeros_tensor
@@ -604,7 +605,7 @@ class PreparedDataset(BaseDataset):
         self.selection = DataSplitter(self.get_extractor(),
                                       self.split_method,
                                       self.split_portions,
-                                      self.limit, self.x_map, self.y_map,
+                                      self.limit, self.y_map,
                                       self.in_chunk, self.out_chunk,
                                       self.min_slice,
                                       custom_splits=self.custom_splits).get_selection()
@@ -615,6 +616,12 @@ class PreparedDataset(BaseDataset):
         logger.info('Data split sizes: ' + str((self.train_set_size,
                                                 self.valid_set_size,
                                                 self.eval_set_size)))
+
+        min_split = min(self.train_set_size, self.valid_set_size, self.eval_set_size)
+        if self.batch_size > min_split:
+            logger.warning('Selected batch_size %s, is larger than one of dataset splits. Setting batch_size to %s.',
+                           str(self.batch_size), str(min_split))
+            self.batch_size = min_split
 
         # scale the dataset
         logger.info('Preparing data scalers, if relevant.')
@@ -644,9 +651,11 @@ class PreparedDataset(BaseDataset):
         data_extractor = self.get_extractor()
         found_class_set = set()
         for i in data_extractor.data_structure:
-            vals = data_extractor.instance(i).to_numpy()
-            vals = vals[:, self.y_map][~isnan(vals[:, self.y_map]).any(axis=1)]
-            unique_entries = unique(vals, axis=0)
+            vals = data_extractor.instance(i)
+            subset = vals.iloc[:, self.y_map]
+            mask = ~isna(subset).any(axis=1)
+            vals = subset[mask]
+            unique_entries = DataFrame(vals).drop_duplicates().to_numpy()
             unique_entries_list = []
             for u in unique_entries:
                 if len(u) > 1:
@@ -678,9 +687,17 @@ class PreparedDataset(BaseDataset):
         for c in self.class_set:
             class_count = 0
             for i in data_extractor.data_structure:
-                instance = data_extractor.instance(i).to_numpy()[:, self.y_map]
-                class_count += len(where(instance == c)[0])
+                instance = data_extractor.instance(i).iloc[:, self.y_map]
+                if isscalar(c):
+                    matches = instance.eq(c)
+                else:
+                    c_tuple = tuple(c)
+                    matches = instance.eq(c_tuple).all(axis=1)
+                matches = matches.fillna(False)
+                class_count += int(matches.sum())
+
             self.class_counts[self.class_set[c]] = class_count
+
 
 
 class CustomSampler(Sampler):
@@ -1632,15 +1649,17 @@ class CustomDataset(Dataset):
 
             # get relevant slice information
             if self.preload:
-                slice_vals = self.preloaded_slices[(selection[0], selection[1])].to_numpy()
+                slice_vals = self.preloaded_slices[(selection[0], selection[1])]
             else:
-                slice_vals = self.data_extractor.slice(selection[0], selection[1]).to_numpy()
+                slice_vals = self.data_extractor.slice(selection[0], selection[1])
 
             # get input values and pad if necessary
-            x_vals = self._sample_and_pad(slice_vals, selection, self.in_chunk, self.x_map, self.padding_method)
+            x_vals = slice_vals.iloc[:, self.x_map].to_numpy()
+            x_vals = self._sample_and_pad(x_vals, selection, self.in_chunk, self.padding_method)
 
             # get output values (no padding allowed)
-            y_vals = slice_vals[selection[2] + self.out_chunk[0]: selection[2] + self.out_chunk[1] + 1, self.y_map]
+            y_vals = slice_vals.iloc[:, self.y_map].to_numpy()
+            y_vals = y_vals[selection[2] + self.out_chunk[0]: selection[2] + self.out_chunk[1] + 1, :]
 
             # scale inputs and outputs if applicable
             input_x.append(self.x_scaler.transform(x_vals))
@@ -1656,7 +1675,7 @@ class CustomDataset(Dataset):
         return self._package_output(input_x, output_y, idx, ist_idx)
 
     @staticmethod
-    def _sample_and_pad(slice_vals, selection, s_chunk, s_map, pad_mode):
+    def _sample_and_pad(slice_vals, selection, s_chunk, pad_mode):
         """
         Sample a block of time series components from a slice and pad as needed.
 
@@ -1667,9 +1686,9 @@ class CustomDataset(Dataset):
 
         Parameters
         ----------
-        slice_vals : ndarray of shape (num_time_steps, num_components)
+        slice_vals : ndarray of shape (num_time_steps, num_in_components)
             The full time series data for the slice, where rows correspond to time
-            steps and columns to different components.
+            steps and columns to different input components.
 
         selection : ndarray of shape (3,)
             A selection descriptor, where the third entry (`selection[2]`) represents
@@ -1680,17 +1699,13 @@ class CustomDataset(Dataset):
             sample, inclusive. For example, `[-2, 2]` samples a window of 5
             consecutive steps centered at `selection[2]`.
 
-        s_map : ndarray of shape (k,)
-            A 1D array specifying which component indices to extract from
-            `slice_vals`.
-
         pad_mode : str
             Padding mode passed to `numpy.pad`. Common modes include `'constant'`,
             `'edge'`, and `'reflect'`.
 
         Returns
         -------
-        vals : ndarray of shape (window_size, len(s_map))
+        vals : ndarray of shape (window_size, num_in_components)
             The sampled sub-sequence of time series components, padded if the
             requested window extends outside the bounds of `slice_vals`. The
             window size is defined as `s_chunk[1] - s_chunk[0] + 1`.
@@ -1698,7 +1713,7 @@ class CustomDataset(Dataset):
         Notes
         -----
         - If the requested range falls completely outside the available time
-          steps, the method returns an array of shape `(window_size, len(s_map))`
+          steps, the method returns an array of shape `(window_size, num_in_components)`
           consisting entirely of padded values.
         - Padding is applied only along the time dimension. No padding occurs
           along the component dimension.
@@ -1711,14 +1726,14 @@ class CustomDataset(Dataset):
         right = selection[2] + s_chunk[1]
 
         if right < far_left or left >= far_right:
-            vals = slice_vals[0:0, s_map]
+            vals = slice_vals[0:0, :]
             pad_size = s_chunk[1] - s_chunk[0] + 1
             pw = ((pad_size, 0), (0, 0))
             vals = pad(vals, pad_width=pw, mode=pad_mode)
         else:
             corrected_left = max(far_left, left)
             corrected_right = min(right, far_right)
-            vals = slice_vals[corrected_left: corrected_right + 1, s_map]
+            vals = slice_vals[corrected_left: corrected_right + 1, :]
             if left < far_left:
                 pw = ((far_left - left, 0), (0, 0))
                 vals = pad(vals, pad_width=pw, mode=pad_mode)

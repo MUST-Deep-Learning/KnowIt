@@ -263,11 +263,9 @@ class ZScale:
                 if load_level == 'instance':
                     vals = instance_vals[instance_vals['slice'] == s]
                     vals = vals.drop(columns=['slice'])
-                    vals = vals.to_numpy()
                 else:
-                    vals = data_extractor.slice(i, s).to_numpy()
-                vals = vals[t, :]
-                vals = vals[:, s_map]
+                    vals = data_extractor.slice(i, s)
+                vals = vals.iloc[t, s_map].to_numpy()
                 mean, variance, count = _rec_mean_std(vals, mean, variance, count)
 
         self.native_mean = mean
@@ -370,11 +368,9 @@ class LinScale:
                 if load_level == 'instance':
                     vals = instance_vals[instance_vals['slice'] == s]
                     vals = vals.drop(columns=['slice'])
-                    vals = vals.to_numpy()
                 else:
-                    vals = data_extractor.slice(i, s).to_numpy()
-                vals = vals[t, :]
-                vals = vals[:, s_map]
+                    vals = data_extractor.slice(i, s)
+                vals = vals.iloc[t, s_map].to_numpy()
                 if min is None:
                     min = nanmin(vals, axis=0)
                     max = nanmax(vals, axis=0)

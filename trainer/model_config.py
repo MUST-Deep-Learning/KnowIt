@@ -443,8 +443,8 @@ class PLModel(pl.LightningModule):
             self.loss_functions = prepare_function(user_args=self.loss, is_loss=True)
 
         for _function in self.loss_functions:
-            function, to_ohe, to_flatten = self.loss_functions[_function]
-            if to_ohe:
+            function, to_argmax, to_flatten = self.loss_functions[_function]
+            if to_argmax:
                 y = argmax(y, dim=1).to(self.device)
             if to_flatten[0]:
                 y = y.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
@@ -454,7 +454,7 @@ class PLModel(pl.LightningModule):
 
             if self.output_scaler is not None:
                 y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
-                if not to_ohe:
+                if not to_argmax:
                     y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
                 loss_rescaled = function(input=y_pred, target=y)
                 log_metrics[loss_label] = loss_rescaled
@@ -509,11 +509,11 @@ class PLModel(pl.LightningModule):
             self.perf_functions = prepare_function( user_args=self.performance_metrics, is_loss=False)
 
         for _function in self.perf_functions:
-            function, to_ohe, to_flatten = self.perf_functions[_function]
+            function, to_argmax, to_flatten = self.perf_functions[_function]
             if self.output_scaler is not None:
                 y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
                 y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
-            if to_ohe:
+            if to_argmax:
                 y = argmax(y, dim=1).to(self.device)
             if to_flatten[0]:
                 y = y.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
@@ -543,3 +543,6 @@ class PLModel_custom(PLModel):
 
     # YOU CAN ADD YOUR OWN CUSTOM CALLBACKS OR OVERWRITE THOSE ALREADY DEFINED IN `PLModel`
     # e.g. add on_train_batch_end to add some extra terms to the loss during training
+
+    # def on_train_batch_end(self, outputs, batch, batch_idx):
+    #     outputs['loss'] = outputs['loss'] + self.model.kl_loss()
