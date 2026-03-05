@@ -665,6 +665,7 @@ class PreparedDataset(BaseDataset):
             unique_entries = unique_entries_list
             found_class_set.update(set(unique_entries))
 
+        found_class_set = sorted(found_class_set)
         self.class_set = {}
         tick = 0
         for c in found_class_set:
