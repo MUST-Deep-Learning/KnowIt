@@ -15,7 +15,7 @@ https://lightning.ai/docs/pytorch/stable/common/lightning_module.html
 from __future__ import annotations
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
 __licence__ = 'Apache 2.0; see LICENSE file for details.'
-__author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com"
+__author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com, moutoncoenraad@gmail.com"
 __description__ = "Constructs a Pytorch Lightning model class."
 
 from typing import TYPE_CHECKING, Any, Callable
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from torch.nn import Module
 
 logger = get_logger()
-
+import torch
 
 class PLModel(pl.LightningModule):
     """Wrapper class to prepare model for Pytorch Lightning's Trainer.
@@ -536,13 +536,185 @@ class PLModel_custom(PLModel):
             performance_metrics,
             model,
             model_params,
-            output_scaler=None
+            output_scaler=None,
     ) -> None:
         super().__init__(loss, learning_rate, optimizer, learning_rate_scheduler,
                          performance_metrics, model, model_params, output_scaler)
 
     # YOU CAN ADD YOUR OWN CUSTOM CALLBACKS OR OVERWRITE THOSE ALREADY DEFINED IN `PLModel`
     # e.g. add on_train_batch_end to add some extra terms to the loss during training
+    def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
+        """Compute loss and optional metrics, log metrics, and return the loss.
 
-    def on_train_batch_end(self, outputs, batch, batch_idx):
-        outputs['loss'] = outputs['loss'] + self.model.kl_loss()
+        Overrides the method in pl.LightningModule.
+        """
+        forward = getattr(self.model, "forward")  # noqa: B009
+        x = batch['x']
+        y = batch['y']
+        y_pred = forward(x=x,y=y)
+
+        # compute loss; depends on whether user gave kwargs
+        loss, loss_log_metrics = self._compute_loss(
+            y=x,
+            y_pred=y_pred,
+            loss_label="train_rec_loss",
+        )
+        kl_w, kl = self.model.kl_loss()
+        loss = loss + kl_w
+        loss_log_metrics['train_loss'] = loss
+        loss_log_metrics['train_kl_weighted_loss'] = kl_w
+        loss_log_metrics['train_kl_loss'] = kl
+
+        # compute performance; depends on whether user gave kwargs
+        if self.performance_metrics is None:
+            perf_log_metrics = {}
+        else:
+            perf_log_metrics = self._compute_performance(
+                y=batch['y'],
+                y_pred=y_pred,
+                perf_label="train_perf_",
+            )
+
+        log_metrics = {
+            **loss_log_metrics,
+            **perf_log_metrics,
+        }
+        log_metrics['epoch'] = float(self.current_epoch)
+        log_metrics['beta'] = float(self.model.get_betakl())
+        # The loss and performance is accumulated over an epoch and then
+        # averaged.
+        self.log_dict(  # type: ignore[type]
+            dictionary=log_metrics,
+            on_epoch=True,
+            on_step=False,
+            prog_bar=True,
+        )
+
+        return loss
+
+    def on_train_epoch_start(self):
+        super().on_train_epoch_start()
+        if hasattr(self.model, "apply_kl_warmup"):
+            self.model.apply_kl_warmup(self.current_epoch)
+
+    def on_validation_epoch_start(self):
+        super().on_validation_epoch_start()
+        if hasattr(self.model, "apply_kl_warmup"):
+            self.model.apply_kl_warmup(self.current_epoch)
+
+    def validation_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
+        """Compute loss and optional metrics, log metrics, and return the loss.
+
+        Overrides the method in pl.LightningModule.
+        """
+
+        forward = getattr(self.model, "forward")  # noqa: B009
+        x = batch['x']
+        y = batch['y']
+        y_pred = forward(x=x,y=y)
+
+        # compute loss; depends on whether user gave kwargs
+        loss, loss_log_metrics = self._compute_loss(
+            y=x,
+            y_pred=y_pred,
+            loss_label="valid_rec_loss",
+        )
+
+        kl_w, kl = self.model.kl_loss()
+        loss = loss + kl_w
+        loss_log_metrics['valid_loss'] = loss
+        loss_log_metrics['valid_kl_weighted_loss'] = kl_w
+        loss_log_metrics['valid_kl_loss'] = kl
+        # compute performance; depends on whether user gave kwargs
+        if self.performance_metrics is None:
+            perf_log_metrics = {}
+        else:
+            perf_log_metrics = self._compute_performance(
+                y=batch['y'],
+                y_pred=y_pred,
+                perf_label="valid_perf_",
+            )
+
+        log_metrics = {
+            **loss_log_metrics,
+            **perf_log_metrics,
+        }
+        log_metrics['epoch'] = float(self.current_epoch)
+        log_metrics['beta'] = float(self.model.get_betakl())
+        # The loss and performance is accumulated over an epoch and then
+        # averaged.
+        self.log_dict(  # type: ignore[type]
+            dictionary=log_metrics,
+            on_epoch=True,
+            on_step=False,
+            prog_bar=True,
+        )
+
+        return loss
+
+    def test_step(  # type: ignore[return-value]  # noqa: ANN201
+        self,
+        batch: dict[str, Any],
+        batch_idx: int,  # noqa: ARG002
+        dataloader_idx: int,
+    ):
+        """Compute loss and optional metrics, log metrics and return the log.
+
+        Overrides the method in pl.LightningModule.
+        """
+        loaders = {
+            0: "result_train_",
+            1: "result_valid_",
+            2: "result_eval_",
+        }
+        current_loader = loaders[dataloader_idx]
+
+        forward = getattr(self.model, "forward")  # noqa: B009
+        x = batch['x']
+        y = batch['y']
+        y_pred = forward(x=x,y=y)
+
+        # compute loss; depends on whether user gave kwargs
+        loss, loss_log_metrics = self._compute_loss(
+            y=x,
+            y_pred=y_pred,
+            loss_label=current_loader+"rec_loss",
+        )
+        kl_w, kl = self.model.kl_loss()
+        loss = loss + kl_w
+        loss_log_metrics[current_loader+'loss'] = loss
+        loss_log_metrics[current_loader+'kl_weighted_loss'] = kl_w
+        loss_log_metrics[current_loader+'kl_loss'] = kl
+        # compute performance; depends on whether user gave kwargs
+        if self.performance_metrics is None:
+            perf_log_metrics = {}
+        else:
+            perf_log_metrics = self._compute_performance(
+                y=batch['y'],
+                y_pred=y_pred,
+                perf_label=current_loader + "perf_",
+            )
+
+        log_metrics = {
+            **loss_log_metrics,
+            **perf_log_metrics,
+        }
+
+        # The loss and performance is accumulated over an epoch and then
+        # averaged.
+        self.log_dict(  # type: ignore[type]
+            dictionary=log_metrics,
+            on_epoch=True,
+            on_step=False,
+            prog_bar=True,
+            logger=True,
+            add_dataloader_idx=False,
+        )
+
+        return log_metrics
+
+
+
+
+
+
