@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 import pytorch_lightning as pl
 from torch import argmax
+import time
 
 from helpers.fetch_torch_mods import (
     get_lr_scheduler,
@@ -540,7 +541,8 @@ class PLModel_custom(PLModel):
     ) -> None:
         super().__init__(loss, learning_rate, optimizer, learning_rate_scheduler,
                          performance_metrics, model, model_params, output_scaler)
-
+        self._prev_batch_end_time = None
+        self._train_step_start_time = None
     # YOU CAN ADD YOUR OWN CUSTOM CALLBACKS OR OVERWRITE THOSE ALREADY DEFINED IN `PLModel`
     # e.g. add on_train_batch_end to add some extra terms to the loss during training
     def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
@@ -592,6 +594,24 @@ class PLModel_custom(PLModel):
 
         return loss
 
+    def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        super().on_train_batch_start(batch, batch_idx, dataloader_idx)
+
+        now = time.perf_counter()
+        if self._prev_batch_end_time is not None:
+            idle_time = now - self._prev_batch_end_time
+            self.log("train_batch_idle_time", idle_time, on_step=True, on_epoch=True, prog_bar=False, logger=True)
+            print(f"Train batch idle time {idle_time}")
+        self._train_step_start_time = now
+
+    def on_train_batch_end(self, outputs, batch, batch_idx):
+        now = time.perf_counter()
+
+        if self._train_step_start_time is not None:
+            step_time = now - self._train_step_start_time
+            self.log("train_batch_step_time", step_time, on_step=True, on_epoch=True, prog_bar=False, logger=True)
+            print(f"Train batch step time {step_time}")
+        self._prev_batch_end_time = now
     def on_train_epoch_start(self):
         super().on_train_epoch_start()
         if hasattr(self.model, "apply_kl_warmup"):
