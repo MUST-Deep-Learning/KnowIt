@@ -1724,8 +1724,8 @@ class CustomDataset(Dataset):
             y_vals = y_vals[selection[2] + self.out_chunk[0]: selection[2] + self.out_chunk[1] + 1, :]
 
             # scale inputs and outputs if applicable
-            input_x.append(self.x_scaler.transform(x_vals))
-            output_y.append(self.y_scaler.transform(y_vals))
+            input_x.append(self.x_scaler.transform(x_vals.copy()))
+            output_y.append(self.y_scaler.transform(y_vals.copy()))
 
         if len(idx_list) > 1:
             input_x = array(input_x)
