@@ -178,7 +178,7 @@ __description__ = ('Contains the PreparedDataset, CustomSampler, CustomDataset, 
 
 # external imports
 from numpy import (array, random, unique, pad, isnan, arange, expand_dims, concatenate,
-                   diff, where, split, ndarray, isscalar, asarray)
+                   diff, where, split, ndarray, isscalar, asarray, argwhere)
 from numpy.random import Generator
 from pandas import isna, DataFrame
 from torch.utils.data import Dataset, DataLoader, Sampler
@@ -380,7 +380,7 @@ class PreparedDataset(BaseDataset):
                           self.x_scaler, self.y_scaler,
                           self.in_chunk, self.out_chunk,
                           self.padding_method, preload=preload)
-        elif self.task == 'classification':
+        elif self.task in ('classification',):
             if self.batch_sampling_mode in ('variable_length', 'variable_length_inference'):
                 logger.error('Batch sampling mode %s is not supported for classification tasks.',
                              str(self.batch_sampling_mode))
@@ -445,6 +445,9 @@ class PreparedDataset(BaseDataset):
                          str(self.batch_sampling_mode))
             exit(101)
 
+        if self.batch_sampling_mode == 'basic_classification':
+            return self.get_basic_classification_dataloader(set_tag, analysis, num_workers, preload)
+
         if set_tag == 'train' and not analysis:
             shuffle = self.shuffle_train
             drop_small = True
@@ -469,6 +472,42 @@ class PreparedDataset(BaseDataset):
         dataset = self.get_dataset(set_tag, preload=preload)
 
         dataloader = DataLoader(dataset=dataset, batch_sampler=sampler, num_workers=num_workers)
+
+        return dataloader
+
+    def get_basic_classification_dataloader(self, set_tag: str,
+                       analysis: bool = False,
+                       num_workers: int = 4,
+                       preload: bool = False) -> DataLoader:
+
+        """A simplified dataloader that works when the task constitutes a basic classification task with
+        fixed input chunks that do not need to be resampled each epoch. It effectively samples the data like a
+        image classification task."""
+
+        if set_tag == 'train' and not analysis:
+            shuffle = self.shuffle_train
+            drop_small = True
+        else:
+            shuffle = False
+            drop_small = False
+
+        split_data = self.precompiled_data[set_tag]
+
+        dataset = BasicClassificationTorchDataset(
+            split_data['x'],
+            split_data['y'],
+            split_data['s_id'],
+            split_data['ist_idx']
+        )
+
+        dataloader = DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=shuffle,
+            num_workers=num_workers,
+            drop_last=drop_small,
+            pin_memory=preload
+        )
 
         return dataloader
 
@@ -556,6 +595,24 @@ class PreparedDataset(BaseDataset):
 
         return custom_batch
 
+    def _precompile_data(self):
+        """
+        Precompiles the dataset so that it can be sampled index-wise by the basic classification dataloader later.
+        This loops through the entire dataset using the conventional methods, so it takes a while, but it only happens once before
+        training is initiated. """
+
+
+        logger.info('Precompiling data for basic classification batch sampling. '
+                    'This will take a moment, but only happens at the start of training/evaluation.')
+        data = dict()
+        for set_tag in ('train', 'valid', 'eval'):
+            selection = self.selection[set_tag]
+            data[set_tag] = self.fetch_input_points_manually(
+                set_tag, [_ for _ in range(len(selection))]
+            )
+            logger.info('%s set precompiling done!', set_tag)
+        return data
+
     def _prepare(self) -> None:
         """Prepare the dataset by splitting and scaling the data.
 
@@ -617,9 +674,10 @@ class PreparedDataset(BaseDataset):
                                                 self.valid_set_size,
                                                 self.eval_set_size)))
 
-        min_split = min(self.train_set_size, self.valid_set_size, self.eval_set_size)
+        splits = [_ for _ in (self.train_set_size, self.valid_set_size, self.eval_set_size) if _ != 0]
+        min_split = min(splits)
         if self.batch_size > min_split:
-            logger.warning('Selected batch_size %s, is larger than one of dataset splits. Setting batch_size to %s.',
+            logger.warning('Selected batch_size %s, is larger than one of the non-zero-sized dataset splits. Setting batch_size to %s.',
                            str(self.batch_size), str(min_split))
             self.batch_size = min_split
 
@@ -637,6 +695,9 @@ class PreparedDataset(BaseDataset):
                                                   self.x_map,
                                                   self.y_map).get_scalers()
 
+        if self.batch_sampling_mode == 'basic_classification':
+            self.precompiled_data = self._precompile_data()
+
     def _get_classes(self) -> None:
         """Identify unique classes in the dataset.
 
@@ -644,7 +705,7 @@ class PreparedDataset(BaseDataset):
         The unique classes are stored in the `class_set` attribute.
         """
 
-        if self.task != 'classification':
+        if self.task not in ('classification',):
             logger.error('Task must be classification to determine classes.')
             exit(101)
 
@@ -679,7 +740,7 @@ class PreparedDataset(BaseDataset):
     def _count_classes(self) -> None:
         """ Count the number of instances of each class and store in a dictionary as attribute."""
 
-        if self.task != 'classification' or not hasattr(self, 'class_set'):
+        if self.task not in ('classification',) or not hasattr(self, 'class_set'):
             logger.error('Task must be classification and classes must have been determined to count classes.')
             exit(101)
 
@@ -1789,7 +1850,8 @@ class CustomClassificationDataset(CustomDataset):
             output_y = new_output_y
         elif len(output_y.shape) == 3:
             new_output_y = zeros_tensor(size=(output_y.shape[0], len(self.class_set)))
-            new_output_y[:, output_y] = 1
+            for c in range(len(self.class_set)):
+                new_output_y[argwhere(output_y[:, -1, -1] == c), c] = 1
             output_y = new_output_y
 
         sample = {'x': from_numpy(input_x).float(),
@@ -1838,3 +1900,26 @@ class CustomVariableLengthRegressionDataset(CustomDataset):
 
         return sample
 
+
+class BasicClassificationTorchDataset(Dataset):
+
+    """A very basic classification dataset. Simply returns values corresponding to the given index."""
+
+
+    def __init__(self, x, y, s_id, ist_idx):
+        # cast to device here?
+        self.x = x
+        self.y = y
+        self.s_id = s_id
+        self.ist_idx = ist_idx
+
+    def __len__(self):
+        return self.x.shape[0]
+
+    def __getitem__(self, idx):
+
+        ret_val = {'x': self.x[idx],
+                   'y': self.y[idx],
+                   's_id': self.s_id[idx],
+                   'ist_idx': self.ist_idx[idx]}
+        return ret_val

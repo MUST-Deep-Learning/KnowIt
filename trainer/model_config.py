@@ -162,7 +162,8 @@ class PLModel(pl.LightningModule):
         This is done to manage potential stochasticity (which is connected to the epoch number).
 
         """
-        self.trainer.train_dataloader.batch_sampler.set_epoch(self.current_epoch+1)
+        if hasattr(self.trainer.train_dataloader.batch_sampler, 'set_epoch'):
+            self.trainer.train_dataloader.batch_sampler.set_epoch(self.current_epoch+1)
 
     def on_train_epoch_start(self):
         """ Reset the model internal states for new training epoch."""

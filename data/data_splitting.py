@@ -76,7 +76,7 @@ __description__ = 'Contains the DataSplitter class for KnowIt.'
 # external imports
 from numpy import (array, random, argwhere, isnan,
                    count_nonzero, vstack, concatenate,
-                   argsort, arange, unique, append, floor, full)
+                   argsort, arange, unique, append, floor, full, empty)
 from pandas import isna, DataFrame
 
 # internal imports
@@ -211,7 +211,10 @@ class DataSplitter:
 
         """
         blocks = [prediction_points[start_stop_indxs[i, 0]:start_stop_indxs[i, 1]] for i in elements]
-        blocks = vstack(blocks)
+        if len(blocks) > 1:
+            blocks = vstack(blocks)
+        else:
+            blocks = empty(0)
 
         return blocks
 
@@ -239,9 +242,19 @@ class DataSplitter:
         """
         train_size = int(floor(portions[0] * len(elements)))
         eval_size = int(floor(portions[2] * len(elements)))
-        eval_elements = elements[-eval_size:]
-        train_elements = elements[:train_size]
-        valid_elements = elements[train_size:-eval_size]
+        valid_size = len(elements) - train_size - eval_size
+
+        if eval_size > 0 and train_size > 0 and valid_size > 0:
+            eval_elements = elements[-eval_size:]
+            train_elements = elements[:train_size]
+            valid_elements = elements[train_size:-eval_size]
+        elif eval_size == 0 and (train_size > 0 and valid_size > 0):
+            train_elements = elements[:train_size]
+            valid_elements = elements[train_size:train_size + valid_size]
+            eval_elements = empty(0)
+        else:
+            logger.error('Unknown split portion configuration.')
+            exit(101)
 
         return train_elements, valid_elements, eval_elements
 
@@ -370,7 +383,7 @@ class DataSplitter:
 
         train_elements, valid_elements, eval_elements = DataSplitter._ordered_split(elements, portions)
 
-        if len(train_elements) < 1 or len(valid_elements) < 1 or len(eval_elements) < 1:
+        if len(train_elements) < 1:
             logger.error('Data segments too limited for selected splitting method %s', method)
             exit(101)
 
