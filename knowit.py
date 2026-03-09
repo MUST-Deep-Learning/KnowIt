@@ -359,7 +359,7 @@ class KnowIt:
                             optional_pl_kwargs=optional_pl_kwargs)
         trainer.fit(dataloaders=(train_loader,
                                  datamodule.get_dataloader('valid', preload=preload, num_workers=num_workers),
-                                 datamodule.get_dataloader('eval', preload=False, num_workers=num_workers)))
+                                 ))
 
         if trainer_args['out_dir'] is not None:
             safe_dump(relevant_args, os.path.join(trainer_args['out_dir'], 'model_args.yaml'), safe_mode)
