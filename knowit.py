@@ -34,7 +34,7 @@ from setup.select_interpretation_points import get_interpretation_inx
 from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
 from setup.import_custom_arch import import_custom_arch, complies
 from data.base_dataset import BaseDataset
-from data.prepared_dataset_backup import PreparedDataset
+from data.prepared_dataset import PreparedDataset
 from trainer.trainer import KITrainer
 from trainer.trainer_states import TrainNew, EvaluateOnly
 from interpret.DLS_Captum import DLS
