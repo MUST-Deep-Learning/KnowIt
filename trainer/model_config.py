@@ -595,33 +595,108 @@ class PLModel_custom(PLModel):
 
         return loss
 
-    def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        super().on_train_batch_start(batch, batch_idx, dataloader_idx)
-
-        now = time.perf_counter()
-        if self._prev_batch_end_time is not None:
-            idle_time = now - self._prev_batch_end_time
-            self.log("train_batch_idle_time", idle_time, on_step=True, on_epoch=True, prog_bar=False, logger=True)
-            print(f"Train batch idle time {idle_time}")
-        self._train_step_start_time = now
-
-    def on_train_batch_end(self, outputs, batch, batch_idx):
-        now = time.perf_counter()
-
-        if self._train_step_start_time is not None:
-            step_time = now - self._train_step_start_time
-            self.log("train_batch_step_time", step_time, on_step=True, on_epoch=True, prog_bar=False, logger=True)
-            print(f"Train batch step time {step_time}")
-        self._prev_batch_end_time = now
+    # def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+    #     super().on_train_batch_start(batch, batch_idx, dataloader_idx)
+    #
+    #     now = time.perf_counter()
+    #     if self._prev_batch_end_time is not None:
+    #         idle_time = now - self._prev_batch_end_time
+    #         self.log("train_batch_idle_time", idle_time, on_step=True, on_epoch=True, prog_bar=False, logger=True)
+    #         print(f"Train batch idle time {idle_time}")
+    #     self._train_step_start_time = now
+    #
+    # def on_train_batch_end(self, outputs, batch, batch_idx):
+    #     now = time.perf_counter()
+    #
+    #     if self._train_step_start_time is not None:
+    #         step_time = now - self._train_step_start_time
+    #         self.log("train_batch_step_time", step_time, on_step=True, on_epoch=True, prog_bar=False, logger=True)
+    #         print(f"Train batch step time {step_time}")
+    #     self._prev_batch_end_time = now
     def on_train_epoch_start(self):
         super().on_train_epoch_start()
         if hasattr(self.model, "apply_kl_warmup"):
             self.model.apply_kl_warmup(self.current_epoch)
 
-    def on_validation_epoch_start(self):
-        super().on_validation_epoch_start()
-        if hasattr(self.model, "apply_kl_warmup"):
-            self.model.apply_kl_warmup(self.current_epoch)
+    # def on_validation_epoch_start(self):
+    #     super().on_validation_epoch_start()
+    #     if hasattr(self.model, "apply_kl_warmup"):
+    #         self.model.apply_kl_warmup(self.current_epoch)
+
+    def measure_gen_performance(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """
+        Compare generated vs real samples per class using PSD-L1 distance.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Real samples of shape [B, T, F].
+        y : torch.Tensor
+            Class labels, either:
+              - [B] integer labels, or
+              - [B, C] one-hot labels.
+
+        Returns
+        -------
+        torch.Tensor
+            Scalar tensor: mean PSD-L1 mismatch across classes present in the batch.
+        """
+        if y.dim() > 1:
+            labels = torch.argmax(y, dim=-1)
+        else:
+            labels = y.long()
+
+        unique_classes = torch.unique(labels)
+
+        perf_per_class_list = []
+        for current_class in unique_classes:
+            class_mask = labels == current_class
+            x_real_by_class = x[class_mask]
+
+            n_samples = x_real_by_class.shape[0]
+            x_gen_by_class = self.model.sample_by_class(
+                n_samples=n_samples,
+                class_id=int(current_class.item()),
+            )
+
+            real_gen_psd_diff = self.psd_l1_metric(
+                x_real=x_real_by_class,
+                x_gen=x_gen_by_class,
+            )
+
+            perf_per_class_list.append(real_gen_psd_diff)
+
+        perf_per_class = torch.stack(perf_per_class_list)
+        return torch.mean(perf_per_class)
+
+    @staticmethod
+    def psd_l1_metric(x_real: torch.Tensor, x_gen: torch.Tensor) -> torch.Tensor:
+        """
+        x_real, x_gen: [B, T, F]
+        Returns scalar PSD mismatch.
+        """
+        # move time dimension to last for FFT convenience: [B, F, T]
+        x_real = x_real.transpose(1, 2)
+        x_gen = x_gen.transpose(1, 2)
+
+        # remove channel-wise mean over time
+        x_real = x_real - x_real.mean(dim=-1, keepdim=True)
+        x_gen = x_gen - x_gen.mean(dim=-1, keepdim=True)
+
+        # one-sided power spectra
+        psd_real = torch.abs(torch.fft.rfft(x_real, dim=-1)) ** 2
+        psd_gen = torch.abs(torch.fft.rfft(x_gen, dim=-1)) ** 2
+
+        # average over batch
+        psd_real = psd_real.mean(dim=0)  # [F, K]
+        psd_gen = psd_gen.mean(dim=0)  # [F, K]
+
+        # normalize per channel for shape comparison
+        psd_real = psd_real / (psd_real.sum(dim=-1, keepdim=True) + 1e-8)
+        psd_gen = psd_gen / (psd_gen.sum(dim=-1, keepdim=True) + 1e-8)
+
+        return torch.mean(torch.abs(psd_real - psd_gen))
+
 
     def validation_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
         """Compute loss and optional metrics, log metrics, and return the loss.
@@ -647,21 +722,22 @@ class PLModel_custom(PLModel):
         loss_log_metrics['valid_kl_weighted_loss'] = kl_w
         loss_log_metrics['valid_kl_loss'] = kl
         # compute performance; depends on whether user gave kwargs
-        if self.performance_metrics is None:
-            perf_log_metrics = {}
-        else:
-            perf_log_metrics = self._compute_performance(
-                y=batch['y'],
-                y_pred=y_pred,
-                perf_label="valid_perf_",
-            )
+        # if self.performance_metrics is None:
+        #     perf_log_metrics = {}
+        # else:
+        #     perf_log_metrics = self._compute_performance(
+        #         y=batch['y'],
+        #         y_pred=y_pred,
+        #         perf_label="valid_perf_",
+        #     )
+        valid_real_gen_mean_psd_diff = self.measure_gen_performance(x=x, y=y)
 
         log_metrics = {
             **loss_log_metrics,
-            **perf_log_metrics,
+            'valid_real_gen_psd_diff': valid_real_gen_mean_psd_diff
         }
         log_metrics['epoch'] = float(self.current_epoch)
-        log_metrics['beta'] = float(self.model.get_betakl())
+        # log_metrics['beta'] = float(self.model.get_betakl())
         # The loss and performance is accumulated over an epoch and then
         # averaged.
         self.log_dict(  # type: ignore[type]
