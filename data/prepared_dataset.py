@@ -184,11 +184,13 @@ from pandas import isna, DataFrame
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch import from_numpy, is_tensor, Tensor, unsqueeze
 from torch import zeros as zeros_tensor
+from os import path
 
 # internal imports
 from data.base_dataset import BaseDataset
 from data.data_splitting import DataSplitter
 from data.data_scaling import DataScaler
+from helpers.file_dir_procs import safe_dump, load_from_path
 from helpers.logger import get_logger
 
 logger = get_logger()
@@ -601,16 +603,23 @@ class PreparedDataset(BaseDataset):
         This loops through the entire dataset using the conventional methods, so it takes a while, but it only happens once before
         training is initiated. """
 
+        file_path = path.join(path.dirname(self.meta_path), self.name + '_precompiled.pkl')
+        if not path.exists(file_path):
+            logger.info('Precompiling data for basic classification batch sampling. '
+                        'This will take a moment, but only happens once. '
+                        'Data will be loaded from disk next run and will need to be manually removed to recreate.')
+            data = dict()
+            for set_tag in ('train', 'valid', 'eval'):
+                selection = self.selection[set_tag]
+                data[set_tag] = self.fetch_input_points_manually(
+                    set_tag, [_ for _ in range(len(selection))]
+                )
+                logger.info('%s set precompiling done!', set_tag)
+            safe_dump(data, file_path, safe_mode=True)
+        else:
+            logger.info('Precompiled data already exists. Using as is.')
+            data = load_from_path(file_path)
 
-        logger.info('Precompiling data for basic classification batch sampling. '
-                    'This will take a moment, but only happens at the start of training/evaluation.')
-        data = dict()
-        for set_tag in ('train', 'valid', 'eval'):
-            selection = self.selection[set_tag]
-            data[set_tag] = self.fetch_input_points_manually(
-                set_tag, [_ for _ in range(len(selection))]
-            )
-            logger.info('%s set precompiling done!', set_tag)
         return data
 
     def _prepare(self) -> None:
