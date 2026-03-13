@@ -1930,5 +1930,5 @@ class BasicClassificationTorchDataset(Dataset):
         ret_val = {'x': self.x[idx],
                    'y': self.y[idx],
                    's_id': self.s_id[idx],
-                   'ist_idx': self.ist_idx[idx]}
+                   'ist_idx': [self.ist_idx[idx]]}
         return ret_val
