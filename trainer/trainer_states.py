@@ -145,11 +145,11 @@ class TrainNew(BaseTrainer):
         self.trainer.test(ckpt_path=set_ckpt_path, dataloaders=dataloaders)
 
     def _prepare_pl_model(self) -> None:
-        if not self.custom_training_modality:
+        if self.custom_pl_model_kwargs is None:
             self.pl_model = PLModel(**self.pl_model_kwargs)
         else:
-            self.pl_model = PLModel_custom(**self.pl_model_kwargs)
-
+            self.pl_model = PLModel_custom(
+                **self.pl_model_kwargs, **{'custom_pl_model_kwargs': self.custom_pl_model_kwargs})
 
     def _prepare_pl_trainer(
         self,
@@ -328,12 +328,12 @@ class ContinueTraining(BaseTrainer):
         self.trainer.test(ckpt_path=set_ckpt_path, dataloaders=dataloaders)
 
     def _prepare_pl_model(self) -> None:
-        if not self.custom_training_modality:
+        if self.custom_pl_model_kwargs is None:
             self.pl_model = PLModel.load_from_checkpoint(  # type: ignore  # noqa: PGH003
                 checkpoint_path=self.ckpt_file,
             )
         else:
-            self.pl_model = PLModel_custom(**self.pl_model_kwargs,
+            self.pl_model = PLModel_custom(**self.pl_model_kwargs, **{'custom_pl_model_kwargs': self.custom_pl_model_kwargs},
                                            checkpoint_path=self.ckpt_file)
 
     def _prepare_pl_trainer(
@@ -474,7 +474,7 @@ class EvaluateOnly(BaseTrainer):
         self.trainer.test(model=self.pl_model, dataloaders=dataloaders)
 
     def _prepare_pl_model(self) -> None:
-        if not self.custom_training_modality:
+        if self.custom_pl_model_kwargs is None:
             self.pl_model = PLModel.load_from_checkpoint(  # type: ignore  # noqa: PGH003
                 checkpoint_path=self.ckpt_file,
                 **self.pl_model_kwargs,
@@ -482,7 +482,7 @@ class EvaluateOnly(BaseTrainer):
         else:
             self.pl_model = PLModel_custom.load_from_checkpoint(  # type: ignore  # noqa: PGH003
                 checkpoint_path=self.ckpt_file,
-                **self.pl_model_kwargs,
+                **self.pl_model_kwargs, **{'custom_pl_model_kwargs': self.custom_pl_model_kwargs},
             )
 
     def _prepare_pl_trainer(
@@ -556,10 +556,10 @@ class CustomTrainer(BaseTrainer):
 
     def _prepare_pl_model(self) -> None:
         # configure
-        if not self.custom_training_modality:
+        if self.custom_pl_model_kwargs is None:
             self.pl_model = PLModel(**self.pl_model_kwargs)
         else:
-            self.pl_model = PLModel_custom(**self.pl_model_kwargs)
+            self.pl_model = PLModel_custom(**self.pl_model_kwargs, **{'custom_pl_model_kwargs': self.custom_pl_model_kwargs})
 
     def _prepare_pl_trainer(
         self,

@@ -157,9 +157,9 @@ class BaseTrainer(ABC):
         If None, no rescaling is performed. Note, only applicable to logged metrics,
         gradients are still calculated with scaled outputs (if applicable).
 
-    custom_training_modality : bool, default=False
-        Whether a custom training procedure is to be used. Default is False.
-        If True, the trainer will use `PLModel_custom(PLModel)` instead of `PLModel`.
+    custom_pl_model_kwargs : None | dict, default=None
+        If a dictionary is given then the trainer will use `PLModel_custom(PLModel)` instead of `PLModel` and
+        the dictionary is passed to it as an additional argument.
         Custom callbacks can be incorporated there.
 
     Attributes
@@ -219,7 +219,7 @@ class BaseTrainer(ABC):
         logger_status: bool = False,
         seed: None | int = 123,
         output_scaler: None | object = None,
-        custom_training_modality: bool = False
+        custom_pl_model_kwargs: None | dict = None
     ) -> None:
         self.out_dir = out_dir
         self.logger_status = logger_status
@@ -228,7 +228,7 @@ class BaseTrainer(ABC):
         self.return_final = return_final
         self.ckpt_mode = ckpt_mode
         self.output_scaler = output_scaler
-        self.custom_training_modality = custom_training_modality
+        self.custom_pl_model_kwargs = custom_pl_model_kwargs
 
         # seed everything
         if seed:

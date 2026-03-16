@@ -540,6 +540,7 @@ class PLModel_custom(PLModel):
             model,
             model_params,
             output_scaler=None,
+            custom_pl_model_kwargs=None,
     ) -> None:
         super().__init__(loss, learning_rate, optimizer, learning_rate_scheduler,
                          performance_metrics, model, model_params, output_scaler)
