@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 
 logger = get_logger()
 import torch
+from .manifold_adversarial_training import gen_man_adv_samples
 
 class PLModel(pl.LightningModule):
     """Wrapper class to prepare model for Pytorch Lightning's Trainer.
@@ -730,11 +731,11 @@ class PLModel_custom(PLModel):
         #         y_pred=y_pred,
         #         perf_label="valid_perf_",
         #     )
-        valid_real_gen_mean_psd_diff = self.measure_gen_performance(x=x, y=y)
+        # valid_real_gen_mean_psd_diff = self.measure_gen_performance(x=x, y=y)
 
         log_metrics = {
             **loss_log_metrics,
-            'valid_real_gen_psd_diff': valid_real_gen_mean_psd_diff
+            # 'valid_real_gen_psd_diff': valid_real_gen_mean_psd_diff
         }
         log_metrics['epoch'] = float(self.current_epoch)
         # log_metrics['beta'] = float(self.model.get_betakl())
@@ -809,6 +810,135 @@ class PLModel_custom(PLModel):
         )
 
         return log_metrics
+
+
+class PLModel_custom_mat(PLModel):
+
+    def __init__(
+            self,
+            loss,
+            learning_rate,
+            optimizer,
+            learning_rate_scheduler,
+            performance_metrics,
+            model,
+            model_params,
+            output_scaler,
+            gen_model_path,
+            attack_params
+
+    ) -> None:
+        super().__init__(loss, learning_rate, optimizer, learning_rate_scheduler,
+                         performance_metrics, model, model_params, output_scaler)
+
+        self.z_stats = None
+        self.attack_epsilon = attack_params["epsilon"]
+        self.attack_steps = attack_params["steps"]
+        self.attack_step_size = attack_params["step_size"] #make sure to check whether this actually takes the std into account
+        if self.attack_step_size is None:
+            self.attack_step_size = self.attack_epsilon/self.attack_steps
+        self.gen_model = 'ay lmao'# TT to write gen_model loading using KnowIT functions
+
+    def calculate_z_stats(self):
+        """
+        Compute latent statistics over the full training set using the encoder mean mu.
+
+        Returns
+        -------
+        dict
+            {
+                "std": [latent_dim],
+                "min": [latent_dim],
+                "max": [latent_dim],
+            }
+        """
+        self.gen_model.eval()
+
+        z_list = []
+
+        train_loader = self.trainer.train_dataloader
+
+        with torch.no_grad():
+            for batch in train_loader:
+                x = batch["x"].to(self.device)
+                y = batch["y"].to(self.device)
+
+                mu, logvar = self.gen_model.encode(x, y)
+                z_list.append(mu.detach())
+
+        z_all = torch.cat(z_list, dim=0)  # [N, latent_dim]
+
+        stats_dict = {
+            "std": z_all.std(dim=0),
+            "min": z_all.min(dim=0).values,
+            "max": z_all.max(dim=0).values,
+        }
+
+        return stats_dict
+
+    def on_train_start(self):
+        super().on_train_start()
+        if self.z_stats is None:
+            self.z_stats = self.calculate_z_stats()
+
+    def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
+        """Compute loss and optional metrics, log metrics, and return the loss.
+
+        Overrides the method in pl.LightningModule.
+        """
+        forward = getattr(self.model, "forward")  # noqa: B009
+        x = batch['x']
+        y = batch['y']
+        x_adv = gen_man_adv_samples(
+            model=self.model,
+            gen_model=self.gen_model,
+            x_natural=x,
+            y=y,
+            step_size=self.attack_step_size,
+            epsilon=self.attack_epsilon,
+            perturb_steps=self.attack_steps,
+            stats_dict=self.z_stats,
+        )
+        y_pred = forward(x=x_adv,y=y)
+
+        # compute loss; depends on whether user gave kwargs
+        loss, loss_log_metrics = self._compute_loss(
+            y=y,
+            y_pred=y_pred,
+            loss_label="train_loss",
+        )
+        loss_log_metrics['train_loss'] = loss
+
+
+        # compute performance; depends on whether user gave kwargs
+        if self.performance_metrics is None:
+            perf_log_metrics = {}
+        else:
+            perf_log_metrics = self._compute_performance(
+                y=batch['y'],
+                y_pred=y_pred,
+                perf_label="train_perf_",
+            )
+
+        log_metrics = {
+            **loss_log_metrics,
+            **perf_log_metrics,
+        }
+        log_metrics['epoch'] = float(self.current_epoch)
+        # The loss and performance is accumulated over an epoch and then
+        # averaged.
+        self.log_dict(  # type: ignore[type]
+            dictionary=log_metrics,
+            on_epoch=True,
+            on_step=False,
+            prog_bar=True,
+        )
+
+        return loss
+
+
+
+
 
 
 
