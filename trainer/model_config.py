@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 logger = get_logger()
 import torch
 from .manifold_adversarial_training import gen_man_adv_samples
+from momentfm import MOMENTPipeline
 
 class PLModel(pl.LightningModule):
     """Wrapper class to prepare model for Pytorch Lightning's Trainer.
@@ -156,7 +157,7 @@ class PLModel(pl.LightningModule):
 
         self.model = self._build_model(model, model_params)
 
-        self.save_hyperparameters(ignore=['model'])
+        self.save_hyperparameters(ignore=['model', 'custom_pl_model_kwargs'])
 
     def on_train_epoch_end(self):
         """ Set the next training epoch number in the CustomSampler.
@@ -527,7 +528,6 @@ class PLModel(pl.LightningModule):
 
         return log_metrics
 
-
 class PLModel_custom(PLModel):
 
     def __init__(
@@ -546,8 +546,46 @@ class PLModel_custom(PLModel):
                          performance_metrics, model, model_params, output_scaler)
         self._prev_batch_end_time = None
         self._train_step_start_time = None
-    # YOU CAN ADD YOUR OWN CUSTOM CALLBACKS OR OVERWRITE THOSE ALREADY DEFINED IN `PLModel`
-    # e.g. add on_train_batch_end to add some extra terms to the loss during training
+        self.feature_encoder = None
+        if 'use_feature_encoder' in custom_pl_model_kwargs:
+            if custom_pl_model_kwargs['use_feature_encoder']:
+                self.feature_encoder = MOMENTPipeline.from_pretrained(
+                    "AutonLab/MOMENT-1-small",
+                    model_kwargs={'task_name': 'embedding'},
+                    # We are loading the model in `embedding` mode to learn representations
+                    # local_files_only=True,  # Whether or not to only look at local files (i.e., do not try to download the model).
+                )
+                self.feature_encoder.init()
+                self.feature_encoder.eval()
+                num_params = sum(p.numel() for p in self.feature_encoder.encoder.parameters())
+                print(f"Number of parameters in feature encoder: {num_params}")
+        if 'feature_loss_weight' in custom_pl_model_kwargs:
+            self.feat_loss_weight = custom_pl_model_kwargs['feature_loss_weight']
+        else:
+            self.feat_loss_weight = 1.0
+        self.criterion = torch.nn.MSELoss()
+
+    def calculate_loss(self, x, y, prefix):
+
+        x = x.transpose(1, 2)
+        y = y.transpose(1, 2)
+        log_metrics = {}
+        if self.feature_encoder is not None:
+            with torch.no_grad():
+                x_feat = self.feature_encoder(x_enc=x).embeddings
+            y_feat = self.feature_encoder(x_enc=y).embeddings
+            # calc MSE in feature space
+            feat_loss = self.criterion(x_feat, y_feat)
+        else:
+            feat_loss = torch.tensor(0.0)
+        log_metrics[prefix + '_feat_loss'] = feat_loss
+
+        input_loss = self.criterion(x, y)
+        log_metrics[prefix + '_input_loss'] = input_loss
+        rec_loss = input_loss + self.feat_loss_weight * feat_loss
+        log_metrics[prefix + '_rec_loss'] = rec_loss
+        return rec_loss, log_metrics
+
     def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
         """Compute loss and optional metrics, log metrics, and return the loss.
 
@@ -559,10 +597,10 @@ class PLModel_custom(PLModel):
         y_pred = forward(x=x,y=y)
 
         # compute loss; depends on whether user gave kwargs
-        loss, loss_log_metrics = self._compute_loss(
-            y=x,
-            y_pred=y_pred,
-            loss_label="train_rec_loss",
+        loss, loss_log_metrics = self.calculate_loss(
+            x=x,
+            y=y_pred,
+            prefix="train",
         )
         kl_w, kl = self.model.kl_loss()
         loss = loss + kl_w
@@ -597,109 +635,6 @@ class PLModel_custom(PLModel):
 
         return loss
 
-    # def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
-    #     super().on_train_batch_start(batch, batch_idx, dataloader_idx)
-    #
-    #     now = time.perf_counter()
-    #     if self._prev_batch_end_time is not None:
-    #         idle_time = now - self._prev_batch_end_time
-    #         self.log("train_batch_idle_time", idle_time, on_step=True, on_epoch=True, prog_bar=False, logger=True)
-    #         print(f"Train batch idle time {idle_time}")
-    #     self._train_step_start_time = now
-    #
-    # def on_train_batch_end(self, outputs, batch, batch_idx):
-    #     now = time.perf_counter()
-    #
-    #     if self._train_step_start_time is not None:
-    #         step_time = now - self._train_step_start_time
-    #         self.log("train_batch_step_time", step_time, on_step=True, on_epoch=True, prog_bar=False, logger=True)
-    #         print(f"Train batch step time {step_time}")
-    #     self._prev_batch_end_time = now
-    def on_train_epoch_start(self):
-        super().on_train_epoch_start()
-        if hasattr(self.model, "apply_kl_warmup"):
-            self.model.apply_kl_warmup(self.current_epoch)
-
-    # def on_validation_epoch_start(self):
-    #     super().on_validation_epoch_start()
-    #     if hasattr(self.model, "apply_kl_warmup"):
-    #         self.model.apply_kl_warmup(self.current_epoch)
-
-    def measure_gen_performance(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        """
-        Compare generated vs real samples per class using PSD-L1 distance.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            Real samples of shape [B, T, F].
-        y : torch.Tensor
-            Class labels, either:
-              - [B] integer labels, or
-              - [B, C] one-hot labels.
-
-        Returns
-        -------
-        torch.Tensor
-            Scalar tensor: mean PSD-L1 mismatch across classes present in the batch.
-        """
-        if y.dim() > 1:
-            labels = torch.argmax(y, dim=-1)
-        else:
-            labels = y.long()
-
-        unique_classes = torch.unique(labels)
-
-        perf_per_class_list = []
-        for current_class in unique_classes:
-            class_mask = labels == current_class
-            x_real_by_class = x[class_mask]
-
-            n_samples = x_real_by_class.shape[0]
-            x_gen_by_class = self.model.sample_by_class(
-                n_samples=n_samples,
-                class_id=int(current_class.item()),
-            )
-
-            real_gen_psd_diff = self.psd_l1_metric(
-                x_real=x_real_by_class,
-                x_gen=x_gen_by_class,
-            )
-
-            perf_per_class_list.append(real_gen_psd_diff)
-
-        perf_per_class = torch.stack(perf_per_class_list)
-        return torch.mean(perf_per_class)
-
-    @staticmethod
-    def psd_l1_metric(x_real: torch.Tensor, x_gen: torch.Tensor) -> torch.Tensor:
-        """
-        x_real, x_gen: [B, T, F]
-        Returns scalar PSD mismatch.
-        """
-        # move time dimension to last for FFT convenience: [B, F, T]
-        x_real = x_real.transpose(1, 2)
-        x_gen = x_gen.transpose(1, 2)
-
-        # remove channel-wise mean over time
-        x_real = x_real - x_real.mean(dim=-1, keepdim=True)
-        x_gen = x_gen - x_gen.mean(dim=-1, keepdim=True)
-
-        # one-sided power spectra
-        psd_real = torch.abs(torch.fft.rfft(x_real, dim=-1)) ** 2
-        psd_gen = torch.abs(torch.fft.rfft(x_gen, dim=-1)) ** 2
-
-        # average over batch
-        psd_real = psd_real.mean(dim=0)  # [F, K]
-        psd_gen = psd_gen.mean(dim=0)  # [F, K]
-
-        # normalize per channel for shape comparison
-        psd_real = psd_real / (psd_real.sum(dim=-1, keepdim=True) + 1e-8)
-        psd_gen = psd_gen / (psd_gen.sum(dim=-1, keepdim=True) + 1e-8)
-
-        return torch.mean(torch.abs(psd_real - psd_gen))
-
-
     def validation_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
         """Compute loss and optional metrics, log metrics, and return the loss.
 
@@ -712,10 +647,10 @@ class PLModel_custom(PLModel):
         y_pred = forward(x=x,y=y)
 
         # compute loss; depends on whether user gave kwargs
-        loss, loss_log_metrics = self._compute_loss(
-            y=x,
-            y_pred=y_pred,
-            loss_label="valid_rec_loss",
+        loss, loss_log_metrics = self.calculate_loss(
+            x=x,
+            y=y_pred,
+            prefix="valid",
         )
 
         kl_w, kl = self.model.kl_loss()
@@ -774,10 +709,10 @@ class PLModel_custom(PLModel):
         y_pred = forward(x=x,y=y)
 
         # compute loss; depends on whether user gave kwargs
-        loss, loss_log_metrics = self._compute_loss(
-            y=x,
-            y_pred=y_pred,
-            loss_label=current_loader+"rec_loss",
+        loss, loss_log_metrics = self.calculate_loss(
+            x=x,
+            y=y_pred,
+            prefix="current_loader",
         )
         kl_w, kl = self.model.kl_loss()
         loss = loss + kl_w
@@ -811,7 +746,327 @@ class PLModel_custom(PLModel):
         )
 
         return log_metrics
+    def on_train_epoch_start(self):
+        if hasattr(self.model, "apply_kl_warmup"):
+            self.model.apply_kl_warmup(self.current_epoch)
 
+    def on_save_checkpoint(self, checkpoint):
+        # Remove feature encoder weights from the Lightning checkpoint
+        state_dict = checkpoint["state_dict"]
+        keys_to_remove = [k for k in state_dict if k.startswith("feature_encoder.")]
+        for k in keys_to_remove:
+            del state_dict[k]
+
+
+class PLModel_custom_old_feat_encoder(PLModel):
+
+    def __init__(
+            self,
+            loss,
+            learning_rate,
+            optimizer,
+            learning_rate_scheduler,
+            performance_metrics,
+            model,
+            model_params,
+            output_scaler=None,
+            custom_pl_model_kwargs=None,
+    ) -> None:
+        super().__init__(loss, learning_rate, optimizer, learning_rate_scheduler,
+                         performance_metrics, model, model_params, output_scaler)
+        self._prev_batch_end_time = None
+        self._train_step_start_time = None
+
+        if 'feature_encoder' in custom_pl_model_kwargs:
+            self.feature_encoder = custom_pl_model_kwargs['feature_encoder']
+            self.feature_encoder.train()
+            for p in self.feature_encoder.parameters():
+                p.requires_grad = False
+        else:
+            self.feature_encoder = None
+
+        if 'feature_loss_weight' in custom_pl_model_kwargs:
+            self.feat_loss_weight = custom_pl_model_kwargs['feature_loss_weight']
+        else:
+            self.feat_loss_weight = 1.0
+        self.criterion = torch.nn.MSELoss()
+
+    def calculate_loss(self, x, y, prefix):
+
+        log_metrics = {}
+        if self.feature_encoder is not None:
+            self.feature_encoder.force_reset()
+            with torch.no_grad():
+                x_feat = self.feature_encoder(x)
+            self.feature_encoder.force_reset()
+            y_feat = self.feature_encoder(y)
+            # calc MSE in feature space
+            feat_loss = self.criterion(x_feat, y_feat)
+        else:
+            feat_loss = torch.tensor(0.0)
+        log_metrics[prefix + '_feat_loss'] = feat_loss
+
+        input_loss = self.criterion(x, y)
+        log_metrics[prefix + '_input_loss'] = input_loss
+        rec_loss = input_loss + self.feat_loss_weight * feat_loss
+        log_metrics[prefix + '_rec_loss'] = rec_loss
+        return rec_loss, log_metrics
+
+    def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
+        """Compute loss and optional metrics, log metrics, and return the loss.
+
+        Overrides the method in pl.LightningModule.
+        """
+        forward = getattr(self.model, "forward")  # noqa: B009
+        x = batch['x']
+        y = batch['y']
+        y_pred = forward(x=x,y=y)
+
+        # compute loss; depends on whether user gave kwargs
+        loss, loss_log_metrics = self.calculate_loss(
+            x=x,
+            y=y_pred,
+            prefix="train",
+        )
+        kl_w, kl = self.model.kl_loss()
+        loss = loss + kl_w
+        loss_log_metrics['train_loss'] = loss
+        loss_log_metrics['train_kl_weighted_loss'] = kl_w
+        loss_log_metrics['train_kl_loss'] = kl
+
+        # compute performance; depends on whether user gave kwargs
+        if self.performance_metrics is None:
+            perf_log_metrics = {}
+        else:
+            perf_log_metrics = self._compute_performance(
+                y=batch['y'],
+                y_pred=y_pred,
+                perf_label="train_perf_",
+            )
+
+        log_metrics = {
+            **loss_log_metrics,
+            **perf_log_metrics,
+        }
+        log_metrics['epoch'] = float(self.current_epoch)
+        log_metrics['beta'] = float(self.model.get_betakl())
+        # The loss and performance is accumulated over an epoch and then
+        # averaged.
+        self.log_dict(  # type: ignore[type]
+            dictionary=log_metrics,
+            on_epoch=True,
+            on_step=False,
+            prog_bar=True,
+        )
+
+        return loss
+
+    # def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+    #     super().on_train_batch_start(batch, batch_idx, dataloader_idx)
+    #
+    #     now = time.perf_counter()
+    #     if self._prev_batch_end_time is not None:
+    #         idle_time = now - self._prev_batch_end_time
+    #         self.log("train_batch_idle_time", idle_time, on_step=True, on_epoch=True, prog_bar=False, logger=True)
+    #         print(f"Train batch idle time {idle_time}")
+    #     self._train_step_start_time = now
+    #
+    # def on_train_batch_end(self, outputs, batch, batch_idx):
+    #     now = time.perf_counter()
+    #
+    #     if self._train_step_start_time is not None:
+    #         step_time = now - self._train_step_start_time
+    #         self.log("train_batch_step_time", step_time, on_step=True, on_epoch=True, prog_bar=False, logger=True)
+    #         print(f"Train batch step time {step_time}")
+    #     self._prev_batch_end_time = now
+
+
+
+    def validation_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
+        """Compute loss and optional metrics, log metrics, and return the loss.
+
+        Overrides the method in pl.LightningModule.
+        """
+
+        forward = getattr(self.model, "forward")  # noqa: B009
+        x = batch['x']
+        y = batch['y']
+        y_pred = forward(x=x,y=y)
+
+        # compute loss; depends on whether user gave kwargs
+        loss, loss_log_metrics = self.calculate_loss(
+            x=x,
+            y=y_pred,
+            prefix="valid",
+        )
+
+        kl_w, kl = self.model.kl_loss()
+        loss = loss + kl_w
+        loss_log_metrics['valid_loss'] = loss
+        loss_log_metrics['valid_kl_weighted_loss'] = kl_w
+        loss_log_metrics['valid_kl_loss'] = kl
+        # compute performance; depends on whether user gave kwargs
+        # if self.performance_metrics is None:
+        #     perf_log_metrics = {}
+        # else:
+        #     perf_log_metrics = self._compute_performance(
+        #         y=batch['y'],
+        #         y_pred=y_pred,
+        #         perf_label="valid_perf_",
+        #     )
+        # valid_real_gen_mean_psd_diff = self.measure_gen_performance(x=x, y=y)
+
+        log_metrics = {
+            **loss_log_metrics,
+            # 'valid_real_gen_psd_diff': valid_real_gen_mean_psd_diff
+        }
+        log_metrics['epoch'] = float(self.current_epoch)
+        # log_metrics['beta'] = float(self.model.get_betakl())
+        # The loss and performance is accumulated over an epoch and then
+        # averaged.
+        self.log_dict(  # type: ignore[type]
+            dictionary=log_metrics,
+            on_epoch=True,
+            on_step=False,
+            prog_bar=True,
+        )
+
+        return loss
+
+    def test_step(  # type: ignore[return-value]  # noqa: ANN201
+        self,
+        batch: dict[str, Any],
+        batch_idx: int,  # noqa: ARG002
+        dataloader_idx: int,
+    ):
+        """Compute loss and optional metrics, log metrics and return the log.
+
+        Overrides the method in pl.LightningModule.
+        """
+        loaders = {
+            0: "result_train_",
+            1: "result_valid_",
+            2: "result_eval_",
+        }
+        current_loader = loaders[dataloader_idx]
+
+        forward = getattr(self.model, "forward")  # noqa: B009
+        x = batch['x']
+        y = batch['y']
+        y_pred = forward(x=x,y=y)
+
+        # compute loss; depends on whether user gave kwargs
+        loss, loss_log_metrics = self.calculate_loss(
+            x=x,
+            y=y_pred,
+            prefix="current_loader",
+        )
+        kl_w, kl = self.model.kl_loss()
+        loss = loss + kl_w
+        loss_log_metrics[current_loader+'loss'] = loss
+        loss_log_metrics[current_loader+'kl_weighted_loss'] = kl_w
+        loss_log_metrics[current_loader+'kl_loss'] = kl
+        # compute performance; depends on whether user gave kwargs
+        if self.performance_metrics is None:
+            perf_log_metrics = {}
+        else:
+            perf_log_metrics = self._compute_performance(
+                y=batch['y'],
+                y_pred=y_pred,
+                perf_label=current_loader + "perf_",
+            )
+
+        log_metrics = {
+            **loss_log_metrics,
+            **perf_log_metrics,
+        }
+
+        # The loss and performance is accumulated over an epoch and then
+        # averaged.
+        self.log_dict(  # type: ignore[type]
+            dictionary=log_metrics,
+            on_epoch=True,
+            on_step=False,
+            prog_bar=True,
+            logger=True,
+            add_dataloader_idx=False,
+        )
+
+        return log_metrics
+    def on_train_epoch_start(self):
+        """ Reset the model internal states for new training epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+        if hasattr(self.feature_encoder, 'force_reset'):
+            self.feature_encoder.force_reset()
+        if hasattr(self.model, "apply_kl_warmup"):
+            self.model.apply_kl_warmup(self.current_epoch)
+    def on_validation_epoch_start(self):
+        """ Reset the model internal states for new validation epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+        if hasattr(self.feature_encoder, 'force_reset'):
+            self.feature_encoder.force_reset()
+    def on_validation_epoch_end(self) -> None:
+        print('lmao')
+
+    def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
+        if batch_idx == 0:
+            if hasattr(self.model, 'force_reset'):
+                self.model.force_reset()
+            if hasattr(self.feature_encoder, 'force_reset'):
+                self.feature_encoder.force_reset()
+        else:
+            if hasattr(self.model, 'update_states'):
+                self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+            if hasattr(self.model, 'hard_set_states'):
+                self.model.hard_set_states(batch['ist_idx'][-1])
+            if hasattr(self.feature_encoder, 'update_states'):
+                self.feature_encoder.update_states(batch['ist_idx'][0], batch['x'].device)
+            if hasattr(self.feature_encoder, 'hard_set_states'):
+                self.feature_encoder.hard_set_states(batch['ist_idx'][-1])
+    def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
+        if hasattr(self.feature_encoder, 'update_states'):
+            self.feature_encoder.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.feature_encoder, 'hard_set_states'):
+            self.feature_encoder.hard_set_states(batch['ist_idx'][-1])
+    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
+        if hasattr(self.feature_encoder, 'update_states'):
+            self.feature_encoder.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.feature_encoder, 'hard_set_states'):
+            self.feature_encoder.hard_set_states(batch['ist_idx'][-1])
+    def on_predict_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
+        if hasattr(self.feature_encoder, 'update_states'):
+            self.feature_encoder.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.feature_encoder, 'hard_set_states'):
+            self.feature_encoder.hard_set_states(batch['ist_idx'][-1])
+
+    def on_save_checkpoint(self, checkpoint):
+        # Remove feature encoder weights from the Lightning checkpoint
+        state_dict = checkpoint["state_dict"]
+        keys_to_remove = [k for k in state_dict if k.startswith("feature_encoder.")]
+        for k in keys_to_remove:
+            del state_dict[k]
 
 class PLModel_custom_mat(PLModel):
 

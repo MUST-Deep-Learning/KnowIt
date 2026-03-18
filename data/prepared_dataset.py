@@ -765,7 +765,7 @@ class PreparedDataset(BaseDataset):
                     c_tuple = tuple(c)
                     matches = instance.eq(c_tuple).all(axis=1)
                 matches = matches.fillna(False)
-                class_count += int(matches.sum())
+                class_count += int(matches.sum().item())
 
             self.class_counts[self.class_set[c]] = class_count
 

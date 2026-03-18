@@ -353,3 +353,27 @@ def safe_dump_parquet(path: str, safe_mode: bool, data_package: any,
                        'Some overhead expected during data loading from disk.',
                        num_fragments)
     data_package.to_parquet(path, engine=engine, partition_cols=partitioned_on, max_partitions=num_fragments)
+
+def is_picklable(obj: object) -> bool:
+    """Tests if an object can be pickled."""
+    try:
+        pickle.dumps(obj)
+        return True
+    except (pickle.PickleError, AttributeError, RuntimeError, TypeError):
+        return False
+
+def clean_pickle(dict_to_pickle):
+    """Return a copy of the dictionary with all unpicklable entries removed, recursively."""
+    cleaned_dict = {}
+
+    for k, v in dict_to_pickle.items():
+        if isinstance(v, dict):
+            cleaned_dict[k] = clean_pickle(v)
+        elif is_picklable(v):
+            cleaned_dict[k] = v
+        else:
+            logger.warning(
+                f"attribute '{k}' removed from dictionary because it cannot be pickled"
+            )
+
+    return cleaned_dict
