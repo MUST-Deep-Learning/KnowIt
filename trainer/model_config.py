@@ -577,8 +577,8 @@ class PLModel_custom(PLModel):
             x_moment, x_mask = self.left_pad_to_512_with_mask(x)
             y_moment, y_mask = self.left_pad_to_512_with_mask(y)
             with torch.no_grad():
-                x_feat = self.feature_encoder(x_enc=x_moment, input_mask=x_mask, reduction="none").embeddings
-            y_feat = self.feature_encoder(x_enc=y_moment, input_mask=y_mask, reduction="none").embeddings
+                x_feat = self.feature_encoder(x_enc=x_moment, input_mask=x_mask).embeddings
+            y_feat = self.feature_encoder(x_enc=y_moment, input_mask=y_mask).embeddings
             # calc MSE in feature space
             print('X-feat:')
             print(x_feat.shape)
