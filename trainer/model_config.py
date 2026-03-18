@@ -569,15 +569,23 @@ class PLModel_custom(PLModel):
 
     def calculate_loss(self, x, y, prefix):
 
+        log_metrics = {}
         x = x.transpose(1, 2)
         y = y.transpose(1, 2)
-        log_metrics = {}
         if self.feature_encoder is not None:
+
+            x_moment, x_mask = self.left_pad_to_512_with_mask(x)
+            y_moment, y_mask = self.left_pad_to_512_with_mask(y)
             with torch.no_grad():
-                x_feat = self.feature_encoder(x_enc=x).embeddings
-            y_feat = self.feature_encoder(x_enc=y).embeddings
+                x_feat = self.feature_encoder(x_enc=x_moment, input_mask=x_mask, reduction=None).embeddings
+            y_feat = self.feature_encoder(x_enc=y_moment, input_mask=y_moment, reduction=None).embeddings
             # calc MSE in feature space
+            print('X-feat:')
+            print(x_feat.shape)
+            print('Y-feat:')
+            print(y_feat.shape)
             feat_loss = self.criterion(x_feat, y_feat)
+            print(f'Feat loss: {feat_loss.item()}')
         else:
             feat_loss = torch.tensor(0.0)
         log_metrics[prefix + '_feat_loss'] = feat_loss
@@ -587,6 +595,40 @@ class PLModel_custom(PLModel):
         rec_loss = input_loss + self.feat_loss_weight * feat_loss
         log_metrics[prefix + '_rec_loss'] = rec_loss
         return rec_loss, log_metrics
+
+    def left_pad_to_512_with_mask(self, x):
+        """
+        Left-pad a batch of time series to length 512 and create a MOMENT input mask.
+
+        Args:
+            x: torch.Tensor of shape [B, C, T]
+
+        Returns:
+            x_pad: torch.Tensor of shape [B, C, 512]
+            input_mask: torch.Tensor of shape [B, 512]
+        """
+        b, c, t = x.shape
+
+        if t > 512:
+            raise ValueError(f"Expected sequence length <= 512, got {t}")
+
+        pad_len = 512 - t
+
+        if pad_len == 0:
+            input_mask = torch.ones((b, 512), device=x.device, dtype=x.dtype)
+            return x, input_mask
+
+        x_pad = torch.nn.functional.pad(x, (pad_len, 0), mode="constant", value=0.0)
+
+        input_mask = torch.cat(
+            [
+                torch.zeros((b, pad_len), device=x.device, dtype=x.dtype),
+                torch.ones((b, t), device=x.device, dtype=x.dtype),
+            ],
+            dim=1,
+        )
+
+        return x_pad, input_mask
 
     def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
         """Compute loss and optional metrics, log metrics, and return the loss.
