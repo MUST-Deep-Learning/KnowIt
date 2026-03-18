@@ -580,12 +580,12 @@ class PLModel_custom(PLModel):
                 x_feat = self.feature_encoder(x_enc=x_moment, input_mask=x_mask).embeddings
             y_feat = self.feature_encoder(x_enc=y_moment, input_mask=y_mask).embeddings
             # calc MSE in feature space
-            print('X-feat:')
-            print(x_feat.shape)
-            print('Y-feat:')
-            print(y_feat.shape)
+            # print('X-feat:')
+            # print(x_feat.shape)
+            # print('Y-feat:')
+            # print(y_feat.shape)
             feat_loss = self.criterion(x_feat, y_feat)
-            print(f'Feat loss: {feat_loss.item()}')
+            # print(f'Feat loss: {feat_loss.item()}')
         else:
             feat_loss = torch.tensor(0.0)
         log_metrics[prefix + '_feat_loss'] = feat_loss
