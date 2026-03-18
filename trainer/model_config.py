@@ -556,6 +556,8 @@ class PLModel_custom(PLModel):
                     # local_files_only=True,  # Whether or not to only look at local files (i.e., do not try to download the model).
                 )
                 self.feature_encoder.init()
+                for p in self.feature_encoder.parameters():
+                    p.requires_grad = False
                 self.feature_encoder.eval()
                 num_params = sum(p.numel() for p in self.feature_encoder.encoder.parameters())
                 print(f"Number of parameters in feature encoder: {num_params}")
