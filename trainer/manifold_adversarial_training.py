@@ -21,10 +21,27 @@ def gen_man_adv_samples(
     model.eval()
     gen_model.eval()
 
+    z_natural = get_latent(gen_model, x_natural, y).detach()
+
     z_std = torch.as_tensor(stats_dict["std"], device=x_natural.device, dtype=x_natural.dtype)
     z_min = torch.as_tensor(stats_dict["min"], device=x_natural.device, dtype=x_natural.dtype)
     z_max = torch.as_tensor(stats_dict["max"], device=x_natural.device, dtype=x_natural.dtype)
+
+    # feature/channel dimension is always dim=1
+    num_features = z_natural.shape[1]
+    # reshape stats for broadcasting
+    if z_natural.ndim == 2:
+        # z_natural: [B, F]
+        view_shape = (1, num_features)
+    else:
+        # z_natural: [B, F, T]
+        view_shape = (1, num_features, 1)
+
     z_std = torch.clamp(z_std, min=1e-3)
+    z_std = z_std.view(*view_shape)
+    z_min = z_min.view(*view_shape)
+    z_max = z_max.view(*view_shape)
+
     epsilon_abs = epsilon * z_std
 
     if y.dim() > 1:
@@ -32,7 +49,6 @@ def gen_man_adv_samples(
     else:
         y_ce = y.long()
 
-    z_natural = get_latent(gen_model, x_natural, y).detach()
 
     # random start inside latent epsilon-ball around z_natural
     z_adv = z_natural + (2.0 * torch.rand_like(z_natural) - 1.0) * epsilon_abs
@@ -48,6 +64,7 @@ def gen_man_adv_samples(
             grad = torch.autograd.grad(loss, [z_adv])[0]
 
         z_adv = z_adv.detach() + step_size * torch.sign(grad.detach())
+        # project back into per-feature epsilon box around natural latent
         z_adv = torch.min(torch.max(z_adv, z_natural - epsilon_abs), z_natural + epsilon_abs)
         z_adv = torch.clamp(z_adv, z_min, z_max)
 
