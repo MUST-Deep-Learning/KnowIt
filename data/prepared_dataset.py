@@ -190,6 +190,7 @@ from os import path
 from data.base_dataset import BaseDataset
 from data.data_splitting import DataSplitter
 from data.data_scaling import DataScaler
+from data.data_augmentations import DataAugmenter
 from helpers.file_dir_procs import safe_dump, load_from_path
 from helpers.logger import get_logger
 
@@ -351,6 +352,7 @@ class PreparedDataset(BaseDataset):
         self.batch_sampling_mode = kwargs['batch_sampling_mode']
         self.slide_stride = kwargs['slide_stride']
         self.variable_sequence_length_limit = kwargs['variable_sequence_length_limit']
+        self.data_aug = kwargs['data_aug']
 
         # Initiate the data preparation
         random.seed(self.seed)
@@ -381,7 +383,7 @@ class PreparedDataset(BaseDataset):
                           self.x_map, self.y_map,
                           self.x_scaler, self.y_scaler,
                           self.in_chunk, self.out_chunk,
-                          self.padding_method, preload=preload)
+                          self.padding_method, self.data_aug, preload=preload)
         elif self.task in ('classification',):
             if self.batch_sampling_mode in ('variable_length', 'variable_length_inference'):
                 logger.error('Batch sampling mode %s is not supported for classification tasks.',
@@ -703,7 +705,7 @@ class PreparedDataset(BaseDataset):
                                                   self.scaling_tag,
                                                   self.x_map,
                                                   self.y_map).get_scalers()
-
+        self.data_aug = DataAugmenter(self.seed, self.data_aug)
         if self.batch_sampling_mode == 'basic_classification':
             self.precompiled_data = self._precompile_data()
 
@@ -1643,6 +1645,7 @@ class CustomDataset(Dataset):
                  x_scaler, y_scaler,
                  in_chunk, out_chunk,
                  padding_method,
+                 data_aug:dict,
                  preload: bool = False) -> None:
 
         self.data_extractor = data_extractor
@@ -1654,6 +1657,7 @@ class CustomDataset(Dataset):
         self.in_chunk = in_chunk
         self.out_chunk = out_chunk
         self.padding_method = padding_method
+        self.data_aug = data_aug
         self.preload = preload
 
         if self.in_chunk[0] == self.in_chunk[1] and self.padding_method not in ('constant', 'empty'):
@@ -1732,9 +1736,18 @@ class CustomDataset(Dataset):
             y_vals = slice_vals.iloc[:, self.y_map].to_numpy()
             y_vals = y_vals[selection[2] + self.out_chunk[0]: selection[2] + self.out_chunk[1] + 1, :]
 
+            # add data augmentations
+            x_aug = self.data_aug.fit_augmentation(x_vals.copy())
+
             # scale inputs and outputs if applicable
-            input_x.append(self.x_scaler.transform(x_vals.copy()))
+            input_x.append(self.x_scaler.transform(x_aug.copy()))
             output_y.append(self.y_scaler.transform(y_vals.copy()))
+
+            # x_scale = self.x_scaler.transform(x_vals.copy())
+            #
+            # input_x.append(self.data_aug.fit_augmentation(x_scale.copy()))
+            # output_y.append(self.y_scaler.transform(y_vals.copy()))
+
 
         if len(idx_list) > 1:
             input_x = array(input_x)
