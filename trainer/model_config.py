@@ -39,6 +39,7 @@ logger = get_logger()
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
 
 class PLModel(pl.LightningModule):
     """Wrapper class to prepare model for Pytorch Lightning's Trainer.
@@ -570,12 +571,20 @@ class PLModel_custom_mat(PLModel):
         attack_params = custom_pl_model_kwargs["attack_params"]
         self.attack_epsilon = attack_params["epsilon"]
         self.attack_steps = attack_params["steps"]
+        if 'beta_trades' in custom_pl_model_kwargs:
+            self.beta_trades = custom_pl_model_kwargs['beta_trades']
+        else:
+            self.beta_trades = 1.0
+        if 'use_gen_target' in custom_pl_model_kwargs:
+            self.use_gen_target = bool(custom_pl_model_kwargs['use_gen_target'])
+        else:
+            self.use_gen_target = False
         # if "step_size" in attack_params:
         #     self.attack_step_size = attack_params["step_size"]
         # else:
         #     self.attack_step_size = self.attack_epsilon/self.attack_steps
         self.gen_model = custom_pl_model_kwargs['gen_model']
-        self.criterion_kl = nn.KLDivLoss(reduction='batchmean')
+        self.criterion_kl = nn.KLDivLoss(reduction='sum')
 
     def calculate_z_stats(self):
         """
@@ -656,10 +665,12 @@ class PLModel_custom_mat(PLModel):
 
         self.model.eval()
         self.gen_model.eval()
+        # self.track_bn_stats(False)
 
         z_natural = self.get_latent(x_natural, y).detach()
+        x_natural_dec = torch.clamp(self.gen_model.decode(z_natural, y), 0, 1)
         with torch.no_grad():
-            x_natural_dec_logits = F.softmax(self.model(self.gen_model.decode(z_natural, y)), dim=1).detach()
+            x_natural_dec_logits = F.softmax(self.model(x_natural_dec), dim=1).detach()
 
         z_std = torch.as_tensor(self.z_stats["std"], device=x_natural.device, dtype=x_natural.dtype)
         z_min = torch.as_tensor(self.z_stats["min"], device=x_natural.device, dtype=x_natural.dtype)
@@ -692,6 +703,7 @@ class PLModel_custom_mat(PLModel):
 
             with torch.enable_grad():
                 x_adv = self.gen_model.decode(z_adv, y)
+                x_adv = torch.clamp(x_adv, 0, 1)
                 logits = self.model(x_adv)
                 loss = self.criterion_kl(F.log_softmax(logits, dim=1), x_natural_dec_logits)
                 # loss = criterion_ce(logits, y_ce)
@@ -702,8 +714,10 @@ class PLModel_custom_mat(PLModel):
             z_adv = torch.min(torch.max(z_adv, z_natural - epsilon_abs), z_natural + epsilon_abs)
             z_adv = torch.clamp(z_adv, z_min, z_max)
 
-        x_adv = self.gen_model.decode(z_adv, y)
-        return x_adv.detach()
+        x_adv = torch.clamp(self.gen_model.decode(z_adv, y), 0, 1)
+        # self.track_bn_stats(True)
+        return x_adv.detach(), x_natural_dec.detach()
+
     def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
         """Compute loss and optional metrics, log metrics, and return the loss.
 
@@ -712,24 +726,40 @@ class PLModel_custom_mat(PLModel):
         forward = getattr(self.model, "forward")  # noqa: B009
         x = batch['x']
         y = batch['y']
-        x_adv = self.gen_man_adv_samples(x_natural=x, y=y)
+        x_adv, x_dec = self.gen_man_adv_samples(x_natural=x, y=y)
+        # self.plot_adv_examples(x, x_adv)
+        self.model.train()
+        self.track_bn_stats(False)
         y_pred_adv = forward(x=x_adv)
+        if self.use_gen_target:
+            y_pred_dec = forward(x=x_dec)
+        self.track_bn_stats(True)
         y_pred = forward(x=x)
-        loss_natural = F.cross_entropy(y_pred, y)
-        loss_adv = self.criterion_kl(F.log_softmax(y_pred_adv, dim=1),
-                                                        F.softmax(y_pred, dim=1))
-        loss = loss_natural + self.beta * loss_adv
-        # compute loss; depends on whether user gave kwargs
-        # loss, loss_log_metrics = self._compute_loss(
-        #     y=y,
-        #     y_pred=y_pred,
-        #     loss_label="train_loss",
-        # )
-        loss_log_metrics = {}
-        loss_log_metrics['train_adv_loss'] = loss_adv
-        loss_log_metrics['train_adv_weighted_loss'] = loss_adv * self.beta
-        loss_log_metrics['train_loss'] = loss
 
+        if self.use_gen_target:
+            p_pred_target = F.softmax(y_pred_dec, dim=1).clamp(min=1e-12) # to prevents possible NaNs
+            p_pred_target = p_pred_target / p_pred_target.sum(dim=1, keepdim=True)
+        else:
+            p_pred_target = F.softmax(y_pred, dim=1).clamp(min=1e-12)
+            p_pred_target = p_pred_target / p_pred_target.sum(dim=1, keepdim=True)
+
+        p_pred_adv = F.log_softmax(y_pred_adv, dim=1)
+
+        if not torch.isfinite(y_pred).all():
+            raise RuntimeError("Non-finite y_pred before KL")
+        if not torch.isfinite(y_pred_adv).all():
+            raise RuntimeError("Non-finite y_pred_adv before KL")
+        if self.use_gen_target and not torch.isfinite(y_pred_dec).all():
+            raise RuntimeError("Non-finite y_pred_dec before KL")
+
+        loss_natural = F.cross_entropy(y_pred, y)
+        loss_adv = self.criterion_kl(p_pred_adv, p_pred_target) * (1/x.shape[0])
+        loss = loss_natural + self.beta_trades * loss_adv
+        loss_log_metrics = {}
+        loss_log_metrics['train_clean_loss'] = loss_natural
+        loss_log_metrics['train_adv_loss'] = loss_adv
+        loss_log_metrics['train_adv_weighted_loss'] = loss_adv * self.beta_trades
+        loss_log_metrics['train_loss'] = loss
 
         # compute performance; depends on whether user gave kwargs
         if self.performance_metrics is None:
@@ -763,6 +793,44 @@ class PLModel_custom_mat(PLModel):
         keys_to_remove = [k for k in state_dict if k.startswith("gen_model.")]
         for k in keys_to_remove:
             del state_dict[k]
+
+    def track_bn_stats(self, track_stats=True):
+        """
+        If track_stats=False, do not update BN running mean and variance and vice versa.
+        """
+        for module in self.model.modules():
+            if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+                module.track_running_stats = track_stats
+    def plot_adv_examples(self, x, x_adv):
+        """
+        Plot the first 2 examples in the batch, with original x in the left column
+        and adversarial x_adv in the right column.
+
+        Assumes tensors have shape [B, T, F].
+        Each subplot shows all features/components over time for one sample.
+        """
+        import matplotlib.pyplot as plt
+
+        x = x.detach().cpu()
+        x_adv = x_adv.detach().cpu()
+
+        num_examples = min(2, x.shape[0])
+        fig, axes = plt.subplots(num_examples, 2, figsize=(12, 4 * num_examples), squeeze=False)
+
+        for i in range(num_examples):
+            # x[i]: [T, F]
+            axes[i, 0].plot(x[i])
+            axes[i, 0].set_title(f"Sample {i} - original")
+            axes[i, 0].set_xlabel("Time")
+            axes[i, 0].set_ylabel("Value")
+
+            axes[i, 1].plot(x_adv[i])
+            axes[i, 1].set_title(f"Sample {i} - adversarial")
+            axes[i, 1].set_xlabel("Time")
+            axes[i, 1].set_ylabel("Value")
+
+        plt.tight_layout()
+        plt.show()
 
 class PLModel_custom_vae(PLModel):
 

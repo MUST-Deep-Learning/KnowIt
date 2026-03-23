@@ -157,8 +157,7 @@ class TrainNew(BaseTrainer):
                 **self.pl_model_kwargs, **{'custom_pl_model_kwargs': self.custom_pl_model_kwargs})
             else:
                 self.pl_model = PLModel
-            self.pl_model = PLModel_custom(
-                **self.pl_model_kwargs, **{'custom_pl_model_kwargs': self.custom_pl_model_kwargs})
+
 
     def _prepare_pl_trainer(
         self,
