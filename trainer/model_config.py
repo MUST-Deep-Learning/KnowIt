@@ -175,17 +175,21 @@ class PLModel(pl.LightningModule):
         if hasattr(self.model, 'force_reset'):
             self.model.force_reset()
 
+    def on_test_epoch_start(self):
+        """ Reset the model internal states for new validation epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+
     def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
         """ Update model internal states if applicable. Also hard sets the internal states to the
         final prediction point in the batch in case of variable length inputs."""
         if batch_idx == 0:
             if hasattr(self.model, 'force_reset'):
                 self.model.force_reset()
-        else:
-            if hasattr(self.model, 'update_states'):
-                self.model.update_states(batch['ist_idx'][0], batch['x'].device)
-            if hasattr(self.model, 'hard_set_states'):
-                self.model.hard_set_states(batch['ist_idx'][-1])
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
 
     def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
         """ Update model internal states if applicable. Also hard sets the internal states to the
