@@ -52,7 +52,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from helpers.logger import get_logger
 from trainer.base_trainer import BaseTrainer
-from trainer.model_config import PLModel, PLModel_custom
+from trainer.model_config import PLModel, PLModel_custom, PLModel_custom_vae, PLModel_custom_mat
 
 from pytorch_lightning.loggers import WandbLogger
 
@@ -148,6 +148,15 @@ class TrainNew(BaseTrainer):
         if self.custom_pl_model_kwargs is None:
             self.pl_model = PLModel(**self.pl_model_kwargs)
         else:
+            task = self.custom_pl_model_kwargs.get("task")
+            if task == "vae":
+                self.pl_model = PLModel_custom_vae(
+                **self.pl_model_kwargs, **{'custom_pl_model_kwargs': self.custom_pl_model_kwargs})
+            elif task == "mat":
+                self.pl_model = PLModel_custom_mat(
+                **self.pl_model_kwargs, **{'custom_pl_model_kwargs': self.custom_pl_model_kwargs})
+            else:
+                self.pl_model = PLModel
             self.pl_model = PLModel_custom(
                 **self.pl_model_kwargs, **{'custom_pl_model_kwargs': self.custom_pl_model_kwargs})
 
