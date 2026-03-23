@@ -75,7 +75,7 @@ import numpy as np
 # from torch.nn.utils import weight_norm
 from torch.nn.utils.parametrizations import weight_norm
 
-from helpers.logger import get_logger
+from src.helpers.logger import get_logger
 logger = get_logger()
 
 available_tasks = ('regression', 'classification', 'forecasting', 'vl_regression')

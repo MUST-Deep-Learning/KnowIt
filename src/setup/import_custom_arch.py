@@ -5,15 +5,15 @@ __licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains functions used during the import of custom architectures.'
 
-from helpers.logger import get_logger
+from src.helpers.logger import get_logger
 import importlib
 import sys
 import inspect
 import torch.nn as nn
 
 
-from env.env_paths import custom_arch_path, arch_name
-from helpers.file_dir_procs import safe_copy
+from src.env.env_paths import custom_arch_path, arch_name
+from src.helpers.file_dir_procs import safe_copy
 logger = get_logger()
 
 

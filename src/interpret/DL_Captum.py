@@ -1,9 +1,9 @@
 """
---------------------
-Integrated Gradients
---------------------
+--------
+DeepLift
+--------
 
-Integrated Gradients is a feature attribution method.
+DeepLift is a feature attribution method.
 
 For each of the model's output features, feature attribution assigns a value
 to each input feature that is based on its contribution to the model's output.
@@ -11,20 +11,17 @@ to each input feature that is based on its contribution to the model's output.
 The method is implemented through the Captum library.
 
 For more information on the method, see:
-https://arxiv.org/abs/1703.01365
+https://arxiv.org/abs/1704.02685
 
 and
 
-https://captum.ai/api/integrated_gradients.html
+https://captum.ai/api/deep_lift.html
 
-"""# noqa: INP001, D205, D212, D400, D415
+"""  # noqa: N999, D205, D400
 
 from __future__ import annotations
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
 __licence__ = 'Apache 2.0; see LICENSE file for details.'
-__author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com"
-__description__ = "Implements Captum's Integrated Gradients attribution \
-    method."
 
 from typing import TYPE_CHECKING, Any
 
@@ -32,19 +29,22 @@ if TYPE_CHECKING:
     from torch import Tensor
     from torch.nn import Module
 
+__author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com"
+__description__ = "Implements Captum's DeepLift attribution method."
+
 import numpy as np
 import torch
-from captum.attr import IntegratedGradients
+from captum.attr import DeepLift
 from collections import defaultdict
 
-from helpers.logger import get_logger
-from interpret.featureattr import FeatureAttribution
+from src.helpers.logger import get_logger
+from src.interpret.featureattr import FeatureAttribution
 
 logger = get_logger()
 
 
-class IntegratedGrad(FeatureAttribution):
-    """Implement the DeepLiftShap feature attribution method.
+class DeepL(FeatureAttribution):
+    """Implement the DeepLift feature attribution method.
 
     Parameters
     ----------
@@ -92,8 +92,8 @@ class IntegratedGrad(FeatureAttribution):
     seed : int
         The seed used by Numpy for random sampling of baselines.
 
-    ig : IntegratedGradients
-        The IntegratedGradients instance from Captum for feature attribution.
+    dl : DeepLift
+        The DeepLift instance from Captum for feature attribution.
 
     rescale_outputs : bool, default=True
         Whether to rescale the outputs of the model when storing the outputs corresponding to the attributions.
@@ -120,10 +120,7 @@ class IntegratedGrad(FeatureAttribution):
             device=device,
         )
 
-        self.ig = IntegratedGradients(
-            self.model.forward,
-            multiply_by_inputs=multiply_by_inputs
-        )
+        self.dl = DeepLift(self.model, multiply_by_inputs=multiply_by_inputs)
         self.seed = seed
         self.rescale_outputs = True
 
@@ -218,7 +215,7 @@ class IntegratedGrad(FeatureAttribution):
 
         Parameters
         ----------
-        pred_point_id : int | tuple
+        pred_point_id : int | tuple[int, int]
             The prediction point or range of prediction points that will be
             used to generate attribution matrices.
 
@@ -229,7 +226,7 @@ class IntegratedGrad(FeatureAttribution):
         -------
         results : dict[int | tuple[int, int], dict[str, Tensor]]
             For a regression model with output shape
-            (out_chunk, out_components),
+            (out_chunk,out_components),
             returns a dictionary as follows:
                 * Dict Key: a tuple (m, n) with m in range(out_chunk) and
                 n in range(out_components).
@@ -300,7 +297,8 @@ class IntegratedGrad(FeatureAttribution):
                             baselines.extend(i)
                         else:
                             baselines.append(i)
-                    attributions, delta = self.ig.attribute(
+
+                    attributions, delta = self.dl.attribute(
                         inputs=tuple(inputs),
                         baselines=tuple(baselines),
                         target=target,
@@ -310,7 +308,7 @@ class IntegratedGrad(FeatureAttribution):
                     # get actual model output corresponding to feature attributions
                     if hasattr(self.model, 'update_states') and hasattr(self.model, 'force_reset'):
                         self.model.force_reset()
-                        for qpp in range(0, pp + 1):
+                        for qpp in range(0, pp+1):
                             self.model.update_states(torch.from_numpy(pseudo_batches[qpp]['ist_idx']),
                                                      pseudo_batches[qpp]['x'].device)
                             model_output = self.model(pseudo_batches[qpp]['x'])
@@ -324,7 +322,7 @@ class IntegratedGrad(FeatureAttribution):
 
                 else:
                     # assume model is not stateful and simply attribute the input
-                    attributions, delta = self.ig.attribute(
+                    attributions, delta = self.dl.attribute(
                         inputs=tuple([pseudo_batches[pp]['x']]),
                         baselines=tuple([baseline]),
                         target=target,
@@ -386,13 +384,13 @@ class IntegratedGrad(FeatureAttribution):
                     "delta": delta,
                     "i_predictions": i_predictions,
                 }
+
         else:
             if self.datamodule.batch_sampling_mode not in ('variable_length', 'variable_length_inference'):
                 for out_chunk in range(out_shape[0]):
                     for out_component in range(out_shape[1]):
                         target = (out_chunk, out_component)
-                        attributions, delta, i_predictions = _extract_attributions(custom_batch, baseline, target,
-                                                                                   internal_baseline)
+                        attributions, delta, i_predictions = _extract_attributions(custom_batch, baseline, target, internal_baseline)
 
                         results[target] = {
                             "attributions": attributions,
@@ -403,8 +401,7 @@ class IntegratedGrad(FeatureAttribution):
                 for out_component in range(out_shape[1]):
                     for t in range(custom_batch['x'].shape[1]):
                         target = (t, out_component)
-                        attributions, delta, i_predictions = _extract_attributions(custom_batch, baseline, target,
-                                                                                   internal_baseline)
+                        attributions, delta, i_predictions = _extract_attributions(custom_batch, baseline, target, internal_baseline)
 
                         results[target] = {
                             "attributions": attributions,

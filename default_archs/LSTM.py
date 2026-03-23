@@ -12,7 +12,7 @@ tensor or a random tensor. Additionally, the LSTM can be set to bidirectional.
 Example usage:
 -------------
 
-from knowit import KnowIt
+from src import KnowIt
 
 KI = KnowIt()
 
@@ -71,7 +71,7 @@ import torch
 from torch import Tensor, nn
 from torch.nn import LSTM, Linear, Module
 
-from helpers.logger import get_logger
+from src.helpers.logger import get_logger
 
 logger = get_logger()
 

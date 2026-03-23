@@ -19,15 +19,13 @@ __licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "randlerabe@gmail.com"
 __description__ = "Contains the class for performing feature attribution."
 
-import sys
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from torch import Tensor
     from torch.nn import Module
 
-from helpers.logger import get_logger
-from interpret.interpreter import KIInterpreter
+from src.helpers.logger import get_logger
+from src.interpret.interpreter import KIInterpreter
 
 logger = get_logger()
 

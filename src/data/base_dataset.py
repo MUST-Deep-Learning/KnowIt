@@ -82,11 +82,11 @@ from datetime import timedelta
 from functools import lru_cache
 
 # internal imports
-import data
-from data.raw_data_coversion import RawDataConverter
-from env.env_paths import custom_dataset_meta_path, custom_dataset_package_path
-from helpers.file_dir_procs import load_from_path, safe_dump, safe_dump_parquet
-from helpers.logger import get_logger
+from src import data
+from src.data.raw_data_coversion import RawDataConverter
+from src.env.env_paths import custom_dataset_meta_path, custom_dataset_package_path
+from src.helpers.file_dir_procs import load_from_path, safe_dump, safe_dump_parquet
+from src.helpers.logger import get_logger
 logger = get_logger()
 
 

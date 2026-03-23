@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 import numpy as np
 from torch import nn
 
-from helpers.logger import get_logger
+from src.helpers.logger import get_logger
 logger = get_logger()
 
 available_tasks = ("regression", "classification")

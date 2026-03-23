@@ -166,7 +166,7 @@ directory ``stateful_tut_exp`` and import the newly constructed dataset.
 
 ```python
 # import the KnowIt class
-from knowit import KnowIt
+from src import KnowIt
 
 # create an instance of KnowIt connected to an experiment output directory
 KI = KnowIt(custom_exp_dir='stateful_tut_exp')

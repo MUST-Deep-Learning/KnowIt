@@ -18,17 +18,17 @@ __licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com"
 __description__ = "Constructs a Pytorch Lightning model class."
 
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import pytorch_lightning as pl
 from torch import argmax
 
-from helpers.fetch_torch_mods import (
+from src.helpers.fetch_torch_mods import (
     get_lr_scheduler,
     get_optim,
     prepare_function,
 )
-from helpers.logger import get_logger
+from src.helpers.logger import get_logger
 
 if TYPE_CHECKING:
     from torch import Tensor

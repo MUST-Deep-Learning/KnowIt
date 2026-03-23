@@ -40,8 +40,8 @@ from numpy import (nanmean, nanvar, nanmin, nanmax, array, unique, sqrt, minimum
 import torch
 
 # internal imports
-from data.base_dataset import DataExtractor
-from helpers.logger import get_logger
+from src.data.base_dataset import DataExtractor
+from src.helpers.logger import get_logger
 
 logger = get_logger()
 

@@ -17,18 +17,18 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from PIL import Image
 import matplotlib.animation as animation
 from matplotlib.lines import Line2D
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+from matplotlib.colors import ListedColormap
 import pandas as pd
 
 # imports imports
-from env.env_paths import (learning_data_path,
-                           model_args_path, model_predictions_dir,
-                           model_interpretations_dir, model_viz_dir, model_output_dir, data_paths)
-from data.base_dataset import BaseDataset
-from setup.select_interpretation_points import get_predictions
-from helpers.file_dir_procs import yaml_to_dict, load_from_path
-from helpers.fetch_torch_mods import get_model_score
-from helpers.logger import get_logger
+from src.env.env_paths import (learning_data_path,
+                               model_args_path, model_predictions_dir,
+                               model_interpretations_dir, model_viz_dir, model_output_dir, data_paths)
+from src.data.base_dataset import BaseDataset
+from src.setup import get_predictions
+from src.helpers.file_dir_procs import yaml_to_dict, load_from_path
+from src.helpers.fetch_torch_mods import get_model_score
+from src.helpers.logger import get_logger
 logger = get_logger()
 
 # ----------------------------------------------------------------------------------------------------------------------

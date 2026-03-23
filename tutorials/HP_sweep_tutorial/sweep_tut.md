@@ -24,7 +24,7 @@ Let's set up some preliminary variables and imports as defined below.
 
 ```python
 # import the KnowIt class
-from knowit import KnowIt
+from src import KnowIt
 # import W&B class
 import wandb
 

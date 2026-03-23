@@ -9,7 +9,7 @@ __description__ = 'Contains a function to prepare a weighted CE function.'
 import torch
 
 # internal imports
-from helpers.logger import get_logger
+from src.helpers.logger import get_logger
 logger = get_logger()
 
 

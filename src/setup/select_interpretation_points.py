@@ -10,8 +10,8 @@ import numpy as np
 import os
 
 # internal imports
-from helpers.file_dir_procs import load_from_path
-from helpers.logger import get_logger
+from src.helpers.file_dir_procs import load_from_path
+from src.helpers.logger import get_logger
 logger = get_logger()
 
 

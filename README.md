@@ -18,7 +18,7 @@ Live documentation can be found [here](https://must-deep-learning.github.io/Know
 
 ```python
 # Import the KnowIt module
-from knowit import KnowIt
+from src import KnowIt
 
 # Instantiate a KnowIt object linked to an output directory
 KI = KnowIt(custom_exp_dir='my_output_path')
@@ -56,7 +56,7 @@ KI.generate_predictions(model_name='my_new_model_name',
 
 # Interpret model predictions
 KI.interpret_model(model_name='my_new_model_name',
-                   kwargs={'interpreter': 
+                   kwargs={'interpreter':
                                {'interpretation_method': 'DeepLift',
                                 'interpretation_set': 'valid',
                                 'selection': 'random',

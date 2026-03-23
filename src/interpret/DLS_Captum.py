@@ -36,8 +36,8 @@ import torch
 from captum.attr import DeepLiftShap
 from collections import defaultdict
 
-from helpers.logger import get_logger
-from interpret.featureattr import FeatureAttribution
+from src.helpers.logger import get_logger
+from src.interpret.featureattr import FeatureAttribution
 
 logger = get_logger()
 

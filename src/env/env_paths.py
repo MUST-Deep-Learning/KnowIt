@@ -15,9 +15,9 @@ __description__ = 'Contains functions that dynamically return KnowIt environment
 import os
 
 # internal imports
-from env.env_user import (default_dataset_dir, default_archs_dir)
-from helpers.file_dir_procs import proc_dir
-from helpers.logger import get_logger
+from src.env.env_user import (default_dataset_dir, default_archs_dir)
+from src.helpers.file_dir_procs import proc_dir
+from src.helpers.logger import get_logger
 
 logger = get_logger()
 

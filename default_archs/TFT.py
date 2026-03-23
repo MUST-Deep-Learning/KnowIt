@@ -119,7 +119,7 @@ from torch.nn.functional import glu, softmax
 from numpy import prod
 from torch.nn.init import (zeros_, kaiming_uniform_, normal_)
 from typing import Tuple
-from helpers.logger import get_logger
+from src.helpers.logger import get_logger
 import numpy as np
 from default_archs.LSTMv2 import Model as KnowItLSTM
 

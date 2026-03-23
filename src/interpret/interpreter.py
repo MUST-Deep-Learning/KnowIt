@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 import torch
 from torch import nn
 
-from helpers.logger import get_logger
+from src.helpers.logger import get_logger
 
 logger = get_logger()
 

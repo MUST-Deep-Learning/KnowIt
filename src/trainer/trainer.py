@@ -36,7 +36,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from torch.utils.data.dataloader import DataLoader
 
-from helpers.logger import get_logger
+from src.helpers.logger import get_logger
 
 logger = get_logger()
 

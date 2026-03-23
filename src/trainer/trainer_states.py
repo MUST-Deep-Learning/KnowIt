@@ -50,9 +50,9 @@ from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
-from helpers.logger import get_logger
-from trainer.base_trainer import BaseTrainer
-from trainer.model_config import PLModel
+from src.helpers.logger import get_logger
+from src.trainer.base_trainer import BaseTrainer
+from src.trainer.model_config import PLModel
 
 from pytorch_lightning.loggers import WandbLogger
 

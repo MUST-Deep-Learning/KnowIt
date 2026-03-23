@@ -20,7 +20,7 @@ from torch.optim import lr_scheduler
 from torchmetrics import functional as mf
 import pandas as pd
 
-from helpers.logger import get_logger
+from src.helpers.logger import get_logger
 logger = get_logger()
 
 def get_loss_function(loss: str) -> Callable[..., float | Tensor]:

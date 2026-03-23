@@ -48,14 +48,14 @@ if TYPE_CHECKING:
     from torch.nn import Module
     from torch.utils.data.dataloader import DataLoader
 
-    from trainer.trainer import KITrainer
+    from src.trainer.trainer import KITrainer
 
 from abc import ABC, abstractmethod
 
 import torch
 from pytorch_lightning import seed_everything
 
-from helpers.logger import get_logger
+from src.helpers.logger import get_logger
 
 logger = get_logger()
 

@@ -33,12 +33,12 @@ __licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "tiantheunissen@gmail.com, randlerabe@gmail.com"
 __description__ = "Contains an example of a LSTM architecture."
 
-from numpy import arange, prod, array
+from numpy import arange, prod
 from torch import Tensor, zeros, randn, randn_like, nn, ones, cat
 from torch.nn import (LSTM, Linear, Module, LayerNorm,
                       Dropout, ModuleList, Sequential, Identity)
 
-from helpers.logger import get_logger
+from src.helpers.logger import get_logger
 
 logger = get_logger()
 

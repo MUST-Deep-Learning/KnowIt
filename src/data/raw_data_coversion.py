@@ -55,7 +55,7 @@ from numpy import array, sum, argwhere, hstack, vstack
 from datetime import timedelta
 
 # internal imports
-from helpers.logger import get_logger
+from src.helpers.logger import get_logger
 
 logger = get_logger()
 
