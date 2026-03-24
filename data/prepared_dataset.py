@@ -1646,7 +1646,8 @@ class CustomDataset(Dataset):
                  in_chunk, out_chunk,
                  padding_method,
                  data_aug:dict,
-                 preload: bool = False) -> None:
+                 preload: bool = False,
+                 pre_scale_aug: bool = True) -> None:
 
         self.data_extractor = data_extractor
         self.selection_matrix = selection_matrix
@@ -1658,6 +1659,7 @@ class CustomDataset(Dataset):
         self.out_chunk = out_chunk
         self.padding_method = padding_method
         self.data_aug = data_aug
+        self.pre_scale_aug = pre_scale_aug
         self.preload = preload
 
         if self.in_chunk[0] == self.in_chunk[1] and self.padding_method not in ('constant', 'empty'):
@@ -1736,17 +1738,18 @@ class CustomDataset(Dataset):
             y_vals = slice_vals.iloc[:, self.y_map].to_numpy()
             y_vals = y_vals[selection[2] + self.out_chunk[0]: selection[2] + self.out_chunk[1] + 1, :]
 
-            # add data augmentations
-            x_aug = self.data_aug.fit_augmentation(x_vals.copy())
+            if self.pre_scale_aug:
+                # add data augmentations
+                x_aug = self.data_aug.fit_augmentation(x_vals.copy())
 
-            # scale inputs and outputs if applicable
-            input_x.append(self.x_scaler.transform(x_aug.copy()))
-            output_y.append(self.y_scaler.transform(y_vals.copy()))
+                # scale inputs and outputs if applicable
+                input_x.append(self.x_scaler.transform(x_aug.copy()))
+                output_y.append(self.y_scaler.transform(y_vals.copy()))
+            else:
+                x_scale = self.x_scaler.transform(x_vals.copy())
 
-            # x_scale = self.x_scaler.transform(x_vals.copy())
-            #
-            # input_x.append(self.data_aug.fit_augmentation(x_scale.copy()))
-            # output_y.append(self.y_scaler.transform(y_vals.copy()))
+                input_x.append(self.data_aug.fit_augmentation(x_scale.copy()))
+                output_y.append(self.y_scaler.transform(y_vals.copy()))
 
 
         if len(idx_list) > 1:
