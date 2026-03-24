@@ -39,7 +39,7 @@ augmentations : dict
 
         'window_slice': [float]
 
-        'window_warp': [[float], [float,...]]     
+        'window_warp': [[float], [float,...]]
 """
 
 import random
