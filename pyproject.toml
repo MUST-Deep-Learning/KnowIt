@@ -1,0 +1,81 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = 'KnowIt'
+version = '1.0.1'
+
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scipy>=1.10",
+    "scikit-learn",
+    "networkx",
+    "matplotlib>=3.7",
+    "tqdm",
+    "requests",
+    "pyyaml",
+    "click",
+]
+requires-python = ">=3.8"
+authors = [
+    {name="Marthinus Wilhelmus Theunissen", email="tiantheunissen@gmail.com"},
+    {name="Randle Rabe", email="randlerabe@gmail.com"},
+    {name="Harmen Potgieter", email="potgieterharmen@gmail.com"}
+]
+description = '''KnowIt (Knowledge discovery In Time series data) is an extendable toolkit to build and interpret
+deep time series models. It is developed in Python and uses PyTorch Lightning for model building and Captum for model interpreting.'''
+readme = "README.md"
+license = {text = "Apache-2.0"}
+license-files = ["LICENSE/*"]
+keywords = ["time_series", "ML"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+]
+
+[project.optional-dependencies]
+torch = [
+    "torch>=2.1",
+    "torchvision",
+    "torchaudio",
+    "pytorch-lightning>=2.0",
+    "torchmetrics",
+]
+# Development & Documentation
+dev = [
+    "pytest",
+    "pylint",
+    "black",
+    "wandb",
+    "sphinx>=7.0",
+    "myst-parser",
+    "pydata-sphinx-theme",
+]
+# Heavy Data/Optimization
+extra-data = [
+    "pyarrow",
+    "fastparquet",
+    "smac",
+    "dask",
+    "scikit-geometry",
+]
+[project.urls]
+Homepage="https://must-deep-learning.github.io/KnowIt/#"
+Repository="https://github.com/MUST-Deep-Learning/KnowIt"
+Issues="https://github.com/MUST-Deep-Learning/KnowIt/issues"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+adopts = "--strict-markers"
+
+[tool.hatch.envs.default]
+dependencies = ["pytest"]
+
+[tool.hatch.envs.test]
+features = ["torch"]
+
+[tool.hatch.envs.test.scripts]
+run = "pytest"

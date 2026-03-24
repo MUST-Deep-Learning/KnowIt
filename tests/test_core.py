@@ -2,7 +2,7 @@
 from knowit import KnowIt
 
 # Instantiate a KnowIt object linked to an output directory
-KI = KnowIt(custom_exp_dir='my_output_path')
+KI = KnowIt(custom_exp_dir='my_output_path', safe_mode=False)
 
 # Define your dataset
 data_args = {'name': 'synth_2',
@@ -21,7 +21,7 @@ arch_args = {'task': 'regression',
 # Define your trainer
 trainer_args = {'loss_fn': 'mse_loss',
                 'optim': 'Adam',
-                'max_epochs': 10,
+                'max_epochs': 1,
                 'learning_rate': 0.01,
                 'task': 'regression'}
 
@@ -29,11 +29,11 @@ trainer_args = {'loss_fn': 'mse_loss',
 KI.train_model(model_name='my_new_model_name',
                kwargs={'data': data_args,
                        'arch': arch_args,
-                       'trainer': trainer_args})
+                       'trainer': trainer_args}, safe_mode=False)
 
 # Generate model predictions
 KI.generate_predictions(model_name='my_new_model_name',
-                        kwargs={'predictor': {'prediction_set': 'valid'}})
+                        kwargs={'predictor': {'prediction_set': 'valid'}}, safe_mode=False)
 
 # Interpret model predictions
 KI.interpret_model(model_name='my_new_model_name',
@@ -41,4 +41,4 @@ KI.interpret_model(model_name='my_new_model_name',
                                {'interpretation_method': 'DeepLift',
                                 'interpretation_set': 'valid',
                                 'selection': 'random',
-                                'size': 100}})
+                                'size': 100}}, safe_mode=False)
