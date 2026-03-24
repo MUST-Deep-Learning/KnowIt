@@ -1,3 +1,47 @@
+"""
+Handles data augmentation by applying various augmentation techniques to input
+data. The augmentations include ``jittering``, ``scaling``, ``rotation``, ``permutation``,
+and magnitude warping. Each technique introduces perturbations or transformations
+to the data to improve model robustness.
+
+This class can optionally use randomized augmentation parameters and order the
+operations dynamically, based on input configurations.
+
+Attributes
+----------
+seed : int
+    Random seed for controlling the reproducibility of augmentations.
+random_vals : bool
+    Flag indicating whether random values are used for augmentation parameters.
+random_order : bool
+    Flag indicating whether augmentation operations should be applied in a
+    randomized order.
+augmentations : dict
+    Dictionary where keys represent augmentation methods and values define
+    the corresponding parameters for each method.
+        'n': [int] Number of augmentations to randomly select from the list and apply
+        'm': [int] Maximum number of augmentations to randomly select from the list and apply 'n <= x <= m'
+        'Random_vals': [bool] Enable random values for each itteration. If 2 are supplied, use the first as starting
+            and the second as the max value. Else use the value as the maximum value.
+        'Random_order': [bool] Enable the random reordering of the augmentations list to apply the augmentations in
+            different orders
+        'jitter': [float, float(optional)]
+                Add random gaussian noise to the input with a user defined std and a 'mean = 0 '
+        'scaling': [float, float(optional)]
+                Scales the input with a random value from a gaussian distribution with a user defined std and 'mean = 0'
+        'rotation':
+                Rotates random features around the magnitude axis
+        'permutation': [int, string]
+
+        'magnitude_warp': [float, int]
+
+        'time_warp': [float, int]
+
+        'window_slice': [float]
+
+        'window_warp': [[float], [float,...]]     
+"""
+
 import random
 import numpy as np
 from matplotlib import pyplot as plt
@@ -29,8 +73,6 @@ class DataAugmenter:
     augmentations : dict
         Dictionary where keys represent augmentation methods and values define
         the corresponding parameters for each method.
-    augmentations_list : list
-        List of augmentation methods to be applied if random modes are enabled.
     """
     def __init__(self, seed, augmentations):
 
