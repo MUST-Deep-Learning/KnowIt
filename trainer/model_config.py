@@ -921,12 +921,13 @@ class PLModel_custom_vae(PLModel):
             y=y_pred,
             prefix="train",
         )
-        kl_w, kl = self.model.kl_loss()
         if float(self.model.get_betakl()) > 0.0:
+            kl_w, kl = self.model.kl_loss()
+            loss_log_metrics['train_kl_weighted_loss'] = kl_w
+            loss_log_metrics['train_kl_loss'] = kl
             loss = loss + kl_w
         loss_log_metrics['train_loss'] = loss
-        loss_log_metrics['train_kl_weighted_loss'] = kl_w
-        loss_log_metrics['train_kl_loss'] = kl
+
 
         # compute performance; depends on whether user gave kwargs
         if self.performance_metrics is None:
@@ -973,9 +974,11 @@ class PLModel_custom_vae(PLModel):
             prefix="valid",
         )
 
-        kl_w, kl = self.model.kl_loss()
         if float(self.model.get_betakl()) > 0.0:
+            kl_w, kl = self.model.kl_loss()
             loss = loss + kl_w
+            loss_log_metrics['valid_kl_weighted_loss'] = kl_w
+            loss_log_metrics['valid_kl_loss'] = kl
         loss_log_metrics['valid_loss'] = loss
         loss_log_metrics['valid_kl_weighted_loss'] = kl_w
         loss_log_metrics['valid_kl_loss'] = kl
