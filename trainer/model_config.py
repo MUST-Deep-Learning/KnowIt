@@ -980,8 +980,6 @@ class PLModel_custom_vae(PLModel):
             loss_log_metrics['valid_kl_weighted_loss'] = kl_w
             loss_log_metrics['valid_kl_loss'] = kl
         loss_log_metrics['valid_loss'] = loss
-        loss_log_metrics['valid_kl_weighted_loss'] = kl_w
-        loss_log_metrics['valid_kl_loss'] = kl
         # compute performance; depends on whether user gave kwargs
         if self.performance_metrics is None:
             perf_log_metrics = {}
