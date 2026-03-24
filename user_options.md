@@ -20,7 +20,7 @@ The following code constructs a KnowIt object, linked to an experiment output di
 and calls the ``KnowIt.import_dataset`` function with the relevant kwargs.
 
 ```python
-from src import KnowIt
+from knowit import KnowIt
 
 KI = KnowIt('/my_experiment_dir')
 import_args = {'raw_data': '/my_new_raw_data.pickle',
@@ -43,7 +43,7 @@ The following code constructs a KnowIt object, linked to an experiment output di
 and calls the ``KnowIt.import_arch`` function with the relevant argument.
 
 ```python
-from src import KnowIt
+from knowit import KnowIt
 
 KI = KnowIt('/my_experiment_dir')
 KI.import_arch('/my_new_arch.py')
@@ -64,7 +64,7 @@ The following code constructs a KnowIt object, linked to an experiment output di
 and calls the ``KnowIt.train_model`` function with the relevant kwargs.
 
 ```python
-from src import KnowIt
+from knowit import KnowIt
 
 KI = KnowIt('/my_experiment_dir')
 model_name = "my_new_model_name"
@@ -103,7 +103,7 @@ The following code constructs a KnowIt object, linked to an experiment output di
 and calls the ``KnowIt.generate_predictions`` function with the relevant kwargs.
 
 ```python
-from src import KnowIt
+from knowit import KnowIt
 
 KI = KnowIt('/my_experiment_dir')
 model_name = "my_mlp"
@@ -124,7 +124,7 @@ The following code constructs a KnowIt object, linked to an experiment output di
 and calls the ``KnowIt.interpret_model`` function with the relevant kwargs.
 
 ```python
-from src import KnowIt
+from knowit import KnowIt
 
 KI = KnowIt('/my_experiment_dir')
 model_name = "my_mlp"

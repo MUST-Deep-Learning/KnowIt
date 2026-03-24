@@ -18,7 +18,7 @@ Live documentation can be found [here](https://must-deep-learning.github.io/Know
 
 ```python
 # Import the KnowIt module
-from src import KnowIt
+from knowit import KnowIt
 
 # Instantiate a KnowIt object linked to an output directory
 KI = KnowIt(custom_exp_dir='my_output_path')

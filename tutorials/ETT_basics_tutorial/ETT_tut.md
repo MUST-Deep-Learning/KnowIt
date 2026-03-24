@@ -144,7 +144,7 @@ See ``KnowIt.user_options.md`` for information on additional kwargs.
 
 ```python
 # import the KnowIt class
-from src import KnowIt
+from knowit import KnowIt
 
 # create a KnowIt object linked to a new experiment directory
 KI = KnowIt('ETT_exp_dir')
@@ -181,7 +181,7 @@ Finally, we call ``KnowIt.summarize_dataset('ETTm')`` to summarize our newly imp
 ### 4.1. Code
 
 ```python
-from src import KnowIt
+from knowit import KnowIt
 
 KI = KnowIt('ETT_exp_dir')
 print(KI.available_datasets())
@@ -261,7 +261,7 @@ In this example we will use a very basic setup:
 ### 5.1. Code
 
 ```python
-from src import KnowIt
+from knowit import KnowIt
 
 KI = KnowIt('ETT_exp_dir')
 # name the new model
