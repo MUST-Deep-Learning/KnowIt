@@ -353,6 +353,7 @@ class PreparedDataset(BaseDataset):
         self.slide_stride = kwargs['slide_stride']
         self.variable_sequence_length_limit = kwargs['variable_sequence_length_limit']
         self.data_aug = kwargs['data_aug']
+        self.pre_scale_aug = kwargs['pre_scale_aug']
 
         # Initiate the data preparation
         random.seed(self.seed)
@@ -383,7 +384,7 @@ class PreparedDataset(BaseDataset):
                           self.x_map, self.y_map,
                           self.x_scaler, self.y_scaler,
                           self.in_chunk, self.out_chunk,
-                          self.padding_method, self.data_aug, preload=preload)
+                          self.padding_method, self.data_aug, self.pre_scale_aug, preload=preload)
         elif self.task in ('classification',):
             if self.batch_sampling_mode in ('variable_length', 'variable_length_inference'):
                 logger.error('Batch sampling mode %s is not supported for classification tasks.',
@@ -1645,9 +1646,9 @@ class CustomDataset(Dataset):
                  x_scaler, y_scaler,
                  in_chunk, out_chunk,
                  padding_method,
-                 data_aug:dict,
-                 preload: bool = False,
-                 pre_scale_aug: bool = True) -> None:
+                 data_aug,
+                 pre_scale_aug,
+                 preload: bool = False) -> None:
 
         self.data_extractor = data_extractor
         self.selection_matrix = selection_matrix

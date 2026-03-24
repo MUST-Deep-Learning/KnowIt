@@ -8,26 +8,78 @@ from helpers.logger import get_logger
 logger = get_logger()
 
 class DataAugmenter:
+    """
+    Handles data augmentation by applying various augmentation techniques to
+    input data. The augmentations include jittering, scaling, rotation, permutation,
+    and magnitude warping. Each technique introduces perturbations or transformations
+    to the data to improve model robustness.
 
+    This class can optionally use randomized augmentation parameters and order the
+    operations dynamically, based on input configurations.
+
+    Attributes
+    ----------
+    seed : int
+        Random seed for controlling the reproducibility of augmentations.
+    random_vals : bool
+        Flag indicating whether random values are used for augmentation parameters.
+    random_order : bool
+        Flag indicating whether augmentation operations should be applied in a
+        randomized order.
+    augmentations : dict
+        Dictionary where keys represent augmentation methods and values define
+        the corresponding parameters for each method.
+    augmentations_list : list
+        List of augmentation methods to be applied if random modes are enabled.
+    """
     def __init__(self, seed, augmentations):
 
         self.seed = seed
-        self.augmentations = RandAugment(augmentations)
-        self.random = self.augmentations._return_rand()
+
+        if augmentations.get('Random_vals') or augmentations.get('Random_order'):
+            self.rand_augment = RandAugment(augmentations)
+            self.random_vals = self.rand_augment.random_vals
+            self.random_order = self.rand_augment.random_order
+            self.augmentations = self.rand_augment.augment_list
+        else:
+            self.random_vals = False
+            self.random_order = False
+            self.augmentations = augmentations
 
         random.seed(self.seed)
 
     def fit_augmentation(self, X):
+        """
+        Applies a series of augmentation techniques to the input data.
 
+        Augmentation methods are chosen and applied based on the defined or
+        randomized augmentation configurations. The input data is copied
+        and augmented incrementally using the specified augmentation methods.
+        The method also generates a plot comparing the original data with the
+        augmented data.
+
+        Parameters
+        ----------
+        X : Any type
+            The input data to be augmented. Its specific type depends on the
+            nature of the data (e.g., image arrays, numerical data).
+
+        Returns
+        -------
+        Any type
+            The augmented version of the input data `X`. The type of the
+            returned data matches the type of the input data.
+
+        """
         X_aug = X.copy()
-        if 'Random' in self.augmentations.keys() and self.augmentations['Random'] == True:
-            self.augmentations.pop('Random')
 
-            if len(self.augmentations) == 0:
-                self.augmentations = augment_list()
+        if self.random_vals:
+            self.augmentations = self.rand_augment()
+        # elif self.random_order:
+        #     self.augmentations = self.augmentations
 
-            keys = self.augmentations.keys()
-            random.shuffle(list(keys))
+        if self.random_order:
+            keys = self.rand_augment.shuffle_keys()
         else:
             keys = self.augmentations.keys()
 
@@ -36,7 +88,7 @@ class DataAugmenter:
             func = getattr(self, method)
             X_aug = func(X_aug, vals)
 
-        self.data_aug_plot(X, X_aug, keys)
+        # self.data_aug_plot(X, X_aug, keys)
         return X_aug
 
     def jitter(self, x, sigma=[0.03]):
@@ -419,56 +471,96 @@ class DataAugmenter:
 
 
 def augment_list():
-    l = [
-        ('jitter', 0, 0.05),
-        ('scaling', 0, 0.2),
-        ('rotation', 0, 1),
-        ('permutation', 0, 8),
-        ('magnitude_warp', 0, 0.5),
-        ('window_warp', 0, 0.3),
-    ]
+    l = {'jitter': [0, 0.05],
+        'scaling': [0, 0.2],
+        'rotation': [0, 1],
+        'permutation': [0, 8],
+        'magnitude_warp': [0, 0.5],
+        'window_warp': [0, 0.3],
+    }
 
     return l
 
 class RandAugment:
-    def __init__(self, n, m=0, aug_list=[]):
-        self.n, self.m = n, m
-        if aug_list == []:
+    """
+    RandAugment class.
+
+    This class provides functionality for applying random augmentation operations
+    on input data. It allows the user to configure the number of augmentation
+    operations, their intensities, and the order of application. It supports
+    custom augmentation lists and automatically generates a set of operations
+    if no list is provided.
+
+    Attributes
+    ----------
+    n : int
+        The minimum number of augmentation operations to apply.
+    m : int
+        The maximum number of augmentation operations to apply.
+    random_vals : bool
+        Specifies if random values should be generated for augmentation parameters.
+    random_order : bool
+        Specifies if the order of augmentation operations should be randomized.
+    augment_list : dict
+        A dictionary of augmentation operations where keys are operation names,
+        and values are the min and max values for the operation parameters.
+    """
+    def __init__(self, aug_list={}):
+        self.n = aug_list.get('n', 2)
+        self.m = aug_list.get('m', 0)
+        self.random_vals = aug_list.get('Random_vals', False)
+        self.random_order = aug_list.get('Random_order', False)
+        aug_list.pop('Random_vals', None)
+        aug_list.pop('Random_order', None)
+        aug_list.pop('max', None)
+        aug_list.pop('n', None)
+
+        if aug_list == {}:
             self.augment_list = augment_list()
         else:
             self.augment_list = aug_list
 
-    def __call__(self, x):
+    def __call__(self):
         if self.m != 0:
             k_num = random.randint(self.n, self.m+1)
+        elif self.n > len(self.augment_list):
+            k_num = len(self.augment_list)
         else:
             k_num = self.n
-        ops = random.choices(self.augment_list, k=k_num)
+
+        ops = random.sample(list(self.augment_list.keys()), k=k_num)
+        self.augment_list = {i: self.augment_list[i] for i in ops}
         data_aug = {}
 
-        for op, minval, maxval in ops:
-            if op == 'window_warp':
+        for key in ops:
+            try:
+                minval, maxval = self.augment_list[key]
+            except:
+                logger.error('Please provide min and max values in the future. Using value as max and 0 as min')
+                minval = 0
+                maxval = self.augment_list[key][0]
+
+            if key == 'window_warp':
                 k = random.randint(1, 10)
                 window = round(random.uniform(0, 1),2)
                 val = [round(random.uniform(minval, maxval), 3) for _ in range(k)]
-                data_aug[op] = [[window], val]
-            elif op == 'time_warp' or op == 'magnitude_warp':
+                data_aug[key] = [[window], val]
+            elif key == 'time_warp' or key == 'magnitude_warp':
                 val = round(random.uniform(minval, maxval), 3)
                 knot = random.randint(1, 10)
-                data_aug[op] = [val, knot]
-            elif op == 'permutation':
+                data_aug[key] = [val, knot]
+            elif key == 'permutation':
                 val = random.randint(minval, maxval)
-                data_aug[op] = [val, "Random"]
+                data_aug[key] = [val, "Random"]
             else:
                 val = round(random.uniform(minval, maxval), 3)
-                data_aug[op] = [val]
+                data_aug[key] = [val]
+
         return data_aug
 
-    def _return_rand(self):
-        if 'Random' in self.augmentations.keys() and self.augmentations['Random'] == True:
-            self.augmentations.pop('Random')
-            self.random = True
-        else:
-            self.random = False
+    def shuffle_keys(self):
 
-        return
+        keys = list(self.augment_list.keys())
+        random.shuffle(keys)
+
+        return keys
