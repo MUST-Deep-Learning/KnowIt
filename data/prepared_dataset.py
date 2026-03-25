@@ -396,13 +396,16 @@ class PreparedDataset(BaseDataset):
                                                   self.in_chunk, self.out_chunk,
                                                   self.class_set,
                                                   self.padding_method,
+                                                  self.data_aug,
+                                                  self.pre_scale_aug,
                                                   preload=preload)
         elif self.task == 'vl_regression':
             dataset = CustomVariableLengthRegressionDataset(self.get_extractor(), self.selection[set_tag],
                                     self.x_map, self.y_map,
                                     self.x_scaler, self.y_scaler,
                                     self.in_chunk, self.out_chunk,
-                                    self.padding_method, preload=preload)
+                                    self.padding_method, self.data_aug,
+                                    self.pre_scale_aug, preload=preload)
         else:
             logger.error('Unknown task: %s', self.task)
             exit(101)
@@ -706,7 +709,8 @@ class PreparedDataset(BaseDataset):
                                                   self.scaling_tag,
                                                   self.x_map,
                                                   self.y_map).get_scalers()
-        self.data_aug = DataAugmenter(self.seed, self.data_aug)
+        if self.data_aug != None:
+            self.data_aug = DataAugmenter(self.seed, self.data_aug)
         if self.batch_sampling_mode == 'basic_classification':
             self.precompiled_data = self._precompile_data()
 
@@ -1647,7 +1651,7 @@ class CustomDataset(Dataset):
                  in_chunk, out_chunk,
                  padding_method,
                  data_aug,
-                 pre_scale_aug,
+                 pre_scale_aug=True,
                  preload: bool = False) -> None:
 
         self.data_extractor = data_extractor
@@ -1739,7 +1743,12 @@ class CustomDataset(Dataset):
             y_vals = slice_vals.iloc[:, self.y_map].to_numpy()
             y_vals = y_vals[selection[2] + self.out_chunk[0]: selection[2] + self.out_chunk[1] + 1, :]
 
-            if self.pre_scale_aug:
+            if self.data_aug == None:
+                # scale inputs and outputs if applicable
+                input_x.append(self.x_scaler.transform(x_vals.copy()))
+                output_y.append(self.y_scaler.transform(y_vals.copy()))
+
+            elif self.pre_scale_aug:
                 # add data augmentations
                 x_aug = self.data_aug.fit_augmentation(x_vals.copy())
 
@@ -1852,6 +1861,8 @@ class CustomClassificationDataset(CustomDataset):
                  x_scaler, y_scaler,
                  in_chunk, out_chunk,
                  class_set, padding_method,
+                 data_aug,
+                 pre_scale_aug,
                  preload: bool = False) -> None:
 
         if out_chunk[0] != out_chunk[1]:
@@ -1864,6 +1875,8 @@ class CustomClassificationDataset(CustomDataset):
                          x_scaler, y_scaler,
                          in_chunk, out_chunk,
                          padding_method,
+                         data_aug,
+                         pre_scale_aug,
                          preload)
         self.class_set = class_set
 
