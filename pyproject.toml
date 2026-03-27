@@ -23,22 +23,33 @@ dependencies = [
     "Pillow>=10.0.1",
 ]
 requires-python = ">=3.11"
-authors = [
+authors = [{name="Randle Rabe", email="randlerabe@gmail.com"},]
+maintainers = [
     {name="Marthinus Wilhelmus Theunissen", email="tiantheunissen@gmail.com"},
-    {name="Randle Rabe", email="randlerabe@gmail.com"},
     {name="Harmen Potgieter", email="potgieterharmen@gmail.com"}
 ]
 description = '''KnowIt (Knowledge discovery In Time series data) is an extendable toolkit to build and interpret
-deep time series models. It is developed in Python and uses PyTorch Lightning for model building and Captum for model interpreting.'''
+deep time series models. It is developed in Python and uses PyTorch Lightning for model building and Captum for
+model interpreting.'''
 readme = "README.md"
 license = {text = "Apache-2.0"}
-license-files = ["LICENSE/*"]
-keywords = ["time_series", "ML"]
+license-files = [
+    "LICENSE*",
+    "CITATION+"
+]
+keywords = ["Time series modeling", "Deep Learning", "Interpreting"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Environment :: GPU :: NVIDIA CUDA",
+    "Framework :: Hatch",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development",
 ]
 
 [project.urls]
