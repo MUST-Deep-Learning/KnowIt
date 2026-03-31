@@ -505,7 +505,8 @@ class PreparedDataset(BaseDataset):
             split_data['x'],
             split_data['y'],
             split_data['s_id'],
-            split_data['ist_idx']
+            split_data['ist_idx'],
+            self.data_aug
         )
 
         dataloader = DataLoader(
@@ -1910,6 +1911,8 @@ class CustomVariableLengthRegressionDataset(CustomDataset):
                  x_scaler, y_scaler,
                  in_chunk, out_chunk,
                  padding_method,
+                 data_aug,
+                 pre_scale_aug,
                  preload: bool = False) -> None:
 
         if in_chunk[0] != in_chunk[1]:
@@ -1945,19 +1948,21 @@ class BasicClassificationTorchDataset(Dataset):
     """A very basic classification dataset. Simply returns values corresponding to the given index."""
 
 
-    def __init__(self, x, y, s_id, ist_idx):
+    def __init__(self, x, y, s_id, ist_idx, data_aug):
         # cast to device here?
         self.x = x
         self.y = y
         self.s_id = s_id
         self.ist_idx = ist_idx
+        self.data_aug = data_aug
 
     def __len__(self):
         return self.x.shape[0]
 
     def __getitem__(self, idx):
 
-        ret_val = {'x': self.x[idx],
+        x_aug = self.data_aug.fit_augmentation(self.x[idx])
+        ret_val = {'x': x_aug,
                    'y': self.y[idx],
                    's_id': self.s_id[idx],
                    'ist_idx': [self.ist_idx[idx]]}

@@ -46,6 +46,7 @@ import random
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.interpolate import CubicSpline
+import torch
 
 from helpers.logger import get_logger
 
@@ -113,7 +114,10 @@ class DataAugmenter:
             returned data matches the type of the input data.
 
         """
-        X_aug = X.copy()
+        if torch.is_tensor(X):
+            X_aug = X.clone().detach()
+        else:
+            X_aug = X.copy()
 
         if self.random_vals:
             self.augmentations = self.rand_augment()
@@ -130,8 +134,8 @@ class DataAugmenter:
             func = getattr(self, method)
             X_aug = func(X_aug, vals)
 
-        # self.data_aug_plot(X, X_aug, keys)
-        return X_aug
+        self.data_aug_plot(X, X_aug, keys)
+        return X_aug.float() if torch.is_tensor(X_aug) else X_aug.astype('float32')
 
     def jitter(self, x, sigma=[0.03]):
         """
