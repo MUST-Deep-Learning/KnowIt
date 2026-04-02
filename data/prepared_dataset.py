@@ -185,6 +185,7 @@ from torch.utils.data import Dataset, DataLoader, Sampler
 from torch import from_numpy, is_tensor, Tensor, unsqueeze
 from torch import zeros as zeros_tensor
 from os import path
+from pathlib import Path
 
 # internal imports
 from data.base_dataset import BaseDataset
@@ -447,8 +448,8 @@ class PreparedDataset(BaseDataset):
                          str(self.batch_sampling_mode))
             exit(101)
 
-        if self.batch_sampling_mode == 'basic_classification':
-            return self.get_basic_classification_dataloader(set_tag, analysis, num_workers, preload)
+        if self.batch_sampling_mode == 'fl_precompiled':
+            return self.get_fl_precompiled_dataloader(set_tag, analysis, num_workers, preload)
 
         if set_tag == 'train' and not analysis:
             shuffle = self.shuffle_train
@@ -477,7 +478,7 @@ class PreparedDataset(BaseDataset):
 
         return dataloader
 
-    def get_basic_classification_dataloader(self, set_tag: str,
+    def get_fl_precompiled_dataloader(self, set_tag: str,
                        analysis: bool = False,
                        num_workers: int = 4,
                        preload: bool = False) -> DataLoader:
@@ -495,7 +496,7 @@ class PreparedDataset(BaseDataset):
 
         split_data = self.precompiled_data[set_tag]
 
-        dataset = BasicClassificationTorchDataset(
+        dataset = CustomFixedLengthPrecompiledDataset(
             split_data['x'],
             split_data['y'],
             split_data['s_id'],
@@ -599,15 +600,66 @@ class PreparedDataset(BaseDataset):
 
     def _precompile_data(self):
         """
-        Precompiles the dataset so that it can be sampled index-wise by the basic classification dataloader later.
-        This loops through the entire dataset using the conventional methods, so it takes a while, but it only happens once before
-        training is initiated. """
+        Precompile the dataset into a pickle file for index-wise sampling by the PyTorch DataLoader.
+
+        Iterates through the entire dataset using conventional (non-precompiled) methods.
+        This process runs once prior to training and is skipped on
+        subsequent runs if a matching precompiled file is found on disk. If the cached
+        file exists but its stored data profile does not match the current configuration,
+        the file is deleted and precompilation is performed again.
+
+        The data profile used for cache validation includes the following attributes:
+        ``in_chunk``, ``out_chunk``, ``in_components``, ``out_components``,
+        ``train_set_size``, ``eval_set_size``, ``valid_set_size``, ``padding_method``,
+        ``scaling_method``, ``scaling_tag``, ``split_method``, ``split_portions``,
+        and ``task``.
+
+        Notes
+        -----
+        - The precompiled file is saved as ``<name>_precompiled.pkl`` in the same
+          directory as ``meta_path``.
+        - If the loaded cache has no ``data_profile`` key, a warning is issued and
+          the data is used as-is without profile validation.
+        - When ``split_method`` is ``'custom'``, a mismatch in ``split_portions``
+          alone is tolerated and does not trigger recompilation.
+        - Recompilation is triggered recursively after deleting a stale cache file.
+        - The ``data_profile`` key is removed from the returned dictionary.
+    
+        Returns
+        -------
+        dict
+            A dictionary with keys ``'train'``, ``'valid'``, and ``'eval'``, each
+            mapping to the precompiled input data points for that split, as returned
+            by ``fetch_input_points_manually``.
+
+        Raises
+        ------
+        Any exceptions raised by ``fetch_input_points_manually``, ``safe_dump``,
+        or ``load_from_path`` will propagate uncaught.
+
+        """
 
         file_path = path.join(path.dirname(self.meta_path), self.name + '_precompiled.pkl')
+
+        data_profile = {'in_chunk': self.in_chunk,
+                        'out_chunk': self.out_chunk,
+                        'in_components': self.in_components,
+                        'out_components': self.out_components,
+                        'train_set_size': self.train_set_size,
+                        'eval_set_size': self.eval_set_size,
+                        'valid_set_size': self.valid_set_size,
+                        'padding_method': self.padding_method,
+                        'scaling method': self.scaling_method,
+                        'scaling_tag': self.scaling_tag,
+                        'split_method': self.split_method,
+                        'split_portions': self.split_portions,
+                        'task': self.task,
+                        }
+
         if not path.exists(file_path):
-            logger.info('Precompiling data for basic classification batch sampling. '
-                        'This will take a moment, but only happens once. '
-                        'Data will be loaded from disk next run and will need to be manually removed to recreate.')
+            logger.info('Precompiling fixed length data. '
+                        'This will take a moment, but only happens once, as long as data profile matches. '
+                        'Data will be loaded from disk next run.')
             data = dict()
             for set_tag in ('train', 'valid', 'eval'):
                 selection = self.selection[set_tag]
@@ -615,11 +667,27 @@ class PreparedDataset(BaseDataset):
                     set_tag, [_ for _ in range(len(selection))]
                 )
                 logger.info('%s set precompiling done!', set_tag)
+            data['data_profile'] = data_profile
             safe_dump(data, file_path, safe_mode=True)
         else:
-            logger.info('Precompiled data already exists. Using as is.')
+            logger.info('Precompiled data already exists. Loading from disk.')
             data = load_from_path(file_path)
+            if 'data_profile' not in data:
+                logger.warning('Precompiled data does not contain a data profile. '
+                               'No match with current data setup guaranteed. '
+                               'Manual deletion and new precomiling is advised.')
+            else:
+                loaded_data_profile = data['data_profile']
+                mismatched = {k for k in data_profile.keys() & loaded_data_profile.keys() if data_profile[k] != loaded_data_profile[k]}
+                if 'split_portions' in mismatched and 'split_method' not in mismatched and data_profile['split_method'] == 'custom':
+                    mismatched.discard('split_portions')
+                if len(mismatched) > 0:
+                    logger.warning('Loaded precompiled data profile mismatches the current data profile at %s. '
+                                   'Precompiling again and overwriting existing data.', str(mismatched))
+                    Path(file_path).unlink()
+                    return self._precompile_data()
 
+        data.pop('data_profile')
         return data
 
     def _prepare(self) -> None:
@@ -702,9 +770,11 @@ class PreparedDataset(BaseDataset):
                                                   self.scaling_method,
                                                   self.scaling_tag,
                                                   self.x_map,
-                                                  self.y_map).get_scalers()
+                                                  self.y_map,
+                                                  self.in_chunk,
+                                                  self.out_chunk).get_scalers()
 
-        if self.batch_sampling_mode == 'basic_classification':
+        if self.batch_sampling_mode == 'fl_precompiled':
             self.precompiled_data = self._precompile_data()
 
     def _get_classes(self) -> None:
@@ -765,7 +835,7 @@ class PreparedDataset(BaseDataset):
                     c_tuple = tuple(c)
                     matches = instance.eq(c_tuple).all(axis=1)
                 matches = matches.fillna(False)
-                class_count += int(matches.sum())
+                class_count += int(matches.sum().item())
 
             self.class_counts[self.class_set[c]] = class_count
 
@@ -1910,7 +1980,7 @@ class CustomVariableLengthRegressionDataset(CustomDataset):
         return sample
 
 
-class BasicClassificationTorchDataset(Dataset):
+class CustomFixedLengthPrecompiledDataset(Dataset):
 
     """A very basic classification dataset. Simply returns values corresponding to the given index."""
 
@@ -1930,5 +2000,5 @@ class BasicClassificationTorchDataset(Dataset):
         ret_val = {'x': self.x[idx],
                    'y': self.y[idx],
                    's_id': self.s_id[idx],
-                   'ist_idx': self.ist_idx[idx]}
+                   'ist_idx': [self.ist_idx[idx]]}
         return ret_val
