@@ -177,13 +177,13 @@ __description__ = ('Contains the PreparedDataset, CustomSampler, CustomDataset, 
                    'and CustomVariableLengthRegressionDataset class for Knowit.')
 
 # external imports
-from numpy import (array, random, unique, pad, isnan, arange, expand_dims, concatenate,
-                   diff, where, split, ndarray, isscalar, asarray, argwhere)
+from numpy import (array, random, unique, pad, arange, expand_dims, concatenate,
+                   diff, where, split, ndarray, isscalar, argwhere)
 from numpy.random import Generator
 from pandas import isna, DataFrame
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch import from_numpy, is_tensor, Tensor, unsqueeze
-from torch import zeros as zeros_tensor
+from torch import zeros as zeros_tensor, stack
 from os import path
 from pathlib import Path
 
@@ -459,7 +459,7 @@ class PreparedDataset(BaseDataset):
             drop_small = False
             if self.batch_sampling_mode == 'variable_length':
                 self.batch_sampling_mode = 'variable_length_inference'
-            else:
+            elif self.batch_sampling_mode == 'sliding-window':
                 self.batch_sampling_mode = 'inference'
 
         sampler = CustomSampler(selection=self.selection[set_tag],
@@ -624,7 +624,7 @@ class PreparedDataset(BaseDataset):
           alone is tolerated and does not trigger recompilation.
         - Recompilation is triggered recursively after deleting a stale cache file.
         - The ``data_profile`` key is removed from the returned dictionary.
-    
+
         Returns
         -------
         dict
@@ -895,7 +895,7 @@ class CustomSampler(Sampler):
     -----
         - mode='independent': Time is contiguous within sequences but not across batches.
         - mode='sliding-window': A sliding window approach is used to ensure that time is contiguous within sequences and across batches.
-        - mode='inference': Same as 'sliding-window', but no shuffling, expansion for batch sizing, and striding.
+        - mode='inference': Same as 'sliding-window', but no shuffling or expansion for batch sizing, and striding.
         - mode='variable_length': Similar to 'sliding-window' but the sequence lengths will be variable within batches.
         - mode='variable_length_inference': Same as 'variable_length', but no shuffling or expansion for batch sizing.
         - shuffle=False: Batches are constructed in dataset order as per the "selection" array. For variable length modes, slices will also be samples in descending order of length.
@@ -1738,7 +1738,10 @@ class CustomDataset(Dataset):
             for i in instances:
                 slices = unique(self.selection_matrix[self.selection_matrix[:, 0] == i, 1])
                 for s in slices:
-                    self.preloaded_slices[(i, s)] = self.data_extractor.slice(i, s)
+                    slice_vals = self.data_extractor.slice(i, s)
+                    x_vals = self._prep_slice(slice_vals, self.x_map, self.x_scaler)
+                    y_vals = self._prep_slice(slice_vals, self.y_map, self.y_scaler)
+                    self.preloaded_slices[(i, s)] = [x_vals, y_vals]
 
     def __len__(self) -> int:
         """Return the number of samples in the dataset.
@@ -1790,25 +1793,26 @@ class CustomDataset(Dataset):
 
             # get relevant slice information
             if self.preload:
-                slice_vals = self.preloaded_slices[(selection[0], selection[1])]
+                x_vals = self.preloaded_slices[(selection[0], selection[1])][0]
+                y_vals = self.preloaded_slices[(selection[0], selection[1])][1]
             else:
                 slice_vals = self.data_extractor.slice(selection[0], selection[1])
+                x_vals = self._prep_slice(slice_vals, self.x_map, self.x_scaler)
+                y_vals = self._prep_slice(slice_vals, self.y_map, self.y_scaler)
 
             # get input values and pad if necessary
-            x_vals = slice_vals.iloc[:, self.x_map].to_numpy()
             x_vals = self._sample_and_pad(x_vals, selection, self.in_chunk, self.padding_method)
 
             # get output values (no padding allowed)
-            y_vals = slice_vals.iloc[:, self.y_map].to_numpy()
             y_vals = y_vals[selection[2] + self.out_chunk[0]: selection[2] + self.out_chunk[1] + 1, :]
 
             # scale inputs and outputs if applicable
-            input_x.append(self.x_scaler.transform(x_vals.copy()))
-            output_y.append(self.y_scaler.transform(y_vals.copy()))
+            input_x.append(x_vals)
+            output_y.append(y_vals)
 
         if len(idx_list) > 1:
-            input_x = array(input_x)
-            output_y = array(output_y)
+            input_x = stack(input_x, dim=0)
+            output_y = stack(output_y, dim=0)
         else:
             input_x = input_x[0]
             output_y = output_y[0]
@@ -1885,11 +1889,25 @@ class CustomDataset(Dataset):
         return vals
 
     @staticmethod
+    def _prep_slice(slice_vals, s_map, scaler):
+        """ For a given slice,
+        subsample component values from Dataframe,
+        cast to numpy array,
+        scale with given scaler,
+        cast to tensor,
+        and change data type to float."""
+        vals = slice_vals.iloc[:, s_map].to_numpy()
+        vals = scaler.transform(vals.copy())
+        vals = from_numpy(vals).float()
+        return vals
+
+    @staticmethod
     def _package_output(input_x, output_y, idx, ist_idx):
         """ Package the sample values for a basic regression problem. """
-        sample = {'x': from_numpy(input_x).float(),
-                  'y': from_numpy(output_y).float(),
-                  's_id': idx, 'ist_idx': ist_idx}
+        sample = {'x': input_x,
+                  'y': output_y,
+                  's_id': idx,
+                  'ist_idx': ist_idx}
         return sample
 
 
@@ -1933,9 +1951,10 @@ class CustomClassificationDataset(CustomDataset):
                 new_output_y[argwhere(output_y[:, -1, -1] == c), c] = 1
             output_y = new_output_y
 
-        sample = {'x': from_numpy(input_x).float(),
+        sample = {'x': input_x,
                   'y': output_y,
-                  's_id': idx, 'ist_idx': ist_idx}
+                  's_id': idx,
+                  'ist_idx': ist_idx}
 
         return sample
 
@@ -1970,12 +1989,13 @@ class CustomVariableLengthRegressionDataset(CustomDataset):
         """ Package the sample values for a basic variable length regression problem. """
 
         if len(input_x.shape) == 3:
-            input_x = input_x.squeeze(axis=1)
-            output_y = output_y.squeeze(axis=1)
+            input_x = input_x.squeeze(dim=1)
+            output_y = output_y.squeeze(dim=1)
 
-        sample = {'x': from_numpy(input_x).float(),
-                  'y': from_numpy(output_y).float(),
-                  's_id': idx, 'ist_idx': ist_idx}
+        sample = {'x': input_x,
+                  'y': output_y,
+                  's_id': idx,
+                  'ist_idx': ist_idx}
 
         return sample
 
