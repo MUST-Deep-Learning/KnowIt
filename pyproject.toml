@@ -37,7 +37,7 @@ license-files = [
     "LICENSE*",
     "CITATION+"
 ]
-keywords = ["Time series modeling", "Deep Learning", "Interpreting"]
+keywords = ["Deep Time series modeling", "Deep Time Series Interpreting", "Time series analysis", "Deep Learning"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
