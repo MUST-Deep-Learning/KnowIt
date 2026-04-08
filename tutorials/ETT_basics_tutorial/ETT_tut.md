@@ -145,6 +145,7 @@ See ``KnowIt.user_options.md`` for information on additional kwargs.
 ```python
 # import the KnowIt class
 from knowit import KnowIt
+
 # create a KnowIt object linked to a new experiment directory
 KI = KnowIt('ETT_exp_dir')
 # we switch KnowIt to verbose mode to provide more information
@@ -181,6 +182,7 @@ Finally, we call ``KnowIt.summarize_dataset('ETTm')`` to summarize our newly imp
 
 ```python
 from knowit import KnowIt
+
 KI = KnowIt('ETT_exp_dir')
 print(KI.available_datasets())
 print(KI.available_archs())
@@ -260,6 +262,7 @@ In this example we will use a very basic setup:
 
 ```python
 from knowit import KnowIt
+
 KI = KnowIt('ETT_exp_dir')
 # name the new model
 model_name = "ETTm_uni_model_tcn"
@@ -285,8 +288,8 @@ trainer_args = {'loss_fn': 'mse_loss',
                 'task': 'regression'
                 }
 # Initiate trainer and use default visualization for learning curves
-KI.train_model(model_name=model_name, 
-               kwargs={'data': data_args, 'arch': arch_args, 'trainer': trainer_args}, 
+KI.train_model(model_name=model_name,
+               kwargs={'data': data_args, 'arch': arch_args, 'trainer': trainer_args},
                and_viz=True)
 ```
 

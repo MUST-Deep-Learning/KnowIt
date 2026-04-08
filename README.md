@@ -56,7 +56,7 @@ KI.generate_predictions(model_name='my_new_model_name',
 
 # Interpret model predictions
 KI.interpret_model(model_name='my_new_model_name',
-                   kwargs={'interpreter': 
+                   kwargs={'interpreter':
                                {'interpretation_method': 'DeepLift',
                                 'interpretation_set': 'valid',
                                 'selection': 'random',
