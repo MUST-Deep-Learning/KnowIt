@@ -35,10 +35,10 @@ __licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the DataScaler, ZScale, LinScale, and NoScale classes for KnowIt.'
 
-from dask.dataframe import DataFrame
 # external imports
-from numpy import (nanmean, nanvar, nanmin, nanmax, array, unique, sqrt, minimum, maximum, logical_and, nan_to_num)
-import torch
+from pandas import DataFrame
+from numpy import (nanmean, nanvar, nanmin, nanmax, array, unique, sqrt, minimum, maximum, logical_and)
+from torch import is_tensor, Tensor, as_tensor
 
 # internal imports
 from data.base_dataset import DataExtractor
@@ -213,6 +213,13 @@ class ZScale:
         (c - native_mean) / native_std
 
     where native_mean and native_std are the mean and std of the corresponding component as measured on the train set.
+    Components that are constant across the train set will be scaled to a predefined constant_to,
+    and rescaled back to native_mean.
+
+    Parameters
+    ----------
+    constant_to : float, default=0.0
+        What value to scale any component that is constant across the train set.
 
     Attributes
     ----------
@@ -220,12 +227,27 @@ class ZScale:
         The mean component value across prediction points in the train set.
     native_std : array, shape=[n_components,]
         The standard deviation of values across prediction points in the train set.
+    native_mean_tensor : Tensor, shape=[n_components,]
+        The mean component value across prediction points in the train set.
+    native_std_tensor : Tensor, shape=[n_components,]
+        The standard deviation of values across prediction points in the train set.
+    constant_to : float, default=0.0
+        What value to scale any component that is constant across the train set.
+    constant_mask : array, shape=[n_components,]
+        A boolean array indicating what components are constant across the train set.
+    constant_mask_tensor : Tensor, shape=[n_components,]
+        A boolean Tensor indicating what components are constant across the train set.
     """
     native_mean = None
     native_std = None
+    native_mean_tensor = None
+    native_std_tensor = None
+    constant_to = 0.0
+    constant_mask = None
+    constant_mask_tensor = None
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, constant_to: float = 0.0) -> None:
+        self.constant_to = constant_to
 
     def fit(self, data_extractor: DataExtractor, train_selection: array,
             s_map: array, chunk: list, load_level: str = 'instance') -> None:
@@ -287,52 +309,102 @@ class ZScale:
 
         self.native_mean = mean
         self.native_std = sqrt(variance)
+        self.constant_mask = self.native_std == 0
 
-    def transform(self, data: array) -> array:
+        self.native_mean_tensor = as_tensor(self.native_mean)
+        self.native_std_tensor = as_tensor(self.native_std)
+        self.constant_mask_tensor = as_tensor(self.constant_mask)
+
+    def transform(self, data: array | Tensor) -> array | Tensor:
         """ Performs Z-Normalization.
 
         Parameters
         ----------
-        data : array, shape=[n_components,]
+        data : array | Tensor, shape=[time_steps, n_components] or [n, time_steps, n_components]
             The data to be transformed with Z-Normalization.
+            If 3D, the transform is applied independently across the first dimension.
         """
         if self.native_mean is None or self.native_std is None:
             logger.error('ZScale transform not fitted yet.')
             exit(101)
 
-        return (data - self.native_mean) / self.native_std
+        if is_tensor(data):
+            native_mean = self.native_mean_tensor
+            native_std = self.native_std_tensor
+            constant_mask = self.constant_mask_tensor
+        else:
+            native_mean = self.native_mean
+            native_std = self.native_std
+            constant_mask = self.constant_mask
 
-    def inverse_transform(self, data: array) -> array:
-        """ Performs inverse Z-Normalization.
+        ret_val = (data - native_mean) / native_std
+
+        if ret_val.ndim == 2:
+            ret_val[:, constant_mask] = self.constant_to
+        elif ret_val.ndim == 3:
+            ret_val[:, :, constant_mask] = self.constant_to
+        else:
+            logger.error(
+                'ZScale transform expects data of shape [time_steps, n_components] or [n, time_steps, n_components].')
+            exit(101)
+
+        return ret_val
+
+    def inverse_transform(self, data: array | Tensor) -> array | Tensor:
+        """Performs inverse Z-Normalization.
 
         Parameters
         ----------
-        data : array, shape=[n_components,]
+        data : array | Tensor, shape=[time_steps, n_components] or [n, time_steps, n_components]
             The data to be inversely transformed with Z-Normalization.
+            If 3D, the inverse transform is applied independently across the first dimension.
         """
         if self.native_mean is None or self.native_std is None:
             logger.error('ZScale transform not fitted yet.')
             exit(101)
 
-        return (data * self.native_std) + self.native_mean
+        if is_tensor(data):
+            native_mean = self.native_mean_tensor
+            native_std = self.native_std_tensor
+            constant_mask = self.constant_mask_tensor
+        else:
+            native_mean = self.native_mean
+            native_std = self.native_std
+            constant_mask = self.constant_mask
+
+        ret_val = (data * native_std) + native_mean
+
+        if ret_val.ndim == 2:
+            ret_val[:, constant_mask] = native_mean[constant_mask]
+        elif ret_val.ndim == 3:
+            ret_val[:, :, constant_mask] = native_mean[constant_mask]
+        else:
+            logger.error(
+                'ZScale inverse_transform expects data of shape [time_steps, n_components] or [n, time_steps, n_components].')
+            exit(101)
+
+        return ret_val
 
 
 class LinScale:
-    """Performs a basic per component linear scaling.
-    Can be scaled to any range, but default is (0, 1).
+    """Performs a basic per component linear scaling. Can be scaled to any range, but default is (0, 1).
 
     For each component value c the transformation is defined as:
         (target_max - target_min) * (c - native_min) / (native_max - native_min) + target_min
 
-    where native_min and native_mix are the min and max values of the corresponding component
+    where native_min and native_max are the min and max values of the corresponding component
     as measured on the train set, and target_min and target_max is 0 and 1 respectively.
+    Components that are constant across the train set will be scaled to a predefined constant_to,
+    and rescaled back to native_min.
 
     Parameters
     ----------
-    target_min : float, default=0
+    target_min : float, default=0.
         The desired transformed minimum feature values.
-    target_max : float, default=1
+    target_max : float, default=1.
         The desired transformed maximum feature values.
+    constant_to : float, default=0.5
+        What value to scale any component that is constant across the train set.
 
     Attributes
     ----------
@@ -340,20 +412,35 @@ class LinScale:
         The minimum native feature values across prediction points.
     native_max : array, shape=[n_components,]
         The maximum native feature values across prediction points.
-    target_min : float, default=0
+    native_min_tensor : Tensor, shape=[n_components,]
+        The minimum native feature values across prediction points.
+    native_max_tensor : Tensor, shape=[n_components,]
+        The maximum native feature values across prediction points.
+    target_min : float, default=0.
         The transformed minimum feature values.
-    target_max : float, default=1
+    target_max : float, default=1.
         The transformed maximum feature values.
-
+    constant_to : float, default=0.5
+        What value to scale any component that is constant across the train set.
+    constant_mask : array, shape=[n_components,]
+        A boolean array indicating what components are constant across the train set.
+    constant_mask_tensor : Tensor, shape=[n_components,]
+        A boolean Tensor indicating what components are constant across the train set.
     """
     native_min = None
     native_max = None
+    native_min_tensor = None
+    native_max_tensor = None
     target_min = 0.
     target_max = 1.
+    constant_to = 0.5
+    constant_mask = None
+    constant_mask_tensor = None
 
-    def __init__(self, target_min: float = 0, target_max: float = 1) -> None:
+    def __init__(self, target_min: float = 0., target_max: float = 1., constant_to: float = 0.5) -> None:
         self.target_min = target_min
         self.target_max = target_max
+        self.constant_to = constant_to
 
     def fit(self, data_extractor: DataExtractor, train_selection: array,
             s_map: array, chunk: list, load_level: str = 'instance') -> None:
@@ -400,52 +487,83 @@ class LinScale:
 
         self.native_min = min
         self.native_max = max
+        self.constant_mask = min == max
 
-    def transform(self, data: array) -> array:
+        self.native_min_tensor = as_tensor(self.native_min)
+        self.native_max_tensor = as_tensor(self.native_max)
+        self.constant_mask_tensor = as_tensor(self.constant_mask)
+
+    def transform(self, data: array | Tensor) -> array | Tensor:
         """Transforms features, linearly, from expected ranges to desired range.
 
         Parameters
         ----------
-        data : array, shape=[n_components,]
+        data : array | Tensor, shape=[time_steps, n_components] or [n, time_steps, n_components]
             The data to be transformed with Linear scaling.
+            If 3D, the transform is applied independently across the first dimension.
         """
         if self.native_min is None or self.native_max is None:
             logger.error('LinScale transform not fitted yet.')
             exit(101)
 
-        # TODO: TEMP WORKARAOUND, NEED BETTER SOLUTION
-        if torch.is_tensor(data):
-            data = torch.as_numpy(data)
+        if is_tensor(data):
+            native_max = self.native_max_tensor
+            native_min = self.native_min_tensor
+            constant_mask = self.constant_mask_tensor
+        else:
+            native_max = self.native_max
+            native_min = self.native_min
+            constant_mask = self.constant_mask
 
-        ret_val = ((self.target_max - self.target_min) * ((data - self.native_min) / (self.native_max - self.native_min)) + self.target_min)
+        ret_val = ((self.target_max - self.target_min) * (
+                    (data - native_min) / (native_max - native_min)) + self.target_min)
 
-        nan_to_num(ret_val, copy=False, nan=self.target_min, posinf=self.target_min, neginf=self.target_min)
+        if ret_val.ndim == 2:
+            ret_val[:, constant_mask] = self.constant_to
+        elif ret_val.ndim == 3:
+            ret_val[:, :, constant_mask] = self.constant_to
+        else:
+            logger.error(
+                'LinScale transform expects data of shape [time_steps, n_components] or [n, time_steps, n_components].')
+            exit(101)
 
         return ret_val
 
-    def inverse_transform(self, data: array) -> array:
+    def inverse_transform(self, data: array | Tensor) -> array | Tensor:
         """Inversely transforms features, linearly, back to native ranges.
 
         Parameters
         ----------
-        data : array, shape=[n_components,]
+        data : array | Tensor, shape=[time_steps, n_components] or [n, time_steps, n_components]
             The data to be inversely transformed with Linear scaling.
+            If 3D, the inverse transform is applied independently across the first dimension.
         """
         if self.native_min is None or self.native_max is None:
             logger.error('LinScale transform not fitted yet.')
             exit(101)
 
-        # TODO: TEMP WORKARAOUND, NEED BETTER SOLUTION
-        if torch.is_tensor(data):
-            native_max = torch.as_tensor(self.native_max)
-            native_min = torch.as_tensor(self.native_min)
+        if is_tensor(data):
+            native_max = self.native_max_tensor
+            native_min = self.native_min_tensor
+            constant_mask = self.constant_mask_tensor
         else:
             native_max = self.native_max
             native_min = self.native_min
+            constant_mask = self.constant_mask
 
-        return ((native_max - native_min) *
-                ((data - self.target_min) /
-                 (self.target_max - self.target_min)) + native_min)
+        ret_val = ((native_max - native_min) * ((data - self.target_min) / (self.target_max - self.target_min)) + native_min)
+
+        if ret_val.ndim == 2:
+            ret_val[:, constant_mask] = native_min[constant_mask]
+        elif ret_val.ndim == 3:
+            ret_val[:, :, constant_mask] = native_min[constant_mask]
+        else:
+            logger.error(
+                'LinScale inverse_transform expects data of shape [time_steps, n_components] or [n, time_steps, n_components].')
+            exit(101)
+
+        return ret_val
+
 
 def compose_relevant_values(vals: DataFrame, t: array, s_map: list, chunk: list) -> array:
     """
