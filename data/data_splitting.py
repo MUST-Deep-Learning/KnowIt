@@ -224,7 +224,8 @@ class DataSplitter:
 
         The train set constitutes the first portions[0]*len(elements) elements.
         The evaluation set constitutes the last portions[2]*len(elements) elements.
-        The validation set constitutes the rest.
+        The validation set constitutes the rest. If portion[2] = 0 , then portions[0]*len(elements)
+        will be the train set and the rest will be the validation set.
 
         Parameters
         ----------
