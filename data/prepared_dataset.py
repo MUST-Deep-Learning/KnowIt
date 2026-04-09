@@ -182,8 +182,9 @@ from numpy import (array, random, unique, pad, arange, expand_dims, concatenate,
 from numpy.random import Generator
 from pandas import isna, DataFrame
 from torch.utils.data import Dataset, DataLoader, Sampler
-from torch import from_numpy, is_tensor, Tensor, unsqueeze
-from torch import zeros as zeros_tensor, stack
+from torch import from_numpy, is_tensor, Tensor, unsqueeze, stack
+from torch import zeros as zeros_tensor
+from torch.nn.functional import pad as pad_tensor
 from os import path
 from pathlib import Path
 
@@ -1829,9 +1830,14 @@ class CustomDataset(Dataset):
         indicated in `selection`. If the requested range extends beyond the available
         time steps, the resulting array is padded according to `pad_mode`.
 
+        The padding backend is selected automatically based on `pad_mode`: modes
+        supported by ``torch.nn.functional.pad`` are applied via PyTorch, while
+        all other valid NumPy modes fall back to ``numpy.pad``. NumPy-padded
+        results are converted to a float tensor before being returned.
+
         Parameters
         ----------
-        slice_vals : ndarray of shape (num_time_steps, num_in_components)
+        slice_vals : tensor of shape (num_time_steps, num_in_components)
             The full time series data for the slice, where rows correspond to time
             steps and columns to different input components.
 
@@ -1845,25 +1851,45 @@ class CustomDataset(Dataset):
             consecutive steps centered at `selection[2]`.
 
         pad_mode : str
-            Padding mode passed to `numpy.pad`. Common modes include `'constant'`,
-            `'edge'`, and `'reflect'`.
+            Padding mode. Torch-backed modes are ``'constant'``, ``'reflect'``,
+            ``'replicate'``, and ``'circular'``. NumPy-backed modes are
+            ``'constant'``, ``'edge'``, ``'linear_ramp'``, ``'maximum'``,
+            ``'mean'``, ``'median'``, ``'minimum'``, ``'reflect'``,
+            ``'symmetric'``, ``'wrap'``, and ``'empty'``. An unrecognised value
+            logs an error and exits with code 101.
 
         Returns
         -------
-        vals : ndarray of shape (window_size, num_in_components)
+        vals : tensor of shape (window_size, num_in_components)
             The sampled sub-sequence of time series components, padded if the
             requested window extends outside the bounds of `slice_vals`. The
             window size is defined as `s_chunk[1] - s_chunk[0] + 1`.
 
         Notes
         -----
-        - If the requested range falls completely outside the available time
-          steps, the method returns an array of shape `(window_size, num_in_components)`
-          consisting entirely of padded values.
-        - Padding is applied only along the time dimension. No padding occurs
-          along the component dimension.
-        - This method assumes `pad` refers to `numpy.pad`.
+        - If the requested window falls completely outside the available time
+          steps, the method returns a tensor of shape
+          ``(window_size, num_in_components)`` consisting entirely of padded
+          values.
+        - Padding is applied only along the time dimension (left, right, or
+          both), depending on which side of the window exceeds the bounds of
+          `slice_vals`. No padding occurs along the component dimension.
+        - NumPy-padded arrays are converted to a float32 tensor via
+          ``torch.from_numpy`` before being returned, ensuring a consistent
+          return type regardless of the padding backend used.
         """
+
+        torch_pad_modes = ('constant', 'reflect', 'replicate', 'circular')
+        numpy_pad_modes = ('constant', 'edge', 'linear_ramp', 'maximum', 'mean',
+                           'median', 'minimum', 'reflect', 'symmetric', 'wrap', 'empty')
+
+        use_torch = True
+        if pad_mode not in torch_pad_modes:
+            if pad_mode in numpy_pad_modes:
+                use_torch = False
+            else:
+                logger.error('Unknown pad_mode %s.', pad_mode)
+                exit(101)
 
         far_left = 0
         far_right = slice_vals.shape[0]
@@ -1873,18 +1899,33 @@ class CustomDataset(Dataset):
         if right < far_left or left >= far_right:
             vals = slice_vals[0:0, :]
             pad_size = s_chunk[1] - s_chunk[0] + 1
-            pw = ((pad_size, 0), (0, 0))
-            vals = pad(vals, pad_width=pw, mode=pad_mode)
+            if use_torch:
+                pw = (0, 0, pad_size, 0)
+                vals = pad_tensor(vals, pad=pw, mode=pad_mode)
+            else:
+                pw = ((pad_size, 0), (0, 0))
+                vals = pad(vals, pad_width=pw, mode=pad_mode)
+                vals = from_numpy(vals).float()
         else:
             corrected_left = max(far_left, left)
             corrected_right = min(right, far_right)
             vals = slice_vals[corrected_left: corrected_right + 1, :]
             if left < far_left:
-                pw = ((far_left - left, 0), (0, 0))
-                vals = pad(vals, pad_width=pw, mode=pad_mode)
+                if use_torch:
+                    pw = (0, 0, far_left - left, 0)
+                    vals = pad_tensor(vals, pad=pw, mode=pad_mode)
+                else:
+                    pw = ((far_left - left, 0), (0, 0))
+                    vals = pad(vals, pad_width=pw, mode=pad_mode)
+                    vals = from_numpy(vals).float()
             if right >= far_right:
-                pw = ((0, right - far_right + 1), (0, 0))
-                vals = pad(vals, pad_width=pw, mode=pad_mode)
+                if use_torch:
+                    pw = (0, 0, 0, right - far_right + 1)
+                    vals = pad_tensor(vals, pad=pw, mode=pad_mode)
+                else:
+                    pw = ((0, right - far_right + 1), (0, 0))
+                    vals = pad(vals, pad_width=pw, mode=pad_mode)
+                    vals = from_numpy(vals).float()
 
         return vals
 
