@@ -95,16 +95,16 @@ class TrainNew(BaseTrainer):
 
     def fit_model(
         self,
-        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any]],
     ) -> None:
         """Fit model to the training data and monitor metrics on val set.
 
         Parameters
         ----------
-        dataloaders : tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
-            The triplet containing the train dataloader and validation
+        dataloaders : tuple[DataLoader[Any], DataLoader[Any]]
+            The tuple containing the train dataloader and validation
             dataloader. The ordering of the tuple must be given as
-            (train, val, eval).
+            (train, val).
 
         """
         train_dataloader = dataloaders[0]
@@ -276,16 +276,16 @@ class ContinueTraining(BaseTrainer):
 
     def fit_model(
         self,
-        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any]],
     ) -> None:
         """Fit model to the training data and monitor metrics on val set.
 
         Parameters
         ----------
-        dataloaders : tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
-            The triplet containing the train dataloader and validation
+        dataloaders : tuple[DataLoader[Any], DataLoader[Any]]
+            The tuple containing the train dataloader and validation
             dataloader. The ordering of the tuple must be given as
-            (train, val, eval).
+            (train, val).
 
         """
         train_dataloader = dataloaders[0]
