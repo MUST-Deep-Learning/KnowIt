@@ -484,9 +484,8 @@ class PreparedDataset(BaseDataset):
                        num_workers: int = 4,
                        preload: bool = False) -> DataLoader:
 
-        """A simplified dataloader that works when the task constitutes a basic classification task with
-        fixed input chunks that do not need to be resampled each epoch. It effectively samples the data like a
-        image classification task."""
+        """A simplified dataloader that works when the task requires fixed input chunks that do not need to be resampled carefully each epoch.
+        It effectively samples the data like a typical image classification task in the pytorch environment."""
 
         if set_tag == 'train' and not analysis:
             shuffle = self.shuffle_train
@@ -2043,11 +2042,10 @@ class CustomVariableLengthRegressionDataset(CustomDataset):
 
 class CustomFixedLengthPrecompiledDataset(Dataset):
 
-    """A very basic classification dataset. Simply returns values corresponding to the given index."""
+    """A very basic pytorch dataset. Simply returns values corresponding to the given index."""
 
 
     def __init__(self, x, y, s_id, ist_idx):
-        # cast to device here?
         self.x = x
         self.y = y
         self.s_id = s_id

@@ -312,10 +312,10 @@ class KnowIt:
         sweep_kwargs : dict | None, default=None
             Optional kwargs if a hyperparameter sweep is being performed.
             If provided, must contain kwargs (sweep_name: str, run_name: str, and log_to_local: bool).
-        num_workers : int, default = 4
-            Sets the number of workers to use for loading the dataset.
         preload : bool, default = False
             Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+        num_workers : int, default = 4
+            Sets the number of workers to use for loading the dataset.
 
         Notes
         -----
