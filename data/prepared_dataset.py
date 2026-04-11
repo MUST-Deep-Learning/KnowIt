@@ -412,7 +412,9 @@ class PreparedDataset(BaseDataset):
     def get_dataloader(self, set_tag: str,
                        analysis: bool = False,
                        num_workers: int = 4,
-                       preload: bool = False) -> DataLoader:
+                       preload: bool = False,
+                       persistent_workers: bool = True,
+                       pin_memory: bool = True) -> DataLoader:
         """Creates and returns a PyTorch DataLoader for a specified dataset split.
 
         This method generates a DataLoader for a given dataset split (e.g., train, valid, or eval).
@@ -430,6 +432,10 @@ class PreparedDataset(BaseDataset):
             Sets the number of workers to use for loading the dataset.
         preload : bool, default = False
             Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+        persistent_workers : bool, default = True
+            If True, the data loader will not shut down the worker processes after a dataset has been consumed once.
+        pin_memory : bool, default = True
+            If True, the data loader will copy Tensors into device/CUDA pinned memory before returning them.
 
         Returns
         -------
@@ -450,7 +456,7 @@ class PreparedDataset(BaseDataset):
             exit(101)
 
         if self.batch_sampling_mode == 'fl_precompiled':
-            return self.get_fl_precompiled_dataloader(set_tag, analysis, num_workers, preload)
+            return self.get_fl_precompiled_dataloader(set_tag, analysis, num_workers, persistent_workers, pin_memory)
 
         if set_tag == 'train' and not analysis:
             shuffle = self.shuffle_train
@@ -475,14 +481,20 @@ class PreparedDataset(BaseDataset):
 
         dataset = self.get_dataset(set_tag, preload=preload)
 
-        dataloader = DataLoader(dataset=dataset, batch_sampler=sampler, num_workers=num_workers)
+        dataloader = DataLoader(dataset=dataset,
+                                batch_sampler=sampler,
+                                num_workers=num_workers,
+                                persistent_workers=persistent_workers,
+                                pin_memory=pin_memory,
+                                )
 
         return dataloader
 
     def get_fl_precompiled_dataloader(self, set_tag: str,
-                       analysis: bool = False,
-                       num_workers: int = 4,
-                       preload: bool = False) -> DataLoader:
+                       analysis: bool,
+                       num_workers: int,
+                       persistent_workers: bool,
+                       pin_memory: bool) -> DataLoader:
 
         """A simplified dataloader that works when the task requires fixed input chunks that do not need to be resampled carefully each epoch.
         It effectively samples the data like a typical image classification task in the pytorch environment."""
@@ -509,7 +521,8 @@ class PreparedDataset(BaseDataset):
             shuffle=shuffle,
             num_workers=num_workers,
             drop_last=drop_small,
-            pin_memory=preload
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
         )
 
         return dataloader
