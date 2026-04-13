@@ -528,6 +528,10 @@ class KnowIt:
                                                         self.available_archs(),
                                                         model_name, device, w_pt_model=True)
 
+        if trained_model_dict['datamodule'].eval_set_size == 0:
+            logger.error("No evaluation set defined for this model. Cannot evaluate.")
+            exit(101)
+
         trainer_args = trained_model_dict['model_args']['trainer']
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs') # empty dictionary
         trainer_args.pop('task')

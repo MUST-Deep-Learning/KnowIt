@@ -211,7 +211,7 @@ class DataSplitter:
 
         """
         blocks = [prediction_points[start_stop_indxs[i, 0]:start_stop_indxs[i, 1]] for i in elements]
-        if len(blocks) > 1:
+        if len(blocks) > 0:
             blocks = vstack(blocks)
         else:
             blocks = empty(0)
