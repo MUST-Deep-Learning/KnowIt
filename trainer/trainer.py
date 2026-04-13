@@ -131,16 +131,15 @@ class KITrainer:
 
     def fit(
         self,
-        dataloaders: tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]],
+        dataloaders: tuple[DataLoader[Any], DataLoader[Any]],
     ) -> None:
         """Fit model to training data.
 
         Parameters
         ----------
-        dataloaders tuple[DataLoader[Any], DataLoader[Any], DataLoader[Any]]
-            The Pytorch dataloaders that has been set up in KnowIt's
-            datamodule. The triplet corresponds to the train, val, and eval
-            dataloaders.
+        dataloaders tuple[DataLoader[Any], DataLoader[Any]
+            The Pytorch dataloaders that have been set up in KnowIt's
+            datamodule. The tuple corresponds to the train and validation dataloaders.
 
         """
         if self._state is None:

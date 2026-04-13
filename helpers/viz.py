@@ -20,7 +20,7 @@ from matplotlib.lines import Line2D
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import pandas as pd
 
-# imports imports
+# internal imports
 from env.env_paths import (learning_data_path,
                            model_args_path, model_predictions_dir,
                            model_interpretations_dir, model_viz_dir, model_output_dir, data_paths)
@@ -53,12 +53,16 @@ generic_dpi = 200
 quick_dpi = 100
 generic_cmap = 'plasma'
 color_cycle = ['green', 'orange', 'purple', 'cyan', 'pink', 'yellow']
-
+random_colors = False
 to_center_fa = True
+live_show = False
 
 def get_color(tag: str) -> str:
     """ Returns a color based on a given string tag. """
-    if 'train' in tag.lower():
+
+    if random_colors:
+        return np.random.rand(3)
+    elif 'train' in tag.lower():
         return train_color
     elif 'valid' in tag.lower():
         return valid_color
@@ -135,6 +139,8 @@ def plot_learning_curves(exp_output_dir: str, model_name: str) -> None:
     # Save the figure
     save_path = os.path.join(model_viz_dir(exp_output_dir, model_name), 'learning_curves.png')
     plt.savefig(save_path, dpi=generic_dpi)
+    if live_show:
+        plt.show()
     plt.close()
 
 def get_learning_curves(exp_output_dir: str, model_name: str) -> tuple:
@@ -230,7 +236,8 @@ def plot_set_predictions(exp_output_dir: str, model_name: str, data_tag: str) ->
     out_chunk = model_args['data']['out_chunk']
     if out_chunk[0] != 0:
         # Assumes compiled predictions are contiguous time blocks
-        time_delta = predictions[0][0][1] - predictions[0][0][0]
+        here = list(predictions.keys())[0]
+        time_delta = predictions[here][0][1] - predictions[here][0][0]
         for i in predictions:
             predictions[i][0] += time_delta * out_chunk[0]
         for i in targets:
@@ -419,6 +426,8 @@ def plot_regression_set_prediction(i: any, predictions: dict, targets: dict, dat
         plt.tight_layout()
         save_path = os.path.join(save_dir, data_tag + '-prediction-' + str(i) + '-' + str(out_components[c]) + '.png')
         plt.savefig(save_path, dpi=generic_dpi)
+        if live_show:
+            plt.show()
         plt.close()
 
 def plot_classification_set_prediction(i: any, predictions: dict, targets: dict, data_tag: str, save_dir: str,
@@ -495,6 +504,8 @@ def plot_classification_set_prediction(i: any, predictions: dict, targets: dict,
     plt.tight_layout()
     save_path = os.path.join(save_dir, data_tag + '-prediction-' + str(i) + '.png')
     plt.savefig(save_path, dpi=generic_dpi)
+    if live_show:
+        plt.show()
     plt.close()
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -1543,6 +1554,8 @@ def plot_mean(t: list, feature_attributions: np.array, save_path: str, in_comps:
 
     # save figure
     plt.savefig(save_path, dpi=generic_dpi)
+    if live_show:
+        plt.show()
     plt.close()
 
 # ----------------------------------------------------------------------------------------------------------------------

@@ -287,7 +287,10 @@ class KnowIt:
     def train_model(self, model_name: str, kwargs: dict, *, device: str | None = None,
                     safe_mode: bool | None = None, and_viz: bool | None = None,
                     sweep_kwargs: dict | None = None,
-                    preload: bool = True, num_workers: int = 4) -> None:
+                    preload: bool = True,
+                    num_workers: int = 4,
+                    persistent_workers: bool = True,
+                    pin_memory: bool = True) -> None:
         """Trains a model given user arguments.
 
         This function sets up and trains a model using the provided arguments and configurations.
@@ -312,10 +315,14 @@ class KnowIt:
         sweep_kwargs : dict | None, default=None
             Optional kwargs if a hyperparameter sweep is being performed.
             If provided, must contain kwargs (sweep_name: str, run_name: str, and log_to_local: bool).
-        num_workers : int, default = 4
-            Sets the number of workers to use for loading the dataset.
         preload : bool, default = False
             Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+        num_workers : int, default = 4
+            Sets the number of workers to use for loading the dataset.
+        persistent_workers : bool, default = True
+            If True, the data loader will not shut down the worker processes after a dataset has been consumed once.
+        pin_memory : bool, default = True
+            If True, the data loader will copy Tensors into device/CUDA pinned memory before returning them.
 
         Notes
         -----
@@ -352,14 +359,16 @@ class KnowIt:
 
         # Instantiate trainer and begin training
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs')
-        train_loader = datamodule.get_dataloader('train', preload=preload, num_workers=num_workers)
+        train_loader = datamodule.get_dataloader('train', preload=preload, num_workers=num_workers,
+                                                 persistent_workers=persistent_workers, pin_memory=pin_memory)
         optional_pl_kwargs['log_every_n_steps'] = min(len(train_loader.batch_sampler), 50)
 
         trainer = KITrainer(state=TrainNew, base_trainer_kwargs=trainer_args,
                             optional_pl_kwargs=optional_pl_kwargs)
         trainer.fit(dataloaders=(train_loader,
-                                 datamodule.get_dataloader('valid', preload=preload, num_workers=num_workers),
-                                 datamodule.get_dataloader('eval', preload=False, num_workers=num_workers)))
+                                 datamodule.get_dataloader('valid', preload=preload, num_workers=num_workers,
+                                                           persistent_workers=persistent_workers, pin_memory=pin_memory),
+                                 ))
 
         if trainer_args['out_dir'] is not None:
             safe_dump(relevant_args, os.path.join(trainer_args['out_dir'], 'model_args.yaml'), safe_mode)
@@ -369,7 +378,9 @@ class KnowIt:
 
     def train_model_from_yaml(self, model_name: str, config_path: str, device: str | None = None,
                     safe_mode: bool | None = None, and_viz: bool | None = None,
-                    preload: bool = True, num_workers: int = 4) -> None:
+                    preload: bool = True, num_workers: int = 4,
+                              persistent_workers: bool = True,
+                              pin_memory: bool = True) -> None:
         """Trains a model given a config file.
 
         This function sets up and trains a model using the provided config file model_args.yaml.
@@ -394,6 +405,10 @@ class KnowIt:
             Sets the number of workers to use for loading the dataset.
         preload : bool, default = False
             Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+        persistent_workers : bool, default = True
+            If True, the data loader will not shut down the worker processes after a dataset has been consumed once.
+        pin_memory : bool, default = True
+            If True, the data loader will copy Tensors into device/CUDA pinned memory before returning them.
 
         Notes
         ---
@@ -407,7 +422,8 @@ class KnowIt:
 
         self.train_model(model_name=model_name, kwargs=config_args,
                          device=device, safe_mode=safe_mode, and_viz=and_viz,
-                         preload=preload, num_workers=num_workers)
+                         preload=preload, num_workers=num_workers,
+                         persistent_workers=persistent_workers, pin_memory=pin_memory)
 
     def consolidate_sweep(self, model_name: str, sweep_name: str,
                           selection_by_min: bool = True, safe_mode: bool | None = None,
@@ -477,7 +493,10 @@ class KnowIt:
             shutil.rmtree(sweep_dir)
 
     def run_model_eval(self, model_name: str, device: str | None=None,
-                       preload: bool = True, num_workers: int = 4) -> None:
+                       preload: bool = True, num_workers: int = 4,
+                       persistent_workers: bool = True,
+                       pin_memory: bool = True
+                       ) -> None:
         """Run model evaluation over dataloaders.
 
         Given a trained model name, evaluates the model on the train, valid-
@@ -495,6 +514,10 @@ class KnowIt:
             Sets the number of workers to use for loading the dataset.
         preload : bool, default = False
             Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+        persistent_workers : bool, default = True
+            If True, the data loader will not shut down the worker processes after a dataset has been consumed once.
+        pin_memory : bool, default = True
+            If True, the data loader will copy Tensors into device/CUDA pinned memory before returning them.
         """
         if device is None:
             device = self.global_device
@@ -504,6 +527,10 @@ class KnowIt:
         trained_model_dict = KnowIt._load_trained_model(self.exp_output_dir,
                                                         self.available_archs(),
                                                         model_name, device, w_pt_model=True)
+
+        if trained_model_dict['datamodule'].eval_set_size == 0:
+            logger.error("No evaluation set defined for this model. Cannot evaluate.")
+            exit(101)
 
         trainer_args = trained_model_dict['model_args']['trainer']
         optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs') # empty dictionary
@@ -526,9 +553,15 @@ class KnowIt:
         )
 
         trainer.evaluate_fitted_model(dataloaders=(
-            trained_model_dict['datamodule'].get_dataloader('train', analysis=True, preload=preload, num_workers=num_workers),
-            trained_model_dict['datamodule'].get_dataloader('valid', analysis=True, preload=preload, num_workers=num_workers),
-            trained_model_dict['datamodule'].get_dataloader('eval', analysis=True, preload=preload, num_workers=num_workers)))
+            trained_model_dict['datamodule'].get_dataloader('train', analysis=True, preload=preload,
+                                                            num_workers=num_workers,
+                                                            persistent_workers=persistent_workers, pin_memory=pin_memory),
+            trained_model_dict['datamodule'].get_dataloader('valid', analysis=True, preload=preload,
+                                                            num_workers=num_workers,
+                                                            persistent_workers=persistent_workers, pin_memory=pin_memory),
+            trained_model_dict['datamodule'].get_dataloader('eval', analysis=True, preload=preload,
+                                                            num_workers=num_workers,
+                                                            persistent_workers=persistent_workers, pin_memory=pin_memory)))
 
     def generate_predictions(self, model_name: str, kwargs: dict, *, device: str | None = None,
                              safe_mode: bool | None = None, and_viz: bool | None = None) -> None:
@@ -724,6 +757,7 @@ class KnowIt:
             plot_feature_attribution(self.exp_output_dir, model_name, save_name)
 
     def export(self, model_name: str, *, data_tag: str = None, preload: bool = True, num_workers: int = 4,
+               persistent_workers: bool = True, pin_memory: bool = True,
                device: str | None = None, ret_model: bool = False, ret_hps: bool = False,
                ret_data_specifics: bool = False) -> dict:
 
@@ -746,6 +780,10 @@ class KnowIt:
         num_workers : int, default=4
             The number of workers to utilize for dataset loading operations.
             Only applicable if `data_tag` is not None.
+        persistent_workers : bool, default = True
+            If True, the data loader will not shut down the worker processes after a dataset has been consumed once.
+        pin_memory : bool, default = True
+            If True, the data loader will copy Tensors into device/CUDA pinned memory before returning them.
         device : str or None, default=None
             The computation device to be used during model loading and execution
             (e.g., 'cuda', 'cpu'). If `None`, the global device is used.
@@ -795,7 +833,9 @@ class KnowIt:
         if data_tag in {'train', 'valid', 'eval'}:
             ret_dict['dataloader'] =  trained_model_dict['datamodule'].get_dataloader(data_tag, analysis=True,
                                                                                     preload=preload,
-                                                                                    num_workers=num_workers)
+                                                                                    num_workers=num_workers,
+                                                                                      persistent_workers=persistent_workers,
+                                                                                      pin_memory=pin_memory)
 
         if ret_data_specifics:
             ret_dict['scaling_args'] = {'x_scaler': trained_model_dict['datamodule'].x_scaler,

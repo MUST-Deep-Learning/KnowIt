@@ -289,7 +289,7 @@ class RawDataConverter:
                 self.the_data[i] = []
                 for s in range(len(i_slices)):
                     t = i_slices[s].index.to_numpy()
-                    d = i_slices[s][self.meta['components']].to_numpy()
+                    d = i_slices[s][self.meta['components']]
                     self.the_data[i].append({'t': t, 'd': d})
                     if self.defines_custom_split:
                         self.the_data[i][-1]['split'] = i_slices[s]['split'].to_numpy()

@@ -177,17 +177,22 @@ __description__ = ('Contains the PreparedDataset, CustomSampler, CustomDataset, 
                    'and CustomVariableLengthRegressionDataset class for Knowit.')
 
 # external imports
-from numpy import (array, random, unique, pad, isnan, arange, expand_dims, concatenate,
-                   diff, where, split, ndarray)
+from numpy import (array, random, unique, pad, arange, expand_dims, concatenate,
+                   diff, where, split, ndarray, isscalar, argwhere)
 from numpy.random import Generator
+from pandas import isna, DataFrame
 from torch.utils.data import Dataset, DataLoader, Sampler
-from torch import from_numpy, is_tensor, Tensor, unsqueeze
+from torch import from_numpy, is_tensor, Tensor, unsqueeze, stack
 from torch import zeros as zeros_tensor
+from torch.nn.functional import pad as pad_tensor
+from os import path
+from pathlib import Path
 
 # internal imports
 from data.base_dataset import BaseDataset
 from data.data_splitting import DataSplitter
 from data.data_scaling import DataScaler
+from helpers.file_dir_procs import safe_dump, load_from_path
 from helpers.logger import get_logger
 
 logger = get_logger()
@@ -379,7 +384,7 @@ class PreparedDataset(BaseDataset):
                           self.x_scaler, self.y_scaler,
                           self.in_chunk, self.out_chunk,
                           self.padding_method, preload=preload)
-        elif self.task == 'classification':
+        elif self.task in ('classification',):
             if self.batch_sampling_mode in ('variable_length', 'variable_length_inference'):
                 logger.error('Batch sampling mode %s is not supported for classification tasks.',
                              str(self.batch_sampling_mode))
@@ -407,7 +412,9 @@ class PreparedDataset(BaseDataset):
     def get_dataloader(self, set_tag: str,
                        analysis: bool = False,
                        num_workers: int = 4,
-                       preload: bool = False) -> DataLoader:
+                       preload: bool = False,
+                       persistent_workers: bool = True,
+                       pin_memory: bool = True) -> DataLoader:
         """Creates and returns a PyTorch DataLoader for a specified dataset split.
 
         This method generates a DataLoader for a given dataset split (e.g., train, valid, or eval).
@@ -425,6 +432,10 @@ class PreparedDataset(BaseDataset):
             Sets the number of workers to use for loading the dataset.
         preload : bool, default = False
             Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+        persistent_workers : bool, default = True
+            If True, the data loader will not shut down the worker processes after a dataset has been consumed once.
+        pin_memory : bool, default = True
+            If True, the data loader will copy Tensors into device/CUDA pinned memory before returning them.
 
         Returns
         -------
@@ -444,6 +455,9 @@ class PreparedDataset(BaseDataset):
                          str(self.batch_sampling_mode))
             exit(101)
 
+        if self.batch_sampling_mode == 'fl_precompiled':
+            return self.get_fl_precompiled_dataloader(set_tag, analysis, num_workers, persistent_workers, pin_memory)
+
         if set_tag == 'train' and not analysis:
             shuffle = self.shuffle_train
             drop_small = True
@@ -452,7 +466,7 @@ class PreparedDataset(BaseDataset):
             drop_small = False
             if self.batch_sampling_mode == 'variable_length':
                 self.batch_sampling_mode = 'variable_length_inference'
-            else:
+            elif self.batch_sampling_mode == 'sliding-window':
                 self.batch_sampling_mode = 'inference'
 
         sampler = CustomSampler(selection=self.selection[set_tag],
@@ -467,7 +481,49 @@ class PreparedDataset(BaseDataset):
 
         dataset = self.get_dataset(set_tag, preload=preload)
 
-        dataloader = DataLoader(dataset=dataset, batch_sampler=sampler, num_workers=num_workers)
+        dataloader = DataLoader(dataset=dataset,
+                                batch_sampler=sampler,
+                                num_workers=num_workers,
+                                persistent_workers=persistent_workers,
+                                pin_memory=pin_memory,
+                                )
+
+        return dataloader
+
+    def get_fl_precompiled_dataloader(self, set_tag: str,
+                       analysis: bool,
+                       num_workers: int,
+                       persistent_workers: bool,
+                       pin_memory: bool) -> DataLoader:
+
+        """A simplified dataloader that works when the task requires fixed input chunks that do not need to be resampled carefully each epoch.
+        It effectively samples the data like a typical image classification task in the pytorch environment."""
+
+        if set_tag == 'train' and not analysis:
+            shuffle = self.shuffle_train
+            drop_small = True
+        else:
+            shuffle = False
+            drop_small = False
+
+        split_data = self.precompiled_data[set_tag]
+
+        dataset = CustomFixedLengthPrecompiledDataset(
+            split_data['x'],
+            split_data['y'],
+            split_data['s_id'],
+            split_data['ist_idx']
+        )
+
+        dataloader = DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=shuffle,
+            num_workers=num_workers,
+            drop_last=drop_small,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+        )
 
         return dataloader
 
@@ -555,6 +611,98 @@ class PreparedDataset(BaseDataset):
 
         return custom_batch
 
+    def _precompile_data(self):
+        """
+        Precompile the dataset into a pickle file for index-wise sampling by the PyTorch DataLoader.
+
+        Iterates through the entire dataset using conventional (non-precompiled) methods.
+        This process runs once prior to training and is skipped on
+        subsequent runs if a matching precompiled file is found on disk. If the cached
+        file exists but its stored data profile does not match the current configuration,
+        the file is deleted and precompilation is performed again.
+
+        The data profile used for cache validation includes the following attributes:
+        ``in_chunk``, ``out_chunk``, ``in_components``, ``out_components``,
+        ``train_set_size``, ``eval_set_size``, ``valid_set_size``, ``padding_method``,
+        ``scaling_method``, ``scaling_tag``, ``split_method``, ``split_portions``,
+        and ``task``.
+
+        Notes
+        -----
+        - The precompiled file is saved as ``<name>_precompiled.pkl`` in the same
+          directory as ``meta_path``.
+        - If the loaded cache has no ``data_profile`` key, a warning is issued and
+          the data is used as-is without profile validation.
+        - When ``split_method`` is ``'custom'``, a mismatch in ``split_portions``
+          alone is tolerated and does not trigger recompilation.
+        - Recompilation is triggered recursively after deleting a stale cache file.
+        - The ``data_profile`` key is removed from the returned dictionary.
+
+        Returns
+        -------
+        dict
+            A dictionary with keys ``'train'``, ``'valid'``, and ``'eval'``, each
+            mapping to the precompiled input data points for that split, as returned
+            by ``fetch_input_points_manually``.
+
+        Raises
+        ------
+        Any exceptions raised by ``fetch_input_points_manually``, ``safe_dump``,
+        or ``load_from_path`` will propagate uncaught.
+
+        """
+
+        file_path = path.join(path.dirname(self.meta_path), self.name + '_precompiled.pkl')
+
+        data_profile = {'in_chunk': self.in_chunk,
+                        'out_chunk': self.out_chunk,
+                        'in_components': self.in_components,
+                        'out_components': self.out_components,
+                        'train_set_size': self.train_set_size,
+                        'eval_set_size': self.eval_set_size,
+                        'valid_set_size': self.valid_set_size,
+                        'padding_method': self.padding_method,
+                        'scaling method': self.scaling_method,
+                        'scaling_tag': self.scaling_tag,
+                        'split_method': self.split_method,
+                        'split_portions': self.split_portions,
+                        'task': self.task,
+                        }
+
+        if not path.exists(file_path):
+            logger.info('Precompiling fixed length data. '
+                        'This will take a moment, but only happens once, as long as data profile matches. '
+                        'Data will be loaded from disk next run.')
+            data = dict()
+            for set_tag in ('train', 'valid', 'eval'):
+                selection = self.selection[set_tag]
+                data[set_tag] = self.fetch_input_points_manually(
+                    set_tag, [_ for _ in range(len(selection))]
+                )
+                logger.info('%s set precompiling done!', set_tag)
+            data['data_profile'] = data_profile
+            safe_dump(data, file_path, safe_mode=True)
+        else:
+            logger.info('Precompiled data already exists. Loading from disk.')
+            data = load_from_path(file_path)
+            if 'data_profile' not in data:
+                logger.warning('Precompiled data does not contain a data profile. '
+                               'No match with current data setup guaranteed. '
+                               'Manual deletion and new precomiling is advised.')
+            else:
+                loaded_data_profile = data['data_profile']
+                mismatched = {k for k in data_profile.keys() & loaded_data_profile.keys() if data_profile[k] != loaded_data_profile[k]}
+                if 'split_portions' in mismatched and 'split_method' not in mismatched and data_profile['split_method'] == 'custom':
+                    mismatched.discard('split_portions')
+                if len(mismatched) > 0:
+                    logger.warning('Loaded precompiled data profile mismatches the current data profile at %s. '
+                                   'Precompiling again and overwriting existing data.', str(mismatched))
+                    Path(file_path).unlink()
+                    return self._precompile_data()
+
+        data.pop('data_profile')
+        return data
+
     def _prepare(self) -> None:
         """Prepare the dataset by splitting and scaling the data.
 
@@ -604,7 +752,7 @@ class PreparedDataset(BaseDataset):
         self.selection = DataSplitter(self.get_extractor(),
                                       self.split_method,
                                       self.split_portions,
-                                      self.limit, self.x_map, self.y_map,
+                                      self.limit, self.y_map,
                                       self.in_chunk, self.out_chunk,
                                       self.min_slice,
                                       custom_splits=self.custom_splits).get_selection()
@@ -615,6 +763,13 @@ class PreparedDataset(BaseDataset):
         logger.info('Data split sizes: ' + str((self.train_set_size,
                                                 self.valid_set_size,
                                                 self.eval_set_size)))
+
+        splits = [_ for _ in (self.train_set_size, self.valid_set_size, self.eval_set_size) if _ != 0]
+        min_split = min(splits)
+        if self.batch_size > min_split:
+            logger.warning('Selected batch_size %s, is larger than one of the non-zero-sized dataset splits. Setting batch_size to %s.',
+                           str(self.batch_size), str(min_split))
+            self.batch_size = min_split
 
         # scale the dataset
         logger.info('Preparing data scalers, if relevant.')
@@ -628,7 +783,12 @@ class PreparedDataset(BaseDataset):
                                                   self.scaling_method,
                                                   self.scaling_tag,
                                                   self.x_map,
-                                                  self.y_map).get_scalers()
+                                                  self.y_map,
+                                                  self.in_chunk,
+                                                  self.out_chunk).get_scalers()
+
+        if self.batch_sampling_mode == 'fl_precompiled':
+            self.precompiled_data = self._precompile_data()
 
     def _get_classes(self) -> None:
         """Identify unique classes in the dataset.
@@ -637,16 +797,18 @@ class PreparedDataset(BaseDataset):
         The unique classes are stored in the `class_set` attribute.
         """
 
-        if self.task != 'classification':
+        if self.task not in ('classification',):
             logger.error('Task must be classification to determine classes.')
             exit(101)
 
         data_extractor = self.get_extractor()
         found_class_set = set()
         for i in data_extractor.data_structure:
-            vals = data_extractor.instance(i).to_numpy()
-            vals = vals[:, self.y_map][~isnan(vals[:, self.y_map]).any(axis=1)]
-            unique_entries = unique(vals, axis=0)
+            vals = data_extractor.instance(i)
+            subset = vals.iloc[:, self.y_map]
+            mask = ~isna(subset).any(axis=1)
+            vals = subset[mask]
+            unique_entries = DataFrame(vals).drop_duplicates().to_numpy()
             unique_entries_list = []
             for u in unique_entries:
                 if len(u) > 1:
@@ -656,6 +818,7 @@ class PreparedDataset(BaseDataset):
             unique_entries = unique_entries_list
             found_class_set.update(set(unique_entries))
 
+        found_class_set = sorted(found_class_set)
         self.class_set = {}
         tick = 0
         for c in found_class_set:
@@ -669,7 +832,7 @@ class PreparedDataset(BaseDataset):
     def _count_classes(self) -> None:
         """ Count the number of instances of each class and store in a dictionary as attribute."""
 
-        if self.task != 'classification' or not hasattr(self, 'class_set'):
+        if self.task not in ('classification',) or not hasattr(self, 'class_set'):
             logger.error('Task must be classification and classes must have been determined to count classes.')
             exit(101)
 
@@ -678,9 +841,17 @@ class PreparedDataset(BaseDataset):
         for c in self.class_set:
             class_count = 0
             for i in data_extractor.data_structure:
-                instance = data_extractor.instance(i).to_numpy()[:, self.y_map]
-                class_count += len(where(instance == c)[0])
+                instance = data_extractor.instance(i).iloc[:, self.y_map]
+                if isscalar(c):
+                    matches = instance.eq(c)
+                else:
+                    c_tuple = tuple(c)
+                    matches = instance.eq(c_tuple).all(axis=1)
+                matches = matches.fillna(False)
+                class_count += int(matches.sum().item())
+
             self.class_counts[self.class_set[c]] = class_count
+
 
 
 class CustomSampler(Sampler):
@@ -737,7 +908,7 @@ class CustomSampler(Sampler):
     -----
         - mode='independent': Time is contiguous within sequences but not across batches.
         - mode='sliding-window': A sliding window approach is used to ensure that time is contiguous within sequences and across batches.
-        - mode='inference': Same as 'sliding-window', but no shuffling, expansion for batch sizing, and striding.
+        - mode='inference': Same as 'sliding-window', but no shuffling or expansion for batch sizing, and striding.
         - mode='variable_length': Similar to 'sliding-window' but the sequence lengths will be variable within batches.
         - mode='variable_length_inference': Same as 'variable_length', but no shuffling or expansion for batch sizing.
         - shuffle=False: Batches are constructed in dataset order as per the "selection" array. For variable length modes, slices will also be samples in descending order of length.
@@ -1580,7 +1751,10 @@ class CustomDataset(Dataset):
             for i in instances:
                 slices = unique(self.selection_matrix[self.selection_matrix[:, 0] == i, 1])
                 for s in slices:
-                    self.preloaded_slices[(i, s)] = self.data_extractor.slice(i, s)
+                    slice_vals = self.data_extractor.slice(i, s)
+                    x_vals = self._prep_slice(slice_vals, self.x_map, self.x_scaler)
+                    y_vals = self._prep_slice(slice_vals, self.y_map, self.y_scaler)
+                    self.preloaded_slices[(i, s)] = [x_vals, y_vals]
 
     def __len__(self) -> int:
         """Return the number of samples in the dataset.
@@ -1632,23 +1806,26 @@ class CustomDataset(Dataset):
 
             # get relevant slice information
             if self.preload:
-                slice_vals = self.preloaded_slices[(selection[0], selection[1])].to_numpy()
+                x_vals = self.preloaded_slices[(selection[0], selection[1])][0]
+                y_vals = self.preloaded_slices[(selection[0], selection[1])][1]
             else:
-                slice_vals = self.data_extractor.slice(selection[0], selection[1]).to_numpy()
+                slice_vals = self.data_extractor.slice(selection[0], selection[1])
+                x_vals = self._prep_slice(slice_vals, self.x_map, self.x_scaler)
+                y_vals = self._prep_slice(slice_vals, self.y_map, self.y_scaler)
 
             # get input values and pad if necessary
-            x_vals = self._sample_and_pad(slice_vals, selection, self.in_chunk, self.x_map, self.padding_method)
+            x_vals = self._sample_and_pad(x_vals, selection, self.in_chunk, self.padding_method)
 
             # get output values (no padding allowed)
-            y_vals = slice_vals[selection[2] + self.out_chunk[0]: selection[2] + self.out_chunk[1] + 1, self.y_map]
+            y_vals = y_vals[selection[2] + self.out_chunk[0]: selection[2] + self.out_chunk[1] + 1, :]
 
             # scale inputs and outputs if applicable
-            input_x.append(self.x_scaler.transform(x_vals))
-            output_y.append(self.y_scaler.transform(y_vals))
+            input_x.append(x_vals)
+            output_y.append(y_vals)
 
         if len(idx_list) > 1:
-            input_x = array(input_x)
-            output_y = array(output_y)
+            input_x = stack(input_x, dim=0)
+            output_y = stack(output_y, dim=0)
         else:
             input_x = input_x[0]
             output_y = output_y[0]
@@ -1656,7 +1833,7 @@ class CustomDataset(Dataset):
         return self._package_output(input_x, output_y, idx, ist_idx)
 
     @staticmethod
-    def _sample_and_pad(slice_vals, selection, s_chunk, s_map, pad_mode):
+    def _sample_and_pad(slice_vals, selection, s_chunk, pad_mode):
         """
         Sample a block of time series components from a slice and pad as needed.
 
@@ -1665,11 +1842,16 @@ class CustomDataset(Dataset):
         indicated in `selection`. If the requested range extends beyond the available
         time steps, the resulting array is padded according to `pad_mode`.
 
+        The padding backend is selected automatically based on `pad_mode`: modes
+        supported by ``torch.nn.functional.pad`` are applied via PyTorch, while
+        all other valid NumPy modes fall back to ``numpy.pad``. NumPy-padded
+        results are converted to a float tensor before being returned.
+
         Parameters
         ----------
-        slice_vals : ndarray of shape (num_time_steps, num_components)
+        slice_vals : tensor of shape (num_time_steps, num_in_components)
             The full time series data for the slice, where rows correspond to time
-            steps and columns to different components.
+            steps and columns to different input components.
 
         selection : ndarray of shape (3,)
             A selection descriptor, where the third entry (`selection[2]`) represents
@@ -1680,30 +1862,46 @@ class CustomDataset(Dataset):
             sample, inclusive. For example, `[-2, 2]` samples a window of 5
             consecutive steps centered at `selection[2]`.
 
-        s_map : ndarray of shape (k,)
-            A 1D array specifying which component indices to extract from
-            `slice_vals`.
-
         pad_mode : str
-            Padding mode passed to `numpy.pad`. Common modes include `'constant'`,
-            `'edge'`, and `'reflect'`.
+            Padding mode. Torch-backed modes are ``'constant'``, ``'reflect'``,
+            ``'replicate'``, and ``'circular'``. NumPy-backed modes are
+            ``'constant'``, ``'edge'``, ``'linear_ramp'``, ``'maximum'``,
+            ``'mean'``, ``'median'``, ``'minimum'``, ``'reflect'``,
+            ``'symmetric'``, ``'wrap'``, and ``'empty'``. An unrecognised value
+            logs an error and exits with code 101.
 
         Returns
         -------
-        vals : ndarray of shape (window_size, len(s_map))
+        vals : tensor of shape (window_size, num_in_components)
             The sampled sub-sequence of time series components, padded if the
             requested window extends outside the bounds of `slice_vals`. The
             window size is defined as `s_chunk[1] - s_chunk[0] + 1`.
 
         Notes
         -----
-        - If the requested range falls completely outside the available time
-          steps, the method returns an array of shape `(window_size, len(s_map))`
-          consisting entirely of padded values.
-        - Padding is applied only along the time dimension. No padding occurs
-          along the component dimension.
-        - This method assumes `pad` refers to `numpy.pad`.
+        - If the requested window falls completely outside the available time
+          steps, the method returns a tensor of shape
+          ``(window_size, num_in_components)`` consisting entirely of padded
+          values.
+        - Padding is applied only along the time dimension (left, right, or
+          both), depending on which side of the window exceeds the bounds of
+          `slice_vals`. No padding occurs along the component dimension.
+        - NumPy-padded arrays are converted to a float32 tensor via
+          ``torch.from_numpy`` before being returned, ensuring a consistent
+          return type regardless of the padding backend used.
         """
+
+        torch_pad_modes = ('constant', 'reflect', 'replicate', 'circular')
+        numpy_pad_modes = ('constant', 'edge', 'linear_ramp', 'maximum', 'mean',
+                           'median', 'minimum', 'reflect', 'symmetric', 'wrap', 'empty')
+
+        use_torch = True
+        if pad_mode not in torch_pad_modes:
+            if pad_mode in numpy_pad_modes:
+                use_torch = False
+            else:
+                logger.error('Unknown pad_mode %s.', pad_mode)
+                exit(101)
 
         far_left = 0
         far_right = slice_vals.shape[0]
@@ -1711,29 +1909,58 @@ class CustomDataset(Dataset):
         right = selection[2] + s_chunk[1]
 
         if right < far_left or left >= far_right:
-            vals = slice_vals[0:0, s_map]
+            vals = slice_vals[0:0, :]
             pad_size = s_chunk[1] - s_chunk[0] + 1
-            pw = ((pad_size, 0), (0, 0))
-            vals = pad(vals, pad_width=pw, mode=pad_mode)
+            if use_torch:
+                pw = (0, 0, pad_size, 0)
+                vals = pad_tensor(vals, pad=pw, mode=pad_mode)
+            else:
+                pw = ((pad_size, 0), (0, 0))
+                vals = pad(vals, pad_width=pw, mode=pad_mode)
+                vals = from_numpy(vals).float()
         else:
             corrected_left = max(far_left, left)
             corrected_right = min(right, far_right)
-            vals = slice_vals[corrected_left: corrected_right + 1, s_map]
+            vals = slice_vals[corrected_left: corrected_right + 1, :]
             if left < far_left:
-                pw = ((far_left - left, 0), (0, 0))
-                vals = pad(vals, pad_width=pw, mode=pad_mode)
+                if use_torch:
+                    pw = (0, 0, far_left - left, 0)
+                    vals = pad_tensor(vals, pad=pw, mode=pad_mode)
+                else:
+                    pw = ((far_left - left, 0), (0, 0))
+                    vals = pad(vals, pad_width=pw, mode=pad_mode)
+                    vals = from_numpy(vals).float()
             if right >= far_right:
-                pw = ((0, right - far_right + 1), (0, 0))
-                vals = pad(vals, pad_width=pw, mode=pad_mode)
+                if use_torch:
+                    pw = (0, 0, 0, right - far_right + 1)
+                    vals = pad_tensor(vals, pad=pw, mode=pad_mode)
+                else:
+                    pw = ((0, right - far_right + 1), (0, 0))
+                    vals = pad(vals, pad_width=pw, mode=pad_mode)
+                    vals = from_numpy(vals).float()
 
+        return vals
+
+    @staticmethod
+    def _prep_slice(slice_vals, s_map, scaler):
+        """ For a given slice,
+        subsample component values from Dataframe,
+        cast to numpy array,
+        scale with given scaler,
+        cast to tensor,
+        and change data type to float."""
+        vals = slice_vals.iloc[:, s_map].to_numpy()
+        vals = scaler.transform(vals.copy())
+        vals = from_numpy(vals).float()
         return vals
 
     @staticmethod
     def _package_output(input_x, output_y, idx, ist_idx):
         """ Package the sample values for a basic regression problem. """
-        sample = {'x': from_numpy(input_x).float(),
-                  'y': from_numpy(output_y).float(),
-                  's_id': idx, 'ist_idx': ist_idx}
+        sample = {'x': input_x,
+                  'y': output_y,
+                  's_id': idx,
+                  'ist_idx': ist_idx}
         return sample
 
 
@@ -1773,12 +2000,14 @@ class CustomClassificationDataset(CustomDataset):
             output_y = new_output_y
         elif len(output_y.shape) == 3:
             new_output_y = zeros_tensor(size=(output_y.shape[0], len(self.class_set)))
-            new_output_y[:, output_y] = 1
+            for c in range(len(self.class_set)):
+                new_output_y[argwhere(output_y[:, -1, -1] == c), c] = 1
             output_y = new_output_y
 
-        sample = {'x': from_numpy(input_x).float(),
+        sample = {'x': input_x,
                   'y': output_y,
-                  's_id': idx, 'ist_idx': ist_idx}
+                  's_id': idx,
+                  'ist_idx': ist_idx}
 
         return sample
 
@@ -1813,12 +2042,35 @@ class CustomVariableLengthRegressionDataset(CustomDataset):
         """ Package the sample values for a basic variable length regression problem. """
 
         if len(input_x.shape) == 3:
-            input_x = input_x.squeeze(axis=1)
-            output_y = output_y.squeeze(axis=1)
+            input_x = input_x.squeeze(dim=1)
+            output_y = output_y.squeeze(dim=1)
 
-        sample = {'x': from_numpy(input_x).float(),
-                  'y': from_numpy(output_y).float(),
-                  's_id': idx, 'ist_idx': ist_idx}
+        sample = {'x': input_x,
+                  'y': output_y,
+                  's_id': idx,
+                  'ist_idx': ist_idx}
 
         return sample
 
+
+class CustomFixedLengthPrecompiledDataset(Dataset):
+
+    """A very basic pytorch dataset. Simply returns values corresponding to the given index."""
+
+
+    def __init__(self, x, y, s_id, ist_idx):
+        self.x = x
+        self.y = y
+        self.s_id = s_id
+        self.ist_idx = ist_idx
+
+    def __len__(self):
+        return self.x.shape[0]
+
+    def __getitem__(self, idx):
+
+        ret_val = {'x': self.x[idx],
+                   'y': self.y[idx],
+                   's_id': self.s_id[idx],
+                   'ist_idx': [self.ist_idx[idx]]}
+        return ret_val

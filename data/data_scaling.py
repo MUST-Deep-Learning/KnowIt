@@ -36,8 +36,9 @@ __author__ = 'tiantheunissen@gmail.com'
 __description__ = 'Contains the DataScaler, ZScale, LinScale, and NoScale classes for KnowIt.'
 
 # external imports
+from pandas import DataFrame
 from numpy import (nanmean, nanvar, nanmin, nanmax, array, unique, sqrt, minimum, maximum, logical_and)
-import torch
+from torch import is_tensor, Tensor, as_tensor
 
 # internal imports
 from data.base_dataset import DataExtractor
@@ -88,6 +89,16 @@ class DataScaler:
         - 'full': Scale both input features and output features using the specified method.
         - None: No scaling is applied to either input features or output features.
         - Any other value will result in an error.
+    x_map : array, shape=[n_in_components,]
+        An array that contains the indices of BaseDataset.components that correspond to input components.
+    y_map : array, shape=[n_out_components,]
+        An array that contains the indices of BaseDataset.components that correspond to output components.
+    in_chunk : list, shape=[2,]
+        A list of two integers [a, b] for which a <= b,
+        defining the time steps of in_components for each prediction point.
+    out_chunk : list, shape=[2,]
+        A list of two integers [a, b] for which a <= b,
+        defining the time steps of out_components for each prediction point.
     load_level : str, default='instance'
         What level to load values from disk with.
         If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
@@ -109,21 +120,21 @@ class DataScaler:
     y_scaler = NoScale()
 
     def __init__(self, data_extractor: DataExtractor, train_selection: array, method: str | None, tag: str | None,
-                 x_map: array, y_map: array, load_level: str = 'instance') -> None:
+                 x_map: array, y_map: array, in_chunk: list, out_chunk: list, load_level: str = 'instance') -> None:
 
         if tag is not None:
             if tag == 'in_only':
-                self.x_scaler = self._fit_scaler(data_extractor, train_selection, x_map, method, load_level)
-                self.y_scaler = self._fit_scaler(None, None, None, None, load_level)
+                self.x_scaler = self._fit_scaler(data_extractor, train_selection, x_map, in_chunk, method, load_level)
+                self.y_scaler = self._fit_scaler(None, None, None, None, None, load_level)
             elif tag == 'full':
-                self.x_scaler = self._fit_scaler(data_extractor, train_selection, x_map, method, load_level)
-                self.y_scaler = self._fit_scaler(data_extractor, train_selection, y_map, method, load_level)
+                self.x_scaler = self._fit_scaler(data_extractor, train_selection, x_map, in_chunk, method, load_level)
+                self.y_scaler = self._fit_scaler(data_extractor, train_selection, y_map, out_chunk, method, load_level)
             else:
                 logger.error('Unknown scaling tag %s', tag)
                 exit(101)
         else:
-            self.x_scaler = self._fit_scaler(None, None, None, None, load_level)
-            self.y_scaler = self._fit_scaler(None, None, None, None, load_level)
+            self.x_scaler = self._fit_scaler(None, None, None, None, None, load_level)
+            self.y_scaler = self._fit_scaler(None, None, None, None, None, load_level)
 
     def get_scalers(self) -> tuple:
         """Returns the fitted scalers.
@@ -143,7 +154,7 @@ class DataScaler:
 
     @staticmethod
     def _fit_scaler(data_extractor: DataExtractor | None, train_selection: array | None,
-                    s_map: array | None, method: str | None, load_level: str = 'instance') -> ZScale | LinScale | NoScale:
+                    s_map: array | None, chunk: list | None, method: str | None, load_level: str = 'instance') -> ZScale | LinScale | NoScale:
         """Fit the appropriate scaler based on the specified method.
 
         Parameters
@@ -154,6 +165,9 @@ class DataScaler:
             The selection matrix corresponding to the train set.
         s_map : array
             Mapping for relevant components. This could be the x_map, or y_map found in PreparedDataset.
+        chunk : list, shape=[2,]
+            A list of two integers [a, b] for which a <= b,
+            defining the time steps of either the in_components or out_components for each prediction point.
         method : str
             The scaling method to use. Options include:
             - 'z-norm': Standardizes data to have zero mean and unit variance using ZScale.
@@ -178,10 +192,10 @@ class DataScaler:
 
         if method == 'z-norm':
             scaler = ZScale()
-            scaler.fit(data_extractor, train_selection, s_map, load_level)
+            scaler.fit(data_extractor, train_selection, s_map, chunk, load_level)
         elif method == 'zero-one':
             scaler = LinScale()
-            scaler.fit(data_extractor, train_selection, s_map, load_level)
+            scaler.fit(data_extractor, train_selection, s_map, chunk, load_level)
         elif method is None:
             scaler = NoScale()
             scaler.fit(data_extractor)
@@ -199,6 +213,13 @@ class ZScale:
         (c - native_mean) / native_std
 
     where native_mean and native_std are the mean and std of the corresponding component as measured on the train set.
+    Components that are constant across the train set will be scaled to a predefined constant_to,
+    and rescaled back to native_mean.
+
+    Parameters
+    ----------
+    constant_to : float, default=0.0
+        What value to scale any component that is constant across the train set.
 
     Attributes
     ----------
@@ -206,15 +227,30 @@ class ZScale:
         The mean component value across prediction points in the train set.
     native_std : array, shape=[n_components,]
         The standard deviation of values across prediction points in the train set.
+    native_mean_tensor : Tensor, shape=[n_components,]
+        The mean component value across prediction points in the train set.
+    native_std_tensor : Tensor, shape=[n_components,]
+        The standard deviation of values across prediction points in the train set.
+    constant_to : float, default=0.0
+        What value to scale any component that is constant across the train set.
+    constant_mask : array, shape=[n_components,]
+        A boolean array indicating what components are constant across the train set.
+    constant_mask_tensor : Tensor, shape=[n_components,]
+        A boolean Tensor indicating what components are constant across the train set.
     """
     native_mean = None
     native_std = None
+    native_mean_tensor = None
+    native_std_tensor = None
+    constant_to = 0.0
+    constant_mask = None
+    constant_mask_tensor = None
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, constant_to: float = 0.0) -> None:
+        self.constant_to = constant_to
 
     def fit(self, data_extractor: DataExtractor, train_selection: array,
-            s_map: array, load_level: str = 'instance') -> None:
+            s_map: array, chunk: list, load_level: str = 'instance') -> None:
         """Records the mean and std across prediction points in the train set.
 
         Parameters
@@ -225,6 +261,9 @@ class ZScale:
             The selection matrix corresponding to the train set.
         s_map : array
             Mapping for relevant components. This could be the x_map, or y_map found in PreparedDataset.
+        chunk : list, shape=[2,]
+            A list of two integers [a, b] for which a <= b,
+            defining the time steps of either the in_components or out_components for each prediction point.
         load_level : str, default='instance'
             What level to load values from disk with.
             If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
@@ -263,61 +302,109 @@ class ZScale:
                 if load_level == 'instance':
                     vals = instance_vals[instance_vals['slice'] == s]
                     vals = vals.drop(columns=['slice'])
-                    vals = vals.to_numpy()
                 else:
-                    vals = data_extractor.slice(i, s).to_numpy()
-                vals = vals[t, :]
-                vals = vals[:, s_map]
+                    vals = data_extractor.slice(i, s)
+                vals = compose_relevant_values(vals, t, s_map, chunk)
                 mean, variance, count = _rec_mean_std(vals, mean, variance, count)
 
         self.native_mean = mean
         self.native_std = sqrt(variance)
+        self.constant_mask = self.native_std == 0
 
-    def transform(self, data: array) -> array:
+        self.native_mean_tensor = as_tensor(self.native_mean)
+        self.native_std_tensor = as_tensor(self.native_std)
+        self.constant_mask_tensor = as_tensor(self.constant_mask)
+
+    def transform(self, data: array | Tensor) -> array | Tensor:
         """ Performs Z-Normalization.
 
         Parameters
         ----------
-        data : array, shape=[n_components,]
+        data : array | Tensor, shape=[time_steps, n_components] or [n, time_steps, n_components]
             The data to be transformed with Z-Normalization.
+            If 3D, the transform is applied independently across the first dimension.
         """
         if self.native_mean is None or self.native_std is None:
             logger.error('ZScale transform not fitted yet.')
             exit(101)
 
-        return (data - self.native_mean) / self.native_std
+        if is_tensor(data):
+            native_mean = self.native_mean_tensor
+            native_std = self.native_std_tensor
+            constant_mask = self.constant_mask_tensor
+        else:
+            native_mean = self.native_mean
+            native_std = self.native_std
+            constant_mask = self.constant_mask
 
-    def inverse_transform(self, data: array) -> array:
-        """ Performs inverse Z-Normalization.
+        ret_val = (data - native_mean) / native_std
+
+        if ret_val.ndim == 2:
+            ret_val[:, constant_mask] = self.constant_to
+        elif ret_val.ndim == 3:
+            ret_val[:, :, constant_mask] = self.constant_to
+        else:
+            logger.error(
+                'ZScale transform expects data of shape [time_steps, n_components] or [n, time_steps, n_components].')
+            exit(101)
+
+        return ret_val
+
+    def inverse_transform(self, data: array | Tensor) -> array | Tensor:
+        """Performs inverse Z-Normalization.
 
         Parameters
         ----------
-        data : array, shape=[n_components,]
+        data : array | Tensor, shape=[time_steps, n_components] or [n, time_steps, n_components]
             The data to be inversely transformed with Z-Normalization.
+            If 3D, the inverse transform is applied independently across the first dimension.
         """
         if self.native_mean is None or self.native_std is None:
             logger.error('ZScale transform not fitted yet.')
             exit(101)
 
-        return (data * self.native_std) + self.native_mean
+        if is_tensor(data):
+            native_mean = self.native_mean_tensor
+            native_std = self.native_std_tensor
+            constant_mask = self.constant_mask_tensor
+        else:
+            native_mean = self.native_mean
+            native_std = self.native_std
+            constant_mask = self.constant_mask
+
+        ret_val = (data * native_std) + native_mean
+
+        if ret_val.ndim == 2:
+            ret_val[:, constant_mask] = native_mean[constant_mask]
+        elif ret_val.ndim == 3:
+            ret_val[:, :, constant_mask] = native_mean[constant_mask]
+        else:
+            logger.error(
+                'ZScale inverse_transform expects data of shape [time_steps, n_components] or [n, time_steps, n_components].')
+            exit(101)
+
+        return ret_val
 
 
 class LinScale:
-    """Performs a basic per component linear scaling.
-    Can be scaled to any range, but default is (0, 1).
+    """Performs a basic per component linear scaling. Can be scaled to any range, but default is (0, 1).
 
     For each component value c the transformation is defined as:
         (target_max - target_min) * (c - native_min) / (native_max - native_min) + target_min
 
-    where native_min and native_mix are the min and max values of the corresponding component
+    where native_min and native_max are the min and max values of the corresponding component
     as measured on the train set, and target_min and target_max is 0 and 1 respectively.
+    Components that are constant across the train set will be scaled to a predefined constant_to,
+    and rescaled back to native_min.
 
     Parameters
     ----------
-    target_min : float, default=0
+    target_min : float, default=0.
         The desired transformed minimum feature values.
-    target_max : float, default=1
+    target_max : float, default=1.
         The desired transformed maximum feature values.
+    constant_to : float, default=0.5
+        What value to scale any component that is constant across the train set.
 
     Attributes
     ----------
@@ -325,23 +412,38 @@ class LinScale:
         The minimum native feature values across prediction points.
     native_max : array, shape=[n_components,]
         The maximum native feature values across prediction points.
-    target_min : float, default=0
+    native_min_tensor : Tensor, shape=[n_components,]
+        The minimum native feature values across prediction points.
+    native_max_tensor : Tensor, shape=[n_components,]
+        The maximum native feature values across prediction points.
+    target_min : float, default=0.
         The transformed minimum feature values.
-    target_max : float, default=1
+    target_max : float, default=1.
         The transformed maximum feature values.
-
+    constant_to : float, default=0.5
+        What value to scale any component that is constant across the train set.
+    constant_mask : array, shape=[n_components,]
+        A boolean array indicating what components are constant across the train set.
+    constant_mask_tensor : Tensor, shape=[n_components,]
+        A boolean Tensor indicating what components are constant across the train set.
     """
     native_min = None
     native_max = None
+    native_min_tensor = None
+    native_max_tensor = None
     target_min = 0.
     target_max = 1.
+    constant_to = 0.5
+    constant_mask = None
+    constant_mask_tensor = None
 
-    def __init__(self, target_min: float = 0, target_max: float = 1) -> None:
+    def __init__(self, target_min: float = 0., target_max: float = 1., constant_to: float = 0.5) -> None:
         self.target_min = target_min
         self.target_max = target_max
+        self.constant_to = constant_to
 
     def fit(self, data_extractor: DataExtractor, train_selection: array,
-            s_map: array, load_level: str = 'instance') -> None:
+            s_map: array, chunk: list, load_level: str = 'instance') -> None:
         """Records the min and max across prediction points in the train set.
 
         Parameters
@@ -352,6 +454,9 @@ class LinScale:
             The selection matrix corresponding to the train set.
         s_map : array
             Mapping for relevant components. This could be the x_map, or y_map found in PreparedDataset.
+        chunk : list, shape=[2,]
+            A list of two integers [a, b] for which a <= b,
+            defining the time steps of either the in_components or out_components for each prediction point.
         load_level : str, default='instance'
             What level to load values from disk with.
             If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
@@ -370,11 +475,9 @@ class LinScale:
                 if load_level == 'instance':
                     vals = instance_vals[instance_vals['slice'] == s]
                     vals = vals.drop(columns=['slice'])
-                    vals = vals.to_numpy()
                 else:
-                    vals = data_extractor.slice(i, s).to_numpy()
-                vals = vals[t, :]
-                vals = vals[:, s_map]
+                    vals = data_extractor.slice(i, s)
+                vals = compose_relevant_values(vals, t, s_map, chunk)
                 if min is None:
                     min = nanmin(vals, axis=0)
                     max = nanmax(vals, axis=0)
@@ -384,47 +487,128 @@ class LinScale:
 
         self.native_min = min
         self.native_max = max
+        self.constant_mask = min == max
 
-    def transform(self, data: array) -> array:
+        self.native_min_tensor = as_tensor(self.native_min)
+        self.native_max_tensor = as_tensor(self.native_max)
+        self.constant_mask_tensor = as_tensor(self.constant_mask)
+
+    def transform(self, data: array | Tensor) -> array | Tensor:
         """Transforms features, linearly, from expected ranges to desired range.
 
         Parameters
         ----------
-        data : array, shape=[n_components,]
+        data : array | Tensor, shape=[time_steps, n_components] or [n, time_steps, n_components]
             The data to be transformed with Linear scaling.
+            If 3D, the transform is applied independently across the first dimension.
         """
         if self.native_min is None or self.native_max is None:
             logger.error('LinScale transform not fitted yet.')
             exit(101)
 
-        # TODO: TEMP WORKARAOUND, NEED BETTER SOLUTION
-        if torch.is_tensor(data):
-            data = torch.as_numpy(data)
+        if is_tensor(data):
+            native_max = self.native_max_tensor
+            native_min = self.native_min_tensor
+            constant_mask = self.constant_mask_tensor
+        else:
+            native_max = self.native_max
+            native_min = self.native_min
+            constant_mask = self.constant_mask
 
-        return ((self.target_max - self.target_min) *
-                ((data - self.native_min) /
-                 (self.native_max - self.native_min)) + self.target_min)
+        ret_val = ((self.target_max - self.target_min) * (
+                    (data - native_min) / (native_max - native_min)) + self.target_min)
 
-    def inverse_transform(self, data: array) -> array:
+        if ret_val.ndim == 2:
+            ret_val[:, constant_mask] = self.constant_to
+        elif ret_val.ndim == 3:
+            ret_val[:, :, constant_mask] = self.constant_to
+        else:
+            logger.error(
+                'LinScale transform expects data of shape [time_steps, n_components] or [n, time_steps, n_components].')
+            exit(101)
+
+        return ret_val
+
+    def inverse_transform(self, data: array | Tensor) -> array | Tensor:
         """Inversely transforms features, linearly, back to native ranges.
 
         Parameters
         ----------
-        data : array, shape=[n_components,]
+        data : array | Tensor, shape=[time_steps, n_components] or [n, time_steps, n_components]
             The data to be inversely transformed with Linear scaling.
+            If 3D, the inverse transform is applied independently across the first dimension.
         """
         if self.native_min is None or self.native_max is None:
             logger.error('LinScale transform not fitted yet.')
             exit(101)
 
-        # TODO: TEMP WORKARAOUND, NEED BETTER SOLUTION
-        if torch.is_tensor(data):
-            native_max = torch.as_tensor(self.native_max)
-            native_min = torch.as_tensor(self.native_min)
+        if is_tensor(data):
+            native_max = self.native_max_tensor
+            native_min = self.native_min_tensor
+            constant_mask = self.constant_mask_tensor
         else:
             native_max = self.native_max
             native_min = self.native_min
+            constant_mask = self.constant_mask
 
-        return ((native_max - native_min) *
-                ((data - self.target_min) /
-                 (self.target_max - self.target_min)) + native_min)
+        ret_val = ((native_max - native_min) * ((data - self.target_min) / (self.target_max - self.target_min)) + native_min)
+
+        if ret_val.ndim == 2:
+            ret_val[:, constant_mask] = native_min[constant_mask]
+        elif ret_val.ndim == 3:
+            ret_val[:, :, constant_mask] = native_min[constant_mask]
+        else:
+            logger.error(
+                'LinScale inverse_transform expects data of shape [time_steps, n_components] or [n, time_steps, n_components].')
+            exit(101)
+
+        return ret_val
+
+
+def compose_relevant_values(vals: DataFrame, t: array, s_map: list, chunk: list) -> array:
+    """
+    Extract and compose relevant rows from a DataFrame based on time indices,
+    a column mapping, and a chunk offset range.
+    This function is used to retrieve train set samples over which summary statistics can be calculated for
+    scaling purposes.
+
+    Parameters
+    ----------
+    vals : pandas.DataFrame
+        A DataFrame from which values are extracted. Rows represent time steps
+        and columns represent components.
+    t : array-like of int
+        A sequence of primary row indices (time steps) around which values
+        are gathered.
+    s_map : array
+            Mapping for relevant components. This could be the x_map, or y_map found in PreparedDataset.
+    chunk : list, shape=[2,]
+        A list of two integers [a, b] for which a <= b,
+        defining the time steps of either the in_components or out_components for each prediction point.
+
+    Returns
+    -------
+    numpy.ndarray
+        A 2D array of shape (n_unique_rows, n_selected_columns) containing
+        the values at all unique valid rows gathered from the offset window
+        around each index in `t`, in the order they were first encountered.
+
+    Notes
+    -----
+    Rows that would appear multiple times due to overlapping offset windows
+    across indices in `t` are included only once, preserving first-encounter
+    order. Rows that fall outside the valid index range of `vals` are silently
+    skipped.
+    """
+
+    vals = vals.iloc[:, s_map].to_numpy()
+
+    indices = []
+
+    for idx in t:
+        for offset in range(chunk[0], chunk[1] + 1):
+            row = idx + offset
+            if 0 <= row < len(vals):
+                indices.append(row)
+
+    return vals[indices]

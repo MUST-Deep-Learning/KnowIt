@@ -192,7 +192,7 @@ class Model(Module):
     output_activation : str or None, default=None
         Optional activation applied after the final linear output layer
         (only used for non-``'vl_regression'`` tasks).
-    lstm_stateful : bool, default=True
+    lstm_stateful : bool, default=False
         If True, the LSTM maintains internal states across forward passes.
 
     Attributes
@@ -226,7 +226,7 @@ class Model(Module):
                  num_attention_heads: int = 4,
                  dropout: float | None = 0.2,
                  output_activation: str | None = None,
-                 lstm_stateful: bool = True,
+                 lstm_stateful: bool = False,
     ) -> None:
 
         super().__init__()

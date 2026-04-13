@@ -36,7 +36,6 @@ if TYPE_CHECKING:
 
 logger = get_logger()
 
-
 class PLModel(pl.LightningModule):
     """Wrapper class to prepare model for Pytorch Lightning's Trainer.
 
@@ -162,7 +161,8 @@ class PLModel(pl.LightningModule):
         This is done to manage potential stochasticity (which is connected to the epoch number).
 
         """
-        self.trainer.train_dataloader.batch_sampler.set_epoch(self.current_epoch+1)
+        if hasattr(self.trainer.train_dataloader.batch_sampler, 'set_epoch'):
+            self.trainer.train_dataloader.batch_sampler.set_epoch(self.current_epoch+1)
 
     def on_train_epoch_start(self):
         """ Reset the model internal states for new training epoch."""
@@ -174,17 +174,21 @@ class PLModel(pl.LightningModule):
         if hasattr(self.model, 'force_reset'):
             self.model.force_reset()
 
+    def on_test_epoch_start(self):
+        """ Reset the model internal states for new validation epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+
     def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
         """ Update model internal states if applicable. Also hard sets the internal states to the
         final prediction point in the batch in case of variable length inputs."""
         if batch_idx == 0:
             if hasattr(self.model, 'force_reset'):
                 self.model.force_reset()
-        else:
-            if hasattr(self.model, 'update_states'):
-                self.model.update_states(batch['ist_idx'][0], batch['x'].device)
-            if hasattr(self.model, 'hard_set_states'):
-                self.model.hard_set_states(batch['ist_idx'][-1])
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
 
     def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
         """ Update model internal states if applicable. Also hard sets the internal states to the
@@ -443,8 +447,8 @@ class PLModel(pl.LightningModule):
             self.loss_functions = prepare_function(user_args=self.loss, is_loss=True)
 
         for _function in self.loss_functions:
-            function, to_ohe, to_flatten = self.loss_functions[_function]
-            if to_ohe:
+            function, to_argmax, to_flatten = self.loss_functions[_function]
+            if to_argmax:
                 y = argmax(y, dim=1).to(self.device)
             if to_flatten[0]:
                 y = y.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
@@ -454,7 +458,7 @@ class PLModel(pl.LightningModule):
 
             if self.output_scaler is not None:
                 y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
-                if not to_ohe:
+                if not to_argmax:
                     y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
                 loss_rescaled = function(input=y_pred, target=y)
                 log_metrics[loss_label] = loss_rescaled
@@ -509,11 +513,11 @@ class PLModel(pl.LightningModule):
             self.perf_functions = prepare_function( user_args=self.performance_metrics, is_loss=False)
 
         for _function in self.perf_functions:
-            function, to_ohe, to_flatten = self.perf_functions[_function]
+            function, to_argmax, to_flatten = self.perf_functions[_function]
             if self.output_scaler is not None:
                 y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
                 y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
-            if to_ohe:
+            if to_argmax:
                 y = argmax(y, dim=1).to(self.device)
             if to_flatten[0]:
                 y = y.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
@@ -523,3 +527,36 @@ class PLModel(pl.LightningModule):
 
 
         return log_metrics
+
+
+class PLModel_custom(PLModel):
+
+    def __init__(
+            self,
+            loss,
+            learning_rate,
+            optimizer,
+            learning_rate_scheduler,
+            performance_metrics,
+            model,
+            model_params,
+            output_scaler=None,
+            custom_pl_model_kwargs=None,
+    ) -> None:
+        super().__init__(loss, learning_rate, optimizer, learning_rate_scheduler,
+                         performance_metrics, model, model_params, output_scaler)
+    # YOU CAN ADD YOUR OWN CUSTOM CALLBACKS OR OVERWRITE THOSE ALREADY DEFINED IN `PLModel`
+    # e.g. add on_train_batch_end to add some extra terms to the loss during training
+
+    # def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+    #     super().on_train_batch_start(batch, batch_idx, dataloader_idx)
+
+
+
+
+
+
+
+
+
+
