@@ -236,7 +236,8 @@ def plot_set_predictions(exp_output_dir: str, model_name: str, data_tag: str) ->
     out_chunk = model_args['data']['out_chunk']
     if out_chunk[0] != 0:
         # Assumes compiled predictions are contiguous time blocks
-        time_delta = predictions[0][0][1] - predictions[0][0][0]
+        here = list(predictions.keys())[0]
+        time_delta = predictions[here][0][1] - predictions[here][0][0]
         for i in predictions:
             predictions[i][0] += time_delta * out_chunk[0]
         for i in targets:
