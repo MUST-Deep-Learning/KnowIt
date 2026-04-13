@@ -26,7 +26,7 @@ from env.env_paths import (ckpt_path, model_output_dir, model_args_path,
                            interpretation_name, model_run_dir, model_sweep_dir,
                            list_available_datasets, data_paths)
 from helpers.logger import get_logger
-from helpers.file_dir_procs import (yaml_to_dict, safe_dump, safe_copy)
+from helpers.file_dir_procs import (yaml_to_dict, safe_dump, safe_copy, clean_pickle)
 from helpers.viz import (plot_learning_curves, plot_set_predictions, plot_feature_attribution)
 from helpers.fetch_torch_mods import get_model_score
 from setup.setup_action_args import setup_relevant_args
@@ -371,7 +371,7 @@ class KnowIt:
                                  ))
 
         if trainer_args['out_dir'] is not None:
-            safe_dump(relevant_args, os.path.join(trainer_args['out_dir'], 'model_args.yaml'), safe_mode)
+            safe_dump(clean_pickle(relevant_args), os.path.join(trainer_args['out_dir'], 'model_args.yaml'), safe_mode)
 
         if and_viz and not trainer_args['logger_status'] and sweep_kwargs is None:
             plot_learning_curves(self.exp_output_dir, model_name)
