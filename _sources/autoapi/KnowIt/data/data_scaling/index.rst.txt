@@ -1,0 +1,296 @@
+KnowIt.data.data_scaling
+========================
+
+.. py:module:: KnowIt.data.data_scaling
+
+.. autoapi-nested-parse::
+
+   ----------
+   DataScaler
+   ----------
+
+   This module takes a provided ``DataExtractor`` object (see ``KnowIt.Basedataset``) and train selection matrix
+   and fits two scalers to the data, one for the input of the model and one for the output.
+   This is done based on the criteria presented by the 'method' and 'tag' arguments.
+   These scalers are used in ``CustomDataset`` to scale the features when examples
+   are sampled from the dataloader.
+
+   The 'tag' argument defines what features will be scaled.
+       -   if tag='in_only' then only input features to the model are scaled.
+       -   if tag='full' then the input and output features to the model are scaled.
+       -   if tag=None (default) then no features will be scaled.
+
+   The 'method' argument defines the type of scaler to use.
+       -   if method='z-norm' (default) then the mean and standard deviation of each feature-timedelay pair is used to standardize the features.
+       -   if method='zero-one' then each feature-timedelay pair is linearly scaled to (0, 1) separately.
+       -   if method=None then no features will be scaled.
+
+   In practice, when either tag=None or method=None, a ``NoScale`` scaler is used, that
+   does not change any feature values.
+
+   Scalers are returned with the ``DataScaler.get_scalers`` function.
+
+   A scaler always expects their inputs to be an array of shape=[n_time_delays, n_components].
+   This applies to both inputs and outputs.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.data.data_scaling.NoScale
+   KnowIt.data.data_scaling.DataScaler
+   KnowIt.data.data_scaling.ZScale
+   KnowIt.data.data_scaling.LinScale
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   KnowIt.data.data_scaling.compose_relevant_values
+
+
+Module Contents
+---------------
+
+.. py:class:: NoScale
+
+   A dummy scaler performing no scaling to data features.
+
+
+
+   .. py:method:: fit(data)
+
+      Does nothing.
+
+
+
+   .. py:method:: transform(data)
+
+      Transforms nothing. Just returns the provided parameters.
+
+
+
+   .. py:method:: inverse_transform(data)
+
+      Inverts nothing. Just returns the provided parameters.
+
+
+
+.. py:class:: DataScaler(data_extractor, train_selection, method, tag, x_map, y_map, in_chunk, out_chunk, load_level = 'instance')
+
+   The DataScaler module is used by CustomDataset to scale the raw data for model training.
+
+   This method initializes the DataScaler object and fits the scalers to the train set data,
+   as defined by the train selection matrix, based on the provided scaling method and tag.
+   The tag determines whether the scaler should be applied to input only, or to both input and output data.
+
+   :Parameters: * **data_extractor** (:py:class:`DataExtractor`) -- The data extractor object to read data from disk.
+                * **train_selection** (:py:class:`array`, :py:class:`shape=[n_train_prediction_points`, :py:class:`3]`) -- The selection matrix corresponding to the train set.
+                * **method** (:py:class:`str | None`) -- The scaling method to use for fitting the scalers. Currently, supports 'z-norm', 'zero-one', or None.
+                * **tag** (:py:class:`str | None`) -- A string indicating the type of scaling to apply. It can be:
+                  - 'in_only': Scale only the input features using the specified method. Output features are not scaled.
+                  - 'full': Scale both input features and output features using the specified method.
+                  - None: No scaling is applied to either input features or output features.
+                  - Any other value will result in an error.
+                * **x_map** (:py:class:`array`, :py:class:`shape=[n_in_components,]`) -- An array that contains the indices of BaseDataset.components that correspond to input components.
+                * **y_map** (:py:class:`array`, :py:class:`shape=[n_out_components,]`) -- An array that contains the indices of BaseDataset.components that correspond to output components.
+                * **in_chunk** (:py:class:`list`, :py:class:`shape=[2,]`) -- A list of two integers [a, b] for which a <= b,
+                  defining the time steps of in_components for each prediction point.
+                * **out_chunk** (:py:class:`list`, :py:class:`shape=[2,]`) -- A list of two integers [a, b] for which a <= b,
+                  defining the time steps of out_components for each prediction point.
+                * **load_level** (:py:class:`str`, *default* ``'instance'``) -- What level to load values from disk with.
+                  If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
+                  If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
+
+   :ivar x_scaler: The scaler fitted to the input features.
+   :vartype x_scaler: :py:class:`ZScale | LinScale | NoScale`, *default* :py:class:`NoScale`
+   :ivar y_scaler: The scaler fitted to the output labels.
+
+   :vartype y_scaler: :py:class:`ZScale | LinScale | NoScale`, *default* :py:class:`NoScale`
+
+   :raises ValueError: If an unknown scaling tag is provided.
+
+
+   .. py:method:: get_scalers()
+
+      Returns the fitted scalers.
+
+      This method retrieves the scalers that have been fitted to the data. It is used to obtain
+      the scaling objects for both the input features (x_scaler) and the target data (y_scaler).
+
+      :returns:
+
+                - x_scaler : ZScale | LinScale | NoScale
+                    The scaler fitted to the input features.
+                - y_scaler : ZScale | LinScale | NoScale
+                    The scaler fitted to the target data.
+      :rtype: :py:class:`tuple`
+
+
+
+.. py:class:: ZScale(constant_to = 0.0)
+
+   Performs a basic per component standardization.
+
+   For each component value c, the transformation is defined as:
+       (c - native_mean) / native_std
+
+   where native_mean and native_std are the mean and std of the corresponding component as measured on the train set.
+   Components that are constant across the train set will be scaled to a predefined constant_to,
+   and rescaled back to native_mean.
+
+   :Parameters: **constant_to** (:py:class:`float`, *default* ``0.0``) -- What value to scale any component that is constant across the train set.
+
+   :ivar native_mean: The mean component value across prediction points in the train set.
+   :vartype native_mean: :py:class:`array`, :py:class:`shape=[n_components,]`
+   :ivar native_std: The standard deviation of values across prediction points in the train set.
+   :vartype native_std: :py:class:`array`, :py:class:`shape=[n_components,]`
+   :ivar native_mean_tensor: The mean component value across prediction points in the train set.
+   :vartype native_mean_tensor: :py:class:`Tensor`, :py:class:`shape=[n_components,]`
+   :ivar native_std_tensor: The standard deviation of values across prediction points in the train set.
+   :vartype native_std_tensor: :py:class:`Tensor`, :py:class:`shape=[n_components,]`
+   :ivar constant_to: What value to scale any component that is constant across the train set.
+   :vartype constant_to: :py:class:`float`, *default* ``0.0``
+   :ivar constant_mask: A boolean array indicating what components are constant across the train set.
+   :vartype constant_mask: :py:class:`array`, :py:class:`shape=[n_components,]`
+   :ivar constant_mask_tensor: A boolean Tensor indicating what components are constant across the train set.
+
+   :vartype constant_mask_tensor: :py:class:`Tensor`, :py:class:`shape=[n_components,]`
+
+
+   .. py:method:: fit(data_extractor, train_selection, s_map, chunk, load_level = 'instance')
+
+      Records the mean and std across prediction points in the train set.
+
+      :Parameters: * **data_extractor** (:py:class:`DataExtractor`) -- The data extractor object to read data from disk.
+                   * **train_selection** (:py:class:`array`, :py:class:`shape=[n_train_prediction_points`, :py:class:`3]`) -- The selection matrix corresponding to the train set.
+                   * **s_map** (:py:class:`array`) -- Mapping for relevant components. This could be the x_map, or y_map found in PreparedDataset.
+                   * **chunk** (:py:class:`list`, :py:class:`shape=[2,]`) -- A list of two integers [a, b] for which a <= b,
+                     defining the time steps of either the in_components or out_components for each prediction point.
+                   * **load_level** (:py:class:`str`, *default* ``'instance'``) -- What level to load values from disk with.
+                     If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
+                     If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
+
+
+
+   .. py:method:: transform(data)
+
+      Performs Z-Normalization.
+
+      :Parameters: **data** (:py:class:`array | Tensor`, :py:class:`shape=[time_steps`, :py:class:`n_components]` or :py:class:`[n`, :py:class:`time_steps`, :py:class:`n_components]`) -- The data to be transformed with Z-Normalization.
+                   If 3D, the transform is applied independently across the first dimension.
+
+
+
+   .. py:method:: inverse_transform(data)
+
+      Performs inverse Z-Normalization.
+
+      :Parameters: **data** (:py:class:`array | Tensor`, :py:class:`shape=[time_steps`, :py:class:`n_components]` or :py:class:`[n`, :py:class:`time_steps`, :py:class:`n_components]`) -- The data to be inversely transformed with Z-Normalization.
+                   If 3D, the inverse transform is applied independently across the first dimension.
+
+
+
+.. py:class:: LinScale(target_min = 0.0, target_max = 1.0, constant_to = 0.5)
+
+   Performs a basic per component linear scaling. Can be scaled to any range, but default is (0, 1).
+
+   For each component value c the transformation is defined as:
+       (target_max - target_min) * (c - native_min) / (native_max - native_min) + target_min
+
+   where native_min and native_max are the min and max values of the corresponding component
+   as measured on the train set, and target_min and target_max is 0 and 1 respectively.
+   Components that are constant across the train set will be scaled to a predefined constant_to,
+   and rescaled back to native_min.
+
+   :Parameters: * **target_min** (:py:class:`float`, *default* ``0.``) -- The desired transformed minimum feature values.
+                * **target_max** (:py:class:`float`, *default* ``1.``) -- The desired transformed maximum feature values.
+                * **constant_to** (:py:class:`float`, *default* ``0.5``) -- What value to scale any component that is constant across the train set.
+
+   :ivar native_min: The minimum native feature values across prediction points.
+   :vartype native_min: :py:class:`array`, :py:class:`shape=[n_components,]`
+   :ivar native_max: The maximum native feature values across prediction points.
+   :vartype native_max: :py:class:`array`, :py:class:`shape=[n_components,]`
+   :ivar native_min_tensor: The minimum native feature values across prediction points.
+   :vartype native_min_tensor: :py:class:`Tensor`, :py:class:`shape=[n_components,]`
+   :ivar native_max_tensor: The maximum native feature values across prediction points.
+   :vartype native_max_tensor: :py:class:`Tensor`, :py:class:`shape=[n_components,]`
+   :ivar target_min: The transformed minimum feature values.
+   :vartype target_min: :py:class:`float`, *default* ``0.``
+   :ivar target_max: The transformed maximum feature values.
+   :vartype target_max: :py:class:`float`, *default* ``1.``
+   :ivar constant_to: What value to scale any component that is constant across the train set.
+   :vartype constant_to: :py:class:`float`, *default* ``0.5``
+   :ivar constant_mask: A boolean array indicating what components are constant across the train set.
+   :vartype constant_mask: :py:class:`array`, :py:class:`shape=[n_components,]`
+   :ivar constant_mask_tensor: A boolean Tensor indicating what components are constant across the train set.
+
+   :vartype constant_mask_tensor: :py:class:`Tensor`, :py:class:`shape=[n_components,]`
+
+
+   .. py:method:: fit(data_extractor, train_selection, s_map, chunk, load_level = 'instance')
+
+      Records the min and max across prediction points in the train set.
+
+      :Parameters: * **data_extractor** (:py:class:`DataExtractor`) -- The data extractor object to read data from disk.
+                   * **train_selection** (:py:class:`array`, :py:class:`shape=[n_train_prediction_points`, :py:class:`3]`) -- The selection matrix corresponding to the train set.
+                   * **s_map** (:py:class:`array`) -- Mapping for relevant components. This could be the x_map, or y_map found in PreparedDataset.
+                   * **chunk** (:py:class:`list`, :py:class:`shape=[2,]`) -- A list of two integers [a, b] for which a <= b,
+                     defining the time steps of either the in_components or out_components for each prediction point.
+                   * **load_level** (:py:class:`str`, *default* ``'instance'``) -- What level to load values from disk with.
+                     If load_level='instance' an instance at a time will be loaded. This is memory heavy, but faster.
+                     If load_level='slice' a slice at a time will be loaded. This is lighter on memory, but slower.
+
+
+
+   .. py:method:: transform(data)
+
+      Transforms features, linearly, from expected ranges to desired range.
+
+      :Parameters: **data** (:py:class:`array | Tensor`, :py:class:`shape=[time_steps`, :py:class:`n_components]` or :py:class:`[n`, :py:class:`time_steps`, :py:class:`n_components]`) -- The data to be transformed with Linear scaling.
+                   If 3D, the transform is applied independently across the first dimension.
+
+
+
+   .. py:method:: inverse_transform(data)
+
+      Inversely transforms features, linearly, back to native ranges.
+
+      :Parameters: **data** (:py:class:`array | Tensor`, :py:class:`shape=[time_steps`, :py:class:`n_components]` or :py:class:`[n`, :py:class:`time_steps`, :py:class:`n_components]`) -- The data to be inversely transformed with Linear scaling.
+                   If 3D, the inverse transform is applied independently across the first dimension.
+
+
+
+.. py:function:: compose_relevant_values(vals, t, s_map, chunk)
+
+   Extract and compose relevant rows from a DataFrame based on time indices,
+   a column mapping, and a chunk offset range.
+   This function is used to retrieve train set samples over which summary statistics can be calculated for
+   scaling purposes.
+
+   :Parameters: * **vals** (:py:class:`pandas.DataFrame`) -- A DataFrame from which values are extracted. Rows represent time steps
+                  and columns represent components.
+                * **t** (:py:class:`array-like` of :py:class:`int`) -- A sequence of primary row indices (time steps) around which values
+                  are gathered.
+                * **s_map** (:py:class:`array`) -- Mapping for relevant components. This could be the x_map, or y_map found in PreparedDataset.
+                * **chunk** (:py:class:`list`, :py:class:`shape=[2,]`) -- A list of two integers [a, b] for which a <= b,
+                  defining the time steps of either the in_components or out_components for each prediction point.
+
+   :returns: A 2D array of shape (n_unique_rows, n_selected_columns) containing
+             the values at all unique valid rows gathered from the offset window
+             around each index in `t`, in the order they were first encountered.
+   :rtype: :py:class:`numpy.ndarray`
+
+   .. rubric:: Notes
+
+   Rows that would appear multiple times due to overlapping offset windows
+   across indices in `t` are included only once, preserving first-encounter
+   order. Rows that fall outside the valid index range of `vals` are silently
+   skipped.
+
+
