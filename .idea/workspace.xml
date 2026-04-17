@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="472b7247-f302-442b-99a3-62fc35383213" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/data/data_splitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/data/data_splitting.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/helpers/fetch_torch_mods.py" beforeDir="false" afterPath="$PROJECT_DIR$/helpers/fetch_torch_mods.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainer/model_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/trainer/model_config.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="30DRJeEJmAz2bAijSwW6zX4Yjwd" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/gerda/repos/KnowIt&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-3bd3a6803838-JavaScript-PY-261.22158.340" />
+        <option value="bundled-python-sdk-b63d5a1f7c97-b61e75351b1f-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.22158.340" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="472b7247-f302-442b-99a3-62fc35383213" name="Changes" comment="" />
+      <created>1753160086844</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1753160086844</updated>
+      <workItem from="1753160087974" duration="2309000" />
+      <workItem from="1755079583615" duration="3506000" />
+      <workItem from="1755165969815" duration="1882000" />
+      <workItem from="1755494750884" duration="617000" />
+      <workItem from="1755526353285" duration="609000" />
+      <workItem from="1755579815742" duration="2231000" />
+      <workItem from="1755680165172" duration="734000" />
+      <workItem from="1756364115230" duration="607000" />
+      <workItem from="1756718697784" duration="15000" />
+      <workItem from="1756983262169" duration="832000" />
+      <workItem from="1757305675251" duration="21000" />
+      <workItem from="1757396269431" duration="3015000" />
+      <workItem from="1757485313751" duration="621000" />
+      <workItem from="1758179121402" duration="1143000" />
+      <workItem from="1758182382994" duration="1228000" />
+      <workItem from="1758268375139" duration="61000" />
+      <workItem from="1758277318412" duration="1390000" />
+      <workItem from="1758514178516" duration="878000" />
+      <workItem from="1758515379700" duration="802000" />
+      <workItem from="1758516517785" duration="1196000" />
+      <workItem from="1758519985579" duration="610000" />
+      <workItem from="1758520606442" duration="2822000" />
+      <workItem from="1758609020403" duration="4349000" />
+      <workItem from="1759210746947" duration="901000" />
+      <workItem from="1759299323188" duration="642000" />
+      <workItem from="1759396021513" duration="945000" />
+      <workItem from="1760524651763" duration="174000" />
+      <workItem from="1760603657142" duration="1530000" />
+      <workItem from="1761198568957" duration="5376000" />
+      <workItem from="1761285629001" duration="6255000" />
+      <workItem from="1761292965745" duration="1066000" />
+      <workItem from="1761542415670" duration="6535000" />
+      <workItem from="1761568024374" duration="1208000" />
+      <workItem from="1761628341906" duration="5900000" />
+      <workItem from="1761729990082" duration="1281000" />
+      <workItem from="1761749051584" duration="2265000" />
+      <workItem from="1761813882775" duration="628000" />
+      <workItem from="1761823033724" duration="6133000" />
+      <workItem from="1761899279140" duration="604000" />
+      <workItem from="1761993725346" duration="998000" />
+      <workItem from="1762078420005" duration="615000" />
+      <workItem from="1762145333540" duration="2629000" />
+      <workItem from="1762162866654" duration="6880000" />
+      <workItem from="1762232089842" duration="2724000" />
+      <workItem from="1762257288577" duration="606000" />
+      <workItem from="1762271972846" duration="1215000" />
+      <workItem from="1762276477648" duration="34000" />
+      <workItem from="1762341007044" duration="3038000" />
+      <workItem from="1762408124725" duration="5936000" />
+      <workItem from="1762502033317" duration="603000" />
+      <workItem from="1762529550336" duration="3673000" />
+      <workItem from="1762583361879" duration="611000" />
+      <workItem from="1762751280098" duration="608000" />
+      <workItem from="1762940303528" duration="914000" />
+      <workItem from="1762947768917" duration="20000" />
+      <workItem from="1762952744375" duration="1989000" />
+      <workItem from="1763379900024" duration="752000" />
+      <workItem from="1764233824303" duration="98000" />
+      <workItem from="1764836077908" duration="1437000" />
+      <workItem from="1765182924324" duration="2333000" />
+      <workItem from="1765286865315" duration="745000" />
+      <workItem from="1765352107823" duration="234000" />
+      <workItem from="1765431135714" duration="971000" />
+      <workItem from="1765632255844" duration="179000" />
+      <workItem from="1767600337461" duration="2543000" />
+      <workItem from="1767612048869" duration="1511000" />
+      <workItem from="1767614099821" duration="1966000" />
+      <workItem from="1767854775235" duration="45000" />
+      <workItem from="1767880165445" duration="14000" />
+      <workItem from="1768985978773" duration="1417000" />
+      <workItem from="1771323867806" duration="253000" />
+      <workItem from="1771324955742" duration="633000" />
+      <workItem from="1771395882032" duration="867000" />
+      <workItem from="1771480209393" duration="10725000" />
+      <workItem from="1771569055357" duration="38000" />
+      <workItem from="1771570545322" duration="2563000" />
+      <workItem from="1771577793661" duration="4677000" />
+      <workItem from="1771662182081" duration="604000" />
+      <workItem from="1771738780804" duration="619000" />
+      <workItem from="1772430225126" duration="887000" />
+      <workItem from="1772607375124" duration="7000" />
+      <workItem from="1772777834123" duration="1120000" />
+      <workItem from="1773058229220" duration="613000" />
+      <workItem from="1773121150757" duration="2318000" />
+      <workItem from="1773297814861" duration="4254000" />
+      <workItem from="1773415650044" duration="691000" />
+      <workItem from="1773493032446" duration="1111000" />
+      <workItem from="1773639293145" duration="15000" />
+      <workItem from="1773652976992" duration="87000" />
+      <workItem from="1773837707353" duration="172000" />
+      <workItem from="1774528076434" duration="1568000" />
+      <workItem from="1774530109603" duration="605000" />
+      <workItem from="1775033197003" duration="218000" />
+      <workItem from="1775546338382" duration="39000" />
+      <workItem from="1775573290239" duration="483000" />
+      <workItem from="1775637169595" duration="100000" />
+      <workItem from="1775637280633" duration="50000" />
+      <workItem from="1775637417103" duration="31000" />
+      <workItem from="1775650986129" duration="762000" />
+      <workItem from="1775655202259" duration="640000" />
+      <workItem from="1775713116253" duration="1040000" />
+      <workItem from="1775718178697" duration="541000" />
+      <workItem from="1775722083403" duration="611000" />
+      <workItem from="1776065656617" duration="2293000" />
+      <workItem from="1776075887614" duration="168000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/trainer/model_config.py</url>
+          <line>481</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/data/data_splitting.py</url>
+          <line>204</line>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>

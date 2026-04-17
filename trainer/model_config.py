@@ -21,7 +21,11 @@ __description__ = "Constructs a Pytorch Lightning model class."
 from typing import TYPE_CHECKING, Any, Callable
 
 import pytorch_lightning as pl
+import torchmetrics
+from torch import reshape
+from torchmetrics.regression import PearsonCorrCoef
 from torch import argmax
+import time
 
 from helpers.fetch_torch_mods import (
     get_lr_scheduler,
@@ -220,7 +224,9 @@ class PLModel(pl.LightningModule):
         Overrides the method in pl.LightningModule.
         """
         forward = getattr(self.model, "forward")  # noqa: B009
+        startT = time.time()
         y_pred = forward(batch['x'])
+        i_time = time.time() - startT
 
         # compute loss; depends on whether user gave kwargs
         loss, loss_log_metrics = self._compute_loss(
@@ -244,6 +250,7 @@ class PLModel(pl.LightningModule):
             **perf_log_metrics,
         }
         log_metrics['epoch'] = float(self.current_epoch)
+        log_metrics['inference_time_train'] = i_time
 
         # The loss and performance is accumulated over an epoch and then
         # averaged.
@@ -263,7 +270,9 @@ class PLModel(pl.LightningModule):
         """
 
         forward = getattr(self.model, "forward")  # noqa: B009
+        startT = time.time()
         y_pred = forward(batch['x'])
+        i_time = time.time() - startT
 
         # compute loss; depends on whether user gave kwargs
         loss, loss_log_metrics = self._compute_loss(
@@ -287,6 +296,7 @@ class PLModel(pl.LightningModule):
             **perf_log_metrics,
         }
         log_metrics['epoch'] = float(self.current_epoch)
+        log_metrics['inference_time_valid'] = i_time
 
         # The loss and performance is accumulated over an epoch and then
         # averaged.
