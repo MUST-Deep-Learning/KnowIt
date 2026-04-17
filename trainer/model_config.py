@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Any
 import torch
 from pytorch_lightning import LightningModule
 from torch import nn
+import time
 
 # internal imports
 from helpers.metric_adapter import MetricAdapter, build_adapters
