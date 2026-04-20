@@ -1948,10 +1948,28 @@ class CustomDataset(Dataset):
         cast to numpy array,
         scale with given scaler,
         cast to tensor,
-        and change data type to float."""
-        vals = slice_vals.iloc[:, s_map].to_numpy()
+        and change data type to float.
+
+        Note, the last cast to tensor with data type float is only tried.
+        It is skipped if it fails.
+        This typically occurs when a classification task is being done with non-numeric target labels.
+        Outside scope handles this discrepancy (see the CustomClassificationDataset module).
+
+        """
+        subselected = slice_vals.iloc[:, s_map]
+
+        dtypes = subselected.dtypes.unique()
+        if len(dtypes) > 1:
+            logger.error(f"Subselected columns have mixed dtypes: {dtypes}. Cannot cast to prepare slice in a meaningful way.")
+            exit(101)
+
+        target_dtype = dtypes[0]
+        vals = subselected.astype(target_dtype).to_numpy()
         vals = scaler.transform(vals.copy())
-        vals = from_numpy(vals).float()
+        try:
+            vals = from_numpy(vals).float()
+        except (TypeError, RuntimeError):
+            pass
         return vals
 
     @staticmethod
