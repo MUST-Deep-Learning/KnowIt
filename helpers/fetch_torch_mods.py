@@ -17,54 +17,14 @@ import torch
 from torch import optim
 from torch.nn import functional as f
 from torch.optim import lr_scheduler
-from torchmetrics import functional as mf
+import torchmetrics as tm
 import pandas as pd
 
 from helpers.logger import get_logger
 logger = get_logger()
 
-def get_loss_function(loss: str) -> Callable[..., float | Tensor]:
-    """Return user's choice of loss function.
-
-    A helper method to retrieve the user's choice of loss function. The loss
-    function name must be the functional version from Pytorch's torch.nn
-    module.
-
-    Args:
-    ----
-        loss (str):         The loss function as specified in
-                            torch.nn.functional.
-
-    Returns
-    -------
-        (Callable):         A Pytorch loss function. Takes as input either
-                            two integers/floats and an optional dictionary of
-                            kwargs. Returns an integer/float value.
-
-    """
-    return getattr(f, loss)
-
-
-def get_performance_metric(metric: str) -> Callable[..., float | Tensor]:
-    """Return user's choice of performance metrics.
-
-    A helper method to retrieve the user's choice of performance metrics. The
-    metrics is the functional version from torchmetrics.
-
-    Args:
-    ----
-        metric (str):       The metric as specified in Torchmetrics. The metric
-                            name must be the functional version.
-
-    Returns
-    -------
-        (Callable):         A Torchmetrics metric function. Takes as input
-                            either two integers/floats and an optional
-                            dictionary of kwargs. Returns an integer/float
-                            value.
-
-    """
-    return getattr(mf, metric)
+ARGMAX_METRICS = {"Accuracy", "Precision", "Recall", "F1Score", "AUROC", "accuracy", "f1_score", "precision", "recall"}
+FLATTEN_METRICS = {"R2Score": (0, 1),}
 
 
 def get_optim(
@@ -109,80 +69,82 @@ def get_lr_scheduler(
     return getattr(lr_scheduler, scheduler)
 
 
-def prepare_function(user_args: str | dict[str, Any], *, is_loss: bool) -> (
-        dict[str, tuple[Callable[..., float | Tensor], bool]]
-    ):
-        """Set up and return a user's choice of function along with OHE requirement.
+def prepare_functions(user_args: str | dict[str, Any], is_loss: bool) -> dict:
+    """Set up and return a user's choice of functions along with configuration requirements.
 
-        Unpacks user_args and fetches the correct functions with any kwargs.
-        This is only performed once during the training run.
+    Unpacks user_args and fetches the correct functions with any kwargs.
+    This is only performed once during the training run.
+    Loss functions are found in `torch.nn.functional`, otherwise found in `torchmetrics`.
 
-        Parameters
-        ----------
-        user_args : str | dict[str, Any]
-            User-specified arguments for the function, either as a string or a dictionary.
-        is_loss : bool
-            Flag indicating whether to prepare a loss function or a performance metric.
+    Parameters
+    ----------
+    user_args : str | dict[str, Any]
+        User-specified arguments for the function, either as a string or a dictionary.
 
-        Returns
-        -------
-        dict
-            functions (dict): A dictionary where each key is a metric name and each value is a tuple
-                              containing a prepared function suitable for a task in the trainer module
-                              and a boolean indicating whether one-hot encoding is required for the function.
+    Returns
+    -------
+    dict
+        functions (dict): A dictionary where each key is a metric name and each value is a tuple
+                          containing a prepared function suitable for a task in the trainer module
+                          and required configurations for the metric.
 
-        """
-        function: dict[str, Callable[..., float|Tensor]] = {}
-        if is_loss and isinstance(user_args, dict):
-            for _metric in user_args:
-                kwargs = user_args[_metric]
-                loss_f = partial(
-                    get_loss_function(_metric),
-                    **kwargs,
-                )
-                function[_metric] = (loss_f, requires_argmax(_metric), requires_flatten(_metric))
-        elif is_loss and not isinstance(user_args, dict):
-                loss_f = get_loss_function(user_args)
-                function[user_args] = (loss_f, requires_argmax(user_args), requires_flatten(user_args))
-        elif not is_loss and isinstance(user_args, dict):
-            for _metric in user_args:
-                kwargs = user_args[_metric]
-                perf_f = partial(
-                    get_performance_metric(_metric),
-                    **kwargs,
-                )
-                function[_metric] = (perf_f, requires_argmax(_metric), requires_flatten(_metric))
-        elif not is_loss and not isinstance(user_args, dict):
-                perf_f = get_performance_metric(user_args)
-                function[user_args] = (perf_f, requires_argmax(user_args), requires_flatten(user_args))
+    """
+    functions = {}
+    if isinstance(user_args, dict):
+        for _metric in user_args:
+            kwargs = user_args[_metric]
+            if is_loss:
+                loss_f_cls = getattr(f, _metric)
+                loss_f = loss_f_cls(**kwargs)
+                # loss_f = partial(getattr(f, _metric), **kwargs)
+            else:
+                loss_f_cls = getattr(tm, _metric)
+                loss_f = loss_f_cls(**kwargs)
+                # loss_f = partial(getattr(tm, _metric), **kwargs)
 
-        return function
+            loss_f.requires_argmax = requires_argmax(_metric)
+            loss_f.requires_flatten = requires_flatten(_metric)
+            functions[_metric] = loss_f
+
+    else:
+        if is_loss:
+            loss_f = getattr(f, user_args)
+        else:
+            loss_f = getattr(tm, user_args)
+            loss_f = loss_f(**{})
+
+        loss_f.requires_argmax = requires_argmax(user_args)
+        loss_f.requires_flatten = requires_flatten(user_args)
+        functions[user_args] = loss_f
+
+    return functions
+
 
 def requires_argmax(metric: str) -> bool:
     """ Returns a bool indicating whether the defined metric requires
-    that the targets be argmaxed.
+    that the predictions and targets be argmaxed.
 
     See the following link for details on additional metrics that might need to be added
     to this list in the future:
     https://lightning.ai/docs/torchmetrics/stable/
     """
 
-    if metric in ("accuracy", ):
+    if metric in ARGMAX_METRICS:
         return True
     else:
         return False
 
 def requires_flatten(metric: str) -> tuple:
     """ Returns a tuple indicating whether the defined metric requires
-    that the targets be flattened along with from-to-what dimensions to flatten.
+    that the predictions and targets be flattened along with from-to-what dimensions to flatten.
 
     See the following link for details on additional metrics that might need to be added
     to this list in the future:
     https://lightning.ai/docs/torchmetrics/stable/
     """
 
-    if metric in ("r2_score", ):
-        return True, (0, 1)
+    if metric in FLATTEN_METRICS:
+        return True, FLATTEN_METRICS[metric]
     else:
         return False, None
 
