@@ -18,19 +18,20 @@ __licence__ = 'Apache 2.0; see LICENSE file for details.'
 __author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com, moutoncoenraad@gmail.com"
 __description__ = "Constructs a Pytorch Lightning model class."
 
-from typing import TYPE_CHECKING, Any, Callable
+# standard library imports
+import copy
+from typing import TYPE_CHECKING, Any
 
+# external imports
 from pytorch_lightning import LightningModule
 from torch import argmax
 from torch import nn
-import torchmetrics as tm
 
+# internal imports
 from helpers.fetch_torch_mods import (
     get_lr_scheduler,
     get_optim,
     prepare_functions,
-    requires_argmax,
-    requires_flatten
 )
 from helpers.logger import get_logger
 
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
     from torch.nn import Module
 
 logger = get_logger()
+
 
 class PLModel(LightningModule):
 
@@ -53,6 +55,37 @@ class PLModel(LightningModule):
         model_params: dict[str, Any],
         output_scaler: None | object = None
     ) -> None:
+        """Initialize the PLModel.
+
+        Parameters
+        ----------
+        loss : str | dict[str, Any]
+            Loss function name or a dictionary mapping a loss function name to
+            its kwargs, as specified in ``torch.nn.functional``.
+        learning_rate : float
+            Learning rate passed to the optimizer.
+        optimizer : str | dict[str, Any]
+            Optimizer name or a dictionary mapping an optimizer name to its
+            kwargs, as specified in ``torch.optim``.
+        learning_rate_scheduler : None | str | dict[str, Any]
+            Learning rate scheduler name or a dictionary mapping a scheduler
+            name to its kwargs, as specified in
+            ``torch.optim.lr_scheduler``. Pass ``None`` to disable.
+        performance_metrics : None | str | dict[str, Any]
+            Performance metric name or a dictionary mapping metric names to
+            their kwargs, as specified in ``torchmetrics``. Pass ``None`` to
+            disable performance metric tracking.
+        model : Module
+            Uninitialised PyTorch model class.
+        model_params : dict[str, Any]
+            Keyword arguments forwarded to ``model`` at construction time.
+        output_scaler : None | object, optional
+            A fitted scaler with an ``inverse_transform`` method.
+            When provided, predictions and targets are
+            inverse-transformed before loss and metric computation.
+            Default is ``None``.
+        """
+
         super().__init__()
 
         self.lr = learning_rate
@@ -65,13 +98,7 @@ class PLModel(LightningModule):
         self.loss_functions = prepare_functions(user_args=loss, is_loss=True)
 
         if self.performance_metrics is not None:
-            self.metrics = nn.ModuleDict({
-                "trn": self._build_metric_collection(),
-                "val": self._build_metric_collection(),
-                "result_train": self._build_metric_collection(),
-                "result_valid": self._build_metric_collection(),
-                "result_eval": self._build_metric_collection(),
-            })
+            self._metric_configs, self.metrics = self._make_metrics()
 
         self.save_hyperparameters(ignore=['model'])
 
@@ -79,31 +106,63 @@ class PLModel(LightningModule):
     # Initial construction methods
     # ----------------------------
 
-    def _build_metric_collection(self) -> nn.ModuleDict:
-        """Build a ModuleDict of individual metrics, each stored with its config."""
+    def _make_metrics(self) -> tuple[dict, nn.ModuleDict]:
+        """Build metric configs and per-split metric module dicts.
 
-        metrics = prepare_functions(self.performance_metrics, is_loss=False)
-        return nn.ModuleDict(metrics)
+        Calls ``prepare_functions`` once to obtain :class:`PreparedFunction`
+        instances, stores their configs for later use during stepping, and
+        creates independent deep-copied metric instances for each data split
+        to ensure per-split state isolation.
+
+        Returns
+        -------
+        tuple[dict, nn.ModuleDict]
+            A tuple of:
+
+            - **configs** (*dict*): Maps metric names to their
+              :class:`PreparedFunction` instances, used to look up
+              ``requires_argmax`` and ``requires_flatten`` during stepping.
+            - **metrics** (*nn.ModuleDict*): A nested ``ModuleDict`` keyed
+              first by split name and then by metric name, each holding an
+              independent torchmetrics metric instance.
+        """
+
+        prepared = prepare_functions(self.performance_metrics, is_loss=False)
+        configs = {name: pf for name, pf in prepared.items()}
+        metrics = nn.ModuleDict({
+            split: nn.ModuleDict({name: copy.deepcopy(pf.fn) for name, pf in prepared.items()})
+            for split in ("trn", "val", "result_train", "result_valid", "result_eval")
+        })
+        return configs, metrics
 
     def configure_optimizers(self) -> dict[str, Any]:
         """Return configured optimizer and optional learning rate scheduler.
 
-        Overrides the method in pl.LightningModule.
+        Overrides :meth:`pytorch_lightning.LightningModule.configure_optimizers`.
+
+        Returns
+        -------
+        dict[str, Any]
+            A dictionary with an ``"optimizer"`` key and, if a learning rate
+            scheduler is configured, an ``"lr_scheduler"`` key.
         """
-        if self.optimizer:
-            if isinstance(self.optimizer, dict):
-                for optim in self.optimizer:
-                    opt_kwargs = self.optimizer[optim]
-                    optimizer = get_optim(optim)(
-                        params=self.model.parameters(),
-                        lr=self.lr,
-                        **opt_kwargs,
-                    )
-            else:
-                optimizer = get_optim(self.optimizer)(
+
+        if not self.optimizer:
+            logger.error("No optimizer specified. Cannot configure optimizers.")
+            exit(101)
+
+        if isinstance(self.optimizer, dict):
+            for optim_name, opt_kwargs in self.optimizer.items():
+                optimizer = get_optim(optim_name)(
                     params=self.model.parameters(),
                     lr=self.lr,
+                    **opt_kwargs,
                 )
+        else:
+            optimizer = get_optim(self.optimizer)(
+                params=self.model.parameters(),
+                lr=self.lr,
+            )
 
         if self.lr_scheduler:
             if isinstance(self.lr_scheduler, dict):
@@ -127,7 +186,22 @@ class PLModel(LightningModule):
     # Main stepping functions
     # -----------------------
 
-    def training_step(self, batch: dict[str, Any], batch_idx: int):
+    def training_step(self, batch: dict[str, Any], batch_idx: int) -> Tensor:
+        """Perform a single training step.
+
+        Parameters
+        ----------
+        batch : dict[str, Any]
+            A dictionary containing at least ``"x"`` (model inputs) and
+            ``"y"`` (targets).
+        batch_idx : int
+            Index of the current batch.
+
+        Returns
+        -------
+        Tensor
+            The combined training loss for the current batch.
+        """
         y_pred = self.model.forward(batch['x'])
 
         loss, loss_log_metrics = self._compute_loss(
@@ -135,13 +209,28 @@ class PLModel(LightningModule):
         )
 
         if self.performance_metrics is not None:
-            self._update_performance(batch['y'], y_pred, split="trn", perf_label="train_perf_")
+            self._update_performance(batch['y'], y_pred, split="trn")
 
         loss_log_metrics['epoch'] = float(self.current_epoch)
         self.log_dict(loss_log_metrics, on_epoch=True, on_step=False, prog_bar=True)
         return loss
 
-    def validation_step(self, batch: dict[str, Any], batch_idx: int):
+    def validation_step(self, batch: dict[str, Any], batch_idx: int) -> Tensor:
+        """Perform a single validation step.
+
+        Parameters
+        ----------
+        batch : dict[str, Any]
+            A dictionary containing at least ``"x"`` (model inputs) and
+            ``"y"`` (targets).
+        batch_idx : int
+            Index of the current batch.
+
+        Returns
+        -------
+        Tensor
+            The combined validation loss for the current batch.
+        """
         y_pred = self.model.forward(batch['x'])
 
         loss, loss_log_metrics = self._compute_loss(
@@ -149,17 +238,35 @@ class PLModel(LightningModule):
         )
 
         if self.performance_metrics is not None:
-            self._update_performance(batch['y'], y_pred, split="val", perf_label="valid_perf_")
+            self._update_performance(batch['y'], y_pred, split="val")
 
         loss_log_metrics['epoch'] = float(self.current_epoch)
         self.log_dict(loss_log_metrics, on_epoch=True, on_step=False, prog_bar=True)
         return loss
 
-    def test_step(self, batch: dict[str, Any], batch_idx: int, dataloader_idx: int):
+    def test_step(self, batch: dict[str, Any], batch_idx: int, dataloader_idx: int) -> dict[str, Tensor]:
+        """Perform a single test step.
+
+        Parameters
+        ----------
+        batch : dict[str, Any]
+            A dictionary containing at least ``"x"`` (model inputs) and
+            ``"y"`` (targets).
+        batch_idx : int
+            Index of the current batch.
+        dataloader_idx : int
+            Index of the current dataloader. ``0`` corresponds to the training
+            set, ``1`` to the validation set, and ``2`` to the evaluation set.
+
+        Returns
+        -------
+        dict[str, Tensor]
+            A dictionary of logged loss metrics for the current batch.
+        """
         loaders = {0: "result_train_", 1: "result_valid_", 2: "result_eval_"}
-        splits  = {0: "result_train",  1: "result_valid",  2: "result_eval"}
+        splits = {0: "result_train", 1: "result_valid", 2: "result_eval"}
         current_loader = loaders[dataloader_idx]
-        current_split  = splits[dataloader_idx]
+        current_split = splits[dataloader_idx]
 
         y_pred = self.model.forward(batch['x'])
 
@@ -168,9 +275,7 @@ class PLModel(LightningModule):
         )
 
         if self.performance_metrics is not None:
-            self._update_performance(
-                batch['y'], y_pred, split=current_split, perf_label=current_loader + "perf_"
-            )
+            self._update_performance(batch['y'], y_pred, split=current_split)
 
         self.log_dict(
             loss_log_metrics,
@@ -185,32 +290,61 @@ class PLModel(LightningModule):
 
     def _compute_loss(self, y: float | Tensor, y_pred: float | Tensor, loss_label: str) -> tuple[float | Tensor, dict[str, float | Tensor]]:
 
+        """Compute the loss over all configured loss functions for a single batch.
+
+        Applies any required argmax or flatten transformations to the predictions
+        and targets before computing each loss. If an ``output_scaler`` is set,
+        the loss is also computed on inverse-transformed outputs and overwrites
+        the original loss in the log. The final combined loss is produced by
+        :meth:`_loss_combiner`.
+
+        Parameters
+        ----------
+        y : Tensor
+            Ground-truth targets for the current batch.
+        y_pred : Tensor
+            Model predictions for the current batch.
+        loss_label : str
+            Prefix used when constructing log metric keys
+            (e.g., ``"train_loss"``).
+
+        Returns
+        -------
+        tuple[Tensor, dict[str, Tensor]]
+            A tuple of:
+
+            - **loss** (*Tensor*): The combined scalar loss used for
+              backpropagation.
+            - **log_metrics** (*dict[str, Tensor]*): A dictionary mapping
+              ``"{loss_label}_{function_name}"`` to the corresponding loss
+              value for logging.
+        """
+
         log_metrics: dict[str, float | Tensor] = {}
         losses = []
 
-        for _function in self.loss_functions:
+        for name, prepared in self.loss_functions.items():
 
             targets = y.clone()
             predictions = y_pred.clone()
-            function = self.loss_functions[_function]
 
-            if function.requires_argmax:
+            if prepared.requires_argmax:
                 targets = argmax(targets, dim=1).to(self.device)
                 predictions = argmax(predictions, dim=1).to(self.device)
-            if function.requires_flatten[0]:
-                targets = targets.flatten(start_dim=function.requires_flatten[1][0], end_dim=function.requires_flatten[1][1]).to(self.device)
-                predictions = predictions.flatten(start_dim=function.requires_flatten[1][0], end_dim=function.requires_flatten[1][1]).to(self.device)
+            if prepared.requires_flatten:
+                targets = targets.flatten(start_dim=prepared.flatten_dims[0], end_dim=prepared.flatten_dims[1]).to(self.device)
+                predictions = predictions.flatten(start_dim=prepared.flatten_dims[0], end_dim=prepared.flatten_dims[1]).to(self.device)
 
-            loss = function(input=predictions, target=targets)
+            loss = prepared.fn(input=predictions, target=targets)
             losses.append(loss)
-            log_metrics[loss_label + '_' + _function] = loss
+            log_metrics[loss_label + '_' + name] = loss
 
             if self.output_scaler is not None:
                 predictions = self.output_scaler.inverse_transform(predictions.clone().detach().cpu()).to(self.device)
-                if not function.requires_argmax:
+                if not prepared.requires_argmax:
                     targets = self.output_scaler.inverse_transform(targets.clone().detach().cpu()).to(self.device)
-                loss_rescaled = function(input=predictions, target=targets)
-                log_metrics[loss_label + '_' + _function] = loss_rescaled
+                loss_rescaled = prepared.fn(input=predictions, target=targets)
+                log_metrics[loss_label + '_' + name] = loss_rescaled
 
         loss = self._loss_combiner(losses)
 
@@ -223,11 +357,44 @@ class PLModel(LightningModule):
 
         return loss, log_metrics
 
-    def _loss_combiner(self, losses):
+    def _loss_combiner(self, losses: list[Tensor]) -> Tensor:
+        """Combine multiple loss values into a single scalar loss.
 
+        Currently returns the first loss only. This is a placeholder intended
+        to be extended to support weighted combinations of multiple losses in
+        a future iteration.
+
+        Parameters
+        ----------
+        losses : list[Tensor]
+            A list of scalar loss tensors, one per configured loss function.
+
+        Returns
+        -------
+        Tensor
+            The combined scalar loss.
+        """
         return losses[0]
 
-    def _update_performance(self, y: Tensor, y_pred: Tensor, split: str, perf_label: str) -> None:
+    def _update_performance(self, y: Tensor, y_pred: Tensor, split: str) -> None:
+        """Accumulate per-batch predictions and targets into metric states.
+
+        Applies inverse scaling if an ``output_scaler`` is set, then applies
+        any required argmax or flatten transformations before calling
+        ``metric.update()`` on each configured metric for the given split.
+        Metrics accumulate state across batches; call
+        :meth:`_compute_and_log_performance` at epoch end to finalize and log.
+
+        Parameters
+        ----------
+        y : Tensor
+            Ground-truth targets for the current batch.
+        y_pred : Tensor
+            Model predictions for the current batch.
+        split : str
+            The data split key (e.g., ``"trn"``, ``"val"``, ``"result_eval"``).
+        """
+
         targets = y.detach()
         predictions = y_pred.detach()
 
@@ -240,19 +407,36 @@ class PLModel(LightningModule):
             ).to(self.device)
 
         for metric_name, metric in self.metrics[split].items():
+            config = self._metric_configs[metric_name]
             t = targets.clone()
             p = predictions.clone()
 
-            if metric.requires_argmax:
+            if config.requires_argmax:
                 t = argmax(t, dim=1).to(self.device)
                 p = argmax(p, dim=1).to(self.device)
-            if metric.requires_flatten[0]:
-                t = t.flatten(start_dim=metric.requires_flatten[1][0], end_dim=metric.requires_flatten[1][1]).to(self.device)
-                p = p.flatten(start_dim=metric.requires_flatten[1][0], end_dim=metric.requires_flatten[1][1]).to(self.device)
+            if config.requires_flatten:
+                t = t.flatten(start_dim=config.flatten_dims[0], end_dim=config.flatten_dims[1]).to(self.device)
+                p = p.flatten(start_dim=config.flatten_dims[0], end_dim=config.flatten_dims[1]).to(self.device)
 
             metric.update(p, t)
 
     def _compute_and_log_performance(self, split: str, perf_label: str) -> None:
+        """Compute epoch-level metrics from accumulated state and log them.
+
+        Calls ``metric.compute()`` on each metric for the given split to
+        obtain the epoch-level aggregated value, logs all metrics via
+        :meth:`log_dict`, then resets each metric's internal state ready
+        for the next epoch.
+
+        Parameters
+        ----------
+        split : str
+            The data split key (e.g., ``"trn"``, ``"val"``, ``"result_eval"``).
+        perf_label : str
+            Prefix used when constructing log metric keys
+            (e.g., ``"train_perf_"``).
+        """
+
         log_metrics = {}
         for metric_name, metric in self.metrics[split].items():
             log_metrics[perf_label + metric_name] = metric.compute()
@@ -263,32 +447,35 @@ class PLModel(LightningModule):
     # Callbacks
     # ---------
 
-    def on_train_epoch_end(self):
-        """ Set the next training epoch number in the CustomSampler.
+    def on_train_epoch_end(self) -> None:
+        """Compute and log training metrics, then advance the sampler epoch.
 
-        This is done to manage potential stochasticity (which is connected to the epoch number).
-
+        Finalizes accumulated metric state for the ``"trn"`` split and logs
+        epoch-level results. Also advances the epoch counter in the
+        ``CustomSampler`` if present, to manage any epoch-linked stochasticity.
         """
         if self.performance_metrics is not None:
             self._compute_and_log_performance("trn", "train_perf_")
         if hasattr(self.trainer.train_dataloader.batch_sampler, 'set_epoch'):
             self.trainer.train_dataloader.batch_sampler.set_epoch(self.current_epoch+1)
 
-    def on_validation_epoch_end(self):
+    def on_validation_epoch_end(self) -> None:
+        """Compute and log validation metrics at the end of each epoch."""
         if self.performance_metrics is not None:
             self._compute_and_log_performance("val", "valid_perf_")
 
-    def on_train_epoch_start(self):
+    def on_train_epoch_start(self) -> None:
         """ Reset the model internal states for new training epoch."""
         if hasattr(self.model, 'force_reset'):
             self.model.force_reset()
 
-    def on_validation_epoch_start(self):
+    def on_validation_epoch_start(self) -> None:
         """ Reset the model internal states for new validation epoch."""
         if hasattr(self.model, 'force_reset'):
             self.model.force_reset()
 
-    def on_test_epoch_end(self):
+    def on_test_epoch_end(self) -> None:
+        """Compute and log test metrics for all result splits at epoch end."""
         if self.performance_metrics is not None:
             for split, label in [
                 ("result_train", "result_train_perf_"),
@@ -297,14 +484,28 @@ class PLModel(LightningModule):
             ]:
                 self._compute_and_log_performance(split, label)
 
-    def on_test_epoch_start(self):
+    def on_test_epoch_start(self) -> None:
         """ Reset the model internal states for new validation epoch."""
         if hasattr(self.model, 'force_reset'):
             self.model.force_reset()
 
-    def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Update model internal states if applicable. Also hard sets the internal states to the
-        final prediction point in the batch in case of variable length inputs."""
+    def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0) -> None:
+        """Update and optionally reset model internal states at the start of each test batch.
+
+        Resets internal states on the first batch of each dataloader. Updates
+        recurrent or stateful model internals and hard-sets states to the final
+        prediction point in the batch if applicable.
+
+        Parameters
+        ----------
+        batch : dict[str, Any]
+            The current batch dictionary.
+        batch_idx : int
+            Index of the current batch.
+        dataloader_idx : int, optional
+            Index of the current dataloader. Default is ``0``.
+        """
+
         if batch_idx == 0:
             if hasattr(self.model, 'force_reset'):
                 self.model.force_reset()
@@ -313,7 +514,7 @@ class PLModel(LightningModule):
         if hasattr(self.model, 'hard_set_states'):
             self.model.hard_set_states(batch['ist_idx'][-1])
 
-    def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+    def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0) -> None:
         """ Update model internal states if applicable. Also hard sets the internal states to the
         final prediction point in the batch in case of variable length inputs."""
         if hasattr(self.model, 'update_states'):
@@ -321,7 +522,7 @@ class PLModel(LightningModule):
         if hasattr(self.model, 'hard_set_states'):
             self.model.hard_set_states(batch['ist_idx'][-1])
 
-    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx=0):
+    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx=0) -> None:
         """ Update model internal states if applicable. Also hard sets the internal states to the
         final prediction point in the batch in case of variable length inputs."""
         if hasattr(self.model, 'update_states'):
@@ -329,7 +530,7 @@ class PLModel(LightningModule):
         if hasattr(self.model, 'hard_set_states'):
             self.model.hard_set_states(batch['ist_idx'][-1])
 
-    def on_predict_batch_start(self, batch, batch_idx, dataloader_idx=0):
+    def on_predict_batch_start(self, batch, batch_idx, dataloader_idx=0) -> None:
         """ Update model internal states if applicable. Also hard sets the internal states to the
         final prediction point in the batch in case of variable length inputs."""
         if hasattr(self.model, 'update_states'):
