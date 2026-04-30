@@ -15,18 +15,23 @@ https://lightning.ai/docs/pytorch/stable/common/lightning_module.html
 from __future__ import annotations
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
 __licence__ = 'Apache 2.0; see LICENSE file for details.'
-__author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com"
+__author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com, moutoncoenraad@gmail.com"
 __description__ = "Constructs a Pytorch Lightning model class."
 
-from typing import TYPE_CHECKING, Any, Callable
+# standard library imports
+import copy
+from typing import TYPE_CHECKING, Any
 
-import pytorch_lightning as pl
+# external imports
+from pytorch_lightning import LightningModule
 from torch import argmax
+from torch import nn
 
+# internal imports
 from helpers.fetch_torch_mods import (
     get_lr_scheduler,
     get_optim,
-    prepare_function,
+    prepare_functions,
 )
 from helpers.logger import get_logger
 
@@ -36,100 +41,8 @@ if TYPE_CHECKING:
 
 logger = get_logger()
 
-class PLModel(pl.LightningModule):
-    """Wrapper class to prepare model for Pytorch Lightning's Trainer.
 
-    The class initializes a Pytorch model and defines the training,
-    validation, and test steps over a batch. The optimizer configuration is
-    also set inside this class. This is required for Pytorch Lightning's
-    Trainer.
-
-    Parameters
-    ----------
-    loss : str, dict[str, Any]
-        The loss function to be used during training. The string must match the
-        name in Pytorch's functional library. See:
-        https://pytorch.org/docs/stable/nn.functional.html#loss-functions
-
-    learning_rate : float
-        The learning rate to be used during training.
-
-    optimizer : str | dict[str, Any]
-        The optimizer to be used during training. The string must match the
-        name in Pytorch's optimizer library. See:
-        https://pytorch.org/docs/stable/nn.functional.html#loss-functions
-
-    learning_rate_scheduler : None | str | dict[str, Any], default=None
-        The learning rate scheduler to be used during training. If not None, a
-        dictionary must be given of the form
-
-            ``{scheduler: scheduler_kwargs}``
-
-        where
-            scheduler:  A string that specifies the Pytorch scheduler to be
-            used. Must match names found here:
-            https://pytorch.org/docs/stable/optim.html#module-torch.optim.lr_scheduler
-
-            scheduler_kwargs: A dictionary of kwargs required for 'scheduler'.
-
-    performance_metrics : None | str | dict[str, Any], default=None
-        Performance metrics to be logged during training. If type=dict, then
-        the dictionary must be given of the form
-
-            ``{metric: metric_kwargs}``
-
-        where
-            metric: A string that specifies the TORCHMETRICS metric to be
-            used. Must match the functional interface names found here:
-            https://lightning.ai/docs/torchmetrics/stable/
-
-            metric_kwargs: A dictionary of kwargs required for 'metric'.
-
-    model : Module
-        An unitialized Pytorch model class defined in the user's model direc-
-        tory.
-
-    model_params : dict[str, Any]
-        The parameters needed to instantiate the above Pytorch model class.
-
-    output_scaler : None | object, default=None
-        The scaling object to rescale the model outputs to original ranges (if applicable)
-        during performance calculations. Must have an appropriate `inverse_transform` function.
-        If None, no rescaling is performed. Note, only applicable to logged metrics,
-        gradients are still calculated with scaled outputs (if applicable).
-
-
-    Attributes
-    ----------
-    loss : str, dict[str, Any]
-        Stores the name of the loss function to be used during training and any
-        additional kwargs if needed.
-
-    lr : float
-        Stores the value of the learning rate to be used during training.
-
-    lr_scheduler : None | str | dict[str, Any]
-        Stores the name of the learning rate scheduler to be used during
-        training and any additional kwargs if needed.
-
-    optimizer : str | dict[str, Any]
-        Stores the name of the optimizer to be used during training and any
-        additional kwargs if needed.
-
-    performance_metrics : None | str | dict[str, Any], default=None
-        Stores the name of the performance metric(s) to be used during training
-        and any additional kwargs if needed.
-
-    output_scaler : None | object, default=None
-        The scaling object to rescale the model outputs to original ranges (if applicable)
-        during performance calculations. Must have an appropriate `inverse_transform` function.
-        If None, no rescaling is performed. Note, only applicable to logged metrics,
-        gradients are still calculated with scaled outputs (if applicable).
-
-    model : Module
-        An initialized Pytorch model.
-
-    """
+class PLModel(LightningModule):
 
     def __init__(
         self,
@@ -142,237 +55,114 @@ class PLModel(pl.LightningModule):
         model_params: dict[str, Any],
         output_scaler: None | object = None
     ) -> None:
+        """Initialize the PLModel.
+
+        Parameters
+        ----------
+        loss : str | dict[str, Any]
+            Loss function name or a dictionary mapping a loss function name to
+            its kwargs, as specified in ``torch.nn.functional``.
+        learning_rate : float
+            Learning rate passed to the optimizer.
+        optimizer : str | dict[str, Any]
+            Optimizer name or a dictionary mapping an optimizer name to its
+            kwargs, as specified in ``torch.optim``.
+        learning_rate_scheduler : None | str | dict[str, Any]
+            Learning rate scheduler name or a dictionary mapping a scheduler
+            name to its kwargs, as specified in
+            ``torch.optim.lr_scheduler``. Pass ``None`` to disable.
+        performance_metrics : None | str | dict[str, Any]
+            Performance metric name or a dictionary mapping metric names to
+            their kwargs, as specified in ``torchmetrics``. Pass ``None`` to
+            disable performance metric tracking.
+        model : Module
+            Uninitialised PyTorch model class.
+        model_params : dict[str, Any]
+            Keyword arguments forwarded to ``model`` at construction time.
+        output_scaler : None | object, optional
+            A fitted scaler with an ``inverse_transform`` method.
+            When provided, predictions and targets are
+            inverse-transformed before loss and metric computation.
+            Default is ``None``.
+        """
+
         super().__init__()
 
-        self.loss = loss
         self.lr = learning_rate
         self.lr_scheduler = learning_rate_scheduler
         self.optimizer = optimizer
         self.performance_metrics = performance_metrics
         self.output_scaler = output_scaler
 
-        self.model = self._build_model(model, model_params)
+        self.model = model(**model_params)
+        self.loss_functions = prepare_functions(user_args=loss, is_loss=True)
+
+        if self.performance_metrics is not None:
+            self._metric_configs, self.metrics = self._make_metrics()
 
         self.save_hyperparameters(ignore=['model'])
 
-    def on_train_epoch_end(self):
-        """ Set the next training epoch number in the CustomSampler.
+    # ----------------------------
+    # Initial construction methods
+    # ----------------------------
 
-        This is done to manage potential stochasticity (which is connected to the epoch number).
+    def _make_metrics(self) -> tuple[dict, nn.ModuleDict]:
+        """Build metric configs and per-split metric module dicts.
 
-        """
-        if hasattr(self.trainer.train_dataloader.batch_sampler, 'set_epoch'):
-            self.trainer.train_dataloader.batch_sampler.set_epoch(self.current_epoch+1)
+        Calls ``prepare_functions`` once to obtain :class:`PreparedFunction`
+        instances, stores their configs for later use during stepping, and
+        creates independent deep-copied metric instances for each data split
+        to ensure per-split state isolation.
 
-    def on_train_epoch_start(self):
-        """ Reset the model internal states for new training epoch."""
-        if hasattr(self.model, 'force_reset'):
-            self.model.force_reset()
+        Returns
+        -------
+        tuple[dict, nn.ModuleDict]
+            A tuple of:
 
-    def on_validation_epoch_start(self):
-        """ Reset the model internal states for new validation epoch."""
-        if hasattr(self.model, 'force_reset'):
-            self.model.force_reset()
-
-    def on_test_epoch_start(self):
-        """ Reset the model internal states for new validation epoch."""
-        if hasattr(self.model, 'force_reset'):
-            self.model.force_reset()
-
-    def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Update model internal states if applicable. Also hard sets the internal states to the
-        final prediction point in the batch in case of variable length inputs."""
-        if batch_idx == 0:
-            if hasattr(self.model, 'force_reset'):
-                self.model.force_reset()
-        if hasattr(self.model, 'update_states'):
-            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
-        if hasattr(self.model, 'hard_set_states'):
-            self.model.hard_set_states(batch['ist_idx'][-1])
-
-    def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Update model internal states if applicable. Also hard sets the internal states to the
-        final prediction point in the batch in case of variable length inputs."""
-        if hasattr(self.model, 'update_states'):
-            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
-        if hasattr(self.model, 'hard_set_states'):
-            self.model.hard_set_states(batch['ist_idx'][-1])
-
-    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Update model internal states if applicable. Also hard sets the internal states to the
-        final prediction point in the batch in case of variable length inputs."""
-        if hasattr(self.model, 'update_states'):
-            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
-        if hasattr(self.model, 'hard_set_states'):
-            self.model.hard_set_states(batch['ist_idx'][-1])
-
-    def on_predict_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """ Update model internal states if applicable. Also hard sets the internal states to the
-        final prediction point in the batch in case of variable length inputs."""
-        if hasattr(self.model, 'update_states'):
-            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
-        if hasattr(self.model, 'hard_set_states'):
-            self.model.hard_set_states(batch['ist_idx'][-1])
-
-    def training_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
-        """Compute loss and optional metrics, log metrics, and return the loss.
-
-        Overrides the method in pl.LightningModule.
-        """
-        forward = getattr(self.model, "forward")  # noqa: B009
-        y_pred = forward(batch['x'])
-
-        # compute loss; depends on whether user gave kwargs
-        loss, loss_log_metrics = self._compute_loss(
-            y=batch['y'],
-            y_pred=y_pred,
-            loss_label="train_loss",
-        )
-
-        # compute performance; depends on whether user gave kwargs
-        if self.performance_metrics is None:
-            perf_log_metrics = {}
-        else:
-            perf_log_metrics = self._compute_performance(
-                y=batch['y'],
-                y_pred=y_pred,
-                perf_label="train_perf_",
-            )
-
-        log_metrics = {
-            **loss_log_metrics,
-            **perf_log_metrics,
-        }
-        log_metrics['epoch'] = float(self.current_epoch)
-
-        # The loss and performance is accumulated over an epoch and then
-        # averaged.
-        self.log_dict(  # type: ignore[type]
-            dictionary=log_metrics,
-            on_epoch=True,
-            on_step=False,
-            prog_bar=True,
-        )
-
-        return loss
-
-    def validation_step(self, batch: dict[str, Any], batch_idx: int):  # type: ignore[return-value]  # noqa: ANN201, ARG002
-        """Compute loss and optional metrics, log metrics, and return the loss.
-
-        Overrides the method in pl.LightningModule.
+            - **configs** (*dict*): Maps metric names to their
+              :class:`PreparedFunction` instances, used to look up
+              ``requires_argmax`` and ``requires_flatten`` during stepping.
+            - **metrics** (*nn.ModuleDict*): A nested ``ModuleDict`` keyed
+              first by split name and then by metric name, each holding an
+              independent torchmetrics metric instance.
         """
 
-        forward = getattr(self.model, "forward")  # noqa: B009
-        y_pred = forward(batch['x'])
-
-        # compute loss; depends on whether user gave kwargs
-        loss, loss_log_metrics = self._compute_loss(
-            y=batch['y'],
-            y_pred=y_pred,
-            loss_label="valid_loss",
-        )
-
-        # compute performance; depends on whether user gave kwargs
-        if self.performance_metrics is None:
-            perf_log_metrics = {}
-        else:
-            perf_log_metrics = self._compute_performance(
-                y=batch['y'],
-                y_pred=y_pred,
-                perf_label="valid_perf_",
-            )
-
-        log_metrics = {
-            **loss_log_metrics,
-            **perf_log_metrics,
-        }
-        log_metrics['epoch'] = float(self.current_epoch)
-
-        # The loss and performance is accumulated over an epoch and then
-        # averaged.
-        self.log_dict(  # type: ignore[type]
-            dictionary=log_metrics,
-            on_epoch=True,
-            on_step=False,
-            prog_bar=True,
-        )
-
-        return loss
-
-    def test_step(  # type: ignore[return-value]  # noqa: ANN201
-        self,
-        batch: dict[str, Any],
-        batch_idx: int,  # noqa: ARG002
-        dataloader_idx: int,
-    ):
-        """Compute loss and optional metrics, log metrics and return the log.
-
-        Overrides the method in pl.LightningModule.
-        """
-        loaders = {
-            0: "result_train_",
-            1: "result_valid_",
-            2: "result_eval_",
-        }
-        current_loader = loaders[dataloader_idx]
-
-        forward = getattr(self.model, "forward")  # noqa: B009
-        y_pred = forward(batch['x'])
-
-        # compute loss; depends on whether user gave kwargs
-        _, loss_log_metrics = self._compute_loss(
-            y=batch['y'],
-            y_pred=y_pred,
-            loss_label=current_loader + "loss",
-        )
-
-        # compute performance; depends on whether user gave kwargs
-        if self.performance_metrics is None:
-            perf_log_metrics = {}
-        else:
-            perf_log_metrics = self._compute_performance(
-                y=batch['y'],
-                y_pred=y_pred,
-                perf_label=current_loader + "perf_",
-            )
-
-        log_metrics = {
-            **loss_log_metrics,
-            **perf_log_metrics,
-        }
-
-        # The loss and performance is accumulated over an epoch and then
-        # averaged.
-        self.log_dict(  # type: ignore[type]
-            dictionary=log_metrics,
-            on_epoch=True,
-            on_step=False,
-            prog_bar=True,
-            logger=True,
-            add_dataloader_idx=False,
-        )
-
-        return log_metrics
+        prepared = prepare_functions(self.performance_metrics, is_loss=False)
+        configs = {name: pf for name, pf in prepared.items()}
+        metrics = nn.ModuleDict({
+            split: nn.ModuleDict({name: copy.deepcopy(pf.fn) for name, pf in prepared.items()})
+            for split in ("trn", "val", "result_train", "result_valid", "result_eval")
+        })
+        return configs, metrics
 
     def configure_optimizers(self) -> dict[str, Any]:
         """Return configured optimizer and optional learning rate scheduler.
 
-        Overrides the method in pl.LightningModule.
+        Overrides :meth:`pytorch_lightning.LightningModule.configure_optimizers`.
+
+        Returns
+        -------
+        dict[str, Any]
+            A dictionary with an ``"optimizer"`` key and, if a learning rate
+            scheduler is configured, an ``"lr_scheduler"`` key.
         """
-        if self.optimizer:
-            if isinstance(self.optimizer, dict):
-                for optim in self.optimizer:
-                    opt_kwargs = self.optimizer[optim]
-                    optimizer = get_optim(optim)(
-                        params=self.model.parameters(),
-                        lr=self.lr,
-                        **opt_kwargs,
-                    )
-            else:
-                optimizer = get_optim(self.optimizer)(
+
+        if not self.optimizer:
+            logger.error("No optimizer specified. Cannot configure optimizers.")
+            exit(101)
+
+        if isinstance(self.optimizer, dict):
+            for optim_name, opt_kwargs in self.optimizer.items():
+                optimizer = get_optim(optim_name)(
                     params=self.model.parameters(),
                     lr=self.lr,
+                    **opt_kwargs,
                 )
+        else:
+            optimizer = get_optim(self.optimizer)(
+                params=self.model.parameters(),
+                lr=self.lr,
+            )
 
         if self.lr_scheduler:
             if isinstance(self.lr_scheduler, dict):
@@ -392,77 +182,171 @@ class PLModel(pl.LightningModule):
             return {"optimizer": optimizer, "lr_scheduler": scheduler}
         return {"optimizer": optimizer}
 
-    def _build_model(self, model: Module, model_params: dict[str, Any]) -> type:
-        """Instantiate a Pytorch model with the given model parameters.
+    # -----------------------
+    # Main stepping functions
+    # -----------------------
+
+    def training_step(self, batch: dict[str, Any], batch_idx: int) -> Tensor:
+        """Perform a single training step.
 
         Parameters
         ----------
-        model : Module
-            An unitialized Pytorch model class defined in a user's model
-            directory.
-
-        model_params : dict[str, Any]
-            The parameters needed to instantiate the above Pytorch model
-            class.
+        batch : dict[str, Any]
+            A dictionary containing at least ``"x"`` (model inputs) and
+            ``"y"`` (targets).
+        batch_idx : int
+            Index of the current batch.
 
         Returns
         -------
-        type
-            A Pytorch model object.
-
+        Tensor
+            The combined training loss for the current batch.
         """
-        return model(**model_params)
+        y_pred = self.model.forward(batch['x'])
 
-    def _compute_loss(
-        self,
-        y: float | Tensor,
-        y_pred: float | Tensor,
-        loss_label: str,
-    ) -> tuple[float | Tensor, dict[str, float | Tensor]]:
-        """Return the loss and the metrics log.
+        loss, loss_log_metrics = self._compute_loss(
+            y=batch['y'], y_pred=y_pred, loss_label="train_loss"
+        )
+
+        if self.performance_metrics is not None:
+            self._update_performance(batch['y'], y_pred, split="trn")
+
+        loss_log_metrics['epoch'] = float(self.current_epoch)
+        self.log_dict(loss_log_metrics, on_epoch=True, on_step=False, prog_bar=True)
+        return loss
+
+    def validation_step(self, batch: dict[str, Any], batch_idx: int) -> Tensor:
+        """Perform a single validation step.
 
         Parameters
         ----------
-        y : float | Tensor
-            The target value from a set of training pairs.
+        batch : dict[str, Any]
+            A dictionary containing at least ``"x"`` (model inputs) and
+            ``"y"`` (targets).
+        batch_idx : int
+            Index of the current batch.
 
-        y_pred : float | Tensor
-            The model's prediction.
+        Returns
+        -------
+        Tensor
+            The combined validation loss for the current batch.
+        """
+        y_pred = self.model.forward(batch['x'])
 
+        loss, loss_log_metrics = self._compute_loss(
+            y=batch['y'], y_pred=y_pred, loss_label="valid_loss"
+        )
+
+        if self.performance_metrics is not None:
+            self._update_performance(batch['y'], y_pred, split="val")
+
+        loss_log_metrics['epoch'] = float(self.current_epoch)
+        self.log_dict(loss_log_metrics, on_epoch=True, on_step=False, prog_bar=True)
+        return loss
+
+    def test_step(self, batch: dict[str, Any], batch_idx: int, dataloader_idx: int) -> dict[str, Tensor]:
+        """Perform a single test step.
+
+        Parameters
+        ----------
+        batch : dict[str, Any]
+            A dictionary containing at least ``"x"`` (model inputs) and
+            ``"y"`` (targets).
+        batch_idx : int
+            Index of the current batch.
+        dataloader_idx : int
+            Index of the current dataloader. ``0`` corresponds to the training
+            set, ``1`` to the validation set, and ``2`` to the evaluation set.
+
+        Returns
+        -------
+        dict[str, Tensor]
+            A dictionary of logged loss metrics for the current batch.
+        """
+        loaders = {0: "result_train_", 1: "result_valid_", 2: "result_eval_"}
+        splits = {0: "result_train", 1: "result_valid", 2: "result_eval"}
+        current_loader = loaders[dataloader_idx]
+        current_split = splits[dataloader_idx]
+
+        y_pred = self.model.forward(batch['x'])
+
+        _, loss_log_metrics = self._compute_loss(
+            y=batch['y'], y_pred=y_pred, loss_label=current_loader + "loss"
+        )
+
+        if self.performance_metrics is not None:
+            self._update_performance(batch['y'], y_pred, split=current_split)
+
+        self.log_dict(
+            loss_log_metrics,
+            on_epoch=True, on_step=False, prog_bar=True,
+            logger=True, add_dataloader_idx=False,
+        )
+        return loss_log_metrics
+
+    # -------------------------------
+    # Performance measuring functions
+    # -------------------------------
+
+    def _compute_loss(self, y: float | Tensor, y_pred: float | Tensor, loss_label: str) -> tuple[float | Tensor, dict[str, float | Tensor]]:
+
+        """Compute the loss over all configured loss functions for a single batch.
+
+        Applies any required argmax or flatten transformations to the predictions
+        and targets before computing each loss. If an ``output_scaler`` is set,
+        the loss is also computed on inverse-transformed outputs and overwrites
+        the original loss in the log. The final combined loss is produced by
+        :meth:`_loss_combiner`.
+
+        Parameters
+        ----------
+        y : Tensor
+            Ground-truth targets for the current batch.
+        y_pred : Tensor
+            Model predictions for the current batch.
         loss_label : str
-            Name to be used for labeling purposes.
+            Prefix used when constructing log metric keys
+            (e.g., ``"train_loss"``).
 
         Returns
         -------
-        tuple
-            The computed loss between y and y_pred and the dictionary that
-            logs the loss.
+        tuple[Tensor, dict[str, Tensor]]
+            A tuple of:
 
+            - **loss** (*Tensor*): The combined scalar loss used for
+              backpropagation.
+            - **log_metrics** (*dict[str, Tensor]*): A dictionary mapping
+              ``"{loss_label}_{function_name}"`` to the corresponding loss
+              value for logging.
         """
+
         log_metrics: dict[str, float | Tensor] = {}
-        loss = None
+        losses = []
 
-        # set up loss function once
-        if not hasattr(self, "loss_functions"):
-            self.loss_functions = prepare_function(user_args=self.loss, is_loss=True)
+        for name, prepared in self.loss_functions.items():
 
-        for _function in self.loss_functions:
-            function, to_argmax, to_flatten = self.loss_functions[_function]
-            if to_argmax:
-                y = argmax(y, dim=1).to(self.device)
-            if to_flatten[0]:
-                y = y.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
-                y_pred = y_pred.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
-            loss = function(input=y_pred, target=y)
-            log_metrics[loss_label] = loss
+            targets = y.clone()
+            predictions = y_pred.clone()
+
+            if prepared.requires_argmax:
+                targets = argmax(targets, dim=1).to(self.device)
+                predictions = argmax(predictions, dim=1).to(self.device)
+            if prepared.requires_flatten:
+                targets = targets.flatten(start_dim=prepared.flatten_dims[0], end_dim=prepared.flatten_dims[1]).to(self.device)
+                predictions = predictions.flatten(start_dim=prepared.flatten_dims[0], end_dim=prepared.flatten_dims[1]).to(self.device)
+
+            loss = prepared.fn(input=predictions, target=targets)
+            losses.append(loss)
+            log_metrics[loss_label + '_' + name] = loss
 
             if self.output_scaler is not None:
-                y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
-                if not to_argmax:
-                    y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
-                loss_rescaled = function(input=y_pred, target=y)
-                log_metrics[loss_label] = loss_rescaled
+                predictions = self.output_scaler.inverse_transform(predictions.clone().detach().cpu()).to(self.device)
+                if not prepared.requires_argmax:
+                    targets = self.output_scaler.inverse_transform(targets.clone().detach().cpu()).to(self.device)
+                loss_rescaled = prepared.fn(input=predictions, target=targets)
+                log_metrics[loss_label + '_' + name] = loss_rescaled
 
+        loss = self._loss_combiner(losses)
 
         if loss is None:
             logger.error(
@@ -473,60 +357,186 @@ class PLModel(pl.LightningModule):
 
         return loss, log_metrics
 
-    def _compute_performance(
-        self,
-        y: float | Tensor,
-        y_pred: float | Tensor,
-        perf_label: str,
-    ) -> dict[str, float | Tensor]:
-        """Return the performance scores(s) and the metrics log.
+    def _loss_combiner(self, losses: list[Tensor]) -> Tensor:
+        """Combine multiple loss values into a single scalar loss.
+
+        Currently returns the first loss only. This is a placeholder intended
+        to be extended to support weighted combinations of multiple losses in
+        a future iteration.
 
         Parameters
         ----------
-        y : float | tensor
-            The target value from a set of training pairs.
-
-        y_pred : float | tensor
-            The model's prediction.
-
-        perf_label : str
-            Name to be used for labeling purposes.
+        losses : list[Tensor]
+            A list of scalar loss tensors, one per configured loss function.
 
         Returns
         -------
-        tuple
-            The computed score between y and y_pred and the dictionary that
-            logs the performance score.
-
+        Tensor
+            The combined scalar loss.
         """
-        log_metrics: dict[str, float | Tensor] = {}
-        if self.performance_metrics is None:
-            logger.error(
-                "Something went wrong when trying to compute the performance\
- metric(s).",
-            )
-            e_msg = "Performance metrics cannot be of NoneType here."
-            raise TypeError(e_msg)
+        return losses[0]
 
-        # set up performance functions once
-        if not hasattr(self, "perf_functions"):
-            self.perf_functions = prepare_function( user_args=self.performance_metrics, is_loss=False)
+    def _update_performance(self, y: Tensor, y_pred: Tensor, split: str) -> None:
+        """Accumulate per-batch predictions and targets into metric states.
 
-        for _function in self.perf_functions:
-            function, to_argmax, to_flatten = self.perf_functions[_function]
-            if self.output_scaler is not None:
-                y_pred = self.output_scaler.inverse_transform(y_pred.clone().detach().cpu()).to(self.device)
-                y = self.output_scaler.inverse_transform(y.clone().detach().cpu()).to(self.device)
-            if to_argmax:
-                y = argmax(y, dim=1).to(self.device)
-            if to_flatten[0]:
-                y = y.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
-                y_pred = y_pred.flatten(start_dim=to_flatten[1][0], end_dim=to_flatten[1][1]).to(self.device)
-            val = function(preds=y_pred, target=y)
-            log_metrics[perf_label + _function] = val
+        Applies inverse scaling if an ``output_scaler`` is set, then applies
+        any required argmax or flatten transformations before calling
+        ``metric.update()`` on each configured metric for the given split.
+        Metrics accumulate state across batches; call
+        :meth:`_compute_and_log_performance` at epoch end to finalize and log.
 
+        Parameters
+        ----------
+        y : Tensor
+            Ground-truth targets for the current batch.
+        y_pred : Tensor
+            Model predictions for the current batch.
+        split : str
+            The data split key (e.g., ``"trn"``, ``"val"``, ``"result_eval"``).
+        """
 
-        return log_metrics
+        targets = y.detach()
+        predictions = y_pred.detach()
+
+        if self.output_scaler is not None:
+            predictions = self.output_scaler.inverse_transform(
+                predictions.clone().cpu()
+            ).to(self.device)
+            targets = self.output_scaler.inverse_transform(
+                targets.clone().cpu()
+            ).to(self.device)
+
+        for metric_name, metric in self.metrics[split].items():
+            config = self._metric_configs[metric_name]
+            t = targets.clone()
+            p = predictions.clone()
+
+            if config.requires_argmax:
+                t = argmax(t, dim=1).to(self.device)
+                p = argmax(p, dim=1).to(self.device)
+            if config.requires_flatten:
+                t = t.flatten(start_dim=config.flatten_dims[0], end_dim=config.flatten_dims[1]).to(self.device)
+                p = p.flatten(start_dim=config.flatten_dims[0], end_dim=config.flatten_dims[1]).to(self.device)
+
+            metric.update(p, t)
+
+    def _compute_and_log_performance(self, split: str, perf_label: str) -> None:
+        """Compute epoch-level metrics from accumulated state and log them.
+
+        Calls ``metric.compute()`` on each metric for the given split to
+        obtain the epoch-level aggregated value, logs all metrics via
+        :meth:`log_dict`, then resets each metric's internal state ready
+        for the next epoch.
+
+        Parameters
+        ----------
+        split : str
+            The data split key (e.g., ``"trn"``, ``"val"``, ``"result_eval"``).
+        perf_label : str
+            Prefix used when constructing log metric keys
+            (e.g., ``"train_perf_"``).
+        """
+
+        log_metrics = {}
+        for metric_name, metric in self.metrics[split].items():
+            log_metrics[perf_label + metric_name] = metric.compute()
+            metric.reset()
+        self.log_dict(log_metrics, prog_bar=True)
+
+    # ---------
+    # Callbacks
+    # ---------
+
+    def on_train_epoch_end(self) -> None:
+        """Compute and log training metrics, then advance the sampler epoch.
+
+        Finalizes accumulated metric state for the ``"trn"`` split and logs
+        epoch-level results. Also advances the epoch counter in the
+        ``CustomSampler`` if present, to manage any epoch-linked stochasticity.
+        """
+        if self.performance_metrics is not None:
+            self._compute_and_log_performance("trn", "train_perf_")
+        if hasattr(self.trainer.train_dataloader.batch_sampler, 'set_epoch'):
+            self.trainer.train_dataloader.batch_sampler.set_epoch(self.current_epoch+1)
+
+    def on_validation_epoch_end(self) -> None:
+        """Compute and log validation metrics at the end of each epoch."""
+        if self.performance_metrics is not None:
+            self._compute_and_log_performance("val", "valid_perf_")
+
+    def on_train_epoch_start(self) -> None:
+        """ Reset the model internal states for new training epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+
+    def on_validation_epoch_start(self) -> None:
+        """ Reset the model internal states for new validation epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+
+    def on_test_epoch_end(self) -> None:
+        """Compute and log test metrics for all result splits at epoch end."""
+        if self.performance_metrics is not None:
+            for split, label in [
+                ("result_train", "result_train_perf_"),
+                ("result_valid", "result_valid_perf_"),
+                ("result_eval", "result_eval_perf_"),
+            ]:
+                self._compute_and_log_performance(split, label)
+
+    def on_test_epoch_start(self) -> None:
+        """ Reset the model internal states for new validation epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+
+    def on_test_batch_start(self, batch, batch_idx, dataloader_idx=0) -> None:
+        """Update and optionally reset model internal states at the start of each test batch.
+
+        Resets internal states on the first batch of each dataloader. Updates
+        recurrent or stateful model internals and hard-sets states to the final
+        prediction point in the batch if applicable.
+
+        Parameters
+        ----------
+        batch : dict[str, Any]
+            The current batch dictionary.
+        batch_idx : int
+            Index of the current batch.
+        dataloader_idx : int, optional
+            Index of the current dataloader. Default is ``0``.
+        """
+
+        if batch_idx == 0:
+            if hasattr(self.model, 'force_reset'):
+                self.model.force_reset()
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
+
+    def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0) -> None:
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
+
+    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx=0) -> None:
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
+
+    def on_predict_batch_start(self, batch, batch_idx, dataloader_idx=0) -> None:
+        """ Update model internal states if applicable. Also hard sets the internal states to the
+        final prediction point in the batch in case of variable length inputs."""
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
 
 
 class PLModel_custom(PLModel):
