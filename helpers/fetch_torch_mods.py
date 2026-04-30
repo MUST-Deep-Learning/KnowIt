@@ -20,8 +20,25 @@ from pandas import read_csv
 from helpers.logger import get_logger
 logger = get_logger()
 
+# ARGMAX_METRICS and FLATTEN_METRICS define which metrics require special tensor transformations
+# before being passed to the metric function. When adding new entries, keep the following in mind:
+#
+# 1. Always add both the PascalCase OO name (e.g., "F1Score") and the snake_case functional
+#    equivalent (e.g., "f1_score") as separate explicit entries. The case-insensitive fallback
+#    lookup will handle arbitrary casing variants (e.g., "f1score"), but it cannot bridge
+#    the underscore gap between "f1score" and "f1_score".
+#
+# 2. For FLATTEN_METRICS, each entry maps a metric name to a (start_dim, end_dim) tuple
+#    indicating which dimensions to flatten via Tensor.flatten().
+#
+# 3. Be cautious with metrics whose OO and functional names do not follow the standard
+#    snake_case <-> PascalCase convention (e.g., "AUROC" vs "auroc"). These may require
+#    additional explicit entries or a custom mapping in _build_fn.
+#
+# See https://lightning.ai/docs/torchmetrics/stable/ for a full list of available metrics.
+
 ARGMAX_METRICS = {"Accuracy", "Precision", "Recall", "F1Score", "AUROC", "accuracy", "f1_score", "precision", "recall"}
-FLATTEN_METRICS = {"R2Score": (0, 1)}
+FLATTEN_METRICS = {"R2Score": (0, 1), "r2_score": (0, 1)}
 
 @dataclass
 class PreparedFunction:
@@ -146,6 +163,11 @@ def _build_fn(name: str, kwargs: dict, is_loss: bool) -> Any:
     these functions accept their arguments at call time rather than construction
     time. Torchmetrics classes are instantiated with ``**kwargs``.
 
+    If the metric name is not found directly on ``torchmetrics``, a second
+    attempt is made using the PascalCase translation of the name, to support
+    users who specify metrics using the ``torchmetrics.functional``
+    snake_case naming convention.
+
     Parameters
     ----------
     name : str
@@ -166,7 +188,20 @@ def _build_fn(name: str, kwargs: dict, is_loss: bool) -> Any:
     if is_loss:
         fn = getattr(F, name)
         return functools.partial(fn, **kwargs) if kwargs else fn
-    return getattr(torchmetrics, name)(**kwargs)
+
+    if hasattr(torchmetrics, name):
+        return getattr(torchmetrics, name)(**kwargs)
+
+    pascal_name = _to_pascal_case(name)
+    if hasattr(torchmetrics, pascal_name):
+        logger.warning(
+            f"Metric '{name}' not found in torchmetrics. "
+            f"Falling back to '{pascal_name}'."
+        )
+        return getattr(torchmetrics, pascal_name)(**kwargs)
+
+    logger.error(f"Metric '{name}' could not be resolved in torchmetrics.")
+    exit(101)
 
 
 def _wrap(name: str, fn: Any) -> PreparedFunction:
@@ -192,6 +227,22 @@ def _wrap(name: str, fn: Any) -> PreparedFunction:
         requires_flatten=_requires_flatten,
         flatten_dims=_flatten_dims,
     )
+
+
+def _to_pascal_case(name: str) -> str:
+    """Convert a snake_case string to PascalCase.
+
+    Parameters
+    ----------
+    name : str
+        A snake_case string (e.g., ``"mean_absolute_percentage_error"``).
+
+    Returns
+    -------
+    str
+        The PascalCase equivalent (e.g., ``"MeanAbsolutePercentageError"``).
+    """
+    return "".join(word.capitalize() for word in name.split("_"))
 
 
 def requires_argmax(metric: str) -> bool:
