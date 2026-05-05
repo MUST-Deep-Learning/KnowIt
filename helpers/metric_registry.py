@@ -29,12 +29,8 @@ Available pre-transforms (see ``metric_adapter.py`` for implementations):
                                 preds must keep their full distribution (e.g.
                                 AUROC).
     ``"to_float"``            — cast both tensors to ``torch.float32``.
-    ``"to_long"``             — cast targets to ``torch.int64`` (preds
-                                unchanged).
     ``"flatten_01"``          — flatten dims 0–1 (batch × time → samples).
     ``"softmax_preds"``       — apply softmax over dim=1 to predictions only.
-    ``"log_softmax_preds"``   — apply log-softmax over dim=1 to predictions
-                                only.
     ``"squeeze_last"``        — remove trailing size-1 dimensions.
 
 Notes
@@ -60,6 +56,11 @@ Notes
 """
 
 from __future__ import annotations
+
+__copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
+__licence__ = 'Apache 2.0; see LICENSE file for details.'
+__author__ = "tiantheunissen@gmail.com"
+__description__ = "Contains a registry of metric configurations."
 
 from dataclasses import dataclass, field
 

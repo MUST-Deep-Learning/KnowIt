@@ -37,7 +37,7 @@ from __future__ import annotations
 
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
 __licence__ = 'Apache 2.0; see LICENSE file for details.'
-__author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com"
+__author__ = "tiantheunissen@gmail.com"
 __description__ = "MetricAdapter: couples predictions/targets to metric functions."
 
 import functools
@@ -69,11 +69,6 @@ def _to_float(preds: torch.Tensor, targets: torch.Tensor) -> tuple[torch.Tensor,
     return preds.float(), targets.float()
 
 
-def _to_long(preds: torch.Tensor, targets: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-    """Cast targets to int64 (predictions are left unchanged)."""
-    return preds, targets.long()
-
-
 def _flatten_01(preds: torch.Tensor, targets: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     """Flatten dims 0–1 (batch × time-steps → samples).
 
@@ -94,11 +89,6 @@ def _softmax_preds(preds: torch.Tensor, targets: torch.Tensor) -> tuple[torch.Te
     return F.softmax(preds, dim=1), targets
 
 
-def _log_softmax_preds(preds: torch.Tensor, targets: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-    """Apply log-softmax over dim=1 to predictions only (targets are left unchanged)."""
-    return F.log_softmax(preds, dim=1), targets
-
-
 def _argmax_targets(preds: torch.Tensor, targets: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     """Argmax over dim=1 on targets only — converts one-hot targets to class indices."""
     return preds, torch.argmax(targets, dim=1)
@@ -110,11 +100,9 @@ def _argmax_targets(preds: torch.Tensor, targets: torch.Tensor) -> tuple[torch.T
 TRANSFORM_REGISTRY: dict[str, Callable] = {
     "argmax":            _argmax,
     "to_float":          _to_float,
-    "to_long":           _to_long,
     "flatten_01":        _flatten_01,
     "squeeze_last":      _squeeze_last,
     "softmax_preds":     _softmax_preds,
-    "log_softmax_preds": _log_softmax_preds,
     "argmax_targets":    _argmax_targets,
 }
 
@@ -266,9 +254,8 @@ def _resolve_fn(name: str, config: MetricConfig, kwargs: dict, is_loss: bool) ->
     kwargs : dict
         User-supplied keyword arguments.
     is_loss : bool
-        When ``True`` the result is a plain callable (possibly
-        ``functools.partial``-wrapped); when ``False`` a torchmetrics
-        instance is returned.
+        When ``True``, the resolved callable must be a plain differentiable
+        function (not a stateful ``torchmetrics.Metric``).
 
     Returns
     -------
@@ -278,65 +265,83 @@ def _resolve_fn(name: str, config: MetricConfig, kwargs: dict, is_loss: bool) ->
     # Custom escape hatch — caller provided an explicit callable.
     if config.custom_fn is not None:
         fn = config.custom_fn
-        return functools.partial(fn, **kwargs) if kwargs else fn
+        fn = functools.partial(fn, **kwargs) if kwargs else fn
 
-    source = config.source
+    else:
+        source = config.source
 
-    if source == "functional":
-        fn = getattr(F, name, None)
-        if fn is None:
-            logger.error(f"Loss '{name}' not found in torch.nn.functional.")
-            exit(101)
-        return functools.partial(fn, **kwargs) if kwargs else fn
+        if source == "functional":
+            fn = getattr(F, name, None)
+            if fn is None:
+                logger.error(f"Loss '{name}' not found in torch.nn.functional.")
+                exit(101)
+            fn = functools.partial(fn, **kwargs) if kwargs else fn
 
-    if source == "torchvision":
-        fn = getattr(tvops, name, None)
-        if fn is None:
-            logger.error(f"Loss '{name}' not found in torchvision.ops.")
-            exit(101)
-        return functools.partial(fn, **kwargs) if kwargs else fn
+        elif source == "torchvision":
+            fn = getattr(tvops, name, None)
+            if fn is None:
+                logger.error(f"Loss '{name}' not found in torchvision.ops.")
+                exit(101)
+            fn = functools.partial(fn, **kwargs) if kwargs else fn
 
-    if source == "torchmetrics":
-        # Try the name as-is, then fall back to PascalCase.
-        cls = getattr(torchmetrics, name, None)
-        if cls is None:
-            pascal = _to_pascal_case(name)
-            cls = getattr(torchmetrics, pascal, None)
-            if cls is not None:
-                logger.warning(
-                    f"Metric '{name}' not found in torchmetrics; "
-                    f"falling back to '{pascal}'."
+        elif source == "torchmetrics":
+            cls = getattr(torchmetrics, name, None)
+            if cls is None:
+                pascal = _to_pascal_case(name)
+                cls = getattr(torchmetrics, pascal, None)
+                if cls is not None:
+                    logger.warning(
+                        f"Metric '{name}' not found in torchmetrics; "
+                        f"falling back to '{pascal}'."
+                    )
+            if cls is None:
+                logger.error(
+                    f"Metric '{name}' could not be resolved in torchmetrics."
                 )
-        if cls is None:
+                exit(101)
+            fn = cls(**kwargs)
+
+        elif source == "auto":
+            if is_loss:
+                fn = getattr(F, name, None)
+                if fn is None:
+                    fn = getattr(tvops, name, None)
+                if fn is None:
+                    logger.error(
+                        f"Loss '{name}' could not be resolved from "
+                        "torch.nn.functional or torchvision.ops."
+                    )
+                    exit(101)
+                fn = functools.partial(fn, **kwargs) if kwargs else fn
+            else:
+                cls = getattr(torchmetrics, name, None)
+                if cls is None:
+                    cls = getattr(torchmetrics, _to_pascal_case(name), None)
+                if cls is None:
+                    logger.error(
+                        f"Metric '{name}' could not be resolved in torchmetrics."
+                    )
+                    exit(101)
+                fn = cls(**kwargs)
+
+        else:
             logger.error(
-                f"Metric '{name}' could not be resolved in torchmetrics."
+                f"Unknown source '{source}' for metric '{name}'. "
+                "Expected 'functional', 'torchmetrics', 'torchvision', or 'auto'."
             )
             exit(101)
-        return cls(**kwargs)
 
-    if source == "auto":
-        fn = getattr(F, name, None)
-        if fn is not None:
-            return functools.partial(fn, **kwargs) if kwargs else fn
-        cls = getattr(torchmetrics, name, None)
-        if cls is None:
-            cls = getattr(torchmetrics, _to_pascal_case(name), None)
-        if cls is not None:
-            return cls(**kwargs)
-        fn = getattr(tvops, name, None)
-        if fn is not None:
-            return functools.partial(fn, **kwargs) if kwargs else fn
+    if is_loss and isinstance(fn, torchmetrics.Metric):
         logger.error(
-            f"Metric '{name}' could not be resolved from torch.nn.functional, "
-            "torchmetrics, or torchvision.ops."
+            f"'{name}' resolves to a torchmetrics stateful Metric and cannot "
+            "be used as a loss function. Stateful metrics detach inputs from "
+            "the computation graph, breaking backpropagation. Use a "
+            "differentiable functional variant instead "
+            "(e.g. 'mse_loss' rather than 'MeanSquaredError')."
         )
         exit(101)
 
-    logger.error(
-        f"Unknown source '{source}' for metric '{name}'. "
-        "Expected 'functional', 'torchmetrics', 'torchvision', or 'auto'."
-    )
-    exit(101)
+    return fn
 
 
 def _to_pascal_case(name: str) -> str:
@@ -445,9 +450,9 @@ def _build_adapter(
     )
 
 
-# ---------------------------------------------------------------------------
-# Public factory — replaces prepare_functions in fetch_torch_mods.py
-# ---------------------------------------------------------------------------
+# --------------
+# Public factory
+# --------------
 
 def build_adapters(
     user_args: str | dict,
@@ -456,8 +461,7 @@ def build_adapters(
 ) -> dict[str, MetricAdapter]:
     """Build :class:`MetricAdapter` instances from user config.
 
-    This function replaces ``prepare_functions`` from ``fetch_torch_mods.py``
-    and is the sole entry point used by ``model_config.py``.
+    This is the sole entry point used by ``model_config.py``.
 
     Parameters
     ----------
