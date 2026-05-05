@@ -121,19 +121,19 @@ METRIC_REGISTRY: dict[str, MetricConfig] = {
     # ------------------------------------------------------------------
     "mse_loss": MetricConfig(
         source="functional",
-        task_affinity=_REG_TASKS,
+        task_affinity=_ALL_TASKS,
     ),
     "l1_loss": MetricConfig(
         source="functional",
-        task_affinity=_REG_TASKS,
+        task_affinity=_ALL_TASKS,
     ),
     "huber_loss": MetricConfig(
         source="functional",
-        task_affinity=_REG_TASKS,
+        task_affinity=_ALL_TASKS,
     ),
     "smooth_l1_loss": MetricConfig(
         source="functional",
-        task_affinity=_REG_TASKS,
+        task_affinity=_ALL_TASKS,
     ),
 
     # ------------------------------------------------------------------
@@ -186,27 +186,27 @@ METRIC_REGISTRY: dict[str, MetricConfig] = {
     ),
     "MeanAbsoluteError": MetricConfig(
         source="torchmetrics",
-        task_affinity=_REG_TASKS,
+        task_affinity=_ALL_TASKS,
     ),
     "mean_absolute_error": MetricConfig(
         source="torchmetrics",
-        task_affinity=_REG_TASKS,
+        task_affinity=_ALL_TASKS,
     ),
     "MeanSquaredError": MetricConfig(
         source="torchmetrics",
-        task_affinity=_REG_TASKS,
+        task_affinity=_ALL_TASKS,
     ),
     "mean_squared_error": MetricConfig(
         source="torchmetrics",
-        task_affinity=_REG_TASKS,
+        task_affinity=_ALL_TASKS,
     ),
     "MeanAbsolutePercentageError": MetricConfig(
         source="torchmetrics",
-        task_affinity=_REG_TASKS,
+        task_affinity=_ALL_TASKS,
     ),
     "mean_absolute_percentage_error": MetricConfig(
         source="torchmetrics",
-        task_affinity=_REG_TASKS,
+        task_affinity=_ALL_TASKS,
     ),
 
     # ------------------------------------------------------------------
