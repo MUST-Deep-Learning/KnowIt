@@ -15,7 +15,7 @@ https://lightning.ai/docs/pytorch/stable/common/lightning_module.html
 from __future__ import annotations
 __copyright__ = 'Copyright (c) 2025 North-West University (NWU), South Africa.'
 __licence__ = 'Apache 2.0; see LICENSE file for details.'
-__author__ = "randlerabe@gmail.com, tiantheunissen@gmail.com, moutoncoenraad@gmail.com"
+__author__ = "tiantheunissen@gmail.com, randlerabe@gmail.com, moutoncoenraad@gmail.com"
 __description__ = "Constructs a Pytorch Lightning model class."
 
 # standard library imports
@@ -23,11 +23,11 @@ import copy
 from typing import TYPE_CHECKING, Any
 
 # external imports
+import torch
 from pytorch_lightning import LightningModule
 from torch import nn
 
 # internal imports
-from helpers.fetch_torch_mods import get_lr_scheduler, get_optim
 from helpers.metric_adapter import MetricAdapter, build_adapters
 from helpers.logger import get_logger
 
@@ -39,6 +39,45 @@ logger = get_logger()
 
 
 class PLModel(LightningModule):
+    """Wrapper class to prepare model for Pytorch Lightning's Trainer.
+
+    The class initializes a Pytorch model and optimizer.
+    It defines the performance metrics.
+    It defines the train, validation and test (evaluation) steps per batch.
+    It defines how losses and performance metrics are calculated and aggregated across batches.
+    It also defines several callbacks to facilitate possible metric and model statefulness,
+    along with dataloading stochasticity.
+
+    Parameters
+    ----------
+    loss : str | dict[str, Any]
+        Loss function name or a dictionary mapping a loss function name to
+        its kwargs.  Must be registered in ``metric_registry.py``.
+    learning_rate : float
+        Learning rate passed to the optimizer.
+    optimizer : str | dict[str, Any]
+        Optimizer name or a dictionary mapping an optimizer name to its
+        kwargs, as specified in ``torch.optim``.
+    learning_rate_scheduler : None | str | dict[str, Any]
+        Learning rate scheduler name or a dictionary mapping a scheduler
+        name to its kwargs, as specified in
+        ``torch.optim.lr_scheduler``. Pass ``None`` to disable.
+    performance_metrics : None | str | dict[str, Any]
+        Performance metric name or a dictionary mapping metric names to
+        their kwargs.  Must be registered in ``metric_registry.py``.
+        Pass ``None`` to disable performance metric tracking.
+    model : Module
+        Uninitialised PyTorch model class.
+    model_params : dict[str, Any]
+        Keyword arguments forwarded to ``model`` at construction time.
+        Must include a ``"task_name"`` key with one of
+        ``"regression"``, ``"vl_regression"``, or ``"classification"``.
+    output_scaler : None | object, optional
+        A fitted scaler with an ``inverse_transform`` method.
+        When provided, predictions and targets are
+        inverse-transformed before loss and metric computation for logging only.
+        Default is ``None``.
+    """
 
     def __init__(
         self,
@@ -51,38 +90,6 @@ class PLModel(LightningModule):
         model_params: dict[str, Any],
         output_scaler: None | object = None,
     ) -> None:
-        """Initialize the PLModel.
-
-        Parameters
-        ----------
-        loss : str | dict[str, Any]
-            Loss function name or a dictionary mapping a loss function name to
-            its kwargs.  Must be registered in ``metric_registry.py``.
-        learning_rate : float
-            Learning rate passed to the optimizer.
-        optimizer : str | dict[str, Any]
-            Optimizer name or a dictionary mapping an optimizer name to its
-            kwargs, as specified in ``torch.optim``.
-        learning_rate_scheduler : None | str | dict[str, Any]
-            Learning rate scheduler name or a dictionary mapping a scheduler
-            name to its kwargs, as specified in
-            ``torch.optim.lr_scheduler``. Pass ``None`` to disable.
-        performance_metrics : None | str | dict[str, Any]
-            Performance metric name or a dictionary mapping metric names to
-            their kwargs.  Must be registered in ``metric_registry.py``.
-            Pass ``None`` to disable performance metric tracking.
-        model : Module
-            Uninitialised PyTorch model class.
-        model_params : dict[str, Any]
-            Keyword arguments forwarded to ``model`` at construction time.
-            Must include a ``"task_name"`` key with one of
-            ``"regression"``, ``"vl_regression"``, or ``"classification"``.
-        output_scaler : None | object, optional
-            A fitted scaler with an ``inverse_transform`` method.
-            When provided, predictions and targets are
-            inverse-transformed before loss and metric computation.
-            Default is ``None``.
-        """
         super().__init__()
 
         self.lr = learning_rate
@@ -176,13 +183,13 @@ class PLModel(LightningModule):
 
         if isinstance(self.optimizer, dict):
             for optim_name, opt_kwargs in self.optimizer.items():
-                optimizer = get_optim(optim_name)(
+                optimizer = getattr(torch.optim, optim_name)(
                     params=self.model.parameters(),
                     lr=self.lr,
                     **opt_kwargs,
                 )
         else:
-            optimizer = get_optim(self.optimizer)(
+            optimizer = getattr(torch.optim, self.optimizer)(
                 params=self.model.parameters(),
                 lr=self.lr,
             )
@@ -195,13 +202,13 @@ class PLModel(LightningModule):
                     if "monitor" in sched_kwargs:
                         monitor = sched_kwargs.pop("monitor")
                         lr_dict["monitor"] = monitor
-                    scheduler = get_lr_scheduler(sched)(
+                    scheduler = getattr(torch.optim.lr_scheduler, sched)(
                         optimizer=optimizer,
                         **sched_kwargs,
                     )
                     lr_dict["scheduler"] = scheduler
                 return {"optimizer": optimizer, "lr_scheduler": lr_dict}
-            scheduler = get_lr_scheduler(self.lr_scheduler)(optimizer=optimizer)
+            scheduler = getattr(torch.optim.lr_scheduler, self.lr_scheduler)(optimizer=optimizer)
             return {"optimizer": optimizer, "lr_scheduler": scheduler}
         return {"optimizer": optimizer}
 
@@ -211,6 +218,11 @@ class PLModel(LightningModule):
 
     def training_step(self, batch: dict[str, Any], batch_idx: int) -> Tensor:
         """Perform a single training step.
+
+        Passes input through model.
+        Computes batch loss.
+        Updates performance metric aggregation (if applicable).
+        Logs loss and epoch.
 
         Parameters
         ----------
@@ -241,6 +253,11 @@ class PLModel(LightningModule):
     def validation_step(self, batch: dict[str, Any], batch_idx: int) -> Tensor:
         """Perform a single validation step.
 
+        Passes input through model.
+        Computes batch loss.
+        Updates performance metric aggregation (if applicable).
+        Logs loss and epoch.
+
         Parameters
         ----------
         batch : dict[str, Any]
@@ -267,13 +284,14 @@ class PLModel(LightningModule):
         self.log_dict(loss_log_metrics, on_epoch=True, on_step=False, prog_bar=True)
         return loss
 
-    def test_step(
-        self,
-        batch: dict[str, Any],
-        batch_idx: int,
-        dataloader_idx: int,
-    ) -> dict[str, Tensor]:
+    def test_step(self, batch: dict[str, Any], batch_idx: int, dataloader_idx: int) -> dict[str, Tensor]:
         """Perform a single test step.
+
+        Determines current dataloader and split.
+        Passes input through model.
+        Computes batch loss.
+        Updates performance metric aggregation (if applicable).
+        Logs loss and epoch.
 
         Parameters
         ----------
@@ -316,12 +334,7 @@ class PLModel(LightningModule):
     # Performance measuring functions
     # -------------------------------
 
-    def _compute_loss(
-        self,
-        y: Tensor,
-        y_pred: Tensor,
-        loss_label: str,
-    ) -> tuple[Tensor, dict[str, Tensor]]:
+    def _compute_loss(self, y: Tensor, y_pred: Tensor, loss_label: str) -> tuple[Tensor, dict[str, Tensor]]:
         """Compute the loss over all configured loss functions for a single batch.
 
         For each configured loss the adapter's :meth:`~MetricAdapter.transform`
@@ -334,8 +347,14 @@ class PLModel(LightningModule):
         ----------
         y : Tensor
             Ground-truth targets for the current batch.
+            Shape: ``(batch_size, time_steps, output_components)`` for
+            regression / vl_regression; ``(batch_size, num_classes)``
+            (one-hot encoded) for classification.
         y_pred : Tensor
             Model predictions for the current batch.
+            Shape: ``(batch_size, time_steps, output_components)`` for
+            regression / vl_regression; ``(batch_size, num_classes)``
+            (raw logits) for classification.
         loss_label : str
             Prefix used when constructing log metric keys.
 
@@ -361,10 +380,10 @@ class PLModel(LightningModule):
 
             if self.output_scaler is not None:
                 preds_inv = self.output_scaler.inverse_transform(
-                    preds.clone().detach().cpu()
+                    preds.detach().cpu()
                 ).to(self.device)
                 targets_inv = self.output_scaler.inverse_transform(
-                    targets.clone().detach().cpu()
+                    targets.detach().cpu()
                 ).to(self.device)
                 log_metrics[f"{loss_label}_{name}"] = adapter(preds_inv, targets_inv)
 
@@ -405,8 +424,14 @@ class PLModel(LightningModule):
         ----------
         y : Tensor
             Ground-truth targets for the current batch.
+            Shape: ``(batch_size, time_steps, output_components)`` for
+            regression / vl_regression; ``(batch_size, num_classes)``
+            (one-hot encoded) for classification.
         y_pred : Tensor
             Model predictions for the current batch.
+            Shape: ``(batch_size, time_steps, output_components)`` for
+            regression / vl_regression; ``(batch_size, num_classes)``
+            (raw logits) for classification.
         split : str
             The data split key (e.g., ``"trn"``, ``"val"``, ``"result_eval"``).
         """
@@ -415,10 +440,10 @@ class PLModel(LightningModule):
 
         if self.output_scaler is not None:
             predictions = self.output_scaler.inverse_transform(
-                predictions.clone().cpu()
+                predictions.cpu()
             ).to(self.device)
             targets = self.output_scaler.inverse_transform(
-                targets.clone().cpu()
+                targets.cpu()
             ).to(self.device)
 
         for name, adapter in self._metric_adapters[split].items():
@@ -453,7 +478,7 @@ class PLModel(LightningModule):
     # ---------
 
     def on_train_epoch_end(self) -> None:
-        """Compute and log training metrics, then advance the sampler epoch."""
+        """Compute and log epoch-wide training metrics, then advance the batch sampler epoch."""
         if self.performance_metrics is not None:
             self._compute_and_log_performance("trn", "train_perf_")
         if hasattr(self.trainer.train_dataloader.batch_sampler, 'set_epoch'):
@@ -462,22 +487,12 @@ class PLModel(LightningModule):
             )
 
     def on_validation_epoch_end(self) -> None:
-        """Compute and log validation metrics at the end of each epoch."""
+        """Compute and log epoch-wide validation metrics."""
         if self.performance_metrics is not None:
             self._compute_and_log_performance("val", "valid_perf_")
 
-    def on_train_epoch_start(self) -> None:
-        """Reset model internal states for a new training epoch."""
-        if hasattr(self.model, 'force_reset'):
-            self.model.force_reset()
-
-    def on_validation_epoch_start(self) -> None:
-        """Reset model internal states for a new validation epoch."""
-        if hasattr(self.model, 'force_reset'):
-            self.model.force_reset()
-
     def on_test_epoch_end(self) -> None:
-        """Compute and log test metrics for all result splits at epoch end."""
+        """Compute and log epoch-wide test metrics for all result splits."""
         if self.performance_metrics is not None:
             for split, label in [
                 ("result_train", "result_train_perf_"),
@@ -486,14 +501,59 @@ class PLModel(LightningModule):
             ]:
                 self._compute_and_log_performance(split, label)
 
-    def on_test_epoch_start(self) -> None:
-        """Reset model internal states for a new test epoch."""
+    def on_train_epoch_start(self) -> None:
+        """Indicate that all model internal states should be reset
+        next time update_states is called for a new training epoch."""
         if hasattr(self.model, 'force_reset'):
             self.model.force_reset()
 
-    def on_test_batch_start(
-        self, batch: dict, batch_idx: int, dataloader_idx: int = 0
-    ) -> None:
+    def on_validation_epoch_start(self) -> None:
+        """Indicate that all model internal states should be reset
+        next time update_states is called for a new validation epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+
+    def on_test_epoch_start(self) -> None:
+        """Indicate that all model internal states should be reset
+        next time update_states is called for a new test epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+
+    def on_train_batch_start(self, batch: dict, batch_idx: int, dataloader_idx: int = 0) -> None:
+        """Update model internal states at training batch start.
+
+        Parameters
+        ----------
+        batch : dict[str, Any]
+            The current batch dictionary.
+        batch_idx : int
+            Index of the current batch.
+        dataloader_idx : int, optional
+            Index of the current dataloader. Default is ``0``.
+        """
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
+
+    def on_validation_batch_start(self, batch: dict, batch_idx: int, dataloader_idx: int = 0) -> None:
+        """Update model internal states at validation batch start.
+
+        Parameters
+        ----------
+        batch : dict[str, Any]
+            The current batch dictionary.
+        batch_idx : int
+            Index of the current batch.
+        dataloader_idx : int, optional
+            Index of the current dataloader. Default is ``0``.
+        """
+        if hasattr(self.model, 'update_states'):
+            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
+        if hasattr(self.model, 'hard_set_states'):
+            self.model.hard_set_states(batch['ist_idx'][-1])
+
+    def on_test_batch_start(self, batch: dict, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Update and optionally reset model internal states at test batch start.
 
         Parameters
@@ -513,28 +573,18 @@ class PLModel(LightningModule):
         if hasattr(self.model, 'hard_set_states'):
             self.model.hard_set_states(batch['ist_idx'][-1])
 
-    def on_train_batch_start(
-        self, batch: dict, batch_idx: int, dataloader_idx: int = 0
-    ) -> None:
-        """Update model internal states at training batch start."""
-        if hasattr(self.model, 'update_states'):
-            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
-        if hasattr(self.model, 'hard_set_states'):
-            self.model.hard_set_states(batch['ist_idx'][-1])
+    def on_predict_batch_start(self, batch: dict, batch_idx: int, dataloader_idx: int = 0) -> None:
+        """Update model internal states at predict batch start.
 
-    def on_validation_batch_start(
-        self, batch: dict, batch_idx: int, dataloader_idx: int = 0
-    ) -> None:
-        """Update model internal states at validation batch start."""
-        if hasattr(self.model, 'update_states'):
-            self.model.update_states(batch['ist_idx'][0], batch['x'].device)
-        if hasattr(self.model, 'hard_set_states'):
-            self.model.hard_set_states(batch['ist_idx'][-1])
-
-    def on_predict_batch_start(
-        self, batch: dict, batch_idx: int, dataloader_idx: int = 0
-    ) -> None:
-        """Update model internal states at predict batch start."""
+        Parameters
+        ----------
+        batch : dict[str, Any]
+            The current batch dictionary.
+        batch_idx : int
+            Index of the current batch.
+        dataloader_idx : int, optional
+            Index of the current dataloader. Default is ``0``.
+        """
         if hasattr(self.model, 'update_states'):
             self.model.update_states(batch['ist_idx'][0], batch['x'].device)
         if hasattr(self.model, 'hard_set_states'):
@@ -543,6 +593,11 @@ class PLModel(LightningModule):
 
 class PLModel_custom(PLModel):
 
+    """An alternative to :class:`PLModel`, selectable by passing
+    `custom_pl_model_kwargs` as a trainer kwarg. The class inherits
+    from :class:`PLModel` and can be modified here.
+
+    """
     def __init__(
         self,
         loss,
