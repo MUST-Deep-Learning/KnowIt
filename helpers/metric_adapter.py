@@ -466,9 +466,16 @@ def build_adapters(
     Parameters
     ----------
     user_args : str | dict
-        Either a plain metric name (``"mse_loss"``) or a dict mapping
-        metric names to their kwargs
-        (``{"R2Score": {"num_outputs": 3}}``).
+        One of:
+
+        * A plain metric name: ``"mse_loss"``
+        * A dict mapping metric names to their kwargs:
+          ``{"R2Score": {"num_outputs": 3}}``
+        * A dict mapping a name to a callable directly:
+          ``{"my_loss": my_fn}`` — bypasses the registry; no pre-transforms
+          are applied and task-affinity validation is skipped. The callable
+          must accept ``(preds, targets)`` positionally. Kwargs can be
+          pre-baked into the callable via ``functools.partial`` before passing.
     is_loss : bool
         ``True`` when preparing loss functions, ``False`` for performance
         metrics.
@@ -494,6 +501,11 @@ def build_adapters(
     ...     is_loss=True,
     ...     task_name="classification",
     ... )
+    >>> adapters = build_adapters(
+    ...     {"my_loss": my_fn},
+    ...     is_loss=True,
+    ...     task_name="regression",
+    ... )
     """
     adapters: dict[str, MetricAdapter] = {}
 
@@ -501,8 +513,23 @@ def build_adapters(
         adapters[user_args] = _build_adapter(user_args, {}, is_loss, task_name)
 
     elif isinstance(user_args, dict):
-        for name, kwargs in user_args.items():
-            adapters[name] = _build_adapter(name, kwargs or {}, is_loss, task_name)
+        for name, value in user_args.items():
+            if callable(value):
+                if is_loss and isinstance(value, torchmetrics.Metric):
+                    logger.error(
+                        f"'{name}' is a torchmetrics stateful Metric and cannot "
+                        "be used as a loss function. Stateful metrics detach inputs "
+                        "from the computation graph, breaking backpropagation."
+                    )
+                    exit(101)
+                adapters[name] = MetricAdapter(
+                    name=name,
+                    fn=value,
+                    pre_transforms=[],
+                    is_stateful=isinstance(value, torchmetrics.Metric),
+                )
+            else:
+                adapters[name] = _build_adapter(name, value or {}, is_loss, task_name)
 
     else:
         logger.error(
