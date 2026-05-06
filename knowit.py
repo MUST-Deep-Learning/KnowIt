@@ -26,9 +26,8 @@ from env.env_paths import (ckpt_path, model_output_dir, model_args_path,
                            interpretation_name, model_run_dir, model_sweep_dir,
                            list_available_datasets, data_paths)
 from helpers.logger import get_logger
-from helpers.file_dir_procs import (yaml_to_dict, safe_dump, safe_copy)
+from helpers.file_dir_procs import (yaml_to_dict, safe_dump, safe_copy, get_model_score)
 from helpers.viz import (plot_learning_curves, plot_set_predictions, plot_feature_attribution)
-from helpers.fetch_torch_mods import get_model_score
 from setup.setup_action_args import setup_relevant_args
 from setup.select_interpretation_points import get_interpretation_inx
 from setup.setup_weighted_cross_entropy import proc_weighted_cross_entropy
