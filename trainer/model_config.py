@@ -393,6 +393,8 @@ class PLModel(LightningModule):
             logger.error("Something went wrong when trying to compute the loss.")
             raise TypeError("The variable 'loss' cannot be None.")
 
+        log_metrics[loss_label] = loss
+
         return loss, log_metrics
 
     def _loss_combiner(self, losses: list[Tensor]) -> Tensor:
