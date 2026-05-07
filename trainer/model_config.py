@@ -87,6 +87,7 @@ class PLModel(LightningModule):
         optimizer: str | dict[str, Any],
         learning_rate_scheduler: None | str | dict[str, Any],
         performance_metrics: None | str | dict[str, Any],
+        inference_time: None | bool,
         model: Module,
         model_params: dict[str, Any],
         output_scaler: None | object = None,
@@ -97,6 +98,7 @@ class PLModel(LightningModule):
         self.lr_scheduler = learning_rate_scheduler
         self.optimizer = optimizer
         self.performance_metrics = performance_metrics
+        self.inference_time = inference_time
         self.output_scaler = output_scaler
         self.task_name = model_params['task_name']
 

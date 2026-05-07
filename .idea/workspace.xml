@@ -5,9 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="472b7247-f302-442b-99a3-62fc35383213" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/data/data_splitting.py" beforeDir="false" afterPath="$PROJECT_DIR$/data/data_splitting.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helpers/fetch_torch_mods.py" beforeDir="false" afterPath="$PROJECT_DIR$/helpers/fetch_torch_mods.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/trainer/model_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/trainer/model_config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -39,7 +37,7 @@
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;ABLE__dev&quot;,
     &quot;last_opened_file_path&quot;: &quot;/home/gerda/repos/KnowIt&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -169,6 +167,7 @@
       <workItem from="1775722083403" duration="611000" />
       <workItem from="1776065656617" duration="2293000" />
       <workItem from="1776075887614" duration="168000" />
+      <workItem from="1776858218541" duration="757000" />
     </task>
     <servers />
   </component>
