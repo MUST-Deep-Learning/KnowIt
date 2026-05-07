@@ -240,7 +240,9 @@ class PLModel(LightningModule):
         Tensor
             The combined training loss for the current batch.
         """
+        start_t = time.time()
         y_pred = self.model.forward(batch['x'])
+        i_time = time.time() - start_t
 
         loss, loss_log_metrics = self._compute_loss(
             y=batch['y'], y_pred=y_pred, loss_label="train_loss"
@@ -250,6 +252,9 @@ class PLModel(LightningModule):
             self._update_performance(batch['y'], y_pred, split="trn")
 
         loss_log_metrics['epoch'] = float(self.current_epoch)
+        if self.inference_time:
+            loss_log_metrics['train_inference_time'] = i_time
+
         self.log_dict(loss_log_metrics, on_epoch=True, on_step=False, prog_bar=True)
         return loss
 
@@ -274,7 +279,9 @@ class PLModel(LightningModule):
         Tensor
             The combined validation loss for the current batch.
         """
+        start_time = time.time()
         y_pred = self.model.forward(batch['x'])
+        i_time = time.time() - start_time
 
         loss, loss_log_metrics = self._compute_loss(
             y=batch['y'], y_pred=y_pred, loss_label="valid_loss"
@@ -284,6 +291,8 @@ class PLModel(LightningModule):
             self._update_performance(batch['y'], y_pred, split="val")
 
         loss_log_metrics['epoch'] = float(self.current_epoch)
+        if self.inference_time:
+            loss_log_metrics['valid_inference_time'] = i_time
         self.log_dict(loss_log_metrics, on_epoch=True, on_step=False, prog_bar=True)
         return loss
 
