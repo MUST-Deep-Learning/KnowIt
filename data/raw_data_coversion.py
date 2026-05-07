@@ -51,7 +51,7 @@ __description__ = 'Contains the RawDataConverter class for Knowit.'
 # external imports
 from pandas import DatetimeIndex, concat, DataFrame, Timedelta, to_datetime
 from pandas.api.types import is_numeric_dtype
-from numpy import array, sum, argwhere, hstack, vstack
+from numpy import array, sum, argwhere, hstack, vstack, expand_dims
 from datetime import timedelta
 
 # internal imports
@@ -189,21 +189,24 @@ class RawDataConverter:
                 if self.defines_custom_split:
                     instance_slice = new_df[['instance', 'slice']].values
 
-                    train_points = argwhere(self.the_data[i][s]['split'] == 0)
+                    train_points = argwhere(self.the_data[i][s]['split'] == 0).squeeze(axis=-1)
                     if len(train_points) > 0:
-                        train_ist = instance_slice[train_points.squeeze()]
+                        train_ist = instance_slice[train_points, :]
+                        train_points = expand_dims(train_points, axis=1)
                         train_ist = hstack((train_ist, train_points))
                         custom_splits['train'].extend(train_ist)
 
-                    valid_points = argwhere(self.the_data[i][s]['split'] == 1)
+                    valid_points = argwhere(self.the_data[i][s]['split'] == 1).squeeze(axis=-1)
                     if len(valid_points) > 0:
-                        valid_ist = instance_slice[valid_points.squeeze()]
+                        valid_ist = instance_slice[valid_points, :]
+                        valid_points = expand_dims(valid_points, axis=1)
                         valid_ist = hstack((valid_ist, valid_points))
                         custom_splits['valid'].extend(valid_ist)
 
-                    eval_points = argwhere(self.the_data[i][s]['split'] == 2)
+                    eval_points = argwhere(self.the_data[i][s]['split'] == 2).squeeze(axis=-1)
                     if len(eval_points) > 0:
-                        eval_ist = instance_slice[eval_points.squeeze()]
+                        eval_ist = instance_slice[eval_points, :]
+                        eval_points = expand_dims(eval_points, axis=1)
                         eval_ist = hstack((eval_ist, eval_points))
                         custom_splits['eval'].extend(eval_ist)
 
