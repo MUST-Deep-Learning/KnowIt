@@ -1,0 +1,226 @@
+KnowIt.trainer.model_config
+===========================
+
+.. py:module:: KnowIt.trainer.model_config
+
+.. autoapi-nested-parse::
+
+   -------
+   PLModel
+   -------
+
+   The "PLModel" class is required in order to be able to use Pytorch Lightning's
+   Trainer. It initializes a Pytorch model and defines the train, validation, and
+   test steps as well as the optimizers and any learning rate schedulers.
+
+   For more information, see Pytorch Lightning's documentation here:
+   https://lightning.ai/docs/pytorch/stable/common/lightning_module.html
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.trainer.model_config.PLModel
+   KnowIt.trainer.model_config.PLModel_custom
+
+
+Module Contents
+---------------
+
+.. py:class:: PLModel(loss, learning_rate, optimizer, learning_rate_scheduler, performance_metrics, model, model_params, output_scaler = None)
+
+   Bases: :py:obj:`pytorch_lightning.LightningModule`
+
+
+   Wrapper class to prepare model for Pytorch Lightning's Trainer.
+
+   The class initializes a Pytorch model and optimizer.
+   It defines the performance metrics.
+   It defines the train, validation and test (evaluation) steps per batch.
+   It defines how losses and performance metrics are calculated and aggregated across batches.
+   It also defines several callbacks to facilitate possible metric and model statefulness,
+   along with dataloading stochasticity.
+
+   :Parameters: * **loss** (:py:class:`str | dict[str`, :py:class:`Any]`) -- Loss function name or a dictionary mapping a loss function name to
+                  its kwargs.  Must be registered in ``metric_registry.py``.
+                * **learning_rate** (:py:class:`float`) -- Learning rate passed to the optimizer.
+                * **optimizer** (:py:class:`str | dict[str`, :py:class:`Any]`) -- Optimizer name or a dictionary mapping an optimizer name to its
+                  kwargs, as specified in ``torch.optim``.
+                * **learning_rate_scheduler** (:py:class:`None | str | dict[str`, :py:class:`Any]`) -- Learning rate scheduler name or a dictionary mapping a scheduler
+                  name to its kwargs, as specified in
+                  ``torch.optim.lr_scheduler``. Pass ``None`` to disable.
+                * **performance_metrics** (:py:class:`None | str | dict[str`, :py:class:`Any]`) -- Performance metric name or a dictionary mapping metric names to
+                  their kwargs.  Must be registered in ``metric_registry.py``.
+                  Pass ``None`` to disable performance metric tracking.
+                * **model** (:py:class:`Module`) -- Uninitialised PyTorch model class.
+                * **model_params** (:py:class:`dict[str`, :py:class:`Any]`) -- Keyword arguments forwarded to ``model`` at construction time.
+                  Must include a ``"task_name"`` key with one of
+                  ``"regression"``, ``"vl_regression"``, or ``"classification"``.
+                * **output_scaler** (:py:class:`None | object`, *optional*) -- A fitted scaler with an ``inverse_transform`` method.
+                  When provided, predictions and targets are
+                  inverse-transformed before loss and metric computation for logging only.
+                  Default is ``None``.
+
+
+   .. py:method:: configure_optimizers()
+
+      Return configured optimizer and optional learning rate scheduler.
+
+      Overrides :meth:`pytorch_lightning.LightningModule.configure_optimizers`.
+
+      :returns: A dictionary with an ``"optimizer"`` key and, if a learning rate
+                scheduler is configured, an ``"lr_scheduler"`` key.
+      :rtype: :py:class:`dict[str`, :py:class:`Any]`
+
+
+
+   .. py:method:: training_step(batch, batch_idx)
+
+      Perform a single training step.
+
+      Passes input through model.
+      Computes batch loss.
+      Updates performance metric aggregation (if applicable).
+      Logs loss and epoch.
+
+      :Parameters: * **batch** (:py:class:`dict[str`, :py:class:`Any]`) -- A dictionary containing at least ``"x"`` (model inputs) and
+                     ``"y"`` (targets).
+                   * **batch_idx** (:py:class:`int`) -- Index of the current batch.
+
+      :returns: The combined training loss for the current batch.
+      :rtype: :py:class:`Tensor`
+
+
+
+   .. py:method:: validation_step(batch, batch_idx)
+
+      Perform a single validation step.
+
+      Passes input through model.
+      Computes batch loss.
+      Updates performance metric aggregation (if applicable).
+      Logs loss and epoch.
+
+      :Parameters: * **batch** (:py:class:`dict[str`, :py:class:`Any]`) -- A dictionary containing at least ``"x"`` (model inputs) and
+                     ``"y"`` (targets).
+                   * **batch_idx** (:py:class:`int`) -- Index of the current batch.
+
+      :returns: The combined validation loss for the current batch.
+      :rtype: :py:class:`Tensor`
+
+
+
+   .. py:method:: test_step(batch, batch_idx, dataloader_idx)
+
+      Perform a single test step.
+
+      Determines current dataloader and split.
+      Passes input through model.
+      Computes batch loss.
+      Updates performance metric aggregation (if applicable).
+      Logs loss and epoch.
+
+      :Parameters: * **batch** (:py:class:`dict[str`, :py:class:`Any]`) -- A dictionary containing at least ``"x"`` (model inputs) and
+                     ``"y"`` (targets).
+                   * **batch_idx** (:py:class:`int`) -- Index of the current batch.
+                   * **dataloader_idx** (:py:class:`int`) -- Index of the current dataloader. ``0`` corresponds to the training
+                     set, ``1`` to the validation set, and ``2`` to the evaluation set.
+
+      :returns: A dictionary of logged loss metrics for the current batch.
+      :rtype: :py:class:`dict[str`, :py:class:`Tensor]`
+
+
+
+   .. py:method:: on_train_epoch_end()
+
+      Compute and log epoch-wide training metrics, then advance the batch sampler epoch.
+
+
+
+   .. py:method:: on_validation_epoch_end()
+
+      Compute and log epoch-wide validation metrics.
+
+
+
+   .. py:method:: on_test_epoch_end()
+
+      Compute and log epoch-wide test metrics for all result splits.
+
+
+
+   .. py:method:: on_train_epoch_start()
+
+      Indicate that all model internal states should be reset
+      next time update_states is called for a new training epoch.
+
+
+
+   .. py:method:: on_validation_epoch_start()
+
+      Indicate that all model internal states should be reset
+      next time update_states is called for a new validation epoch.
+
+
+
+   .. py:method:: on_test_epoch_start()
+
+      Indicate that all model internal states should be reset
+      next time update_states is called for a new test epoch.
+
+
+
+   .. py:method:: on_train_batch_start(batch, batch_idx, dataloader_idx = 0)
+
+      Update model internal states at training batch start.
+
+      :Parameters: * **batch** (:py:class:`dict[str`, :py:class:`Any]`) -- The current batch dictionary.
+                   * **batch_idx** (:py:class:`int`) -- Index of the current batch.
+                   * **dataloader_idx** (:py:class:`int`, *optional*) -- Index of the current dataloader. Default is ``0``.
+
+
+
+   .. py:method:: on_validation_batch_start(batch, batch_idx, dataloader_idx = 0)
+
+      Update model internal states at validation batch start.
+
+      :Parameters: * **batch** (:py:class:`dict[str`, :py:class:`Any]`) -- The current batch dictionary.
+                   * **batch_idx** (:py:class:`int`) -- Index of the current batch.
+                   * **dataloader_idx** (:py:class:`int`, *optional*) -- Index of the current dataloader. Default is ``0``.
+
+
+
+   .. py:method:: on_test_batch_start(batch, batch_idx, dataloader_idx = 0)
+
+      Update and optionally reset model internal states at test batch start.
+
+      :Parameters: * **batch** (:py:class:`dict[str`, :py:class:`Any]`) -- The current batch dictionary.
+                   * **batch_idx** (:py:class:`int`) -- Index of the current batch.
+                   * **dataloader_idx** (:py:class:`int`, *optional*) -- Index of the current dataloader. Default is ``0``.
+
+
+
+   .. py:method:: on_predict_batch_start(batch, batch_idx, dataloader_idx = 0)
+
+      Update model internal states at predict batch start.
+
+      :Parameters: * **batch** (:py:class:`dict[str`, :py:class:`Any]`) -- The current batch dictionary.
+                   * **batch_idx** (:py:class:`int`) -- Index of the current batch.
+                   * **dataloader_idx** (:py:class:`int`, *optional*) -- Index of the current dataloader. Default is ``0``.
+
+
+
+.. py:class:: PLModel_custom(loss, learning_rate, optimizer, learning_rate_scheduler, performance_metrics, model, model_params, output_scaler=None, custom_pl_model_kwargs=None)
+
+   Bases: :py:obj:`PLModel`
+
+
+   An alternative to :class:`PLModel`, selectable by passing
+   `custom_pl_model_kwargs` as a trainer kwarg. The class inherits
+   from :class:`PLModel` and can be modified here.
+
+
+

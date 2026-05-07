@@ -1,0 +1,56 @@
+KnowIt.interpret.interpreter
+============================
+
+.. py:module:: KnowIt.interpret.interpreter
+
+.. autoapi-nested-parse::
+
+   -------------
+   KIInterpreter
+   -------------
+
+   The "KIInterpreter" class is the parent (root) class that is to be inherited
+   by all other model interpretability modules.
+
+   The function of the "KIInterpreter" class is to store the datamodule and
+   initialize the Pytorch model for use by its descendant classes. As such, it is
+   a direct link to Knowit's other modules. It is agnostic to the user's choice of
+   interpretability method.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.interpret.interpreter.KIInterpreter
+
+
+Module Contents
+---------------
+
+.. py:class:: KIInterpreter(model, model_params, datamodule, device, path_to_ckpt)
+
+   Root class to be inherited by all interpretability classes.
+
+   The class stores the user's parameters and initializes a trained PyTorch
+   model from checkpoint.
+
+   :Parameters: * **model** (:py:class:`type`) -- The PyTorch model architecture class.
+                * **model_params** (:py:class:`dict`) -- The dictionary needed to initialize the model.
+                * **datamodule** (:py:class:`type`) -- The Knowit datamodule for the experiment.
+                * **device** (:py:class:`str`) -- The device on which to run the model.
+                * **path_to_ckpt** (:py:class:`str`) -- The path to a trained model's checkpoint file.
+
+   :ivar model: The initialized PyTorch model loaded with weights from the checkpoint.
+
+   :vartype model: :py:class:`Module`
+   :ivar datamodule: The Knowit datamodule for the experiment.
+
+   :vartype datamodule: :py:class:`type`
+   :ivar device: The device on which the model is run.
+
+   :vartype device: :py:class:`torch.device`
+
+

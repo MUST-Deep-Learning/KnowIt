@@ -1,0 +1,62 @@
+KnowIt.interpret.featureattr
+============================
+
+.. py:module:: KnowIt.interpret.featureattr
+
+.. autoapi-nested-parse::
+
+   ------------------
+   FeatureAttribution
+   ------------------
+
+   The "FeatureAttribution" class is a child class which inherits from
+   "KIInterpreter".
+
+   The function of the "FeatureAttribution" class is to serve the user's choice
+   of feature attribution method (a descendant class) by extracting the necessary
+   information from Knowit's datamodule and returning it in the expected form for
+   Captum.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   KnowIt.interpret.featureattr.FeatureAttribution
+
+
+Module Contents
+---------------
+
+.. py:class:: FeatureAttribution(model, model_params, path_to_ckpt, datamodule, i_data, device)
+
+   Bases: :py:obj:`interpret.interpreter.KIInterpreter`
+
+
+   Provide methods for Captum's feature attribution modules.
+
+   :Parameters: * **model** (:py:class:`Module`) -- The Pytorch model architecture class.
+                * **model_params** (:py:class:`dict`) -- The dictionary needed to initialize the model.
+                * **path_to_ckpt** (:py:class:`str`) -- The path to a trained model's checkpoint file.
+                * **datamodule** (:py:class:`type`) -- The Knowit datamodule for the experiment.
+                * **i_data** (:py:class:`str`) -- The user's choice of dataset to perform feature attribution.
+                  Choices: 'train', 'valid', 'eval'.
+                * **device** (:py:class:`str`) -- The hardware device to be used for feature extraction (either cpu or
+                  gpu).
+
+   :ivar model: The initialized PyTorch model loaded with weights from the checkpoint.
+
+   :vartype model: :py:class:`Module`
+   :ivar datamodule: The Knowit datamodule for the experiment.
+
+   :vartype datamodule: :py:class:`type`
+   :ivar device: The device on which the model is run.
+
+   :vartype device: :py:class:`torch.device`
+   :ivar i_data: The user's choice of dataset to perform feature attribution.
+
+   :vartype i_data: :py:class:`str`
+
+
