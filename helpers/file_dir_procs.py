@@ -15,6 +15,7 @@ import lzma
 import shutil
 import csv
 import pandas
+import torch
 
 # internal imports
 from helpers.logger import get_logger
@@ -303,6 +304,64 @@ def load_from_path(path: str) -> any:
         exit(101)
 
     return result
+
+
+def get_model_score(model_dir: str) -> tuple:
+    """Scan a directory for a checkpoint, load it, and extract the best score.
+
+    If no best score is found in the checkpoint, the function assumes that the
+    final-epoch model was saved and retrieves the score from the
+    ``/lightning_logs/version_0/metrics.csv`` file.
+
+    Parameters
+    ----------
+    model_dir : str
+        Path to the directory containing the model checkpoint file.
+
+    Returns
+    -------
+    tuple
+        A ``(best_model_score, monitor, epoch)`` tuple where:
+
+        - ``best_model_score`` (*float*) — the best score achieved.
+        - ``monitor`` (*str*) — the monitored metric name.
+        - ``epoch`` (*int*) — the epoch at which the best score was achieved.
+
+    Notes
+    -----
+    Assumes exactly one ``.ckpt`` file exists in ``model_dir``.
+    """
+    ckpt_name = [f for f in os.listdir(model_dir) if "ckpt" in f]
+    ckpt_name = next(iter(ckpt_name))
+    ckpt_path = os.path.join(model_dir, ckpt_name)
+    ckpt = torch.load(f=ckpt_path)
+    keys = list(ckpt["callbacks"].keys())
+
+    callback_key = None
+    for key in keys:
+        if key.startswith("ModelCheckpoint"):
+            callback_key = key
+    if callback_key is None:
+        logger.error(
+            "No ModelCheckpoint callback key found in the checkpoint file. "
+            "Cannot get model score. Aborting."
+        )
+        exit(101)
+
+    best_score = ckpt["callbacks"][callback_key]["best_model_score"]
+    metric = ckpt["callbacks"][callback_key]["monitor"]
+    epoch = ckpt["epoch"]
+    if best_score is not None:
+        best_score = best_score.item()
+    else:
+        lc_info = os.path.join(
+            model_dir, "lightning_logs", "version_0", "metrics.csv"
+        )
+        metrics_df = pandas.read_csv(lc_info)
+        valid_loss_df = metrics_df[metric]
+        best_score = valid_loss_df.loc[valid_loss_df.last_valid_index()]
+
+    return best_score, metric, epoch
 
 
 def safe_dump_parquet(path: str, safe_mode: bool, data_package: any,

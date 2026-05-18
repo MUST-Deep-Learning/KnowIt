@@ -26,8 +26,7 @@ from env.env_paths import (learning_data_path,
                            model_interpretations_dir, model_viz_dir, model_output_dir, data_paths)
 from data.base_dataset import BaseDataset
 from setup.select_interpretation_points import get_predictions
-from helpers.file_dir_procs import yaml_to_dict, load_from_path
-from helpers.fetch_torch_mods import get_model_score
+from helpers.file_dir_procs import yaml_to_dict, load_from_path, get_model_score
 from helpers.logger import get_logger
 logger = get_logger()
 
