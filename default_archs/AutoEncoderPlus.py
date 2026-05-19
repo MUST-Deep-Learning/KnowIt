@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from torch import Tensor
 
+import functools
 import numpy as np
 import torch
 from torch import nn
@@ -37,6 +38,37 @@ HP_ranges_dict = {
     "dropout": np.arange(0, 1.1, 0.1),
     "activations": ("ReLU", "LeakyReLU", "Tanh"),
 }
+
+
+def _parse_rec_loss(rec_loss):
+    """Return a callable loss function from a string or single-key dict.
+
+    Looks up the function by name in ``torch.nn.functional``.  A dict value
+    supplies keyword arguments that are frozen via ``functools.partial``.
+
+    Examples
+    --------
+    ``'mse_loss'``                         → ``F.mse_loss``
+    ``{'huber_loss': {'delta': 1.0}}``     → ``partial(F.huber_loss, delta=1.0)``
+    """
+    if isinstance(rec_loss, str):
+        fn = getattr(F, rec_loss, None)
+        if fn is None:
+            logger.error("Unknown reconstruction loss '%s'. Must be a torch.nn.functional function.", rec_loss)
+            exit(101)
+        return fn
+    if isinstance(rec_loss, dict):
+        if len(rec_loss) != 1:
+            logger.error("rec_loss dict must have exactly one key, got %d.", len(rec_loss))
+            exit(101)
+        name, kwargs = next(iter(rec_loss.items()))
+        fn = getattr(F, name, None)
+        if fn is None:
+            logger.error("Unknown reconstruction loss '%s'. Must be a torch.nn.functional function.", name)
+            exit(101)
+        return functools.partial(fn, **kwargs)
+    logger.error("rec_loss must be a string or dict, got %s.", type(rec_loss).__name__)
+    exit(101)
 
 
 # -----------------
@@ -97,6 +129,11 @@ class Model(nn.Module):
     manifold_hps : dict | None
         Hyper-parameters forwarded to the manifold sub-module.  See
         :class:`GaussManifold` / :class:`SphericalManifold` for accepted keys.
+    rec_loss : str | dict
+        Reconstruction loss function.  Either a string naming a
+        ``torch.nn.functional`` function (e.g. ``'mse_loss'``) or a single-key
+        dict mapping the function name to its kwargs
+        (e.g. ``{'huber_loss': {'delta': 1.0}}``).  Default ``'mse_loss'``.
     """
 
     def __init__(
@@ -116,6 +153,7 @@ class Model(nn.Module):
         encoder_hps: dict | None = None,
         decoder_hps: dict | None = None,
         manifold_hps: dict | None = None,
+        rec_loss: str | dict = 'mse_loss',
     ) -> None:
         super().__init__()
 
@@ -146,7 +184,7 @@ class Model(nn.Module):
         self.encoder_type = encoder_type
         self.decoder_type = decoder_type
         self.manifold_type = manifold_type
-        self.rec_loss_f = F.mse_loss
+        self.rec_loss_f = _parse_rec_loss(rec_loss)
         self.class_embedding: nn.Embedding | None = None
 
         if self.encoder_type == 'LSTM':
@@ -302,8 +340,9 @@ class Model(nn.Module):
 
             # loss = rec_loss + beta_los_con * lat_con_loss + beta_pix_con * pix_con_loss
 
-            lat_con_loss = self.get_lat_con_loss(y)
-            pix_con_loss = self.rec_loss_f(self.get_Dv_NOISY(y), y_pred.detach())
+            Dv_NOISY = self.get_Dv_NOISY(y)
+            lat_con_loss = self.get_lat_con_loss(y, Dv_NOISY=Dv_NOISY)
+            pix_con_loss = self.rec_loss_f(Dv_NOISY, y_pred.detach())
             loss = loss + self.get_beta_lat_con() * lat_con_loss + self.get_beta_pix_con() * pix_con_loss
             loss_log_metrics['lat_con_loss'] = lat_con_loss
             loss_log_metrics['pix_con_loss'] = pix_con_loss
@@ -567,7 +606,7 @@ class Model(nn.Module):
         else:
             return None
 
-    def get_lat_con_loss(self, y: Tensor | None) -> Tensor | None:
+    def get_lat_con_loss(self, y: Tensor | None, Dv_NOISY: Tensor | None = None) -> Tensor | None:
         """Compute the latent consistency loss for the Spherical manifold.
 
         Encodes the decoded noisy latent ``D(v_NOISY)`` and measures its
@@ -579,6 +618,9 @@ class Model(nn.Module):
         ----------
         y : Tensor | None
             Class labels used for both encoding and decoding.
+        Dv_NOISY : Tensor | None
+            Pre-computed ``D(v_NOISY)`` to avoid a redundant decoder pass.
+            If ``None``, it is computed internally.
 
         Returns
         -------
@@ -587,7 +629,8 @@ class Model(nn.Module):
             Spherical manifold is not active.
         """
         v = self.get_v()
-        Dv_NOISY = self.get_Dv_NOISY(y)
+        if Dv_NOISY is None:
+            Dv_NOISY = self.get_Dv_NOISY(y)
 
         if v is not None and Dv_NOISY is not None:
             EDv_NOISY = self.manifold.spherifier(self.encode(Dv_NOISY, y))
@@ -916,7 +959,11 @@ class SphericalManifold(nn.Module):
     hps : dict
         Accepted keys:
 
-        - ``'sigma_max'`` (float, default 10.0): maximum noise scale.
+        - ``'sigma_max'`` (float, default 10.0): maximum noise scale for the base range.
+        - ``'sigma_mix'`` (float | None, default None): upper noise scale for the high-angle
+          mixing range.  Set to ``tan(85°) ≈ 11.43`` for small images.  ``None`` disables mixing.
+        - ``'mix_prob'`` (float, default 0.0): probability of drawing σ from the high-angle
+          range ``[sigma_max, sigma_mix]`` instead of the base range ``[0, sigma_max]``.
         - ``'beta_lat_con'`` (float, default 1.0): latent-consistency loss weight.
         - ``'beta_pix_con'`` (float, default 1.0): pixel-consistency loss weight.
     """
@@ -929,6 +976,8 @@ class SphericalManifold(nn.Module):
         self.t_h_size = t_h_size
         self.c_h_size = c_h_size
         self.sigma_max = hps['sigma_max'] if 'sigma_max' in hps else 10.0
+        self.sigma_mix = hps['sigma_mix'] if 'sigma_mix' in hps else None
+        self.mix_prob = hps['mix_prob'] if 'mix_prob' in hps else 0.0
         self.beta_lat_con = hps['beta_lat_con'] if 'beta_lat_con' in hps else 1.0
         self.beta_pix_con = hps['beta_pix_con'] if 'beta_pix_con' in hps else 1.0
 
@@ -962,17 +1011,18 @@ class SphericalManifold(nn.Module):
         device = v.device
 
         # add jittered noise
+        batch_size = v.shape[0]
         e = self._random_noise_vector(v.shape, device)
-        r = self._random_scalar(device)
-        v_NOISY = v + r * self.sigma_max * e
+        sigma = self._sample_sigma(batch_size, device)
+        v_NOISY = v + sigma * e
         # project back onto sphere
         v_NOISY = self.spherifier(v_NOISY)
         # reshape into original view
         self.v_NOISY = v_NOISY.view(-1, self.t_h_size, self.c_h_size)
 
         # create small-noise alternative
-        s = self._random_smaller_scalar(device)
-        v_noisy = v + s * r * self.sigma_max * e
+        s = self._random_smaller_scalar(batch_size, device)
+        v_noisy = v + s * sigma * e
         v_noisy = self.spherifier(v_noisy)
         v_noisy = v_noisy.view(-1, self.t_h_size, self.c_h_size)
 
@@ -999,15 +1049,25 @@ class SphericalManifold(nn.Module):
         """Sample a standard Gaussian noise vector."""
         return torch.normal(mean=0.0, std=1.0, size=shape, device=device)
 
-    @staticmethod
-    def _random_scalar(device: torch.device) -> Tensor:
-        """Sample a uniform random scalar in ``[0, 1)``."""
-        return torch.rand(1, device=device)
+    def _sample_sigma(self, batch_size: int, device: torch.device) -> Tensor:
+        """Sample per-sample noise scale σ of shape ``[B, 1]``.
+
+        With probability ``mix_prob``, draws σ from the high-angle range
+        ``[sigma_max, sigma_mix]``; otherwise draws from ``[0, sigma_max]``.
+        When ``sigma_mix`` is ``None`` or ``mix_prob`` is 0, always draws
+        from the base range.
+        """
+        sigma = torch.rand(batch_size, 1, device=device) * self.sigma_max
+        if self.sigma_mix is not None and self.mix_prob > 0.0:
+            use_mix = torch.rand(batch_size, 1, device=device) < self.mix_prob
+            sigma_high = self.sigma_max + torch.rand(batch_size, 1, device=device) * (self.sigma_mix - self.sigma_max)
+            sigma = torch.where(use_mix, sigma_high, sigma)
+        return sigma
 
     @staticmethod
-    def _random_smaller_scalar(device: torch.device) -> Tensor:
-        """Sample a uniform random scalar in ``[0, 0.5)`` for small-noise perturbations."""
-        return torch.rand(1, device=device) * 0.5
+    def _random_smaller_scalar(batch_size: int, device: torch.device) -> Tensor:
+        """Sample a per-sample uniform random scalar in ``[0, 0.5)``, shape ``[B, 1]``."""
+        return torch.rand(batch_size, 1, device=device) * 0.5
 
 
 # -------
