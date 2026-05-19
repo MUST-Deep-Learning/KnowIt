@@ -594,12 +594,44 @@ class PLModel(LightningModule):
 
 
 class PLModel_custom(PLModel):
+    """Dispatcher: instantiates a registered :class:`PLModel` subclass based on
+    ``custom_pl_model_kwargs['model_type']``.
 
-    """An alternative to :class:`PLModel`, selectable by passing
-    `custom_pl_model_kwargs` as a trainer kwarg. The class inherits
-    from :class:`PLModel` and can be modified here.
+    Pass ``custom_pl_model_kwargs={'model_type': 'AE'}`` (or any registered
+    key) via the KnowIt trainer kwargs to select the target subclass.
+    Omitting ``model_type`` or passing an empty dict defaults to ``'AE'``.
+
+    To add a new PLModel variant, subclass :class:`PLModel_custom`, implement
+    the required Lightning hooks, and register it::
+
+        PLModel_custom._registry['MyType'] = PLModel_MyType
 
     """
+
+    _registry: dict[str, type] = {}
+
+    def __new__(
+        cls,
+        loss,
+        learning_rate,
+        optimizer,
+        learning_rate_scheduler,
+        performance_metrics,
+        model,
+        model_params,
+        output_scaler=None,
+        custom_pl_model_kwargs=None,
+    ):
+        if cls is not PLModel_custom:
+            # Direct subclass instantiation — no dispatch needed.
+            return super().__new__(cls)
+        model_type = (custom_pl_model_kwargs or {}).get('model_type', 'AE')
+        target_cls = PLModel_custom._registry.get(model_type)
+        if target_cls is None:
+            logger.error('Unknown PLModel type: %s', model_type)
+            exit(101)
+        return super().__new__(target_cls)
+
     def __init__(
         self,
         loss,
@@ -616,8 +648,187 @@ class PLModel_custom(PLModel):
             loss, learning_rate, optimizer, learning_rate_scheduler,
             performance_metrics, model, model_params, output_scaler,
         )
-    # YOU CAN ADD YOUR OWN CUSTOM CALLBACKS OR OVERWRITE THOSE ALREADY DEFINED IN `PLModel`
-    # e.g. add on_train_batch_end to add some extra terms to the loss during training
 
-    # def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
-    #     super().on_train_batch_start(batch, batch_idx, dataloader_idx)
+
+class PLModel_AE(PLModel_custom):
+    """PLModel subclass for auto-encoder style training.
+
+    Uses the model's ``custom_loss_compute`` method for all loss calculations
+    instead of the standard KnowIt loss pipeline.  Handles LSTM state resets
+    and optional KL warm-up callbacks around each epoch.
+
+    Select this class by passing ``custom_pl_model_kwargs={'model_type': 'AE'}``
+    (or an empty dict, since ``'AE'`` is the default) in the KnowIt trainer
+    kwargs.
+    """
+
+    def __init__(
+        self,
+        loss,
+        learning_rate,
+        optimizer,
+        learning_rate_scheduler,
+        performance_metrics,
+        model,
+        model_params,
+        output_scaler=None,
+        custom_pl_model_kwargs=None,
+    ) -> None:
+        super().__init__(
+            loss, learning_rate, optimizer, learning_rate_scheduler,
+            performance_metrics, model, model_params, output_scaler,
+            custom_pl_model_kwargs,
+        )
+
+    def training_step(self, batch: dict[str, Any], batch_idx: int) -> Tensor:
+        """Compute training loss via the model's ``custom_loss_compute`` method.
+
+        Prefixes each metric key with ``'train_'`` before logging so that
+        training and validation metrics are distinguishable in the log.
+
+        Parameters
+        ----------
+        batch : dict[str, Any]
+            Batch dict with at least ``'x'`` (input series) and ``'y'``
+            (class labels / targets).
+        batch_idx : int
+            Index of the current batch (unused).
+
+        Returns
+        -------
+        Tensor
+            Scalar total loss used for back-propagation.
+        """
+        loss_label = "train"
+        if hasattr(self.model, 'custom_loss_compute'):
+            loss, loss_log_metrics = self.model.custom_loss_compute(x=batch['x'], y=batch['y'])
+        else:
+            logger.error('model.custom_loss_compute is not defined.')
+            exit(101)
+
+        loss_names = list(loss_log_metrics.keys())
+        for name in loss_names:
+            loss_log_metrics[f"{loss_label}_{name}"] = loss_log_metrics.pop(name)
+        loss_log_metrics[loss_label + '_loss'] = loss
+
+        loss_log_metrics['epoch'] = float(self.current_epoch)
+        self.log_dict(loss_log_metrics, on_epoch=True, on_step=False, prog_bar=True)
+
+        return loss
+
+    def validation_step(self, batch: dict[str, Any], batch_idx: int) -> Tensor:
+        """Compute validation loss via the model's ``custom_loss_compute`` method.
+
+        Prefixes each metric key with ``'valid_'`` before logging.
+
+        Parameters
+        ----------
+        batch : dict[str, Any]
+            Batch dict with at least ``'x'`` (input series) and ``'y'``
+            (class labels / targets).
+        batch_idx : int
+            Index of the current batch (unused).
+
+        Returns
+        -------
+        Tensor
+            Scalar total loss.
+        """
+        loss_label = "valid"
+        if hasattr(self.model, 'custom_loss_compute'):
+            loss, loss_log_metrics = self.model.custom_loss_compute(x=batch['x'], y=batch['y'])
+        else:
+            logger.error('model.custom_loss_compute is not defined.')
+            exit(101)
+
+        loss_names = list(loss_log_metrics.keys())
+        for name in loss_names:
+            loss_log_metrics[f"{loss_label}_{name}"] = loss_log_metrics.pop(name)
+        loss_log_metrics[loss_label + '_loss'] = loss
+
+        loss_log_metrics['epoch'] = float(self.current_epoch)
+        self.log_dict(loss_log_metrics, on_epoch=True, on_step=False, prog_bar=True)
+
+        return loss
+
+    def test_step(self, batch: dict[str, Any], batch_idx: int, dataloader_idx: int) -> dict[str, Tensor]:
+        """Compute evaluation loss via the model's ``custom_loss_compute`` method.
+
+        Prefixes each metric key with the split label (``'result_train_'``,
+        ``'result_valid_'``, or ``'result_eval_'``) based on
+        ``dataloader_idx``.
+
+        Parameters
+        ----------
+        batch : dict[str, Any]
+            Batch dict with at least ``'x'`` and ``'y'``.
+        batch_idx : int
+            Index of the current batch (unused).
+        dataloader_idx : int
+            Index identifying the data split (0 = train, 1 = valid, 2 = eval).
+
+        Returns
+        -------
+        dict[str, Tensor]
+            Logged metrics dict including the prefixed loss value.
+        """
+        loaders = {0: "result_train_", 1: "result_valid_", 2: "result_eval_"}
+        current_loader = loaders[dataloader_idx]
+
+        loss_label = current_loader + "loss"
+        if hasattr(self.model, 'custom_loss_compute'):
+            loss, loss_log_metrics = self.model.custom_loss_compute(x=batch['x'], y=batch['y'])
+        else:
+            logger.error('model.custom_loss_compute is not defined.')
+            exit(101)
+
+        loss_names = list(loss_log_metrics.keys())
+        for name in loss_names:
+            loss_log_metrics[f"{loss_label}_{name}"] = loss_log_metrics.pop(name)
+        loss_log_metrics[loss_label] = loss
+
+        self.log_dict(
+            loss_log_metrics,
+            on_epoch=True, on_step=False, prog_bar=True,
+            logger=True, add_dataloader_idx=False,
+        )
+        return loss_log_metrics
+
+    def on_train_epoch_start(self) -> None:
+        """Reset LSTM states and advance the KL warm-up schedule before each training epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+        if hasattr(self.model, "apply_kl_warmup"):
+            self.model.apply_kl_warmup(self.current_epoch)
+
+    def on_validation_epoch_start(self) -> None:
+        """Reset LSTM states and apply full KL weight before each validation epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+        if hasattr(self.model, "apply_kl_warmup"):
+            self.model.apply_kl_warmup(self.current_epoch, training=False)
+
+    def on_test_epoch_start(self) -> None:
+        """Reset LSTM states and apply full KL weight before each test epoch."""
+        if hasattr(self.model, 'force_reset'):
+            self.model.force_reset()
+        if hasattr(self.model, "apply_kl_warmup"):
+            self.model.apply_kl_warmup(self.current_epoch, training=False)
+
+
+# -----------------------------------------------------------------
+# CUSTOM PLMODEL REGISTRY
+#
+# To add a new PLModel variant:
+#   1. Define a subclass of PLModel_custom (see PLModel_AE above as
+#      a template).
+#   2. Implement training_step, validation_step, test_step, and any
+#      on_*_epoch_start callbacks you need.
+#   3. Register it below with a unique string key.
+#   4. Pass that key via the KnowIt trainer kwarg:
+#        'custom_pl_model_kwargs': {'model_type': '<your_key>'}
+# -----------------------------------------------------------------
+
+PLModel_custom._registry['AE'] = PLModel_AE
+
+
