@@ -86,7 +86,7 @@ class Model(nn.Module):
 
     The three-stage forward pass is: **encode** → **manifold projection** →
     **decode**.  The first and last stages can optionally concatenate a learned class embedding
-    to the input tensor when ``is_class_conditional=True``.
+    to the input tensor when ``enc_is_class_conditional=True`` or ``dec_is_class_conditional=True``.
 
     Parameters
     ----------
@@ -108,11 +108,16 @@ class Model(nn.Module):
     decoder_type : str
         Backbone for the decoder: ``'LSTM'`` (:class:`LSTMDecoder`) or
         ``'CNN'`` (:class:`CNNDecoder`).
-    is_class_conditional : bool
-        If ``True``, a learned class embedding is concatenated to the input
-        before encoding and to the latent before decoding.
+    enc_is_class_conditional : bool
+        If ``True``, a learned class embedding is concatenated to the encoder
+        input, allowing the encoder to exploit the class label.  When
+        ``False`` the latent must encode class-discriminative information
+        itself, which naturally separates classes in latent space.
+    dec_is_class_conditional : bool
+        If ``True``, a learned class embedding is concatenated to the latent
+        before decoding, giving the decoder explicit access to the class label.
     num_classes : int | None
-        Number of distinct classes.  Required when ``is_class_conditional=True``.
+        Number of distinct classes.  Required when ``enc_is_class_conditional=True`` or ``dec_is_class_conditional=True``.
     class_dim : int
         Embedding dimension for each class label.
     component_compression : int
@@ -145,7 +150,8 @@ class Model(nn.Module):
         manifold_type: str | None = None,
         encoder_type: str = 'LSTM',
         decoder_type: str = 'LSTM',
-        is_class_conditional: bool = False,
+        enc_is_class_conditional: bool = False,
+        dec_is_class_conditional: bool = False,
         num_classes: int | None = None,
         class_dim: int = 16,
         component_compression: int = 2,
@@ -175,10 +181,11 @@ class Model(nn.Module):
         if self.c_h_size < 1:
             logger.error('Excessive component_compression resulting in c_h_size < 1.')
             exit(101)
-        if is_class_conditional and num_classes is None:
+        if (enc_is_class_conditional or dec_is_class_conditional) and num_classes is None:
             logger.error('No num_classes specified for class_conditional.')
             exit(101)
-        self.is_class_conditional = is_class_conditional
+        self.enc_is_class_conditional = enc_is_class_conditional
+        self.dec_is_class_conditional = dec_is_class_conditional
         self.num_classes = num_classes
         self.class_dim = class_dim
         self.encoder_type = encoder_type
@@ -203,13 +210,13 @@ class Model(nn.Module):
             logger.error('Unknown decoder type %s' % self.decoder_type)
             exit(101)
 
-        if self.is_class_conditional:
+        if self.enc_is_class_conditional or self.dec_is_class_conditional:
             self.prepare_class_embeddings()
-            self.encoder = enc_class(self.t_size, self.c_size + self.class_dim, self.t_h_size, self.c_h_size, encoder_hps)
-            self.decoder = dec_class(self.t_size, self.c_size, self.t_h_size, self.c_h_size + self.class_dim, decoder_hps)
-        else:
-            self.encoder = enc_class(self.t_size, self.c_size, self.t_h_size, self.c_h_size, encoder_hps)
-            self.decoder = dec_class(self.t_size, self.c_size, self.t_h_size, self.c_h_size, decoder_hps)
+
+        enc_in = self.c_size + self.class_dim if self.enc_is_class_conditional else self.c_size
+        dec_in = self.c_h_size + self.class_dim if self.dec_is_class_conditional else self.c_h_size
+        self.encoder = enc_class(self.t_size, enc_in, self.t_h_size, self.c_h_size, encoder_hps)
+        self.decoder = dec_class(self.t_size, self.c_size, self.t_h_size, dec_in, decoder_hps)
 
         if self.manifold_type is None:
             self.manifold = nn.Identity()
@@ -233,7 +240,7 @@ class Model(nn.Module):
         y : Tensor | None
             Class labels of shape ``[B]`` (integer indices) or
             ``[B, num_classes]`` (one-hot).  Only used when
-            ``is_class_conditional=True``.
+            ``enc_is_class_conditional=True`` or ``dec_is_class_conditional=True``.
 
         Returns
         -------
@@ -260,7 +267,8 @@ class Model(nn.Module):
         Tensor
             Latent representation of shape ``[B, t_h_size, c_h_size]``.
         """
-        x = self.concat_class_embeddings(x, y)
+        if self.enc_is_class_conditional:
+            x = self.concat_class_embeddings(x, y)
         z = self.encoder(x)
         return z
 
@@ -295,7 +303,8 @@ class Model(nn.Module):
         Tensor
             Reconstruction of shape ``[B, T, C]``.
         """
-        z = self.concat_class_embeddings(z, y)
+        if self.dec_is_class_conditional:
+            z = self.concat_class_embeddings(z, y)
         out = self.decoder(z)
         return out
 
@@ -346,6 +355,8 @@ class Model(nn.Module):
             loss = loss + self.get_beta_lat_con() * lat_con_loss + self.get_beta_pix_con() * pix_con_loss
             loss_log_metrics['lat_con_loss'] = lat_con_loss
             loss_log_metrics['pix_con_loss'] = pix_con_loss
+            loss_log_metrics['beta_lat_con'] = self.get_beta_lat_con()
+            loss_log_metrics['beta_pix_con'] = self.get_beta_pix_con()
         else:
             pass
 
@@ -396,7 +407,7 @@ class Model(nn.Module):
 
         Sets ``self.class_embedding`` to an ``nn.Embedding`` of size
         ``(num_classes, class_dim)``.  Called automatically from ``__init__``
-        when ``is_class_conditional=True``.
+        when ``enc_is_class_conditional=True`` or ``dec_is_class_conditional=True``.
         """
         if self.num_classes is None:
             logger.error('num_classes is None. Cannot generate class embeddings.')
@@ -405,10 +416,6 @@ class Model(nn.Module):
 
     def concat_class_embeddings(self, x: Tensor, y: Tensor | None) -> Tensor:
         """Append class embedding channels to ``x`` along the component axis.
-
-        When ``is_class_conditional=False``, ``x`` is returned unchanged.
-        The embedding is broadcast over the time axis so every timestep
-        receives the same class signal.
 
         Parameters
         ----------
@@ -423,12 +430,11 @@ class Model(nn.Module):
             Concatenated tensor of shape ``[B, T, C + class_dim]`` when class
             conditioning is active, otherwise the original ``[B, T, C]``.
         """
-        if self.is_class_conditional:
-            batch_size = x.shape[0]
-            class_emb = self._get_class_embedding(y, batch_size, x.device)
-            if class_emb is not None:
-                cond_map = class_emb.unsqueeze(1).expand(class_emb.shape[0], x.shape[1], class_emb.shape[1])
-                x = torch.cat([x, cond_map], dim=-1)
+        batch_size = x.shape[0]
+        class_emb = self._get_class_embedding(y, batch_size, x.device)
+        if class_emb is not None:
+            cond_map = class_emb.unsqueeze(1).expand(class_emb.shape[0], x.shape[1], class_emb.shape[1])
+            x = torch.cat([x, cond_map], dim=-1)
         return x
 
     # GENERATING FUNCTIONS
@@ -452,8 +458,8 @@ class Model(nn.Module):
         Tensor
             Generated time series of shape ``[n_samples, T, C]``.
         """
-        if not self.is_class_conditional:
-            logger.error('Encoder is not class conditional. Cannot sample by class.')
+        if not self.dec_is_class_conditional:
+            logger.error('dec_is_class_conditional is False. Cannot sample by class.')
             exit(101)
 
         if self.num_classes <= 0:
@@ -567,6 +573,13 @@ class Model(nn.Module):
 
     # SPHERICAL MANIFOLD FUNCTION WRAPPERS
 
+    def apply_sphere_warmup(self, epoch: int, training: bool = True) -> tuple[float, float] | None:
+        """Wrapper: linearly warm the spherical consistency loss weights."""
+        if hasattr(self.manifold, "apply_sphere_warmup"):
+            return self.manifold.apply_sphere_warmup(epoch, training)
+        else:
+            return None
+
     def get_Dv_NOISY(self, y: Tensor | None) -> Tensor | None:
         """Decode the noisy sphere projection stored by :class:`SphericalManifold`.
 
@@ -586,7 +599,8 @@ class Model(nn.Module):
         """
         v_NOISY = self.get_v_NOISY()
         if v_NOISY is not None:
-            v_NOISY = self.concat_class_embeddings(v_NOISY, y)
+            if self.dec_is_class_conditional:
+                v_NOISY = self.concat_class_embeddings(v_NOISY, y)
             out = self.decoder(v_NOISY)
             return out
         else:
@@ -964,8 +978,10 @@ class SphericalManifold(nn.Module):
           mixing range.  Set to ``tan(85°) ≈ 11.43`` for small images.  ``None`` disables mixing.
         - ``'mix_prob'`` (float, default 0.0): probability of drawing σ from the high-angle
           range ``[sigma_max, sigma_mix]`` instead of the base range ``[0, sigma_max]``.
-        - ``'beta_lat_con'`` (float, default 1.0): latent-consistency loss weight.
-        - ``'beta_pix_con'`` (float, default 1.0): pixel-consistency loss weight.
+        - ``'beta_lat_con'`` (float, default 1.0): target latent-consistency loss weight.
+        - ``'beta_pix_con'`` (float, default 1.0): target pixel-consistency loss weight.
+        - ``'warmup_epochs'`` (int, default 0): number of epochs over which both betas are
+          linearly ramped from 0 to their target values.  0 disables warmup.
     """
 
     def __init__(self, t_size: int, c_size: int, t_h_size: int, c_h_size: int, hps: dict) -> None:
@@ -980,6 +996,9 @@ class SphericalManifold(nn.Module):
         self.mix_prob = hps['mix_prob'] if 'mix_prob' in hps else 0.0
         self.beta_lat_con = hps['beta_lat_con'] if 'beta_lat_con' in hps else 1.0
         self.beta_pix_con = hps['beta_pix_con'] if 'beta_pix_con' in hps else 1.0
+        self.warmup_epochs = hps['warmup_epochs'] if 'warmup_epochs' in hps else 0
+        self.current_beta_lat_con = 0.0 if self.warmup_epochs > 0 else self.beta_lat_con
+        self.current_beta_pix_con = 0.0 if self.warmup_epochs > 0 else self.beta_pix_con
 
         self.spherifier = SphericalNorm()
 
@@ -1037,12 +1056,43 @@ class SphericalManifold(nn.Module):
         return self.v
 
     def get_beta_lat_con(self) -> float:
-        """Return the latent-consistency loss weight."""
-        return self.beta_lat_con
+        """Return the current (possibly warmed-up) latent-consistency loss weight."""
+        return self.current_beta_lat_con
 
     def get_beta_pix_con(self) -> float:
-        """Return the pixel-consistency loss weight."""
-        return self.beta_pix_con
+        """Return the current (possibly warmed-up) pixel-consistency loss weight."""
+        return self.current_beta_pix_con
+
+    def apply_sphere_warmup(self, epoch: int, training: bool = True) -> tuple[float, float]:
+        """Linearly warm both betas from 0 to their targets over ``warmup_epochs``.
+
+        During validation / test (``training=False``) the full target betas are
+        applied so logged metrics are comparable across runs.
+
+        Parameters
+        ----------
+        epoch : int
+            Current epoch index (0-based).
+        training : bool
+            If ``False``, sets both current betas to their target values.
+
+        Returns
+        -------
+        tuple[float, float]
+            ``(current_beta_lat_con, current_beta_pix_con)``
+        """
+        if training:
+            if self.warmup_epochs <= 0:
+                self.current_beta_lat_con = self.beta_lat_con
+                self.current_beta_pix_con = self.beta_pix_con
+            else:
+                frac = min(1.0, float(epoch + 1) / float(self.warmup_epochs))
+                self.current_beta_lat_con = self.beta_lat_con * frac
+                self.current_beta_pix_con = self.beta_pix_con * frac
+        else:
+            self.current_beta_lat_con = self.beta_lat_con
+            self.current_beta_pix_con = self.beta_pix_con
+        return self.current_beta_lat_con, self.current_beta_pix_con
 
     @staticmethod
     def _random_noise_vector(shape: tuple, device: torch.device) -> Tensor:

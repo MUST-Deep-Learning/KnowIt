@@ -795,25 +795,31 @@ class PLModel_AE(PLModel_custom):
         return loss_log_metrics
 
     def on_train_epoch_start(self) -> None:
-        """Reset LSTM states and advance the KL warm-up schedule before each training epoch."""
+        """Reset LSTM states and advance warm-up schedules before each training epoch."""
         if hasattr(self.model, 'force_reset'):
             self.model.force_reset()
         if hasattr(self.model, "apply_kl_warmup"):
             self.model.apply_kl_warmup(self.current_epoch)
+        if hasattr(self.model, "apply_sphere_warmup"):
+            self.model.apply_sphere_warmup(self.current_epoch)
 
     def on_validation_epoch_start(self) -> None:
-        """Reset LSTM states and apply full KL weight before each validation epoch."""
+        """Reset LSTM states and apply full loss weights before each validation epoch."""
         if hasattr(self.model, 'force_reset'):
             self.model.force_reset()
         if hasattr(self.model, "apply_kl_warmup"):
             self.model.apply_kl_warmup(self.current_epoch, training=False)
+        if hasattr(self.model, "apply_sphere_warmup"):
+            self.model.apply_sphere_warmup(self.current_epoch, training=False)
 
     def on_test_epoch_start(self) -> None:
-        """Reset LSTM states and apply full KL weight before each test epoch."""
+        """Reset LSTM states and apply full loss weights before each test epoch."""
         if hasattr(self.model, 'force_reset'):
             self.model.force_reset()
         if hasattr(self.model, "apply_kl_warmup"):
             self.model.apply_kl_warmup(self.current_epoch, training=False)
+        if hasattr(self.model, "apply_sphere_warmup"):
+            self.model.apply_sphere_warmup(self.current_epoch, training=False)
 
 
 # -----------------------------------------------------------------
