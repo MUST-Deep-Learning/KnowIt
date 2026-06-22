@@ -85,8 +85,8 @@ class Model(nn.Module):
     training instead of the standard KnowIt loss pipeline.
 
     The three-stage forward pass is: **encode** → **manifold projection** →
-    **decode**.  The first and last stages can optionally concatenate a learned class embedding
-    to the input tensor when ``enc_is_class_conditional=True`` or ``dec_is_class_conditional=True``.
+    **decode**.  The first and last stages support class conditioning via
+    ``enc_conditioning_mode`` and ``dec_conditioning_mode`` (see parameter descriptions).
 
     Parameters
     ----------
@@ -108,16 +108,18 @@ class Model(nn.Module):
     decoder_type : str
         Backbone for the decoder: ``'LSTM'`` (:class:`LSTMDecoder`) or
         ``'CNN'`` (:class:`CNNDecoder`).
-    enc_is_class_conditional : bool
-        If ``True``, a learned class embedding is concatenated to the encoder
-        input, allowing the encoder to exploit the class label.  When
-        ``False`` the latent must encode class-discriminative information
-        itself, which naturally separates classes in latent space.
-    dec_is_class_conditional : bool
-        If ``True``, a learned class embedding is concatenated to the latent
-        before decoding, giving the decoder explicit access to the class label.
+    enc_conditioning_mode : str | dict | None
+        How the encoder is conditioned on the class label.  ``'class_concatenate'``
+        appends the class embedding to the input channels; ``'class_film'`` applies
+        FiLM modulation (scale + shift) to the input; ``{'class_aux_loss': {'beta': 1.0}}``
+        (dict form) adds a cross-entropy classification head on the encoder input without
+        modifying the forward pass; ``None`` disables encoder conditioning.
+    dec_conditioning_mode : str | dict | None
+        Same options as ``enc_conditioning_mode``, applied to the latent before
+        decoding.  ``'class_aux_loss'`` here classifies the manifold-projected
+        latent, which is the more common use case.
     num_classes : int | None
-        Number of distinct classes.  Required when ``enc_is_class_conditional=True`` or ``dec_is_class_conditional=True``.
+        Number of distinct classes.  Required when either conditioning mode is not ``None``.
     class_dim : int
         Embedding dimension for each class label.
     component_compression : int
@@ -150,8 +152,8 @@ class Model(nn.Module):
         manifold_type: str | None = None,
         encoder_type: str = 'LSTM',
         decoder_type: str = 'LSTM',
-        enc_is_class_conditional: bool = False,
-        dec_is_class_conditional: bool = False,
+        enc_conditioning_mode: str | dict | None = None,
+        dec_conditioning_mode: str | dict | None = None,
         num_classes: int | None = None,
         class_dim: int = 16,
         component_compression: int = 2,
@@ -181,18 +183,14 @@ class Model(nn.Module):
         if self.c_h_size < 1:
             logger.error('Excessive component_compression resulting in c_h_size < 1.')
             exit(101)
-        if (enc_is_class_conditional or dec_is_class_conditional) and num_classes is None:
-            logger.error('No num_classes specified for class_conditional.')
+        if (enc_conditioning_mode is not None or dec_conditioning_mode is not None) and num_classes is None:
+            logger.error('No num_classes specified for class conditioning.')
             exit(101)
-        self.enc_is_class_conditional = enc_is_class_conditional
-        self.dec_is_class_conditional = dec_is_class_conditional
         self.num_classes = num_classes
-        self.class_dim = class_dim
         self.encoder_type = encoder_type
         self.decoder_type = decoder_type
         self.manifold_type = manifold_type
         self.rec_loss_f = _parse_rec_loss(rec_loss)
-        self.class_embedding: nn.Embedding | None = None
 
         if self.encoder_type == 'LSTM':
             enc_class = LSTMEncoder
@@ -210,11 +208,10 @@ class Model(nn.Module):
             logger.error('Unknown decoder type %s' % self.decoder_type)
             exit(101)
 
-        if self.enc_is_class_conditional or self.dec_is_class_conditional:
-            self.prepare_class_embeddings()
-
-        enc_in = self.c_size + self.class_dim if self.enc_is_class_conditional else self.c_size
-        dec_in = self.c_h_size + self.class_dim if self.dec_is_class_conditional else self.c_h_size
+        self.enc_conditioner = Conditioner(self.t_size, self.c_size, num_classes, class_dim, enc_conditioning_mode)
+        self.dec_conditioner = Conditioner(self.t_h_size, self.c_h_size, num_classes, class_dim, dec_conditioning_mode)
+        _, enc_in = self.enc_conditioner.get_out_dim()
+        _, dec_in = self.dec_conditioner.get_out_dim()
         self.encoder = enc_class(self.t_size, enc_in, self.t_h_size, self.c_h_size, encoder_hps)
         self.decoder = dec_class(self.t_size, self.c_size, self.t_h_size, dec_in, decoder_hps)
 
@@ -240,7 +237,7 @@ class Model(nn.Module):
         y : Tensor | None
             Class labels of shape ``[B]`` (integer indices) or
             ``[B, num_classes]`` (one-hot).  Only used when
-            ``enc_is_class_conditional=True`` or ``dec_is_class_conditional=True``.
+            ``enc_conditioning_mode`` or ``dec_conditioning_mode`` is not ``None``.
 
         Returns
         -------
@@ -253,22 +250,21 @@ class Model(nn.Module):
         return out
 
     def encode(self, x: Tensor, y: Tensor | None = None) -> Tensor:
-        """Optionally prepend class embeddings and run the encoder.
+        """Optionally condition the input and run the encoder.
 
         Parameters
         ----------
         x : Tensor
             Input of shape ``[B, T, C]``.
         y : Tensor | None
-            Class labels; forwarded to :meth:`concat_class_embeddings`.
+            Class labels; forwarded to the encoder :class:`Conditioner`.
 
         Returns
         -------
         Tensor
             Latent representation of shape ``[B, t_h_size, c_h_size]``.
         """
-        if self.enc_is_class_conditional:
-            x = self.concat_class_embeddings(x, y)
+        x = self.enc_conditioner(x, y)
         z = self.encoder(x)
         return z
 
@@ -289,22 +285,21 @@ class Model(nn.Module):
         return v
 
     def decode(self, z: Tensor, y: Tensor | None = None) -> Tensor:
-        """Optionally prepend class embeddings and run the decoder.
+        """Optionally condition the latent and run the decoder.
 
         Parameters
         ----------
         z : Tensor
             Latent tensor of shape ``[B, t_h_size, c_h_size]``.
         y : Tensor | None
-            Class labels; forwarded to :meth:`concat_class_embeddings`.
+            Class labels; forwarded to the decoder :class:`Conditioner`.
 
         Returns
         -------
         Tensor
             Reconstruction of shape ``[B, T, C]``.
         """
-        if self.dec_is_class_conditional:
-            z = self.concat_class_embeddings(z, y)
+        z = self.dec_conditioner(z, y)
         out = self.decoder(z)
         return out
 
@@ -336,6 +331,16 @@ class Model(nn.Module):
         loss = rec_loss
         loss_log_metrics = {'rec_loss': rec_loss}
 
+        # aux classification loss — must come before get_Dv_NOISY to avoid cache overwrite
+        if self.enc_conditioner.conditioning_mode == 'class_aux_loss' and y is not None:
+            enc_aux = self.enc_conditioner.compute_aux_loss(y)
+            loss = loss + self.enc_conditioner.get_beta_cls() * enc_aux
+            loss_log_metrics['enc_cls_aux_loss'] = enc_aux
+        if self.dec_conditioner.conditioning_mode == 'class_aux_loss' and y is not None:
+            dec_aux = self.dec_conditioner.compute_aux_loss(y)
+            loss = loss + self.dec_conditioner.get_beta_cls() * dec_aux
+            loss_log_metrics['dec_cls_aux_loss'] = dec_aux
+
         if self.manifold_type == 'Gaussian':
 
             # loss = rec_loss + beta * kl
@@ -362,88 +367,15 @@ class Model(nn.Module):
 
         return loss, loss_log_metrics
 
-    # CLASS CONDITIONING FUNCTIONS
-
-    def _get_class_embedding(self, y: Tensor | None, batch_size: int, device: torch.device) -> Tensor | None:
-        """Look up class embeddings for a batch.
-
-        Returns ``None`` when no embedding table is present, or a zero vector
-        when ``y`` is ``None`` (unconditional generation at inference time).
-
-        Parameters
-        ----------
-        y : Tensor | None
-            Integer class indices ``[B]`` or one-hot ``[B, num_classes]``.
-            Pass ``None`` to obtain a zero embedding (unconditional).
-        batch_size : int
-            Expected batch size.
-        device : torch.device
-            Device on which to create zero-embedding tensors.
-
-        Returns
-        -------
-        Tensor | None
-            Class embedding of shape ``[B, class_dim]``, or ``None`` if
-            ``self.class_embedding`` is not initialised.
-        """
-        if self.class_embedding is None:
-            return None
-
-        if y is None:
-            return torch.zeros(batch_size, self.class_dim, device=device)
-
-        if y.dim() > 1:
-            if y.shape[-1] == self.num_classes:
-                y = torch.argmax(y, dim=-1)
-            else:
-                logger.error('num_classes and given y tensor mismatch.')
-                exit(101)
-
-        y = y.long().view(batch_size)
-        return self.class_embedding(y)
-
-    def prepare_class_embeddings(self) -> None:
-        """Initialise the class embedding table.
-
-        Sets ``self.class_embedding`` to an ``nn.Embedding`` of size
-        ``(num_classes, class_dim)``.  Called automatically from ``__init__``
-        when ``enc_is_class_conditional=True`` or ``dec_is_class_conditional=True``.
-        """
-        if self.num_classes is None:
-            logger.error('num_classes is None. Cannot generate class embeddings.')
-            exit(101)
-        self.class_embedding = nn.Embedding(self.num_classes, self.class_dim)
-
-    def concat_class_embeddings(self, x: Tensor, y: Tensor | None) -> Tensor:
-        """Append class embedding channels to ``x`` along the component axis.
-
-        Parameters
-        ----------
-        x : Tensor
-            Input of shape ``[B, T, C]``.
-        y : Tensor | None
-            Class labels; ``None`` yields a zero embedding.
-
-        Returns
-        -------
-        Tensor
-            Concatenated tensor of shape ``[B, T, C + class_dim]`` when class
-            conditioning is active, otherwise the original ``[B, T, C]``.
-        """
-        batch_size = x.shape[0]
-        class_emb = self._get_class_embedding(y, batch_size, x.device)
-        if class_emb is not None:
-            cond_map = class_emb.unsqueeze(1).expand(class_emb.shape[0], x.shape[1], class_emb.shape[1])
-            x = torch.cat([x, cond_map], dim=-1)
-        return x
-
     # GENERATING FUNCTIONS
 
-    def sample_by_class(self, n_samples: int, class_id: int | list[int]) -> Tensor:
+    def sample_by_class(self, n_samples: int, class_id: int | list[int], refinement_iterations: int | None = None) -> Tensor:
         """Sample from the latent prior conditioned on a specific class.
 
         Samples ``z ~ N(0, I)`` in latent space, projects through the manifold,
-        and decodes with the requested class conditioning.
+        and decodes with the requested class conditioning.  Optionally refines
+        the output by repeatedly passing it back through the encode→manifold→decode
+        cycle, keeping the class label fixed throughout.
 
         Parameters
         ----------
@@ -452,14 +384,17 @@ class Model(nn.Module):
         class_id : int | list[int]
             A single integer (all samples from the same class) or a list of
             integers of length ``n_samples`` (per-sample class assignment).
+        refinement_iterations : int | None
+            Number of encode→manifold→decode refinement passes applied after
+            the initial decoding.  ``None`` (default) skips refinement.
 
         Returns
         -------
         Tensor
             Generated time series of shape ``[n_samples, T, C]``.
         """
-        if not self.dec_is_class_conditional:
-            logger.error('dec_is_class_conditional is False. Cannot sample by class.')
+        if self.dec_conditioner.conditioning_mode not in ('class_concatenate', 'class_film'):
+            logger.error('dec_conditioning_mode must be class_concatenate or class_film to sample by class.')
             exit(101)
 
         if self.num_classes <= 0:
@@ -471,10 +406,6 @@ class Model(nn.Module):
         device = next(self.parameters()).device
         z = torch.normal(size=(n_samples, self.t_h_size, self.c_h_size), mean=0, std=1., device=device)
 
-        z = self.manifold_proj(z)
-        # z = self.manifold.spherifier(z)
-        # z = z.view(-1, self.t_h_size, self.c_h_size)
-
         y = torch.zeros(size=(n_samples, self.num_classes), device=device)
         if isinstance(class_id, int):
             y[:, class_id] = 1.
@@ -485,15 +416,26 @@ class Model(nn.Module):
             logger.error('class_id must be int or list matching n_samples.')
             exit(101)
 
-        return self.decode(z, y)
+        z = self.manifold_proj(z)
+        x_hat = self.decode(z, y)
 
-    def sample(self, n_samples: int) -> Tensor:
+        if refinement_iterations is not None:
+            for _ in range(refinement_iterations):
+                x_hat = self.encode(x_hat, y)
+                x_hat = self.manifold_proj(x_hat)
+                x_hat = self.decode(x_hat, y)
+
+        return x_hat
+
+    def sample(self, n_samples: int, refinement_iterations: int = None) -> Tensor:
         """Sample from the latent prior without class conditioning.
 
         Parameters
         ----------
         n_samples : int
             Number of samples to generate.
+        refinement_iterations : int | None
+            The number of times to pass the generated samples through another pass of the AE.
 
         Returns
         -------
@@ -507,7 +449,15 @@ class Model(nn.Module):
         # z = self.manifold.spherifier(z)
         # z = z.view(-1, self.t_h_size, self.c_h_size)
 
-        return self.decode(z)
+        x_hat = self.decode(z)
+
+        if refinement_iterations is not None:
+            for _ in range(refinement_iterations):
+                x_hat = self.encode(x_hat)
+                x_hat = self.manifold_proj(x_hat)
+                x_hat = self.decode(x_hat)
+
+        return x_hat
 
     # LSTM FUNCTION WRAPPERS
 
@@ -599,8 +549,7 @@ class Model(nn.Module):
         """
         v_NOISY = self.get_v_NOISY()
         if v_NOISY is not None:
-            if self.dec_is_class_conditional:
-                v_NOISY = self.concat_class_embeddings(v_NOISY, y)
+            v_NOISY = self.dec_conditioner(v_NOISY, y)
             out = self.decoder(v_NOISY)
             return out
         else:
@@ -1005,7 +954,7 @@ class SphericalManifold(nn.Module):
         self.v_NOISY: Tensor | None = None
         self.v: Tensor | None = None
 
-    def forward(self, z: Tensor) -> Tensor:
+    def forward(self, z: Tensor, noise_at_inference: bool = False) -> Tensor:
         """Project ``z`` onto the sphere and generate perturbed latents.
 
         Stores the clean sphere projection ``self.v`` (shape ``[B, T*C]``)
@@ -1016,11 +965,16 @@ class SphericalManifold(nn.Module):
         ----------
         z : Tensor
             Encoder output of shape ``[B, t_h_size, c_h_size]``.
+        noise_at_inference : bool
+            Whether to add the training noise during inference in any case.
+            Used for iterative refinement during generation. Default: ``False``.
 
         Returns
         -------
         Tensor
-            Small-noise sphere projection of shape ``[B, t_h_size, c_h_size]``.
+            Clean sphere projection of shape ``[B, t_h_size, c_h_size]`` when
+            ``not self.training and not noise_at_inference``; otherwise the
+            small-noise perturbed projection of the same shape.
         """
         
         # spherify the incoming tensor
@@ -1038,6 +992,9 @@ class SphericalManifold(nn.Module):
         v_NOISY = self.spherifier(v_NOISY)
         # reshape into original view
         self.v_NOISY = v_NOISY.view(-1, self.t_h_size, self.c_h_size)
+
+        if not self.training and not noise_at_inference:
+            return v.view(-1, self.t_h_size, self.c_h_size)
 
         # create small-noise alternative
         s = self._random_smaller_scalar(batch_size, device)
@@ -1419,3 +1376,163 @@ class SphericalNorm(nn.Module):
         x = z.flatten(1)
         rms = torch.sqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
         return x / rms
+
+
+class Conditioner(nn.Module):
+    """Applies class conditioning to a ``[B, T, C]`` tensor before encoding or decoding.
+
+    Supports four modes selected by ``conditioning_mode``:
+
+    - ``'class_concatenate'``: broadcasts a learned class embedding over the
+      time axis and appends it as extra channels, increasing ``C`` by
+      ``class_dim``.
+    - ``'class_film'``: applies FiLM modulation ``(1 + γ) * x + β`` where
+      ``(γ, β)`` are projected from a learned class embedding.  Output shape
+      is unchanged.  Projection weights are zero-initialised so the identity
+      is the starting point.
+    - ``{'class_aux_loss': {'beta': float}}``: the forward pass is a no-op
+      (input is returned unchanged), but the input is cached so that
+      :meth:`compute_aux_loss` can classify it with a linear head and return
+      a weighted cross-entropy loss.
+    - ``None``: identity — the input is returned unchanged.
+
+    Parameters
+    ----------
+    t_dim : int
+        Number of timesteps in the input tensor.
+    c_dim : int
+        Number of channels in the input tensor.
+    num_classes : int | None
+        Number of distinct classes.  Required for all non-``None`` modes.
+    class_dim : int
+        Embedding dimension used by ``'class_concatenate'`` and ``'class_film'``.
+    conditioning_mode : str | dict | None
+        Conditioning mode (see above).  Pass a dict only for
+        ``'class_aux_loss'``: ``{'class_aux_loss': {'beta': 1.0}}``.
+    """
+
+    def __init__(self, t_dim: int, c_dim: int, num_classes: int, class_dim: int, conditioning_mode: str | dict | None = None) -> None:
+        super().__init__()
+
+        self.t_dim = t_dim
+        self.c_dim = c_dim
+
+        if isinstance(conditioning_mode, dict):
+            self.conditioning_mode = next(iter(conditioning_mode))
+            self.conditioning_hps = conditioning_mode[self.conditioning_mode]
+        else:
+            self.conditioning_mode = conditioning_mode
+            self.conditioning_hps = {}
+
+        if self.conditioning_mode not in ('class_concatenate', 'class_film', 'class_aux_loss', None):
+            logger.error(f'Unknown conditioning_mode: {self.conditioning_mode}')
+            exit(101)
+
+        if self.conditioning_mode in ('class_concatenate', 'class_film'):
+            self.num_classes = num_classes
+            self.class_dim = class_dim
+            self.class_embedding = self._prepare_class_embeddings()
+
+        if self.conditioning_mode == 'class_film':
+            self.film_proj = nn.Linear(class_dim, 2 * c_dim)
+            nn.init.zeros_(self.film_proj.weight)
+            nn.init.zeros_(self.film_proj.bias)
+
+        if self.conditioning_mode == 'class_aux_loss':
+            if num_classes is None:
+                logger.error('class_aux_loss requires num_classes.')
+                exit(101)
+            self.num_classes = num_classes
+            self.cls_head = nn.Linear(t_dim * c_dim, num_classes)
+            self._cached_latent = None
+
+        self.t_dim_out = t_dim
+        self.c_dim_out = c_dim
+        if self.conditioning_mode == 'class_concatenate':
+            self.c_dim_out = c_dim + self.class_dim
+
+    def forward(self, x: Tensor, y: Tensor) -> Tensor:
+
+        if self.conditioning_mode == 'class_concatenate':
+            batch_size = x.shape[0]
+            class_emb = self._get_class_embedding(y, batch_size, x.device)
+            if class_emb is not None:
+                cond_map = class_emb.unsqueeze(1).expand(class_emb.shape[0], x.shape[1], class_emb.shape[1])
+                x = torch.cat([x, cond_map], dim=-1)
+        elif self.conditioning_mode == 'class_film':
+            batch_size = x.shape[0]
+            class_emb = self._get_class_embedding(y, batch_size, x.device)
+            if class_emb is not None:
+                film_params = self.film_proj(class_emb)          # [B, 2 * c_dim]
+                gamma, beta = film_params.chunk(2, dim=-1)        # each [B, c_dim]
+                gamma = gamma.unsqueeze(1)                        # [B, 1, c_dim] → broadcasts over T
+                beta = beta.unsqueeze(1)
+                x = (1 + gamma) * x + beta
+        elif self.conditioning_mode == 'class_aux_loss':
+            self._cached_latent = x
+
+        return x
+
+    def compute_aux_loss(self, y: Tensor) -> Tensor:
+        x = self._cached_latent
+        if x.dim() == 3:
+            x = x.reshape(x.shape[0], -1)
+        logits = self.cls_head(x)
+        labels = torch.argmax(y, dim=-1) if y.dim() > 1 else y.long()
+        return F.cross_entropy(logits, labels)
+
+    def get_beta_cls(self) -> float:
+        return self.conditioning_hps.get('beta', 1.0)
+
+    def get_out_dim(self) -> tuple:
+        return self.t_dim_out, self.c_dim_out
+
+    def _prepare_class_embeddings(self) -> nn.Embedding:
+        """Initialise the class embedding table.
+
+        Sets ``self.class_embedding`` to an ``nn.Embedding`` of size
+        ``(num_classes, class_dim)``.  Called automatically from ``__init__``
+        when ``conditioning_mode`` is ``'class_concatenate'`` or ``'class_film'``.
+        """
+        if self.num_classes is None:
+            logger.error('num_classes is None. Cannot generate class embeddings.')
+            exit(101)
+        return nn.Embedding(self.num_classes, self.class_dim)
+
+    def _get_class_embedding(self, y: Tensor | None, batch_size: int, device: torch.device) -> Tensor | None:
+        """Look up class embeddings for a batch.
+
+        Returns ``None`` when no embedding table is present, or a zero vector
+        when ``y`` is ``None`` (unconditional generation at inference time).
+
+        Parameters
+        ----------
+        y : Tensor | None
+            Integer class indices ``[B]`` or one-hot ``[B, num_classes]``.
+            Pass ``None`` to obtain a zero embedding (unconditional).
+        batch_size : int
+            Expected batch size.
+        device : torch.device
+            Device on which to create zero-embedding tensors.
+
+        Returns
+        -------
+        Tensor | None
+            Class embedding of shape ``[B, class_dim]``, or ``None`` if
+            ``self.class_embedding`` is not initialised.
+        """
+        if self.class_embedding is None:
+            return None
+
+        if y is None:
+            return torch.zeros(batch_size, self.class_dim, device=device)
+
+        if y.dim() > 1:
+            if y.shape[-1] == self.num_classes:
+                y = torch.argmax(y, dim=-1)
+            else:
+                logger.error('num_classes and given y tensor mismatch.')
+                exit(101)
+
+        y = y.long().view(batch_size)
+        return self.class_embedding(y)
