@@ -18,7 +18,9 @@ from torch import nn
 import torch.nn.functional as F
 
 from default_archs.LSTMv2 import Model as KnowItLSTM
-from default_archs.CNN import Model as KnowItCNN
+from torch.nn.utils.parametrizations import weight_norm
+from default_archs.CNN import Model as KnowItCNN, init_mod
+from default_archs.MLP import Model as KnowItMLP
 from helpers.logger import get_logger
 
 logger = get_logger()
@@ -103,11 +105,13 @@ class Model(nn.Module):
         spherical consistency losses via :class:`SphericalManifold`; ``None``
         uses a plain AE with no regularisation.
     encoder_type : str
-        Backbone for the encoder: ``'LSTM'`` (:class:`LSTMEncoder`) or
-        ``'CNN'`` (:class:`CNNEncoder`).
+        Backbone for the encoder: ``'LSTM'`` (:class:`LSTMEncoder`),
+        ``'CNN'`` (:class:`CNNEncoder`), ``'CNN2D'`` (:class:`CNN2DEncoder`),
+        or ``'MLP'`` (:class:`MLPEncoder`).
     decoder_type : str
-        Backbone for the decoder: ``'LSTM'`` (:class:`LSTMDecoder`) or
-        ``'CNN'`` (:class:`CNNDecoder`).
+        Backbone for the decoder: ``'LSTM'`` (:class:`LSTMDecoder`),
+        ``'CNN'`` (:class:`CNNDecoder`), ``'CNN2D'`` (:class:`CNN2DDecoder`),
+        or ``'MLP'`` (:class:`MLPDecoder`).
     enc_conditioning_mode : str | dict | None
         How the encoder is conditioned on the class label.  ``'class_concatenate'``
         appends the class embedding to the input channels; ``'class_film'`` applies
@@ -196,6 +200,10 @@ class Model(nn.Module):
             enc_class = LSTMEncoder
         elif self.encoder_type == 'CNN':
             enc_class = CNNEncoder
+        elif self.encoder_type == 'CNN2D':
+            enc_class = CNN2DEncoder
+        elif self.encoder_type == 'MLP':
+            enc_class = MLPEncoder
         else:
             logger.error('Unknown encoder type %s' % self.encoder_type)
             exit(101)
@@ -204,6 +212,10 @@ class Model(nn.Module):
             dec_class = LSTMDecoder
         elif self.decoder_type == 'CNN':
             dec_class = CNNDecoder
+        elif self.decoder_type == 'CNN2D':
+            dec_class = CNN2DDecoder
+        elif self.decoder_type == 'MLP':
+            dec_class = MLPDecoder
         else:
             logger.error('Unknown decoder type %s' % self.decoder_type)
             exit(101)
@@ -404,7 +416,7 @@ class Model(nn.Module):
             exit(101)
 
         device = next(self.parameters()).device
-        z = torch.normal(size=(n_samples, self.t_h_size, self.c_h_size), mean=0, std=1., device=device)
+        z = torch.normal(size=(n_samples, self.t_h_size, self.c_h_size), mean=0., std=1., device=device)
 
         y = torch.zeros(size=(n_samples, self.num_classes), device=device)
         if isinstance(class_id, int):
@@ -427,7 +439,7 @@ class Model(nn.Module):
 
         return x_hat
 
-    def sample(self, n_samples: int, refinement_iterations: int = None) -> Tensor:
+    def sample(self, n_samples: int, refinement_iterations: int | None = None) -> Tensor:
         """Sample from the latent prior without class conditioning.
 
         Parameters
@@ -445,9 +457,8 @@ class Model(nn.Module):
         device = next(self.parameters()).device
         z = torch.normal(size=(n_samples, self.t_h_size, self.c_h_size), mean=0, std=1., device=device)
 
-        z = self.manifold_proj(z)
-        # z = self.manifold.spherifier(z)
-        # z = z.view(-1, self.t_h_size, self.c_h_size)
+        if self.manifold_type == "Spherical":
+            z = self.manifold_proj(z)
 
         x_hat = self.decode(z)
 
@@ -761,6 +772,48 @@ class CNNEncoder(nn.Module):
         return z
 
 
+class MLPEncoder(nn.Module):
+    """MLP-based encoder that maps ``[B, t_size, c_size]`` → ``[B, t_h_size, c_h_size]``.
+
+    Flattens the input to a vector of size ``t_size * c_size``, passes it
+    through a :class:`SubMLP`, and reshapes the output to
+    ``[B, t_h_size, c_h_size]``.  The full dimension change is handled
+    internally by the MLP, so no separate :class:`ResampleModule` is needed.
+
+    Parameters
+    ----------
+    t_size : int
+        Number of input timesteps.
+    c_size : int
+        Number of input channels.
+    t_h_size : int
+        Number of latent timesteps.
+    c_h_size : int
+        Number of latent channels.
+    hps : dict
+        Hyper-parameters forwarded to :class:`SubMLP`.
+    """
+
+    def __init__(self, t_size: int, c_size: int, t_h_size: int, c_h_size: int, hps: dict) -> None:
+        super().__init__()
+        self.mlp = SubMLP(in_dim=[t_size, c_size], out_dim=[t_h_size, c_h_size], hps=hps)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Encode ``x`` to the latent shape.
+
+        Parameters
+        ----------
+        x : Tensor
+            Input of shape ``[B, t_size, c_size]``.
+
+        Returns
+        -------
+        Tensor
+            Latent of shape ``[B, t_h_size, c_h_size]``.
+        """
+        return self.mlp(x)
+
+
 # --------
 # MANIFOLD
 # --------
@@ -787,8 +840,10 @@ class GaussManifold(nn.Module):
     hps : dict
         Accepted keys:
 
-        - ``'kl_warmup_epochs'`` (int, default 0): number of epochs over
-          which to linearly ramp ``beta_kl`` from 0 to its target value.
+        - ``'kl_warmup_epochs'`` (int, default 0): epoch at which ``beta_kl``
+          reaches its target value (end of the linear ramp).
+        - ``'kl_warmup_epochs_start'`` (int, default 0): epoch at which the
+          linear ramp begins.  ``beta_kl`` is held at 0 before this epoch.
         - ``'beta_kl'`` (float, default 0): target KL weight.
     """
 
@@ -802,6 +857,7 @@ class GaussManifold(nn.Module):
         self.c_h_size = c_h_size
 
         self.kl_warmup_epochs = hps['kl_warmup_epochs'] if 'kl_warmup_epochs' in hps else 0
+        self.kl_warmup_epochs_start = hps['kl_warmup_epochs_start'] if 'kl_warmup_epochs_start' in hps else 0
         self.beta_kl = hps['beta_kl'] if 'beta_kl' in hps else 0
         self.current_beta_kl = 0.0 if self.kl_warmup_epochs > 0 else self.beta_kl
 
@@ -830,7 +886,7 @@ class GaussManifold(nn.Module):
         z = z.permute(0, 2, 1)
 
         mu = self.to_mu(z)
-        logvar = self.to_logvar(z)
+        logvar = self.to_logvar(z).clamp(-10., 10.)
 
         v = self.reparameterize(mu, logvar)
 
@@ -872,10 +928,12 @@ class GaussManifold(nn.Module):
         return self.current_beta_kl
 
     def apply_kl_warmup(self, epoch: int, training: bool = True) -> float:
-        """Linearly warm ``beta_kl`` from 0 to its target over ``kl_warmup_epochs``.
+        """Linearly warm ``beta_kl`` from 0 to its target between ``kl_warmup_epochs_start`` and ``kl_warmup_epochs``.
 
-        During validation / test (``training=False``) the full ``beta_kl`` is
-        applied so that logged metrics are comparable across runs.
+        ``beta_kl`` is held at 0 before ``kl_warmup_epochs_start`` and at its
+        target value after ``kl_warmup_epochs``.  During validation / test
+        (``training=False``) the full ``beta_kl`` is applied so that logged
+        metrics are comparable across runs.
 
         Parameters
         ----------
@@ -893,8 +951,12 @@ class GaussManifold(nn.Module):
             if self.kl_warmup_epochs <= 0:
                 self.current_beta_kl = self.beta_kl
                 return self.current_beta_kl
-            frac = min(1.0, float(epoch + 1) / float(self.kl_warmup_epochs))
-            self.current_beta_kl = min(self.beta_kl, self.beta_kl * frac)
+            ramp_duration = self.kl_warmup_epochs - self.kl_warmup_epochs_start
+            if ramp_duration <= 0 or epoch + 1 <= self.kl_warmup_epochs_start:
+                frac = 0.0
+            else:
+                frac = min(1.0, float(epoch + 1 - self.kl_warmup_epochs_start) / float(ramp_duration))
+            self.current_beta_kl = self.beta_kl * frac
         else:
             self.current_beta_kl = self.beta_kl
 
@@ -1222,6 +1284,48 @@ class CNNDecoder(nn.Module):
         return z
 
 
+class MLPDecoder(nn.Module):
+    """MLP-based decoder that maps ``[B, t_h_size, c_h_size]`` → ``[B, t_size, c_size]``.
+
+    Flattens the latent to a vector of size ``t_h_size * c_h_size``, passes it
+    through a :class:`SubMLP`, and reshapes the output to
+    ``[B, t_size, c_size]``.  The full dimension change is handled internally
+    by the MLP, so no separate :class:`ResampleModule` is needed.
+
+    Parameters
+    ----------
+    t_size : int
+        Number of output timesteps.
+    c_size : int
+        Number of output channels.
+    t_h_size : int
+        Number of latent timesteps.
+    c_h_size : int
+        Number of latent channels.
+    hps : dict
+        Hyper-parameters forwarded to :class:`SubMLP`.
+    """
+
+    def __init__(self, t_size: int, c_size: int, t_h_size: int, c_h_size: int, hps: dict) -> None:
+        super().__init__()
+        self.mlp = SubMLP(in_dim=[t_h_size, c_h_size], out_dim=[t_size, c_size], hps=hps)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Decode the latent ``x`` to the output shape.
+
+        Parameters
+        ----------
+        x : Tensor
+            Latent of shape ``[B, t_h_size, c_h_size]``.
+
+        Returns
+        -------
+        Tensor
+            Reconstruction of shape ``[B, t_size, c_size]``.
+        """
+        return self.mlp(x)
+
+
 # -----------
 # SUB-MODULES
 # -----------
@@ -1285,6 +1389,38 @@ class SubCNN(KnowItCNN):
                          residual_connect=hps['residual_connect'] if 'residual_connect' in hps else True,
                          dilation_base=hps['dilation_base'] if 'dilation_base' in hps else 2,
                          )
+
+
+class SubMLP(KnowItMLP):
+    """Thin wrapper around :class:`KnowItMLP` with AE-friendly defaults.
+
+    Parameters
+    ----------
+    in_dim : list[int]
+        ``[T, C]`` shape of the input (flattened to ``T * C`` features).
+    out_dim : list[int]
+        ``[T, C]`` shape of the output (MLP output is reshaped to this).
+    hps : dict
+        Accepted keys: ``'depth'`` (int, default 3), ``'width'`` (int,
+        default 256), ``'dropout'`` (float, default 0.0), ``'activations'``
+        (str, default ``'ReLU'``), ``'output_activation'`` (str | None,
+        default ``None``), ``'batchnorm'`` (bool, default ``False``).
+    """
+
+    def __init__(self, in_dim: list[int], out_dim: list[int], hps: dict) -> None:
+        super().__init__(input_dim=in_dim,
+                         output_dim=out_dim,
+                         task_name='regression',
+                         depth=hps['depth'] if 'depth' in hps else 3,
+                         width=hps['width'] if 'width' in hps else 256,
+                         dropout=hps['dropout'] if 'dropout' in hps else 0.0,
+                         activations=hps['activations'] if 'activations' in hps else 'ReLU',
+                         output_activation=hps['output_activation'] if 'output_activation' in hps else None,
+                         batchnorm=hps['batchnorm'] if 'batchnorm' in hps else False,
+                         )
+
+    def forward(self, x: Tensor) -> Tensor:
+        return super().forward(x.contiguous())
 
 
 class ResampleModule(nn.Module):
@@ -1451,8 +1587,24 @@ class Conditioner(nn.Module):
         if self.conditioning_mode == 'class_concatenate':
             self.c_dim_out = c_dim + self.class_dim
 
-    def forward(self, x: Tensor, y: Tensor) -> Tensor:
+    def forward(self, x: Tensor, y: Tensor | None) -> Tensor:
+        """Apply class conditioning to ``x`` and return the (possibly modified) tensor.
 
+        Parameters
+        ----------
+        x : Tensor
+            Input of shape ``[B, T, C]``.
+        y : Tensor | None
+            Class labels (integer indices ``[B]`` or one-hot ``[B, num_classes]``).
+            Pass ``None`` for unconditional inference; a zero embedding is used in
+            that case for ``class_concatenate`` and ``class_film`` modes.
+
+        Returns
+        -------
+        Tensor
+            Conditioned tensor.  Shape is ``[B, T, C + class_dim]`` for
+            ``'class_concatenate'``; ``[B, T, C]`` for all other modes.
+        """
         if self.conditioning_mode == 'class_concatenate':
             batch_size = x.shape[0]
             class_emb = self._get_class_embedding(y, batch_size, x.device)
@@ -1536,3 +1688,290 @@ class Conditioner(nn.Module):
 
         y = y.long().view(batch_size)
         return self.class_embedding(y)
+
+
+# --------------------
+# EXPERIMENTAL MODULES
+# --------------------
+
+class ConvBlock2D(nn.Module):
+    """2D variant of :class:`CNN.ConvBlock`.
+
+    Applies a ``Conv2d`` with optional normalisation, activation, dropout, and
+    residual connection.  Input and output tensors have shape
+    ``[B, C, H, W]`` (standard PyTorch 2D channel-first format).
+
+    Parameters
+    ----------
+    n_inputs : int
+        Number of input channels.
+    n_outputs : int
+        Number of output channels.
+    kernel_size : int
+        Square kernel size (applied identically in H and W).
+    dilation : int
+        Dilation factor (applied identically in H and W).
+    padding : int
+        Padding (applied identically in H and W).  For ``kernel_size=3`` set
+        ``padding=dilation`` to preserve spatial dimensions.
+    dropout : float
+        Dropout probability (0 disables dropout).
+    normalization : str | None
+        ``'batch'`` for :class:`~torch.nn.BatchNorm2d`, ``'weight'`` for
+        weight normalisation, or ``None`` for no normalisation.
+    activations : str
+        Name of an ``nn.`` activation class (e.g. ``'ReLU'``).
+    residual_connect : bool
+        If ``True``, adds a skip connection; a 1×1 ``Conv2d`` is used when
+        ``n_inputs != n_outputs``.
+    """
+
+    def __init__(self, n_inputs: int, n_outputs: int, kernel_size: int,
+                 dilation: int, padding: int, dropout: float,
+                 normalization: str | None, activations: str,
+                 residual_connect: bool) -> None:
+        super().__init__()
+
+        layers = [nn.Conv2d(n_inputs, n_outputs, kernel_size,
+                            stride=1, padding=padding, dilation=dilation)]
+        if normalization == 'weight':
+            layers[0] = weight_norm(layers[0])
+        elif normalization == 'batch':
+            layers.append(nn.BatchNorm2d(n_outputs))
+        elif normalization is None:
+            pass
+        else:
+            logger.error('Unknown normalization type %s.', normalization)
+            exit(101)
+        layers.append(getattr(nn, activations)())
+        if dropout:
+            layers.append(nn.Dropout(p=dropout))
+        self.block = nn.Sequential(*layers)
+        init_mod(self.block)
+
+        self.res_connect = None
+        if residual_connect:
+            if n_inputs != n_outputs:
+                self.res_connect = nn.Conv2d(n_inputs, n_outputs, kernel_size=1)
+                init_mod(self.res_connect)
+            else:
+                self.res_connect = nn.Identity()
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Apply the conv block with optional residual connection.
+
+        Parameters
+        ----------
+        x : Tensor
+            Input of shape ``[B, n_inputs, H, W]``.
+
+        Returns
+        -------
+        Tensor
+            Output of shape ``[B, n_outputs, H, W]``.
+        """
+        out = self.block(x)
+        if self.res_connect is not None:
+            out = out + self.res_connect(x)
+        return out
+
+
+class SubCNN2D(nn.Module):
+    """2D CNN sub-module that maps ``[B, T, C_in]`` → ``[B, T, C_out]``.
+
+    Applies 2D convolutions over the joint ``(T, C)`` plane, capturing spatial
+    structure that 1D convolutions along the time axis alone cannot express.
+    Intended as a drop-in replacement for :class:`SubCNN` when the input is
+    better treated as a 2D image (e.g. 28×28 MNIST digits stored as
+    ``[B, T=28, C=28]``).
+
+    Internally the input is reshaped to a single-channel 2D image
+    ``[B, 1, T, C_in]``.  A stack of :class:`ConvBlock2D` layers with
+    same-size padding preserves both spatial dimensions.  A final ``Conv2d``
+    with kernel ``(1, C_in)`` collapses the component dimension, producing
+    ``[B, C_out, T, 1]``, which is reshaped to ``[B, T, C_out]``.
+
+    Parameters
+    ----------
+    in_dim : int
+        Input component dimension (``C_in``).
+    out_dim : int
+        Output component dimension (``C_out``).
+    hps : dict
+        Accepted keys (all optional):
+
+        - ``'depth'`` (int, default 3): number of :class:`ConvBlock2D` layers.
+        - ``'num_filters'`` (int, default 64): feature maps in hidden layers.
+        - ``'kernel_size'`` (int, default 3): square kernel size.
+        - ``'normalization'`` (str | None, default ``'batch'``).
+        - ``'dropout'`` (float, default 0.0).
+        - ``'residual_connect'`` (bool, default ``True``).
+        - ``'dilation_base'`` (int, default 2): dilation at block ``i`` is
+          ``dilation_base ** i``.
+        - ``'activations'`` (str, default ``'ReLU'``).
+    """
+
+    def __init__(self, in_dim: int, out_dim: int, hps: dict) -> None:
+        super().__init__()
+
+        self.in_dim = in_dim
+        depth = hps.get('depth', 3)
+        num_filters = hps.get('num_filters', 64)
+        kernel_size = hps.get('kernel_size', 3)
+        normalization = hps.get('normalization', 'batch')
+        dropout = hps.get('dropout', 0.0)
+        residual_connect = hps.get('residual_connect', True)
+        dilation_base = hps.get('dilation_base', 2)
+        activations = hps.get('activations', 'ReLU')
+
+        blocks = []
+        for i in range(depth):
+            n_in = 1 if i == 0 else num_filters
+            dilation = dilation_base ** i
+            blocks.append(ConvBlock2D(
+                n_inputs=n_in,
+                n_outputs=num_filters,
+                kernel_size=kernel_size,
+                dilation=dilation,
+                padding=dilation,
+                dropout=dropout,
+                normalization=normalization,
+                activations=activations,
+                residual_connect=residual_connect,
+            ))
+        self.conv_blocks = nn.Sequential(*blocks)
+
+        # collapse C dimension: [B, num_filters, T, C_in] → [B, out_dim, T, 1]
+        final_in = num_filters if depth > 0 else 1
+        self.final_conv = nn.Conv2d(final_in, out_dim, kernel_size=(1, in_dim))
+        init_mod(self.final_conv)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Map ``x`` from ``[B, T, C_in]`` to ``[B, T, C_out]`` via 2D convolutions.
+
+        Parameters
+        ----------
+        x : Tensor
+            Input of shape ``[B, T, C_in]``.
+
+        Returns
+        -------
+        Tensor
+            Output of shape ``[B, T, C_out]``.
+        """
+        x = x.unsqueeze(1)           # [B, T, C_in] → [B, 1, T, C_in]
+        x = self.conv_blocks(x)      # → [B, num_filters, T, C_in]
+        x = self.final_conv(x)       # → [B, out_dim, T, 1]
+        x = x.squeeze(-1)            # → [B, out_dim, T]
+        x = x.permute(0, 2, 1)       # → [B, T, out_dim]
+        return x
+
+
+class CNN2DEncoder(nn.Module):
+    """2D CNN encoder that maps ``[B, t_size, c_size]`` → ``[B, t_h_size, c_h_size]``.
+
+    Uses :class:`SubCNN2D` to apply 2D convolutions over the joint ``(T, C)``
+    plane.  A :class:`ResampleModule` handles any mismatch between ``t_size``
+    and ``t_h_size``.
+
+    Parameters
+    ----------
+    t_size : int
+        Number of input timesteps.
+    c_size : int
+        Number of input channels.
+    t_h_size : int
+        Number of latent timesteps.
+    c_h_size : int
+        Number of latent channels.
+    hps : dict
+        Hyper-parameters forwarded to :class:`SubCNN2D`.
+    """
+
+    def __init__(self, t_size: int, c_size: int, t_h_size: int, c_h_size: int, hps: dict) -> None:
+        super().__init__()
+
+        self.t_size = t_size
+        self.c_size = c_size
+        self.t_h_size = t_h_size
+        self.c_h_size = c_h_size
+
+        self.cnn = SubCNN2D(in_dim=self.c_size, out_dim=self.c_h_size, hps=hps)
+
+        if self.t_h_size != self.t_size:
+            self.resampler = ResampleModule(self.c_h_size, self.t_size, self.t_h_size)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Encode ``x`` to the latent time resolution.
+
+        Parameters
+        ----------
+        x : Tensor
+            Input of shape ``[B, t_size, c_size]``.
+
+        Returns
+        -------
+        Tensor
+            Latent of shape ``[B, t_h_size, c_h_size]``.
+        """
+        z = self.cnn(x)
+
+        if self.t_h_size != self.t_size:
+            z = self.resampler(z)
+
+        return z
+
+
+class CNN2DDecoder(nn.Module):
+    """2D CNN decoder that maps ``[B, t_h_size, c_h_size]`` → ``[B, t_size, c_size]``.
+
+    Uses :class:`SubCNN2D` to apply 2D convolutions over the joint ``(T, C)``
+    plane.  A :class:`ResampleModule` handles any mismatch between ``t_h_size``
+    and ``t_size``.
+
+    Parameters
+    ----------
+    t_size : int
+        Number of output timesteps.
+    c_size : int
+        Number of output channels.
+    t_h_size : int
+        Number of latent timesteps.
+    c_h_size : int
+        Number of latent channels.
+    hps : dict
+        Hyper-parameters forwarded to :class:`SubCNN2D`.
+    """
+
+    def __init__(self, t_size: int, c_size: int, t_h_size: int, c_h_size: int, hps: dict) -> None:
+        super().__init__()
+
+        self.t_size = t_size
+        self.c_size = c_size
+        self.t_h_size = t_h_size
+        self.c_h_size = c_h_size
+
+        self.cnn = SubCNN2D(in_dim=self.c_h_size, out_dim=self.c_size, hps=hps)
+
+        if self.t_h_size != self.t_size:
+            self.resampler = ResampleModule(self.c_size, self.t_h_size, self.t_size)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Decode the latent ``x`` to the output time resolution.
+
+        Parameters
+        ----------
+        x : Tensor
+            Latent of shape ``[B, t_h_size, c_h_size]``.
+
+        Returns
+        -------
+        Tensor
+            Reconstruction of shape ``[B, t_size, c_size]``.
+        """
+        z = self.cnn(x)
+
+        if self.t_h_size != self.t_size:
+            z = self.resampler(z)
+
+        return z
