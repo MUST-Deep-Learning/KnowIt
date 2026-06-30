@@ -428,7 +428,8 @@ class Model(nn.Module):
             logger.error('class_id must be int or list matching n_samples.')
             exit(101)
 
-        z = self.manifold_proj(z)
+        if self.manifold_type == "Spherical":
+            z = self.manifold_proj(z)
         x_hat = self.decode(z, y)
 
         if refinement_iterations is not None:
