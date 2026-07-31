@@ -51,7 +51,8 @@ HP_ranges_dict = {"width": range(2, 1025, 1),
                   "stateful": (False, True),
                   "hc_init_method": ('zeros', 'random'),
                   "bidirectional": (False, True),
-                  "residual": (False, True)}
+                  "residual": (False, True),
+                  "freeze_n_layers" : range(2, 1025, 1)}
 
 class Model(Module):
     """A stacked LSTM model for sequence processing with configurable depth,
@@ -135,6 +136,7 @@ class Model(Module):
         layernorm: bool = True,
         bidirectional: bool = False,
         residual: bool = True,
+        freeze_n_layers: int = 0,
     ) -> None:
         super().__init__()
 
@@ -171,6 +173,14 @@ class Model(Module):
             self.output_layers = Sequential(*self.output_layers)
         else:
             self.output_layers = nn.Linear(direction * width, self.model_out_dim)
+
+        if freeze_n_layers:
+            for name, param in self.named_parameters():
+                print(f"{name:60s} requires_grad={param.requires_grad}  shape={list(param.shape)}")
+                if name.startswith(tuple(freeze_n_layers)):
+                    param.requires_grad = False
+                    print(f"{name:60s} requires_grad={param.requires_grad}  shape={list(param.shape)}"
+                          f"\n===========================================")
 
     def force_reset(self) -> None:
         """ A function for external modules to manually signal that all internal states need to be reset."""

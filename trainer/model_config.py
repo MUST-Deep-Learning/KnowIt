@@ -28,6 +28,7 @@ from pytorch_lightning import LightningModule
 from torch import nn
 import time
 
+from default_archs.LSTMv2 import Model
 # internal imports
 from helpers.metric_adapter import MetricAdapter, build_adapters
 from helpers.logger import get_logger
@@ -88,7 +89,7 @@ class PLModel(LightningModule):
         learning_rate_scheduler: None | str | dict[str, Any],
         performance_metrics: None | str | dict[str, Any],
         inference_time: None | bool,
-        model: Module,
+        model: Module | None,
         model_params: dict[str, Any],
         output_scaler: None | object = None,
     ) -> None:
@@ -102,7 +103,12 @@ class PLModel(LightningModule):
         self.output_scaler = output_scaler
         self.task_name = model_params['task_name']
 
-        self.model = model(**model_params)
+        self.lr_scheduler['ReduceLROnPlateau']['monitor'] = 'valid_loss'
+
+        if model is not None:
+            self.model = model(**model_params)
+        else:
+            self.model = Model(**model_params)
         self.loss_functions: dict[str, MetricAdapter] = build_adapters(
             user_args=loss,
             is_loss=True,

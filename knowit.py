@@ -35,10 +35,13 @@ from setup.import_custom_arch import import_custom_arch, complies
 from data.base_dataset import BaseDataset
 from data.prepared_dataset import PreparedDataset
 from trainer.trainer import KITrainer
-from trainer.trainer_states import TrainNew, EvaluateOnly
+from trainer.trainer_states import TrainNew, EvaluateOnly, ContinueTraining
 from interpret.DLS_Captum import DLS
 from interpret.DL_Captum import DeepL
 from interpret.IntegratedGrad_Captum import IntegratedGrad
+
+from yaml import safe_load, safe_dump
+from torch import load, save
 
 logger = get_logger()
 logger.setLevel('WARNING')
@@ -1041,6 +1044,7 @@ class KnowIt:
             cls = getattr(module, class_name)
             return cls
 
+        # This might be useful to remove the hardcoded model in model_config
         if arch_args['name'] in available_archs['custom']:
             archi_path = custom_arch_path(arch_args['name'], exp_output_dir)
         elif arch_args['name'] in available_archs['defaults']:
@@ -1219,3 +1223,124 @@ class KnowIt:
             logger.error('Log to local sweep variable must be a boolean.')
             exit(101)
         return True
+
+    def continue_train_model(self, model_name: str,
+                             kwargs: dict, *,
+                             device: str | None = None,
+                             safe_mode: bool | None = None,
+                             and_viz: bool | None = None,
+                             sweep_kwargs: dict | None = None,
+                             preload: bool = True,
+                             num_workers: int = 4,
+                             persistent_workers: bool = True,
+                             pin_memory: bool = True,
+                             yaml_dir: str,
+                             ckpt_dir: str) -> None:
+        """Uses the ContinueTrain state to continue training a model given user arguments and a checkpoint file.
+
+        This function sets up and trains a model using the provided arguments and configurations.
+        It checks and uses global settings for the device, safe mode, and visualization unless
+        overridden by the provided arguments.
+
+        Parameters
+        ----------
+        model_name : str
+            The name of the model to be trained.
+        kwargs : dict
+            A dictionary containing the necessary arguments for setting up the data, architecture,
+            and trainer. Expected keys are 'data', 'arch', and 'trainer'.
+        device : str | None, default=None
+            The device to be used for training. Defaults to the global device setting if not provided.
+        safe_mode : bool | None, default=None
+            If provided, sets the safe mode value for this operation.
+            Defaults to the global safe mode setting if not provided.
+        and_viz : bool | None, default=None
+            If provided, sets the visualization setting for this operation. Defaults to the global
+            visualization setting if not provided.
+        sweep_kwargs : dict | None, default=None
+            Optional kwargs if a hyperparameter sweep is being performed.
+            If provided, must contain kwargs (sweep_name: str, run_name: str, and log_to_local: bool).
+        preload : bool, default = False
+            Whether to preload the raw relevant instances and slice into memory when sampling feature values.
+        num_workers : int, default = 4
+            Sets the number of workers to use for loading the dataset.
+        persistent_workers : bool, default = True
+            If True, the data loader will not shut down the worker processes after a dataset has been consumed once.
+        pin_memory : bool, default = True
+            If True, the data loader will copy Tensors into device/CUDA pinned memory before returning them.
+
+        Notes
+        -----
+        See setup.setup_action_args.py for details on the arguments required in args.
+
+        Optional visualization is not done if busy with sweep.
+
+        """
+
+        # Open yaml file with the original model arch
+        with open(yaml_dir, "r") as file:
+            yaml_data = safe_load(file)
+
+        # Construct the dataloaders for training and validation
+        datamodule = KnowIt._get_datamodule(self.exp_output_dir, yaml_data['data'])
+        train_loader = datamodule.get_dataloader('train', preload=True, num_workers=4,
+                                                 persistent_workers=True, pin_memory=True)
+
+        valid_loader = datamodule.get_dataloader('valid', preload=True, num_workers=4,
+                                                 persistent_workers=True, pin_memory=True)
+
+        # Load the model and model_parameters
+        model, model_params = KnowIt._get_arch_setup(self.exp_output_dir,
+                                                     self.available_archs(),
+                                                     yaml_data['arch'],
+                                                     datamodule.in_shape,
+                                                     datamodule.out_shape)
+
+        # Open the checkpoint file and change necessary parameters to continue training
+        try:
+            checkpoint = load(ckpt_dir, map_location="cpu")
+            checkpoint['hyper_parameters']['model'] = kwargs['model']  # Hardcoded to go to LSTMv2
+            checkpoint['hyper_parameters']['inference_time'] = kwargs['inference_time']  # Record the
+            checkpoint['hyper_parameters']['model_params']['freeze_n_layers'] = kwargs['freeze_n_layers']
+            checkpoint['lr_schedulers'][0]['monitor'] = 'valid_loss'
+            save(checkpoint, ckpt_dir)
+        except Exception as e:
+            print(e)
+
+
+        # Remove and re-instantiate unexpected trainer arguments in optional pl kwargs
+        trainer_args = yaml_data['trainer'].copy()
+        trainer_args.pop('task', None)  # discard the task dictionary in trainer args
+        optional_pl_kwargs = trainer_args.pop('optional_pl_kwargs', {})
+        optional_pl_kwargs['log_every_n_steps'] = min(len(train_loader.batch_sampler), 50)
+
+        rescale = trainer_args.pop('rescale_logged_output_metrics', False)
+        if rescale:
+            trainer_args['output_scaler'] = datamodule.y_scaler
+
+        # Add missing directories to the trainer arguments
+        trainer_args['model'] = model
+        trainer_args['model_params'] = model_params
+        trainer_args['out_dir'] = os.path.abspath(
+            f"{self.exp_output_dir}/models/{model_name}"
+        )
+        trainer_args['device'] = device
+        trainer_args['inference_time'] = kwargs['inference_time']
+
+        CTkwargs = {
+            'to_ckpt': ckpt_dir,
+            'base_kwargs': trainer_args,
+            'optional_pl_kwargs': optional_pl_kwargs
+        }
+
+        print(f"Out dir: {trainer_args['out_dir']}")
+
+        # This did not work previously
+        trainer = KITrainer(state=ContinueTraining,
+                            base_trainer_kwargs=trainer_args,
+                            optional_pl_kwargs=optional_pl_kwargs,
+                            ckpt_file=ckpt_dir,
+                            train_flag='train_from_ckpt',
+                            )
+
+        trainer.fit(dataloaders=(train_loader,valid_loader))

@@ -6,6 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="472b7247-f302-442b-99a3-62fc35383213" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/default_archs/LSTMv2.py" beforeDir="false" afterPath="$PROJECT_DIR$/default_archs/LSTMv2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainer/model_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/trainer/model_config.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -18,6 +20,65 @@
   <component name="McpProjectServerCommands">
     <commands />
     <urls />
+  </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0000002470258595" />
+      <entry key="S5" value="1.0035980130538735" />
+      <entry key="S10" value="1.1196212411923263" />
+      <entry key="S30" value="3.3121531917027744" />
+      <entry key="S60" value="6.69492093134904" />
+      <entry key="M2" value="10.169917284703287" />
+      <entry key="M5" value="13.297458317667642" />
+      <entry key="M10" value="14.577682666905538" />
+      <entry key="M15" value="15.035225816737716" />
+      <entry key="M30" value="15.509128793311431" />
+      <entry key="H1" value="15.752404446453141" />
+      <entry key="H2" value="15.875657290424451" />
+      <entry key="H4" value="15.937691788779093" />
+      <entry key="D1" value="15.98959623715639" />
+      <entry key="W1" value="15.998513280671355" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="3.810980808488822E-109" />
+      <entry key="MS500" value="2.0943645577418895E-22" />
+      <entry key="S2" value="5.028237979641209E-6" />
+      <entry key="S5" value="0.011162985519425924" />
+      <entry key="S10" value="0.15494475110956268" />
+      <entry key="S30" value="1.0278865257958405" />
+      <entry key="S60" value="1.729815490911494" />
+      <entry key="M2" value="2.2686775251302684" />
+      <entry key="M5" value="2.67999848716258" />
+      <entry key="M10" value="2.834992553440926" />
+      <entry key="M15" value="2.888848147707051" />
+      <entry key="M30" value="2.9438417897858966" />
+      <entry key="H1" value="2.9717736405468234" />
+      <entry key="H2" value="2.9858497939799657" />
+      <entry key="H4" value="2.992915613683683" />
+      <entry key="D1" value="2.99881797732343" />
+      <entry key="W1" value="2.999831107956307" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="0.008200911590805209" />
+      <entry key="MS500" value="0.3826241924556669" />
+      <entry key="S2" value="0.7864931636676017" />
+      <entry key="S5" value="0.9206113432395473" />
+      <entry key="S10" value="1.2009982191050108" />
+      <entry key="S30" value="4.212411656453665" />
+      <entry key="S60" value="8.297941553069075" />
+      <entry key="M2" value="12.345975646451773" />
+      <entry key="M5" value="15.93045449281895" />
+      <entry key="M10" value="17.387190838891147" />
+      <entry key="M15" value="17.906616111580572" />
+      <entry key="M30" value="18.444000254295243" />
+      <entry key="H1" value="18.71963117133195" />
+      <entry key="H2" value="18.85921801030128" />
+      <entry key="H4" value="18.92945893882346" />
+      <entry key="D1" value="18.988222256592366" />
+      <entry key="W1" value="18.99831695264438" />
+    </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 4
@@ -50,8 +111,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-3bd3a6803838-JavaScript-PY-261.22158.340" />
-        <option value="bundled-python-sdk-b63d5a1f7c97-b61e75351b1f-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.22158.340" />
+        <option value="bundled-js-predefined-d6986cc7102b-4abd2a77f808-JavaScript-PY-262.8665.369" />
+        <option value="bundled-python-sdk-6fa658e1df1a-5bd6d13a2a75-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-262.8665.369" />
       </set>
     </attachedChunks>
   </component>
@@ -168,6 +229,8 @@
       <workItem from="1776065656617" duration="2293000" />
       <workItem from="1776075887614" duration="168000" />
       <workItem from="1776858218541" duration="757000" />
+      <workItem from="1785144189219" duration="4797000" />
+      <workItem from="1785220751545" duration="6973000" />
     </task>
     <servers />
   </component>
@@ -190,13 +253,18 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/trainer/model_config.py</url>
-          <line>481</line>
+          <line>485</line>
           <option name="timeStamp" value="2" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/data/data_splitting.py</url>
           <line>204</line>
           <option name="timeStamp" value="3" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/knowit.py</url>
+          <line>9</line>
+          <option name="timeStamp" value="4" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
